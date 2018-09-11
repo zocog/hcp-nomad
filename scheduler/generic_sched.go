@@ -381,7 +381,10 @@ func (s *GenericScheduler) computeJobAllocs() error {
 
 	// Nothing remaining to do if placement is not required
 	if len(results.place)+len(results.destructiveUpdate) == 0 {
-		if !s.job.Stopped() {
+		// If the job has been purged we don't have access to the job. Otherwise
+		// set the queued allocs to zero. This is true if the job is being
+		// stopped as well.
+		if s.job != nil {
 			for _, tg := range s.job.TaskGroups {
 				s.queuedAllocs[tg.Name] = 0
 			}
@@ -592,14 +595,18 @@ func updateRescheduleTracker(alloc *structs.Allocation, prev *structs.Allocation
 }
 
 // findPreferredNode finds the preferred node for an allocation
-func (s *GenericScheduler) findPreferredNode(place placementResult) (node *structs.Node, err error) {
+func (s *GenericScheduler) findPreferredNode(place placementResult) (*structs.Node, error) {
 	if prev := place.PreviousAllocation(); prev != nil && place.TaskGroup().EphemeralDisk.Sticky == true {
 		var preferredNode *structs.Node
 		ws := memdb.NewWatchSet()
-		preferredNode, err = s.state.NodeByID(ws, prev.NodeID)
-		if preferredNode.Ready() {
-			node = preferredNode
+		preferredNode, err := s.state.NodeByID(ws, prev.NodeID)
+		if err != nil {
+			return nil, err
+		}
+
+		if preferredNode != nil && preferredNode.Ready() {
+			return preferredNode, nil
 		}
 	}
-	return
+	return nil, nil
 }
