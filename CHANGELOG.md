@@ -1,4 +1,22 @@
-## 0.8.6 (September 24, 2018)
+## 0.8.7 (Unreleased)
+
+IMPROVEMENTS:
+* core: Added `filter_default`, `prefix_filter` and `disable_dispatched_job_summary_metrics`
+  client options to improve metric filtering [[GH-4878](https://github.com/hashicorp/nomad/issues/4878)]
+* driver/docker: Support `bind` mount type in order to allow Windows users to mount absolute paths [[GH-4958](https://github.com/hashicorp/nomad/issues/4958)]
+
+BUG FIXES:
+* core: Fixed bug in reconciler where allocs already stopped were being unnecessarily updated [[GH-4764](https://github.com/hashicorp/nomad/issues/4764)]
+* core: Fixed bug where some successfully completed jobs get re-run after job garbage collection [[GH-4861](https://github.com/hashicorp/nomad/pull/4861)]
+* core: Fixed bug that affects garbage collection of batch jobs that are purged and resubmitted with the same id [[GH-4839](https://github.com/hashicorp/nomad/pull/4839)]
+* core: Fixed issue with handling duplicated blocked evaluations [[GH-4867](https://github.com/hashicorp/nomad/pull/4867)]
+* core: Fixed panic when Vault secret response is nil [[GH-4904](https://github.com/hashicorp/nomad/pull/4904)] [[GH-4937](https://github.com/hashicorp/nomad/pull/4937)]
+* core: Fixed issue with negative counts in job summary [[GH-4949](https://github.com/hashicorp/nomad/issues/4949)]
+* deployments: Fix an issue where a deployment with multiple task groups could
+  be marked as failed when the first progress deadline was hit regardless of if
+  that group was done deploying [[GH-4842](https://github.com/hashicorp/nomad/issues/4842)]
+
+## 0.8.6 (September 26, 2018)
 
 IMPROVEMENTS:
 * core: Increased scheduling performance when annotating existing allocations

@@ -1614,6 +1614,75 @@ func TestStateStore_DeleteJob_Job(t *testing.T) {
 	}
 }
 
+func TestStateStore_DeleteJobTxn_BatchDeletes(t *testing.T) {
+	state := testStateStore(t)
+
+	const testJobCount = 10
+	const jobVersionCount = 4
+
+	stateIndex := uint64(1000)
+
+	jobs := make([]*structs.Job, testJobCount)
+	for i := 0; i < testJobCount; i++ {
+		stateIndex++
+		job := mock.BatchJob()
+
+		err := state.UpsertJob(stateIndex, job)
+		require.NoError(t, err)
+
+		jobs[i] = job
+
+		// Create some versions
+		for vi := 1; vi < jobVersionCount; vi++ {
+			stateIndex++
+
+			job := job.Copy()
+			job.TaskGroups[0].Tasks[0].Env = map[string]string{
+				"Version": fmt.Sprintf("%d", vi),
+			}
+
+			require.NoError(t, state.UpsertJob(stateIndex, job))
+		}
+	}
+
+	ws := memdb.NewWatchSet()
+
+	// Sanity check that jobs are present in DB
+	job, err := state.JobByID(ws, jobs[0].Namespace, jobs[0].ID)
+	require.NoError(t, err)
+	require.Equal(t, jobs[0].ID, job.ID)
+
+	jobVersions, err := state.JobVersionsByID(ws, jobs[0].Namespace, jobs[0].ID)
+	require.NoError(t, err)
+	require.Equal(t, jobVersionCount, len(jobVersions))
+
+	// Actually delete
+	const deletionIndex = uint64(10001)
+	err = state.WithWriteTransaction(func(txn Txn) error {
+		for i, job := range jobs {
+			err := state.DeleteJobTxn(deletionIndex, job.Namespace, job.ID, txn)
+			require.NoError(t, err, "failed at %d %e", i, err)
+		}
+		return nil
+	})
+	assert.NoError(t, err)
+
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	out, err := state.JobByID(ws, jobs[0].Namespace, jobs[0].ID)
+	require.NoError(t, err)
+	require.Nil(t, out)
+
+	jobVersions, err = state.JobVersionsByID(ws, jobs[0].Namespace, jobs[0].ID)
+	require.NoError(t, err)
+	require.Empty(t, jobVersions)
+
+	index, err := state.Index("jobs")
+	require.NoError(t, err)
+	require.Equal(t, deletionIndex, index)
+}
+
 func TestStateStore_DeleteJob_MultipleVersions(t *testing.T) {
 	state := testStateStore(t)
 	assert := assert.New(t)
@@ -3625,6 +3694,8 @@ func TestStateStore_UpdateAllocsFromClient_DeploymentStateMerges(t *testing.T) {
 	require.Nil(err)
 	require.NotNil(out)
 	require.True(out.DeploymentStatus.Canary)
+	require.NotNil(out.DeploymentStatus.Healthy)
+	require.True(*out.DeploymentStatus.Healthy)
 }
 
 func TestStateStore_UpsertAlloc_Alloc(t *testing.T) {
@@ -5607,7 +5678,15 @@ func TestStateStore_UpsertDeploymentPromotion_Unhealthy(t *testing.T) {
 	c2.DeploymentID = d.ID
 	d.TaskGroups[c2.TaskGroup].PlacedCanaries = append(d.TaskGroups[c2.TaskGroup].PlacedCanaries, c2.ID)
 
-	require.Nil(state.UpsertAllocs(3, []*structs.Allocation{c1, c2}))
+	// Create a healthy but terminal alloc
+	c3 := mock.Alloc()
+	c3.JobID = j.ID
+	c3.DeploymentID = d.ID
+	c3.DesiredStatus = structs.AllocDesiredStatusStop
+	c3.DeploymentStatus = &structs.AllocDeploymentStatus{Healthy: helper.BoolToPtr(true)}
+	d.TaskGroups[c3.TaskGroup].PlacedCanaries = append(d.TaskGroups[c3.TaskGroup].PlacedCanaries, c3.ID)
+
+	require.Nil(state.UpsertAllocs(3, []*structs.Allocation{c1, c2, c3}))
 
 	// Promote the canaries
 	req := &structs.ApplyDeploymentPromoteRequest{
