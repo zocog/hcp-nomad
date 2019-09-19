@@ -655,6 +655,9 @@ func (d *Driver) containerBinds(task *drivers.TaskConfig, driverConfig *TaskConf
 func (d *Driver) createContainerConfig(task *drivers.TaskConfig, driverConfig *TaskConfig,
 	imageID string) (docker.CreateContainerOptions, error) {
 
+	// ensure that PortMap variables are populated early on
+	task.Env = taskenv.SetPortMapEnvs(task.Env, driverConfig.PortMap)
+
 	logger := d.logger.With("task_name", task.Name)
 	var c docker.CreateContainerOptions
 	if task.Resources == nil {
@@ -1312,7 +1315,7 @@ func (d *Driver) ExecTaskStreaming(ctx context.Context, taskID string, opts *dri
 	const execTerminatingTimeout = 3 * time.Second
 	start := time.Now()
 	var res *docker.ExecInspect
-	for res == nil || res.Running || time.Since(start) > execTerminatingTimeout {
+	for (res == nil || res.Running) && time.Since(start) <= execTerminatingTimeout {
 		res, err = client.InspectExec(exec.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to inspect exec result: %v", err)
