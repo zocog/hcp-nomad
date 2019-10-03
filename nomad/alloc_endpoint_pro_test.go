@@ -58,28 +58,44 @@ func TestAllocEndpoint_GetAlloc_Namespaces(t *testing.T) {
 	allocs, codec, token, s := setupAllocNamespaces(t)
 	defer s.Shutdown()
 
-	req := &structs.AllocSpecificRequest{
-		AllocID: allocs[0].ID,
-		QueryOptions: structs.QueryOptions{
-			AuthToken: token,
-			Region:    "global",
-			Namespace: "staging",
-		},
+	cases := []struct {
+		name         string
+		allocID      string
+		reqNamespace string
+		success      bool
+	}{
+		{"plain_success", allocs[0].ID, "staging", true},
+		{"wrong_req_namespace", allocs[0].ID, "default", true},
+		{"wrong_req_namespace2", allocs[0].ID, "prod", true},
+
+		{"invalid_access_correct_ns", allocs[1].ID, "prod", false},
+		{"invalid_access_wrong_ns", allocs[1].ID, "staging", false},
 	}
 
-	// staging alloc should be gettable
-	var resp structs.SingleAllocResponse
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Alloc.GetAlloc", req, &resp))
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			req := &structs.AllocSpecificRequest{
+				AllocID: c.allocID,
+				QueryOptions: structs.QueryOptions{
+					AuthToken: token,
+					Region:    "global",
+					Namespace: c.reqNamespace,
+				},
+			}
 
-	// prod alloc should 404
-	req.AllocID = allocs[1].ID
-	err := msgpackrpc.CallWithCodec(codec, "Alloc.GetAlloc", req, &resp)
-	require.True(t, structs.IsErrUnknownAllocation(err))
+			// staging alloc should be gettable
+			var resp structs.SingleAllocResponse
+			err := msgpackrpc.CallWithCodec(codec, "Alloc.GetAlloc", req, &resp)
 
-	// when namespace is properly set the error is permission denied
-	req.QueryOptions.Namespace = "prod"
-	err = msgpackrpc.CallWithCodec(codec, "Alloc.GetAlloc", req, &resp)
-	require.EqualError(t, err, structs.ErrPermissionDenied.Error())
+			if c.success {
+				require.NoError(t, err)
+			} else {
+				require.True(t, structs.IsErrUnknownAllocation(err), "expected unknown alloc, but found %v", err)
+			}
+
+		})
+	}
+
 }
 
 // TestAllocEndpoint_Stop_Namespaces asserts that a token with alloc-lifecycle
