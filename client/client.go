@@ -95,7 +95,8 @@ const (
 
 	// defaultConnectSidecarImage is the image set in the node meta by default
 	// to be used by Consul Connect sidecar tasks
-	defaultConnectSidecarImage = "envoyproxy/envoy:v1.11.1"
+	// Update sidecar_task.html when updating this.
+	defaultConnectSidecarImage = "envoyproxy/envoy:v1.11.2@sha256:a7769160c9c1a55bb8d07a3b71ce5d64f72b1f665f10d81aa1581bc3cf850d09"
 
 	// defaultConnectLogLevel is the log level set in the node meta by default
 	// to be used by Consul Connect sidecar tasks
@@ -731,6 +732,16 @@ func (c *Client) Stats() map[string]map[string]string {
 	return stats
 }
 
+// GetAlloc returns an allocation or an error.
+func (c *Client) GetAlloc(allocID string) (*structs.Allocation, error) {
+	ar, err := c.getAllocRunner(allocID)
+	if err != nil {
+		return nil, err
+	}
+
+	return ar.Alloc(), nil
+}
+
 // SignalAllocation sends a signal to the tasks within an allocation.
 // If the provided task is empty, then every allocation will be signalled.
 // If a task is provided, then only an exactly matching task will be signalled.
@@ -778,6 +789,8 @@ func (c *Client) Node() *structs.Node {
 	return c.configCopy.Node
 }
 
+// getAllocRunner returns an AllocRunner or an UnknownAllocation error if the
+// client has no runner for the given alloc ID.
 func (c *Client) getAllocRunner(allocID string) (AllocRunner, error) {
 	c.allocLock.RLock()
 	defer c.allocLock.RUnlock()
@@ -882,7 +895,6 @@ func (c *Client) GetAllocFS(allocID string) (allocdir.AllocDirFS, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return ar.GetAllocDir(), nil
 }
 
@@ -1279,11 +1291,13 @@ func (c *Client) setupNode() error {
 	if node.Name == "" {
 		node.Name, _ = os.Hostname()
 	}
-	// TODO(dani): Fingerprint these to handle volumes that don't exist/have bad perms.
 	if node.HostVolumes == nil {
 		if l := len(c.config.HostVolumes); l != 0 {
 			node.HostVolumes = make(map[string]*structs.ClientHostVolumeConfig, l)
 			for k, v := range c.config.HostVolumes {
+				if _, err := os.Stat(v.Path); err != nil {
+					return fmt.Errorf("failed to validate volume %s, err: %v", v.Name, err)
+				}
 				node.HostVolumes[k] = v.Copy()
 			}
 		}
@@ -1876,6 +1890,7 @@ func (c *Client) watchAllocations(updates chan *allocUpdates) {
 		QueryOptions: structs.QueryOptions{
 			Region:     c.Region(),
 			AllowStale: true,
+			AuthToken:  c.secretNodeID(),
 		},
 	}
 	var allocsResp structs.AllocsGetResponse
