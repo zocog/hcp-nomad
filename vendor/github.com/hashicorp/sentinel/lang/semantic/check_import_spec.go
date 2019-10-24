@@ -23,7 +23,7 @@ type CheckImportSpec struct{}
 
 // Check implements Checker for CheckImportSpec.
 func (c *CheckImportSpec) Check(f *ast.File, fset *token.FileSet) error {
-	var result *multierror.Error
+	var result error
 	for _, impt := range f.Imports {
 		if !isValidImport(impt.Path.Value) {
 			result = multierror.Append(result, &CheckError{
