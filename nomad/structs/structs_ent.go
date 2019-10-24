@@ -136,7 +136,10 @@ func (s *SentinelPolicy) Compile() (*ast.File, *token.FileSet, error) {
 	}
 
 	// Perform semantic checks
-	if err := semantic.Check(f, fset); err != nil {
+	if err := semantic.Check(semantic.CheckOpts{
+		File:    f,
+		FileSet: fset,
+	}); err != nil {
 		return nil, nil, err
 	}
 
