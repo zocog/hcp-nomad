@@ -30,7 +30,6 @@ func (s *FileSet) Base() int {
 	b := s.base
 	s.mutex.RUnlock()
 	return b
-
 }
 
 // AddFile adds a new file with a given filename, base offset, and file size

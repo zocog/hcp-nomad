@@ -16,9 +16,6 @@ package parser
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
-	"unicode"
 
 	"github.com/hashicorp/sentinel/lang/ast"
 	"github.com/hashicorp/sentinel/lang/scanner"
@@ -61,6 +58,9 @@ type parser struct {
 	pkgScope   *ast.Scope   // pkgScope.Outer == nil
 	topScope   *ast.Scope   // top-most scope; may be pkgScope
 	unresolved []*ast.Ident // unresolved identifiers
+
+	// Binary expression state
+	nextNeg bool // the next binary op should be negated
 }
 
 func (p *parser) init(fset *token.FileSet, filename string, src []byte, mode Mode) {
@@ -163,7 +163,7 @@ func (p *parser) consumeComment() (comment *ast.Comment, endline int) {
 	// /*-style comments may end on a different line than where they start.
 	// Scan the comment for '\n' chars and adjust endline accordingly.
 	endline = p.file.Line(p.pos)
-	if p.lit[1] == '*' {
+	if len(p.lit) > 1 && p.lit[1] == '*' {
 		// don't use range here - no need to decode Unicode code points
 		for i := 0; i < len(p.lit); i++ {
 			if p.lit[i] == '\n' {
@@ -479,13 +479,16 @@ func (p *parser) resolve(x ast.Expr) {
 // ----------------------------------------------------------------------------
 // Identifiers
 
-func (p *parser) parseIdent() *ast.Ident {
+func (p *parser) parseIdent(selector bool) *ast.Ident {
 	pos := p.pos
 	name := "_"
-	if p.tok == token.IDENT {
+	switch {
+	case selector && p.validSelector():
+		fallthrough
+	case p.tok == token.IDENT:
 		name = p.lit
 		p.next()
-	} else {
+	default:
 		p.expect(token.IDENT) // use expect() error handling
 	}
 
@@ -500,7 +503,7 @@ func (p *parser) parseStmtList() (list []ast.Stmt) {
 		defer un(trace(p, "StatementList"))
 	}
 
-	for p.tok != token.RBRACE && p.tok != token.EOF {
+	for p.tok != token.WHEN && p.tok != token.ELSE && p.tok != token.RBRACE && p.tok != token.EOF {
 		list = append(list, p.parseStmt())
 	}
 
@@ -566,10 +569,16 @@ func (p *parser) parseStmt() (s ast.Stmt) {
 		p.expectSemi()
 	case token.RETURN:
 		s = p.parseReturnStmt()
+	case token.BREAK:
+		s = p.parseBranchStmt(token.BREAK)
+	case token.CONTINUE:
+		s = p.parseBranchStmt(token.CONTINUE)
 	case token.IF:
 		s = p.parseIfStmt()
 	case token.FOR:
 		s = p.parseForStmt()
+	case token.CASE:
+		s = p.parseCaseStmt()
 	case token.SEMICOLON:
 		// Is it ever possible to have an implicit semicolon
 		// producing an empty statement in a valid program?
@@ -661,13 +670,13 @@ func (p *parser) parseForStmt() *ast.ForStmt {
 	p.expect(token.AS)
 
 	// Look for the variable name
-	name := p.parseIdent()
+	name := p.parseIdent(false)
 
 	// If we have a comma, get the second name
 	var name2 *ast.Ident
 	if p.tok == token.COMMA {
 		p.next()
-		name2 = p.parseIdent()
+		name2 = p.parseIdent(false)
 	}
 
 	// The body block
@@ -676,6 +685,91 @@ func (p *parser) parseForStmt() *ast.ForStmt {
 	p.expectSemi()
 
 	return &ast.ForStmt{For: pos, Expr: x, Name: name, Name2: name2, Body: body}
+}
+
+func (p *parser) parseExprList() (list []ast.Expr) {
+	if p.trace {
+		defer un(trace(p, "ExpressionList"))
+	}
+
+	list = append(list, p.parseExpr(false))
+	for p.tok == token.COMMA {
+		p.next()
+		list = append(list, p.parseExpr(false))
+	}
+
+	return
+}
+
+func (p *parser) parseCaseWhenClause() *ast.CaseWhenClause {
+	if p.trace {
+		defer un(trace(p, "CaseWhenClause"))
+	}
+
+	pos := p.pos
+
+	var x []ast.Expr
+	if p.tok == token.WHEN {
+		p.next()
+		x = p.parseExprList()
+	} else {
+		p.expect(token.ELSE)
+	}
+
+	c := p.expect(token.COLON)
+	p.openScope()
+	list := p.parseStmtList()
+	p.closeScope()
+
+	return &ast.CaseWhenClause{TokPos: pos, Expr: x, Colon: c, List: list}
+}
+
+func (p *parser) parseCaseStmt() *ast.CaseStmt {
+	if p.trace {
+		defer un(trace(p, "CaseStmt"))
+	}
+
+	pos := p.expect(token.CASE)
+	// although a scope is created, it is cannot be used due to
+	// case only supporting expressions. However, by adding it we can
+	// future proof features of case for little overhead.
+	p.openScope()
+	defer p.closeScope()
+
+	var x ast.Expr
+	// if we have an expression, the current token will not be LBRACE
+	if p.tok != token.LBRACE {
+		// An expression to switch on
+		prevLev := p.exprLev
+		p.exprLev = -1
+		x = p.parseExpr(false)
+		p.exprLev = prevLev
+	}
+
+	lbrace := p.expect(token.LBRACE)
+	var list []ast.Stmt
+	for p.tok != token.RBRACE && p.tok != token.EOF {
+		list = append(list, p.parseCaseWhenClause())
+	}
+	rbrace := p.expect(token.RBRACE)
+
+	block := &ast.BlockStmt{Lbrace: lbrace, List: list, Rbrace: rbrace}
+
+	p.expectSemi()
+
+	return &ast.CaseStmt{Case: pos, Expr: x, Block: block}
+}
+
+func (p *parser) parseBranchStmt(tok token.Token) *ast.BranchStmt {
+	if p.trace {
+		defer un(trace(p, "BranchStmt"))
+	}
+
+	pos := p.pos
+	p.expect(tok)
+	p.expectSemi()
+
+	return &ast.BranchStmt{TokPos: pos, Tok: tok}
 }
 
 func (p *parser) parseReturnStmt() *ast.ReturnStmt {
@@ -763,7 +857,7 @@ func (p *parser) parseFunc() ast.Expr {
 	var idents []*ast.Ident
 	if p.tok != token.RPAREN {
 		for {
-			idents = append(idents, p.parseIdent())
+			idents = append(idents, p.parseIdent(false))
 			if p.tok != token.COMMA {
 				break
 			}
@@ -817,13 +911,13 @@ func (p *parser) parseQuantExpr() *ast.QuantExpr {
 	p.expect(token.AS)
 
 	// Look for the variable name
-	name := p.parseIdent()
+	name := p.parseIdent(false)
 
 	// If we have a comma, get the second name
 	var name2 *ast.Ident
 	if p.tok == token.COMMA {
 		p.next()
-		name2 = p.parseIdent()
+		name2 = p.parseIdent(false)
 	}
 
 	// The body block
@@ -858,9 +952,8 @@ func (p *parser) parseBinaryExpr(lhs bool, prec1 int) ast.Expr {
 	x := p.parseUnaryExpr(lhs)
 
 	// Determine if we're negating an operator
-	neg := false
 	if p.tok == token.NOTSTR {
-		neg = true
+		p.nextNeg = true
 		p.next()
 	}
 
@@ -873,11 +966,16 @@ func (p *parser) parseBinaryExpr(lhs bool, prec1 int) ast.Expr {
 			}
 			pos := p.expect(op)
 
-			// If we're negating, it must be a specific operator that we find
-			if neg {
+			// Set local negation state from global parser state, if set.
+			// Also validate if the operators are correct if we are
+			// expecting a negated operator.
+			neg := false
+			if p.nextNeg {
 				switch op {
 				case token.CONTAINS, token.MATCHES, token.IN:
 					// Okay
+					neg = true
+					p.nextNeg = false
 
 				default:
 					p.errorExpected(pos, "contains, matches, or in")
@@ -937,10 +1035,9 @@ L:
 				p.resolve(x)
 			}
 
-			switch p.tok {
-			case token.IDENT:
+			if p.validSelector() {
 				x = p.parseSelector(x)
-			default:
+			} else {
 				pos := p.pos
 				p.errorExpected(pos, "selector")
 				p.next() // make progress
@@ -979,7 +1076,7 @@ func (p *parser) parseOperand(lhs bool) ast.Expr {
 
 	switch p.tok {
 	case token.IDENT:
-		x := p.parseIdent()
+		x := p.parseIdent(false)
 		if !lhs {
 			p.resolve(x)
 		}
@@ -1123,7 +1220,7 @@ func (p *parser) parseSelector(x ast.Expr) ast.Expr {
 		defer un(trace(p, "Selector"))
 	}
 
-	sel := p.parseIdent()
+	sel := p.parseIdent(true)
 	return &ast.SelectorExpr{X: x, Sel: sel}
 }
 
@@ -1200,17 +1297,6 @@ func (p *parser) parseCall(fun ast.Expr) *ast.CallExpr {
 // ----------------------------------------------------------------------------
 // Declarations
 
-func isValidImport(lit string) bool {
-	const illegalChars = `!"#$%&'()*,:;<=>?[\]^{|}` + "`\uFFFD"
-	s, _ := strconv.Unquote(lit) // go/scanner returns a legal string literal
-	for _, r := range s {
-		if !unicode.IsGraphic(r) || unicode.IsSpace(r) || strings.ContainsRune(illegalChars, r) {
-			return false
-		}
-	}
-	return s != ""
-}
-
 func (p *parser) parseImportSpec() *ast.ImportSpec {
 	if p.trace {
 		defer un(trace(p, "ImportSpec"))
@@ -1225,9 +1311,6 @@ func (p *parser) parseImportSpec() *ast.ImportSpec {
 	var path string
 	if p.tok == token.STRING {
 		path = p.lit
-		if !isValidImport(path) {
-			p.error(pos, "invalid import path: "+path)
-		}
 		p.next()
 	} else {
 		p.expect(token.STRING) // use expect() error handling
@@ -1237,7 +1320,7 @@ func (p *parser) parseImportSpec() *ast.ImportSpec {
 	if p.tok == token.AS {
 		// We are renaming this import under another identifier
 		p.next()
-		ident = p.parseIdent()
+		ident = p.parseIdent(false)
 	}
 
 	p.expectSemi() // call before accessing p.linecomment
@@ -1319,4 +1402,31 @@ func (p *parser) parseFile() *ast.File {
 		Unresolved: p.unresolved[0:i],
 		Comments:   p.comments,
 	}
+}
+
+// validSelector returns true if the current token is valid as a selector.
+//
+// In the AST, selectors cascade down to a final identifier, so selectors are,
+// at their core, identifiers. However, strictly speaking, identifiers exclude
+// reserved words, like "rule". In real-world applications, this can make for a
+// confusing selector expression that is sort of antithetical to Sentinel's
+// core value of being readable.
+//
+// Consider the following (abbreviated) real-world Terraform expression:
+//
+//   tfplan.resources.aws_s3_bucket.foo[0].applied.server_side_encryption_configuration[0].rule
+//
+// Without exceptions, this is not allowed by the parser, on part of the
+// bareword "rule" keyword. It would need to be written as:
+//
+//   tfplan.resources.aws_s3_bucket.foo[0].applied.server_side_encryption_configuration[0]["rule"]
+//
+func (p *parser) validSelector() bool {
+	// While it should never happen in practice, as the special case is handled
+	// in the parser and not the lexer, we block ISNOT explicitly, which is a
+	// multi-word token.
+	if p.tok.IsKeyword() && p.tok != token.ISNOT || p.tok == token.IDENT {
+		return true
+	}
+	return false
 }

@@ -14,6 +14,7 @@ import (
 // tag all fields with `sentinel:""`.
 type Dynamic interface {
 	SentinelGet(string) (interface{}, error)
+	SentinelKeys() []string
 }
 
 // dynamicTyp is a reflect.Type for Dynamic.
@@ -59,6 +60,10 @@ func (m *structNS) Get(key string) (interface{}, error) {
 
 func (m *structNS) Map() (map[string]interface{}, error) {
 	m.once.Do(m.init)
+
+	if m.ns != nil {
+		return framework.MapFromKeys(m, m.ns.SentinelKeys())
+	}
 
 	keys := make([]string, 0, len(m.fieldMap))
 	for k := range m.fieldMap {

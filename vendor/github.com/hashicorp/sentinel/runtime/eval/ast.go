@@ -12,11 +12,15 @@ import (
 // definitely because the Import field may be shadowed by a variable
 // assignment. In this case, the Original expression should be evaluated.
 type astImportExpr struct {
-	Original         ast.Node   `ast:"norewrite"` // original in case import is shadowed
-	StartPos, EndPos token.Pos  // position of the selector and end
-	Import           string     // Import being accessed
-	Keys             []string   // Keys being accessed
-	Args             []ast.Expr // Arguments (nil if not a call expression)
+	Original         ast.Node       `ast:"norewrite"` // original in case import is shadowed
+	StartPos, EndPos token.Pos      // position of the selector and end
+	Import           string         // Import being accessed
+	Keys             []astImportKey // Selector keys and appropriate args (for calls)
+}
+
+type astImportKey struct {
+	Key  string
+	Args []ast.Expr
 }
 
 func (n *astImportExpr) Pos() token.Pos { return n.StartPos }

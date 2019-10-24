@@ -408,6 +408,25 @@ type (
 		Body  *BlockStmt
 	}
 
+	CaseWhenClause struct {
+		TokPos token.Pos // position of keyword ("when", "else")
+		Expr   []Expr
+		Colon  token.Pos // position of ":"
+		List   []Stmt
+	}
+
+	CaseStmt struct {
+		Case  token.Pos // position of "case" keyword
+		Expr  Expr      // expression
+		Block *BlockStmt
+	}
+
+	// A BranchStmt node represents a break or continue.
+	BranchStmt struct {
+		TokPos token.Pos   // position of Tok
+		Tok    token.Token // keyword token (BREAK, CONTINUE)
+	}
+
 	// A ReturnStmt node represents a return statement.
 	ReturnStmt struct {
 		Return token.Pos // position of "return" keyword
@@ -424,14 +443,17 @@ type (
 
 // Pos and End implementations for statement nodes.
 //
-func (s *BadStmt) Pos() token.Pos    { return s.From }
-func (s *EmptyStmt) Pos() token.Pos  { return s.Semicolon }
-func (s *AssignStmt) Pos() token.Pos { return s.Lhs.Pos() }
-func (s *BlockStmt) Pos() token.Pos  { return s.Lbrace }
-func (s *IfStmt) Pos() token.Pos     { return s.If }
-func (s *ForStmt) Pos() token.Pos    { return s.For }
-func (s *ReturnStmt) Pos() token.Pos { return s.Return }
-func (s *ExprStmt) Pos() token.Pos   { return s.X.Pos() }
+func (s *BadStmt) Pos() token.Pos        { return s.From }
+func (s *EmptyStmt) Pos() token.Pos      { return s.Semicolon }
+func (s *AssignStmt) Pos() token.Pos     { return s.Lhs.Pos() }
+func (s *BlockStmt) Pos() token.Pos      { return s.Lbrace }
+func (s *IfStmt) Pos() token.Pos         { return s.If }
+func (s *ForStmt) Pos() token.Pos        { return s.For }
+func (s *BranchStmt) Pos() token.Pos     { return s.TokPos }
+func (s *ReturnStmt) Pos() token.Pos     { return s.Return }
+func (s *ExprStmt) Pos() token.Pos       { return s.X.Pos() }
+func (s *CaseWhenClause) Pos() token.Pos { return s.TokPos }
+func (s *CaseStmt) Pos() token.Pos       { return s.Case }
 
 func (s *BadStmt) End() token.Pos { return s.To }
 func (s *EmptyStmt) End() token.Pos {
@@ -448,21 +470,34 @@ func (s *IfStmt) End() token.Pos {
 	}
 	return s.Body.End()
 }
-func (s *ForStmt) End() token.Pos    { return s.Body.End() }
+func (s *ForStmt) End() token.Pos { return s.Body.End() }
+func (s *BranchStmt) End() token.Pos {
+	return token.Pos(int(s.TokPos) + len(s.Tok.String()))
+}
 func (s *ReturnStmt) End() token.Pos { return s.Result.End() }
 func (s *ExprStmt) End() token.Pos   { return s.X.End() }
+func (s *CaseWhenClause) End() token.Pos {
+	if len(s.List) == 0 {
+		return s.Colon // no statements, ends at the colon
+	}
+	return s.List[len(s.List)-1].End() // ends at the last statement
+}
+func (s *CaseStmt) End() token.Pos { return s.Block.End() }
 
 // stmtNode() ensures that only statement nodes can be
 // assigned to a Stmt.
 //
-func (*BadStmt) StmtNode()    {}
-func (*EmptyStmt) StmtNode()  {}
-func (*AssignStmt) StmtNode() {}
-func (*BlockStmt) StmtNode()  {}
-func (*IfStmt) StmtNode()     {}
-func (*ForStmt) StmtNode()    {}
-func (*ReturnStmt) StmtNode() {}
-func (*ExprStmt) StmtNode()   {}
+func (*BadStmt) StmtNode()        {}
+func (*EmptyStmt) StmtNode()      {}
+func (*AssignStmt) StmtNode()     {}
+func (*BlockStmt) StmtNode()      {}
+func (*IfStmt) StmtNode()         {}
+func (*ForStmt) StmtNode()        {}
+func (*BranchStmt) StmtNode()     {}
+func (*ReturnStmt) StmtNode()     {}
+func (*ExprStmt) StmtNode()       {}
+func (*CaseWhenClause) StmtNode() {}
+func (*CaseStmt) StmtNode()       {}
 
 // ----------------------------------------------------------------------------
 // Declarations

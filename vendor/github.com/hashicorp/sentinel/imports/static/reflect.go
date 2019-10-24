@@ -35,6 +35,11 @@ func reflectValue(original reflect.Value) reflect.Value {
 	}
 
 	switch v.Kind() {
+	case reflect.Map:
+		if m, ok := v.Interface().(map[string]interface{}); ok {
+			return reflect.ValueOf(&mapNS{objects: m})
+		}
+
 	case reflect.Struct:
 		// If the value is a struct, setup a struct lookup
 		return reflect.ValueOf(&structNS{

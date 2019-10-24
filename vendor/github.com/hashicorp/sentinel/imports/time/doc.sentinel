@@ -11,20 +11,29 @@
 // `time.load()` function to create a new timespace from the specified value.
 // See the documentation for available actions on timespaces.
 //
-// Times specified as the reference time or via the `time.load()` function can
-// be specified in `timeish` fashion, either as seconds since the Unix epoch
-// (UTC) or as an RFC3339-style time string. If the latter, the time zone
-// included in the string will be honored.
+// Times specified as the reference time to functions (i.e. as a value to
+// `time.before()`, `time.load()`, etc.) can be specified in a `timeish`
+// fashion. This is either one of:
+//
+// * The number of seconds since the Unix epoch (Thursday, 1 January 1970,
+// 00:00:00 UTC),
+// * A timestamp matching the format outlined in RFC3339, either in the
+// format `2006-01-02T15:04:05+07:00`, which includes a timezone offset, or
+// `2006-01-02T15:04:05Z`, which indicates UTC.
+//
+// **NOTE:** Due to limitations in the runtime, the following usage scenarios
+// are not supported when using this import:
+//
+// * Multiple function calls in the same expression, example:
+// `time.load(1136239445).before(1136239446)`.
+// * Making function calls on a returned timespace. Working off of the above
+// example, if you assigned the first value to `t` in the form `t =
+// time.load(1136239445)`, `t.before(1136239446)` will not be supported.
+//
+// To work within the limitations surrounding function calls, times can be compared
+// by converting them to Unix time using the `unix` function. These limitations
+// may be addressed in future releases.
 import "time"
-
-// The default timezone for the execution or reference time. This will default
-// to UTC if it isn't set. The value should be a string with the full timezone
-// name, such as `"America/Los_Angeles"`.
-config.timezone
-
-// An override for the execution time. If not set, the current time will be
-// used. Value should be timeish.
-config.reference
 
 // Create a `timespace` locked either to execution time or, if set, the
 // reference time. In a given execution, this will always produce the same
@@ -32,8 +41,26 @@ config.reference
 timespace = time.now
 
 // Create a timespace using the given value. Please see the import
-// documentation for valid values for "timeish".
+// documentation overview above for valid values for "timeish".
 timespace = time.load(timeish)
+
+// A nanosecond duration unit for use with the `add` timespace function.
+time.nanosecond
+
+// A microsecond duration unit for use with the `add` timespace function.
+time.microsecond
+
+// A millisecond duration unit for use with the `add` timespace function.
+time.millisecond
+
+// A second duration unit for use with the `add` timespace function.
+time.second
+
+// A minute for use with the `add` timespace function.
+time.minute
+
+// An hour duration unit for use with the `add` timespace function.
+time.hour
 
 // The hour from 0 to 23.
 timespace.hour
@@ -50,8 +77,14 @@ timespace.day
 // The month of the year as an integer, starting from 1.
 timespace.month
 
+// The name of the month of the year, in English. Example: `January`.
+timespace.month_name
+
 // The weekday as an integer, where 0 is Sunday and 6 is Saturday.
 timespace.weekday
+
+// The name of the day of the week, in English. Example: `Sunday`.
+timespace.weekday_name
 
 // The year as an integer.
 timespace.year
@@ -61,6 +94,13 @@ timespace.unix
 
 // The number of nanoseconds since the Unix epoch.
 timespace.unix_nano
+
+// The timezone offset, in seconds. This can be a negative number to indicate
+// time west of UTC.
+timespace.zone
+
+// The timezone offset, in the format `+HH:MM` (example: `+00:00` for UTC).
+timespace.zone_string
 
 // Check if the time in the timespace is before the given time
 timespace.before(timeish_or_timespace)
@@ -78,11 +118,3 @@ timespace.add(duration)
 
 // Subtract a time from the time in the timespace and return a duration.
 timespace.sub(timeish_or_timespace)
-
-// These values are constant durations that can be used in comparisons
-time.nanosecond
-time.microsecond
-time.millisecond
-time.second
-time.minute
-time.hour

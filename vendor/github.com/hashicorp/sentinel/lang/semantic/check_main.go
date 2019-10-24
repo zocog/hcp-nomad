@@ -5,8 +5,12 @@ import (
 	"github.com/hashicorp/sentinel/lang/token"
 )
 
-// checkMain verifies that there is a top-level `main` rule.
-func checkMain(f *ast.File, fset *token.FileSet) error {
+// CheckMain is a checker that verifies that there is a top-level
+// `main` rule.
+type CheckMain struct{}
+
+// Check implements Checker for CheckMain.
+func (c *CheckMain) Check(f *ast.File, fset *token.FileSet) error {
 	for _, stmt := range f.Stmts {
 		assign, ok := stmt.(*ast.AssignStmt)
 		if !ok {

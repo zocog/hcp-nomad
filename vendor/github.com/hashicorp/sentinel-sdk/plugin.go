@@ -23,8 +23,9 @@ var (
 	Null = &null{}
 )
 
-//go:generate rm -f mock_Import.go
+//go:generate rm -f mock_Import.go mock_Import_Closer.go
 //go:generate mockery -inpkg -note "Generated code. DO NOT MODIFY." -name=Import
+//go:generate cp mock_Import_Closer.go.src mock_Import_Closer.go
 
 // Import is an importable package.
 //
@@ -66,28 +67,59 @@ type GetReq struct {
 
 	// Keys is the list of keys being requested. For example for "a.b.c"
 	// where "a" is the import, Keys would be ["b", "c"].
-	//
+	Keys []GetKey
+
 	// KeyId is a unique ID for this key. This should match exactly the
 	// GetResult KeyId so that the result for this can be found quickly.
-	Keys  []string
 	KeyId uint64
 
-	// Args is the list of arguments for a call expression. This is "nil"
-	// if this isn't a call. This may be length zero (but non-nil) if this
-	// is a call with no arguments.
+	// Context, if supplied, is an arbitrary object intended to
+	// represent the data from an existing namespace. If the import
+	// supports the framework.New interface, the contents are passed to
+	// it, with any resulting namespace being what Get operates on.
+	//
+	// The Get call operates on the root of the import if this is set
+	// to nil. If this is set and the import does not implement
+	// framework.New, an error is returned.
+	Context map[string]interface{}
+}
+
+// GetKey is an individual key in the larger possible selector of the
+// specific import call, along with any supplied arguments for the
+// specific key.
+type GetKey struct {
+	// The key for this part of the request.
+	Key string
+
+	// The list of arguments for a call expression. This is "nil" if
+	// this key is not a call. This may be length zero (but non-nil) if
+	// this is a call with no arguments.
 	Args []interface{}
 }
 
 // Call returns true if this request is a call expression.
-func (g *GetReq) Call() bool {
+func (g *GetKey) Call() bool {
 	return g.Args != nil
+}
+
+// GetKeys returns a list of the string keys in the GetReq, without
+// the arguments.
+func (g *GetReq) GetKeys() []string {
+	s := make([]string, len(g.Keys))
+	for i, k := range g.Keys {
+		s[i] = k.Key
+	}
+
+	return s
 }
 
 // GetResult is the result structure for a Get request.
 type GetResult struct {
-	KeyId uint64      // KeyId matching GetReq.KeyId, or zero.
-	Keys  []string    // Keys structure from GetReq.Keys, or new key set.
-	Value interface{} // Value compatible with lang/object.ToObject
+	KeyId    uint64                 // KeyId matching GetReq.KeyId, or zero.
+	Keys     []string               // Keys structure from GetReq.Keys, or new key set.
+	Value    interface{}            // Value compatible with lang/object.ToObject
+	Context  map[string]interface{} // Updated Context if it was sent
+	Callable bool                   // true if returned Value is callable
 }
 
 // GetResultList is a wrapper around a slice of GetResult structures

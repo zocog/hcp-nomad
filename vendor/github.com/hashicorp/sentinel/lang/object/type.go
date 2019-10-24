@@ -27,12 +27,16 @@ const (
 	collection_beg // the types here are collections
 	LIST
 	MAP
+	MEMOIZED_REMOTE_OBJECT
 	collection_end
 
 	RULE
 	FUNC
+
 	EXTERNAL
 	RUNTIME
+	MODULE
+	MEMOIZED_REMOTE_OBJECT_MISS
 )
 
 // String values for types
@@ -48,13 +52,16 @@ var types = [...]string{
 	FLOAT:  "float",
 	STRING: "string",
 
-	LIST: "list",
-	MAP:  "map",
+	LIST:                   "list",
+	MAP:                    "map",
+	MEMOIZED_REMOTE_OBJECT: "memoized_remote_object",
 
-	RULE:     "rule",
-	FUNC:     "func",
-	EXTERNAL: "external",
-	RUNTIME:  "runtime",
+	RULE:                        "rule",
+	FUNC:                        "func",
+	EXTERNAL:                    "external",
+	RUNTIME:                     "runtime",
+	MODULE:                      "module",
+	MEMOIZED_REMOTE_OBJECT_MISS: "memoized_remote_object_miss",
 }
 
 // String returns the string corresponding to the type t. This is meant

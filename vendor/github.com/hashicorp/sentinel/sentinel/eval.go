@@ -31,7 +31,7 @@ func IsRuntime(err error) bool {
 // of these are required. They can alter the default behavior of an
 // evaluation.
 type EvalOpts struct {
-	// Data is the a set of data to inject into the global scope of
+	// Data is the set of data to inject into the global scope of
 	// the policies. This map must not be modified during execution.
 	Data map[string]interface{}
 
@@ -112,9 +112,10 @@ type EvalPolicyResult struct {
 // Eval evaluates a set of policies and returns the result of the policy
 // execution along with any error that may have occurred.
 //
-// The policies must be safe for reading, which typically means that a
-// read lock is held. Sentinel will do this automatically if the policy
-// was retrieved via the Policy method.
+// The policies must be safe for reading, which typically means that a read
+// lock is held. Sentinel will do this automatically if the policy was
+// retrieved via the Policy method. This goes the same for any modules set with
+// the Module method.
 //
 // Sentinel may or may not execute all policies and the order is also
 // not guaranteed. Depending on the configuration, policies may be executed
@@ -128,19 +129,11 @@ func (s *Sentinel) Eval(ps []*Policy, opts *EvalOpts) *EvalResult {
 		Policies: make([]*EvalPolicyResult, 0, len(ps)),
 	}
 
-	// Build the scope which can be shared by all
-	scope := object.NewScope(eval.Universe)
-	if opts != nil {
-		for k, v := range opts.Data {
-			obj, err := static.NewObject(v)
-			if err != nil {
-				result.Error = fmt.Errorf(
-					"couldn't convert data %q to Sentinel object: %s",
-					k, err)
-				return result
-			}
-
-			scope.Objects[k] = obj
+	// Build the modules list
+	modules := make(map[string]*eval.Module)
+	for mk, mv := range s.modules {
+		modules[mk] = &eval.Module{
+			Compiled: mv.compiled,
 		}
 	}
 
@@ -151,6 +144,22 @@ func (s *Sentinel) Eval(ps []*Policy, opts *EvalOpts) *EvalResult {
 	// Currently we just do a naive sequential execution with zero
 	// performance improvements. We'll improve this later.
 	for _, p := range ps {
+		// Build the scope for this execution
+		scope := object.NewScope(eval.Universe())
+		if opts != nil {
+			for k, v := range opts.Data {
+				obj, err := static.NewObject(v)
+				if err != nil {
+					result.Error = fmt.Errorf(
+						"couldn't convert data %q to Sentinel object: %s",
+						k, err)
+					return result
+				}
+
+				scope.Objects[k] = obj
+			}
+		}
+
 		impt := &sentinelImporter{
 			Sentinel: s,
 			Policy:   p,
@@ -166,6 +175,7 @@ func (s *Sentinel) Eval(ps []*Policy, opts *EvalOpts) *EvalResult {
 			Compiled: p.compiled,
 			Scope:    scope,
 			Importer: impt,
+			Modules:  modules,
 			Timeout:  s.evalTimeout,
 			Trace:    traceOut,
 		})

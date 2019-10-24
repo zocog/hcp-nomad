@@ -40,6 +40,9 @@ func (m *root) Func(key string) interface{} {
 			return strings.HasSuffix(s, suffix), nil
 		}
 
+	case "join":
+		return join
+
 	case "trim_prefix":
 		return func(s, prefix string) (interface{}, error) {
 			return strings.TrimPrefix(s, prefix), nil

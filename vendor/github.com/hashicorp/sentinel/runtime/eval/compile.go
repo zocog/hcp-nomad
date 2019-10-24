@@ -18,8 +18,9 @@ type Compiled struct {
 
 // CompileOpts are options for compilation.
 type CompileOpts struct {
-	File    *ast.File      // File to execute
-	FileSet *token.FileSet // FileSet for positional information
+	File         *ast.File          // File to execute
+	FileSet      *token.FileSet     // FileSet for positional information
+	SkipCheckers []semantic.Checker // List of semantic checks to skip
 }
 
 // Compile compiles the given policy file.
@@ -32,7 +33,11 @@ type CompileOpts struct {
 // modified in-place.
 func Compile(opts *CompileOpts) (*Compiled, error) {
 	// Verify semantics
-	if err := semantic.Check(opts.File, opts.FileSet); err != nil {
+	if err := semantic.Check(semantic.CheckOpts{
+		File:         opts.File,
+		FileSet:      opts.FileSet,
+		SkipCheckers: opts.SkipCheckers,
+	}); err != nil {
 		return nil, err
 	}
 

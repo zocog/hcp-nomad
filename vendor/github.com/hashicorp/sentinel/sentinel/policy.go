@@ -15,11 +15,11 @@ import (
 
 // Policy represents a single policy.
 //
-// A policy can be either ready or not ready. A ready policy is a policy
-// that has a loaded policy and configured imports. A policy can be readied
-// by acquiring a lock, calling the Set* methods, and then calling the Ready
-// method. The Ready method will mark the policy as ready and switch the write
-// lock to a read lock.
+// A policy can be either ready or not ready. A ready policy is a policy that
+// has a loaded policy and configured imports. A policy can be readied by
+// acquiring a lock, calling the Set* methods, and then calling the SetReady
+// method, which will mark the policy as ready and switch the write lock to a
+// read lock.
 //
 // Policy methods are safe for concurrent access. A policy is protected with
 // a reader/writer lock. The lock must be held for using the policy.
@@ -76,6 +76,13 @@ type policyImport struct {
 // Getters only valid when Ready, they all assume a read lock is
 // already held
 //
+
+// File returns the ast.File associated with this Policy. This can be used
+// to avoid recompiling the File if it is shared with other policies or needs
+// to be used for any other reason.
+func (p *Policy) File() *ast.File {
+	return p.file
+}
 
 // FileSet returns the FileSet associated with this Policy. This can be
 // used to turn token.Pos values into full positions.
@@ -150,7 +157,7 @@ func (p *Policy) SetReady() error {
 			hash, err := hashstructure.Hash(v.Config, nil)
 			if err != nil {
 				return fmt.Errorf(
-					"error setting policy configuration for import %q: %s",
+					"error setting policy configuration for import %q: %v",
 					k, v)
 			}
 

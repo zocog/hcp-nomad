@@ -45,8 +45,18 @@ func NewMap(m map[string]interface{}) (*framework.Import, error) {
 }
 
 // NewStruct is a helper that returns a configured import for the given struct.
-func NewStruct(v reflect.Value) (*framework.Import, error) {
-	r := &root{Namespace: &structNS{value: v, original: v}}
+func NewStruct(original reflect.Value) (*framework.Import, error) {
+	v := original
+	for v.Kind() == reflect.Interface || v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	// If after all the indirection we're left with an invalid value, do nothing
+	if !v.IsValid() {
+		return nil, fmt.Errorf("error applying indirection")
+	}
+
+	r := &root{Namespace: &structNS{value: v, original: original}}
 	impt := &framework.Import{Root: r}
 	return impt, nil
 }

@@ -17,6 +17,19 @@ strings.has_prefix(s, prefix)
 // ```
 strings.has_suffix(s, suffix)
 
+// Joins a list with the string supplied by `sep`.
+//
+// Multi-dimensional lists are supported, and non-string primitive
+// types will be converted to their string equivalents. Maps and
+// other complex non-list types are not supported.
+//
+// ```python
+// strings.join(["foo", "bar", "baz"], ".")   // "foo.bar.baz"
+// strings.join([["foo", "bar"], "baz"], ".") // "foo.bar.baz"
+// strings.join(["a", 1, 1.01, true], ",")    // "a,1,1.01,true"
+// ```
+strings.join(a, sep)
+
 // Trim the prefix from the string `s`. If the string doesn't have the
 // prefix, then the string is returned unmodified.
 //
