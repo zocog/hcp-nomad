@@ -96,7 +96,7 @@ install:
   - git clone --branch=$TRAVIS_BRANCH git@github.com:hashicorp/nomad-enterprise.git $TRAVIS_REPO_SLUG
   - cd $TRAVIS_REPO_SLUG
   - git checkout -qf "${TRAVIS_COMMIT}"
-  - if [[ -z "$SKIP_NOMAD_TESTS" ]] || [[ "$RUN_STATIC_CHECKS" ]]; then make deps; fi
+  - if [[ -z "$SKIP_NOMAD_TESTS" ]] || [[ "$RUN_STATIC_CHECKS" ]] || [[ "$RUN_E2E_TESTS" ]]; then make deps; fi
   - if [[ "$RUN_STATIC_CHECKS" ]]; then make lint-deps ; fi
   - if [[ "$RUN_UI_TESTS" ]]; then . $HOME/.nvm/nvm.sh && cd ui && nvm install && nvm use && cd .. ; fi
 
