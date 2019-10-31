@@ -195,7 +195,7 @@ jobs:
             git checkout --theirs CHANGELOG.md
             git checkout --theirs version/version.go
             git checkout --theirs command/agent/bindata_assetfs.go
-            git add version/version.go command/agent/bindata_assetfs.go
+            git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go
             git commit -m "merge latest OSS master ${OSS_HEAD}"
           fi
 
