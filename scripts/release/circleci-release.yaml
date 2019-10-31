@@ -192,6 +192,7 @@ jobs:
           if ! git merge ${OSS_HEAD}
           then
             git status
+            git checkout --theirs CHANGELOG.md
             git checkout --theirs version/version.go
             git checkout --theirs command/agent/bindata_assetfs.go
             git add version/version.go command/agent/bindata_assetfs.go
