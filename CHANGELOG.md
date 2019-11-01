@@ -1,11 +1,13 @@
-## 0.10.1 (October 31, 2019)
+## 0.10.1 (Unreleased)
 
 BUG FIXES:
 
- * core: Fix server panic after upgrading from 0.8 -> 0.10 and performing an
+ * core: Fixed server panic when upgrading from 0.8 -> 0.10 and performing an
    inplace update of an allocation. [[GH-6541](https://github.com/hashicorp/nomad/issues/6541)]
- * api: Fix panic when submitting Connect-enabled job without using a bridge
+ * api: Fixed panic when submitting Connect-enabled job without using a bridge
    network [[GH-6575](https://github.com/hashicorp/nomad/issues/6575)]
+ * client: Fixed client panic when upgrading from 0.8 -> 0.10 and performing an
+   inplace update of an allocation. [[GH-6605](https://github.com/hashicorp/nomad/issues/6605)]
 
 ## 0.10.0 (October 22, 2019)
 
