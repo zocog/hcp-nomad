@@ -2,7 +2,7 @@
 
 set -o errexit
 
-VERSION=0.10.2
+VERSION=1.2.3
 OS="linux"
 if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     OS="darwin"
