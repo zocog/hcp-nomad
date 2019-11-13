@@ -120,6 +120,34 @@ func TestServer_Sentinel_EnforceScope_Stdlib(t *testing.T) {
 	assert.Nil(t, warn)
 }
 
+// Ensure HTTP import is not present
+func TestServer_Sentinel_EnforceScope_HTTP(t *testing.T) {
+	t.Parallel()
+	s1, _ := testACLServer(t, nil)
+	defer s1.Shutdown()
+	testutil.WaitForLeader(t, s1.RPC)
+
+	// data call back for enforement
+	dataCB := func() map[string]interface{} {
+		return map[string]interface{}{
+			"my_string": "foobar",
+		}
+	}
+
+	// Add a policy
+	policy1 := mock.SentinelPolicy()
+	policy1.EnforcementLevel = structs.SentinelEnforcementLevelHardMandatory
+	policy1.Policy = `import "http"
+	main = rule { true }
+	`
+	s1.State().UpsertSentinelPolicies(1001, []*structs.SentinelPolicy{policy1})
+
+	// Check that we get an error
+	warn, err = s1.enforceScope(false, structs.SentinelScopeSubmitJob, dataCB)
+	assert.NotNil(t, err)
+	assert.Nil(t, warn)
+}
+
 func TestServer_SentinelPoliciesByScope(t *testing.T) {
 	t.Parallel()
 	s1, _ := testACLServer(t, nil)
