@@ -2,8 +2,8 @@ package units
 
 // Byte sizes (base 2 form)
 const (
-	B  int64 = iota
-	KB int64 = 1 << (10 * iota)
+	B int64 = 1 << (10 * iota)
+	KB
 	MB
 	GB
 	TB

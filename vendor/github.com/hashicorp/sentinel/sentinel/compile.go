@@ -22,8 +22,9 @@ func (s *Sentinel) Compile(name string, src interface{}) (*ast.File, *token.File
 		return nil, nil, err
 	}
 
-	// Perform semantic checks
-	if err := semantic.Check(f, fset); err != nil {
+	if err := semantic.Check(semantic.CheckOpts{
+		File: f, FileSet: fset, SkipCheckers: s.skipCheckers,
+	}); err != nil {
 		return nil, nil, err
 	}
 

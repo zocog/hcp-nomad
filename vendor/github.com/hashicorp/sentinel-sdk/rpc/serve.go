@@ -1,6 +1,10 @@
 package rpc
 
 import (
+	"math"
+
+	"google.golang.org/grpc"
+
 	goplugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/sentinel-sdk"
 )
@@ -18,7 +22,7 @@ var Handshake = goplugin.HandshakeConfig{
 	// one or the other that makes it so that they can't safely communicate.
 	// This could be adding a new interface value, it could be how
 	// helper/schema computes diffs, etc.
-	ProtocolVersion: 1,
+	ProtocolVersion: 2,
 
 	// The magic cookie values should NEVER be changed.
 	MagicCookieKey:   "SENTINEL_PLUGIN_MAGIC_COOKIE",
@@ -43,7 +47,11 @@ func Serve(opts *ServeOpts) {
 	goplugin.Serve(&goplugin.ServeConfig{
 		HandshakeConfig: Handshake,
 		Plugins:         pluginMap(opts),
-		GRPCServer:      goplugin.DefaultGRPCServer,
+		GRPCServer: func(opts []grpc.ServerOption) *grpc.Server {
+			opts = append(opts, grpc.MaxRecvMsgSize(math.MaxInt32))
+			opts = append(opts, grpc.MaxSendMsgSize(math.MaxInt32))
+			return goplugin.DefaultGRPCServer(opts)
+		},
 	})
 }
 

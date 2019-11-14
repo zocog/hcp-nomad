@@ -1,7 +1,4 @@
 // Package time contains a Sentinel plugin for serving time information.
-//
-// Docs will come soon, a big TODO. For now please see the source below
-// which isn't too difficult to follow.
 package time
 
 import (
@@ -180,11 +177,20 @@ type rootNamespace struct {
 	reference time.Time
 }
 
+// framework.New impl.
+func (r *rootNamespace) New(data map[string]interface{}) (framework.Namespace, error) {
+	val, err := parseTimeInput(data)
+	if err != nil {
+		return nil, err
+	}
+	return &fixedTimespace{fixedTime: val}, nil
+}
+
 // framework.Namespace impl.
-func (m *rootNamespace) Get(key string) (interface{}, error) {
+func (r *rootNamespace) Get(key string) (interface{}, error) {
 	switch key {
 	case "now":
-		return &fixedTimespace{fixedTime: m.reference}, nil
+		return &fixedTimespace{fixedTime: r.reference}, nil
 
 	case "nanosecond":
 		return time.Nanosecond, nil
@@ -245,11 +251,17 @@ func (f *fixedTimespace) Get(key string) (interface{}, error) {
 	case "month":
 		return f.fixedTime.Month(), nil
 
+	case "month_name":
+		return f.fixedTime.Month().String(), nil
+
 	case "second":
 		return f.fixedTime.Second(), nil
 
 	case "weekday":
 		return f.fixedTime.Weekday(), nil
+
+	case "weekday_name":
+		return f.fixedTime.Weekday().String(), nil
 
 	case "year":
 		return f.fixedTime.Year(), nil
@@ -259,6 +271,22 @@ func (f *fixedTimespace) Get(key string) (interface{}, error) {
 
 	case "unix_nano":
 		return f.fixedTime.UnixNano(), nil
+
+	case "zone":
+		_, sec := f.fixedTime.Zone()
+		return sec, nil
+
+	case "zone_string":
+		_, sec := f.fixedTime.Zone()
+		sym := "+"
+		if sec < 0 {
+			sym = "-"
+			sec = sec * -1
+		}
+
+		hh := sec / 3600
+		mm := (sec - (hh * 3600)) / 60
+		return fmt.Sprintf("%s%02d:%02d", sym, hh, mm), nil
 
 	default:
 		return nil, fmt.Errorf("unsupported field: %s", key)
@@ -315,7 +343,21 @@ func (f *fixedTimespace) Func(key string) interface{} {
 // framework.Map impl.
 func (f *fixedTimespace) Map() (map[string]interface{}, error) {
 	// This is not ideal, I'm open to doing this another way.
-	keys := []string{"day", "hour", "minute", "month", "second", "weekday", "year", "unix", "unix_nano"}
+	keys := []string{
+		"day",
+		"hour",
+		"minute",
+		"month",
+		"month_name",
+		"second",
+		"weekday",
+		"weekday_name",
+		"year",
+		"unix",
+		"unix_nano",
+		"zone",
+		"zone_string",
+	}
 
 	// Go through all the supported keys and build our map data.
 	result := make(map[string]interface{})

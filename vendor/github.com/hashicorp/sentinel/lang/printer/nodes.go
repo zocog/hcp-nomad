@@ -543,6 +543,32 @@ func (p *printer) stmt(stmt ast.Stmt) {
 			p.stmt(x.Else)
 		}
 
+	case *ast.CaseWhenClause:
+		kind := token.WHEN
+		if x.Expr == nil {
+			kind = token.ELSE
+		}
+		p.print(kind)
+		if kind == token.WHEN {
+			for i, exp := range x.Expr {
+				p.print(blank)
+				p.expr(exp)
+				if i < len(x.Expr)-1 {
+					p.print(token.COMMA)
+				}
+			}
+		}
+		p.print(token.COLON)
+		p.stmtList(x.List, 1)
+
+	case *ast.CaseStmt:
+		p.print(token.CASE, blank)
+		if x.Expr != nil {
+			p.expr(x.Expr)
+		}
+		p.print(blank)
+		p.block(x.Block, 1)
+
 	case *ast.ForStmt:
 		p.print(token.FOR, blank)
 		p.expr(x.Expr)
@@ -554,6 +580,9 @@ func (p *printer) stmt(stmt ast.Stmt) {
 		}
 		p.print(blank)
 		p.block(x.Body, 1)
+
+	case *ast.BranchStmt:
+		p.print(x.TokPos, x.Tok)
 
 	case *ast.ReturnStmt:
 		p.print(token.RETURN, blank)

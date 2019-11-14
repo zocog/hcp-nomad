@@ -9,6 +9,10 @@ import (
 	"github.com/hashicorp/sentinel/lang/object"
 )
 
+var (
+	sdkNullValue = reflect.ValueOf(sdk.Null)
+)
+
 // GoToObject converts the Go value to an Object.
 //
 // The Go value must contain only primitives, collections of primitives,
@@ -89,6 +93,11 @@ func toObject_reflect(v reflect.Value) (object.Object, error) {
 	// If we have a value that is an Object, return that
 	if v.Type().Implements(objectTyp) {
 		return v.Interface().(object.Object), nil
+	}
+
+	// If the value is the special SDK null value, then return null
+	if v == sdkNullValue {
+		return object.Null, nil
 	}
 
 	// Decode depending on the type. We need to redo all of the primitives

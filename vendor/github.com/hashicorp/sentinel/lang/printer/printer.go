@@ -351,7 +351,7 @@ func (p *printer) writeWhitespace(n int) {
 		case unindent:
 			p.indent--
 			if p.indent < 0 {
-				panic(fmt.Sprintf("negative indentation:", p.indent))
+				panic(fmt.Sprintf("negative indentation: %d", p.indent))
 			}
 
 		case newline, formfeed:

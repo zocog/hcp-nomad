@@ -5,8 +5,8 @@ import "sockaddr"
 // is contained within `outer`.
 //
 // ```python
-// sockaddr.is_container("192.168.0.0/24", "192.168.48.32") // true
-// sockaddr.is_container("192.168.0.0/24", "192.174.1.1")   // false
+// sockaddr.is_contained("192.168.0.0/24", "192.168.48.32") // true
+// sockaddr.is_contained("192.168.0.0/24", "192.174.1.1")   // false
 // ```
 sockaddr.is_contained(outer, inner)
 

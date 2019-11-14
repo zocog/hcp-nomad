@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 
+	sdk "github.com/hashicorp/sentinel-sdk"
 	"github.com/hashicorp/sentinel/lang/object"
 )
 
@@ -24,6 +25,11 @@ var (
 )
 
 func objectToGo(raw object.Object, t reflect.Type) (interface{}, error) {
+	// If the object is the null object, return the SDK singleton.
+	if raw == object.Null {
+		return sdk.Null, nil
+	}
+
 	// t == nil if you call reflect.TypeOf(interface{}{}) or
 	// if the user explicitly send in nil which we make to mean
 	// the same thing.
@@ -49,6 +55,9 @@ func objectToGo(raw object.Object, t reflect.Type) (interface{}, error) {
 			kind = reflect.Slice
 
 		case object.MAP:
+			kind = reflect.Map
+
+		case object.MEMOIZED_REMOTE_OBJECT:
 			kind = reflect.Map
 
 		default:
@@ -227,8 +236,18 @@ func convertObjectSlice(raw object.Object, t reflect.Type) (interface{}, error) 
 }
 
 func convertObjectMap(raw object.Object, t reflect.Type) (interface{}, error) {
-	mapObj, ok := raw.(*object.MapObj)
-	if !ok {
+	var mapObj *object.MapObj
+	switch x := raw.(type) {
+	case *object.MapObj:
+		mapObj = x
+
+	case *object.MemoizedRemoteObj:
+		// One-way conversion of MemoizedRemoteObj - there's no analog
+		// for this in GoToObject as this is a purely runtime-specific
+		// type.
+		mapObj = x.Context
+
+	default:
 		return nil, convertErr(raw, "map")
 	}
 
@@ -248,8 +267,15 @@ func convertObjectMap(raw object.Object, t reflect.Type) (interface{}, error) {
 			return nil, fmt.Errorf("element for key %s: %s", elt.Key.String(), err)
 		}
 
+		// Get the value. If the elem is nil then we need to get the zero
+		// value of the type otherwise SetMapIndex deletes the value.
+		val := reflect.ValueOf(elem)
+		if elem == nil {
+			val = reflect.Zero(elemTyp)
+		}
+
 		// Set it
-		mapVal.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(elem))
+		mapVal.SetMapIndex(reflect.ValueOf(key), val)
 	}
 
 	return mapVal.Interface(), nil
@@ -257,8 +283,18 @@ func convertObjectMap(raw object.Object, t reflect.Type) (interface{}, error) {
 
 // objectMapType creates a map type to match the keys/values in the value.
 func objectMapType(raw object.Object) reflect.Type {
-	mapObj, ok := raw.(*object.MapObj)
-	if !ok {
+	var mapObj *object.MapObj
+	switch x := raw.(type) {
+	case *object.MapObj:
+		mapObj = x
+
+	case *object.MemoizedRemoteObj:
+		// One-way conversion of MemoizedRemoteObj - there's no analog
+		// for this in GoToObject as this is a purely runtime-specific
+		// type.
+		mapObj = x.Context
+
+	default:
 		return interfaceTyp
 	}
 

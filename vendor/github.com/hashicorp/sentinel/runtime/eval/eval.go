@@ -3,6 +3,7 @@ package eval
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -10,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/sentinel-sdk"
+	sdk "github.com/hashicorp/sentinel-sdk"
 	"github.com/hashicorp/sentinel/lang/ast"
 	"github.com/hashicorp/sentinel/lang/object"
 	"github.com/hashicorp/sentinel/lang/token"
@@ -19,12 +20,15 @@ import (
 	"github.com/hashicorp/sentinel/runtime/trace"
 )
 
+var mapStringInterfaceTyp = reflect.TypeOf(map[string]interface{}{})
+
 type EvalOpts struct {
-	Compiled *Compiled         // Compiled policy to evaluate
-	Scope    *object.Scope     // Global scope, the parent of this should be Universe
-	Importer importer.Importer // Importer for imports
-	Timeout  time.Duration     // Max execution time
-	Trace    *trace.Trace      // Set to non-nil to recording tracing information
+	Compiled *Compiled          // Compiled policy to evaluate
+	Scope    *object.Scope      // Global scope, the parent of this should be Universe
+	Importer importer.Importer  // Importer for imports
+	Modules  map[string]*Module // Available modules
+	Timeout  time.Duration      // Max execution time
+	Trace    *trace.Trace       // Set to non-nil to recording tracing information
 }
 
 // Eval evaluates the compiled policy and returns the result.
@@ -43,6 +47,7 @@ func Eval(opts *EvalOpts) (bool, error) {
 		FileSet:  opts.Compiled.fileSet,
 		Scope:    opts.Scope,
 		Importer: opts.Importer,
+		Modules:  opts.Modules,
 		Timeout:  opts.Timeout,
 		Trace:    opts.Trace,
 	}
@@ -71,24 +76,33 @@ func Eval(opts *EvalOpts) (bool, error) {
 // isn't given in EvalOpts, this ID is incremented and used.
 var globalExecId uint64
 
+// These are special runtime objects that we use as sentinel values as part
+// of runtime execution.
+var (
+	runtimeBreakObj    = &object.RuntimeObj{}
+	runtimeContinueObj = &object.RuntimeObj{}
+)
+
 // Interpreter is the interpreter for Sentinel, implemented using a basic
 // AST walk. After calling any methods of Interpreter, the exported fields
 // should not be modified.
 type evalState struct {
-	ExecId   uint64            // Execution ID, unique per evaluation
-	File     *ast.File         // File to execute
-	FileSet  *token.FileSet    // FileSet for positional information
-	MaxDepth int               // Maximum stack depth
-	Scope    *object.Scope     // Global scope, the parent of this should be Universe
-	Importer importer.Importer // Importer for imports
-	Timeout  time.Duration     // Timeout for execution
-	Trace    *trace.Trace      // If non-nil, sets trace data here
+	ExecId   uint64             // Execution ID, unique per evaluation
+	File     *ast.File          // File to execute
+	FileSet  *token.FileSet     // FileSet for positional information
+	MaxDepth int                // Maximum stack depth
+	Scope    *object.Scope      // Global scope, the parent of this should be Universe
+	Importer importer.Importer  // Importer for imports
+	Modules  map[string]*Module // Available modules
+	Timeout  time.Duration      // Timeout for execution
+	Trace    *trace.Trace       // If non-nil, sets trace data here
 
-	depth     int                   // current stack depth
-	deadline  time.Time             // deadline of this execution
-	imports   map[string]sdk.Import // imports are loaded imports
-	returnObj object.Object         // object set by last `return` statement
-	timeoutCh <-chan time.Time      // closed after a timeout is reached
+	deadline    time.Time             // deadline of this execution
+	depth       int                   // current stack depth
+	imports     map[string]sdk.Import // imports are loaded imports
+	moduleStack moduleStack           // module stack for tracking import loops
+	returnObj   object.Object         // object set by last `return` statement
+	timeoutCh   <-chan time.Time      // closed after a timeout is reached
 
 	// Trace data
 
@@ -144,6 +158,14 @@ func (e *evalState) Eval() (result bool, err error) {
 	// If an error occurred, return that
 	if err != nil {
 		return false, err
+	}
+
+	if obj == nil {
+		// This ultimately means that no main was given to this policy.
+		return false, &NoMainError{
+			File:    e.File,
+			FileSet: e.FileSet,
+		}
 	}
 
 	// The result can be undefined, which is a special error type
@@ -221,6 +243,20 @@ func (e *UndefError) Error() string {
 	return fmt.Sprintf(errUndefined, strings.Join(locs, "\n"))
 }
 
+// NoMainError is returned when the top-level result is nil (so no main defined).
+type NoMainError struct {
+	File    *ast.File      // The file
+	FileSet *token.FileSet // FileSet for the file
+}
+
+func (e *NoMainError) Error() string {
+	if e.FileSet == nil {
+		return fmt.Sprintf("no main at undefined location")
+	}
+
+	return fmt.Sprintf(errNoMain, e.FileSet.Position(e.File.Pos()))
+}
+
 // err is a shortcut to easily produce errors from evaluation.
 func (e *evalState) err(msg string, n ast.Node, s *object.Scope) {
 	panic(bailout{Err: &EvalError{
@@ -283,8 +319,23 @@ func (e *evalState) eval(raw ast.Node, s *object.Scope) object.Object {
 	case *ast.IfStmt:
 		return e.evalIfStmt(n, s)
 
+	case *ast.CaseStmt:
+		return e.evalCaseStmt(n, s)
+
 	case *ast.ForStmt:
 		return e.evalForStmt(n, s)
+
+	case *ast.BranchStmt:
+		switch n.Tok {
+		case token.BREAK:
+			e.returnObj = runtimeBreakObj
+		case token.CONTINUE:
+			e.returnObj = runtimeContinueObj
+		default:
+			e.err(fmt.Sprintf("unexpected BranchStmt token: %s", n.Tok), raw, s)
+		}
+
+		return nil
 
 	case *ast.ReturnStmt:
 		e.returnObj = e.eval(n.Result, s)
@@ -298,35 +349,7 @@ func (e *evalState) eval(raw ast.Node, s *object.Scope) object.Object {
 	// Expressions
 
 	case *ast.Ident:
-		if n.Name == UndefinedName {
-			return &object.UndefinedObj{Pos: []token.Pos{raw.Pos()}}
-		}
-
-		obj := s.Lookup(n.Name)
-		if obj == nil {
-			switch n.Name {
-			case "error":
-				return object.ExternalFunc(e.funcError)
-
-			case "print":
-				return object.ExternalFunc(e.funcPrint)
-
-			default:
-				if _, ok := e.imports[n.Name]; ok {
-					e.err(fmt.Sprintf(
-						"import %q cannot be accessed without a selector expression",
-						n.Name), raw, s)
-				}
-
-				e.err(fmt.Sprintf("unknown identifier accessed: %s", n.Name), raw, s)
-			}
-		}
-
-		if r, ok := obj.(*object.RuleObj); ok {
-			return e.evalRuleObj(n.Name, r)
-		}
-
-		return obj
+		return e.evalIdent(n, s, false)
 
 	case *ast.BasicLit:
 		return e.evalBasicLit(n, s)
@@ -393,6 +416,50 @@ func (e *evalState) eval(raw ast.Node, s *object.Scope) object.Object {
 
 	return nil
 }
+func (e *evalState) evalIdent(n *ast.Ident, s *object.Scope, moduleOk bool) object.Object {
+	if n.Name == UndefinedName {
+		return &object.UndefinedObj{Pos: []token.Pos{n.Pos()}}
+	}
+
+	obj := s.Lookup(n.Name)
+	if obj == nil {
+		switch n.Name {
+		case "error":
+			return object.ExternalFunc(e.funcError)
+
+		case "print":
+			return object.ExternalFunc(e.funcPrint)
+
+		default:
+			if _, ok := e.imports[n.Name]; ok {
+				e.err(fmt.Sprintf(
+					"import %q cannot be accessed without a selector expression",
+					n.Name), n, s)
+			}
+
+			e.err(fmt.Sprintf("unknown identifier accessed: %s", n.Name), n, s)
+		}
+	}
+
+	switch o := obj.(type) {
+	case *object.ModuleObj:
+		if moduleOk {
+			// moduleOk is generally set when looking up an ident in a
+			// selector expression. Return the module in this case.
+			return o
+		}
+
+		// Otherwise, we block modules like we block imports.
+		e.err(fmt.Sprintf(
+			"module %q cannot be accessed without a selector expression",
+			n.Name), n, s)
+
+	case *object.RuleObj:
+		return e.evalRuleObj(n.Name, o)
+	}
+
+	return obj
+}
 
 func (e *evalState) evalAssign(n *ast.AssignStmt, s *object.Scope) {
 	rhs := n.Rhs
@@ -442,6 +509,18 @@ func (e *evalState) evalAssign(n *ast.AssignStmt, s *object.Scope) {
 			}
 		}
 
+	case *ast.IndexExpr:
+		obj := e.eval(rhs, s)
+		e.evalIndexAssign(lhs, s, obj)
+
+		// If we're tracing and this is a rule assignment, record the
+		// assignment location so that we can use that.
+		if e.Trace != nil {
+			if r, ok := obj.(*object.RuleObj); ok {
+				e.ruleMap[r.Rule.Pos()] = lhs.Pos()
+			}
+		}
+
 	default:
 		e.err(
 			fmt.Sprintf("unsupported left-hand side of assignment: %T", n.Lhs),
@@ -449,8 +528,8 @@ func (e *evalState) evalAssign(n *ast.AssignStmt, s *object.Scope) {
 	}
 }
 
-func (e *evalState) evalBlockStmt(n *ast.BlockStmt, s *object.Scope) object.Object {
-	for _, stmt := range n.List {
+func (e *evalState) evalStmtList(n []ast.Stmt, s *object.Scope) object.Object {
+	for _, stmt := range n {
 		e.eval(stmt, s)
 		if e.returnObj != nil {
 			return nil
@@ -458,6 +537,11 @@ func (e *evalState) evalBlockStmt(n *ast.BlockStmt, s *object.Scope) object.Obje
 	}
 
 	return nil
+
+}
+
+func (e *evalState) evalBlockStmt(n *ast.BlockStmt, s *object.Scope) object.Object {
+	return e.evalStmtList(n.List, s)
 }
 
 func (e *evalState) evalIfStmt(n *ast.IfStmt, s *object.Scope) object.Object {
@@ -477,6 +561,44 @@ func (e *evalState) evalIfStmt(n *ast.IfStmt, s *object.Scope) object.Object {
 	return e.eval(n.Else, s)
 }
 
+func (e *evalState) evalCaseStmt(n *ast.CaseStmt, s *object.Scope) object.Object {
+	// Evaluate expression
+	var x object.Object
+	if n.Expr != nil {
+		x = e.eval(n.Expr, s)
+	} else {
+		// if no expression was provided, we set our object to be true
+		x = &object.BoolObj{Value: true}
+	}
+
+	for _, bs := range n.Block.List {
+		stmt, ok := bs.(*ast.CaseWhenClause)
+		if !ok {
+			e.err(
+				"case statement condition is invalid", bs, s)
+		}
+		// if we are on "else", eval it's statments
+		if stmt.Expr == nil {
+			return e.evalStmtList(stmt.List, s)
+		}
+
+		// get the expression
+		for _, exp := range stmt.Expr {
+			y := e.eval(exp, s)
+			r := e.cmpObjects_eq(x, y)
+			b, ok := r.(*object.BoolObj)
+			if !ok {
+				continue
+			}
+			if b == object.True {
+				return e.evalStmtList(stmt.List, s)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (e *evalState) evalForStmt(n *ast.ForStmt, s *object.Scope) object.Object {
 	// Create a new scope
 	s = e.enterFrame(n, s)
@@ -486,6 +608,27 @@ func (e *evalState) evalForStmt(n *ast.ForStmt, s *object.Scope) object.Object {
 	var result object.Object
 	e.eltLoop(n.Expr, s, n.Name, n.Name2, func(s *object.Scope) bool {
 		result = e.eval(n.Body, s)
+
+		// If a break statement was reached, then exit the for loop.
+		if e.returnObj != nil {
+			switch e.returnObj {
+			case runtimeBreakObj:
+				e.returnObj = nil
+				return false
+
+			case runtimeContinueObj:
+				e.returnObj = nil
+				return true
+
+			default:
+				// "return" has been called and the return object contains
+				// real data. Don't continue, and don't reset the return
+				// object. This will allow the return object to properly
+				// cascade down all scopes.
+				return false
+			}
+		}
+
 		return result == nil
 	})
 
@@ -527,21 +670,6 @@ func (e *evalState) evalBasicLit(n *ast.BasicLit, s *object.Scope) object.Object
 func (e *evalState) evalFile(n *ast.File, s *object.Scope) object.Object {
 	e.imports = make(map[string]sdk.Import)
 
-	// If we have a runtime object, we need to copy the map. This is so
-	// that we don't modify the map for multiple executions.
-	for _, obj := range s.Objects {
-		if _, ok := obj.(*object.RuntimeObj); ok {
-			m := make(map[string]object.Object)
-			for k, v := range s.Objects {
-				m[k] = v
-			}
-
-			s = object.NewScope(s.Outer)
-			s.Objects = m
-			break
-		}
-	}
-
 	// Find implicit imports in our scope
 	for k, obj := range s.Objects {
 		if r, ok := obj.(*object.RuntimeObj); ok {
@@ -565,12 +693,26 @@ func (e *evalState) evalFile(n *ast.File, s *object.Scope) object.Object {
 		// This shouldn't be possible since the parser verifies it.
 		if impt.Path.Kind != token.STRING {
 			e.err(fmt.Sprintf(
-				"internal error, import path is not a string: %s", impt), impt, s)
+				"internal error, import path is not a string: %#v", impt), impt, s)
 		}
 
 		path, err := strconv.Unquote(impt.Path.Value)
 		if err != nil {
 			e.err(err.Error(), impt, s)
+		}
+
+		// Is this an available module?
+		if mod, ok := e.Modules[path]; ok {
+			name := path
+			if impt.Name != nil {
+				name = impt.Name.Name
+			}
+
+			s.Objects[name] = e.evalModule(mod, impt, s)
+
+			// The rest of the loop is for imports using the plugin API, so short
+			// circuit here.
+			continue
 		}
 
 		if e.Importer == nil {
@@ -598,7 +740,7 @@ func (e *evalState) evalFile(n *ast.File, s *object.Scope) object.Object {
 	// Look up the "main" entrypoint
 	obj := s.Lookup("main")
 	if obj == nil {
-		e.err(errNoMain, n, s)
+		return obj
 	}
 
 	// If the top-level object is a rule, then we evaluate it
@@ -607,6 +749,35 @@ func (e *evalState) evalFile(n *ast.File, s *object.Scope) object.Object {
 	}
 
 	return obj
+}
+
+func (e *evalState) evalModule(m *Module, impt *ast.ImportSpec, s *object.Scope) *object.ModuleObj {
+	ms := e.enterModule(impt, s)
+	defer e.exitModule()
+
+	// Eval the module
+	e.eval(m.Compiled.file, ms)
+
+	return &object.ModuleObj{
+		Scope: ms,
+	}
+}
+
+func (e *evalState) enterModule(impt *ast.ImportSpec, s *object.Scope) *object.Scope {
+	path, err := strconv.Unquote(impt.Path.Value)
+	if err != nil {
+		e.err(fmt.Sprintf("malformed import %q on module entry", impt.Path.Value), impt, s)
+	}
+
+	if err := e.moduleStack.EnterModule(path); err != nil {
+		e.err(err.Error(), impt, s)
+	}
+
+	return object.NewScope(Universe())
+}
+
+func (e *evalState) exitModule() {
+	e.moduleStack.ExitModule()
 }
 
 func (e *evalState) evalIndexExpr(n *ast.IndexExpr, s *object.Scope) object.Object {
@@ -635,6 +806,12 @@ func (e *evalState) evalIndexExpr(n *ast.IndexExpr, s *object.Scope) object.Obje
 			idxVal += int64(len(v.Elts))
 		}
 
+		// If we still have a negative index here, we are out of bounds. Return
+		// undefined.
+		if idxVal < 0 {
+			return &object.UndefinedObj{Pos: []token.Pos{n.X.Pos()}}
+		}
+
 		return v.Elts[idxVal]
 
 	case *object.MapObj:
@@ -647,10 +824,105 @@ func (e *evalState) evalIndexExpr(n *ast.IndexExpr, s *object.Scope) object.Obje
 
 		return &object.UndefinedObj{Pos: []token.Pos{n.X.Pos()}}
 
+	case *object.MemoizedRemoteObj:
+		for _, elt := range v.Context.Elts {
+			if elt.Key.Type() == idxRaw.Type() && elt.Key.String() == idxRaw.String() {
+				if m, ok := elt.Value.(*object.MapObj); ok {
+					// Ensure that the metadata on the outer MemoizedRemoteObj
+					// follows the lookup. Increment depth to note that we have
+					// traversed one level down.
+					return &object.MemoizedRemoteObj{
+						Tag:     v.Tag,
+						Depth:   v.Depth + 1,
+						Context: m,
+					}
+				}
+
+				return elt.Value
+			}
+		}
+
+		return &object.UndefinedObj{Pos: []token.Pos{n.X.Pos()}}
+
 	default:
 		e.err(fmt.Sprintf("only a list or map can be indexed, got %s", x.Type()), n, s)
 		return nil
 	}
+}
+
+func (e *evalState) evalIndexAssign(n *ast.IndexExpr, s *object.Scope, o object.Object) {
+	// Get the lhs
+	x := e.eval(n.X, s)
+	if x == object.Null {
+		// This should more than likely not happen - attempting to index a missing
+		// identifier fails earlier up to the stack. Leaving this here to catch any
+		// edge cases I don't know about yet.
+		e.err("index assignment attempt on a null object", n, s)
+	}
+
+	// Evaluate the index
+	idxRaw := e.eval(n.Index, s)
+
+	switch v := x.(type) {
+	case *object.ListObj:
+		idx, ok := idxRaw.(*object.IntObj)
+		if !ok {
+			e.err(fmt.Sprintf("indexing a list requires an int key, got %s", idxRaw.Type()), n, s)
+		}
+
+		idxVal := idx.Value
+		if idxVal >= int64(len(v.Elts)) {
+			e.err(fmt.Sprintf("index out of range on assignment (%d >= %d)", idxVal, len(v.Elts)), n, s)
+		}
+
+		if idxVal < 0 {
+			idxVal += int64(len(v.Elts))
+		}
+
+		// If we still have a negative index here, we are out of bounds - return a
+		// runtime error.
+		if idxVal < 0 {
+			e.err(fmt.Sprintf(
+				"negative index out of range on assignment (value of %d cannot be lower than length of list (%d) * -1)",
+				idx.Value, len(v.Elts),
+			), n, s)
+		}
+
+		v.Elts[idxVal] = o
+
+	case *object.MapObj:
+		for i, elt := range v.Elts {
+			if elt.Key.Type() == idxRaw.Type() && elt.Key.String() == idxRaw.String() {
+				v.Elts[i].Value = o
+				// Done here, short circuit so that we don't re-assign below
+				return
+			}
+		}
+
+		v.Elts = append(v.Elts, object.KeyedObj{
+			Key:   idxRaw,
+			Value: o,
+		})
+
+	case *object.MemoizedRemoteObj:
+		for i, elt := range v.Context.Elts {
+			if elt.Key.Type() == idxRaw.Type() && elt.Key.String() == idxRaw.String() {
+				v.Context.Elts[i].Value = o
+				// Done here, short circuit so that we don't re-assign below
+				return
+			}
+		}
+
+		v.Context.Elts = append(v.Context.Elts, object.KeyedObj{
+			Key:   idxRaw,
+			Value: o,
+		})
+
+	default:
+		e.err(fmt.Sprintf("index assignment only valid for lists or maps, got %s", x.Type()), n, s)
+	}
+
+	return
 }
 
 func (e *evalState) evalSliceExpr(n *ast.SliceExpr, s *object.Scope) object.Object {
@@ -1011,16 +1283,30 @@ func (e *evalState) evalMathExpr(n *ast.BinaryExpr, s *object.Scope) object.Obje
 		return y
 	}
 
-	// They have to be the same type to compare. This is pretty slow way to
-	// check this but works for now.
-	xtyp := reflect.TypeOf(x)
-	ytyp := reflect.TypeOf(y)
+	xtyp := x.Type()
+	ytyp := y.Type()
 	if xtyp != ytyp {
+		// Non-matching type. Check to see if it's a supported numeric
+		// operation. Otherwise, it's an error.
 		switch {
+		case xtyp == object.FLOAT && ytyp == object.INT:
+			return e.evalMathExpr_float(
+				n, s,
+				x.(*object.FloatObj).Value,
+				float64(y.(*object.IntObj).Value),
+			)
+
+		case xtyp == object.INT && ytyp == object.FLOAT:
+			return e.evalMathExpr_float(
+				n, s,
+				float64(x.(*object.IntObj).Value),
+				y.(*object.FloatObj).Value,
+			)
+
 		default:
 			e.err(fmt.Sprintf(
-				"math requires both operands to be the same type, got %s and %s",
-				x.Type(), y.Type()),
+				"math: non-number operation on different types (%s/%s)",
+				xtyp, ytyp),
 				n, s)
 		}
 	}
@@ -1057,6 +1343,11 @@ func (e *evalState) evalMathExpr_int(n *ast.BinaryExpr, s *object.Scope, x, y in
 		result = x * y
 
 	case token.QUO:
+		if y == 0 {
+			e.err("division by zero", n, s)
+			return nil
+		}
+
 		result = x / y
 
 	case token.REM:
@@ -1083,7 +1374,15 @@ func (e *evalState) evalMathExpr_float(n *ast.BinaryExpr, s *object.Scope, x, y 
 		result = x * y
 
 	case token.QUO:
+		if y == 0 {
+			e.err("division by zero", n, s)
+			return nil
+		}
+
 		result = x / y
+
+	case token.REM:
+		result = math.Mod(x, y)
 
 	default:
 		e.err(fmt.Sprintf("unsupported operator: %s", n.Op), n, s)
@@ -1124,6 +1423,28 @@ func (e *evalState) evalRelExpr(n *ast.BinaryExpr, s *object.Scope) object.Objec
 	x := e.eval(n.X, s)
 	y := e.eval(n.Y, s)
 
+	switch n.Op {
+	case token.EQL, token.IS:
+		return e.evalRelExpr_eq(n, s, x, y)
+
+	case token.NEQ, token.ISNOT:
+		result := e.evalRelExpr_eq(n, s, x, y)
+		if _, ok := result.(*object.UndefinedObj); ok {
+			return result
+		}
+
+		if result.(*object.BoolObj) == object.False {
+			return object.True
+		}
+
+		return object.False
+	}
+
+	// Remaining operators should all be ordered
+	return e.evalRelExpr_order(n, s, x, y)
+}
+
+func (e *evalState) cmpObjects_eq(x, y object.Object) object.Object {
 	// Undefined short-circuiting
 	if _, ok := x.(*object.UndefinedObj); ok {
 		return x
@@ -1132,87 +1453,114 @@ func (e *evalState) evalRelExpr(n *ast.BinaryExpr, s *object.Scope) object.Objec
 		return y
 	}
 
-	// Special-case null comparison
-	if x == object.Null || y == object.Null {
-		switch n.Op {
-		case token.EQL, token.IS:
-			return object.Bool(x == y)
-
-		case token.NEQ, token.ISNOT:
-			return object.Bool(x != y)
-
-		default:
-			e.err(fmt.Sprintf("null may only be used with equality checks, got: %s", n.Op), n, s)
-			return nil
-		}
-	}
-
-	// They have to be the same type to compare. This is pretty slow way to
-	// check this but works for now.
-	xtyp := x.Type()
-	ytyp := y.Type()
-	if xtyp != ytyp {
-		// We allow float/int comparisons as a specific exception to the types
-		switch {
-		case xtyp == object.INT && ytyp == object.FLOAT:
-			x = &object.FloatObj{Value: float64(x.(*object.IntObj).Value)}
-
-		case ytyp == object.INT && xtyp == object.FLOAT:
-			y = &object.FloatObj{Value: float64(y.(*object.IntObj).Value)}
-
-		default:
-			e.err(fmt.Sprintf(
-				"comparison requires both operands to be the same type, got %s and %s",
-				x.Type(), y.Type()),
-				n, s)
-		}
+	// Null check
+	if x == object.Null && y == object.Null {
+		return object.True
 	}
 
 	switch xObj := x.(type) {
 	case *object.BoolObj:
-		return e.evalRelExpr_bool(n, s, xObj.Value, y.(*object.BoolObj).Value)
+		if yObj, ok := y.(*object.BoolObj); ok {
+			return object.Bool(xObj.Value == yObj.Value)
+		}
 
 	case *object.IntObj:
-		return e.evalRelExpr_int(n, s, xObj.Value, y.(*object.IntObj).Value)
+		switch yObj := y.(type) {
+		case *object.IntObj:
+			return object.Bool(xObj.Value == yObj.Value)
+
+		case *object.FloatObj:
+			return object.Bool(float64(xObj.Value) == yObj.Value)
+		}
 
 	case *object.FloatObj:
-		return e.evalRelExpr_float(n, s, xObj.Value, y.(*object.FloatObj).Value)
+		switch yObj := y.(type) {
+		case *object.FloatObj:
+			return object.Bool(xObj.Value == yObj.Value)
+
+		case *object.IntObj:
+			return object.Bool(xObj.Value == float64(yObj.Value))
+		}
 
 	case *object.StringObj:
-		return e.evalRelExpr_string(n, s, xObj.Value, y.(*object.StringObj).Value)
+		if yObj, ok := y.(*object.StringObj); ok {
+			return object.Bool(xObj.Value == yObj.Value)
+		}
 
-	default:
-		e.err(fmt.Sprintf("can't compare type %s", x.Type()), n, s)
-		return nil
+	case *object.ListObj:
+		if yObj, ok := y.(*object.ListObj); ok {
+			if len(xObj.Elts) != len(yObj.Elts) {
+				return object.False
+			}
+
+			for i := 0; i < len(xObj.Elts); i++ {
+				switch result := e.cmpObjects_eq(xObj.Elts[i], yObj.Elts[i]).(type) {
+				case *object.BoolObj:
+					if result == object.False {
+						return result
+					}
+
+				case *object.UndefinedObj:
+					return result
+				}
+			}
+
+			return object.True
+		}
 	}
+
+	return object.False
+
 }
 
-func (e *evalState) evalRelExpr_bool(n *ast.BinaryExpr, s *object.Scope, x, y bool) object.Object {
-	var result bool
-	switch n.Op {
-	case token.EQL, token.IS:
-		result = x == y
-
-	case token.NEQ, token.ISNOT:
-		result = x != y
-
-	default:
-		e.err(fmt.Sprintf("unsupported operator: %s", n.Op), n, s)
-		return nil
-	}
-
-	return object.Bool(result)
+func (e *evalState) evalRelExpr_eq(n *ast.BinaryExpr, s *object.Scope, x, y object.Object) object.Object {
+	return e.cmpObjects_eq(x, y)
 }
 
-func (e *evalState) evalRelExpr_int(n *ast.BinaryExpr, s *object.Scope, x, y int64) object.Object {
+func (e *evalState) evalRelExpr_order(n *ast.BinaryExpr, s *object.Scope, x, y object.Object) object.Object {
+	// Undefined short-circuiting
+	if _, ok := x.(*object.UndefinedObj); ok {
+		return x
+	}
+	if _, ok := y.(*object.UndefinedObj); ok {
+		return y
+	}
+
+	switch xObj := x.(type) {
+	case *object.IntObj:
+		switch yObj := y.(type) {
+		case *object.IntObj:
+			return e.evalRelExpr_order_int(n, s, xObj.Value, yObj.Value)
+
+		case *object.FloatObj:
+			return e.evalRelExpr_order_int(n, s, int64(xObj.Value), int64(yObj.Value))
+		}
+
+	case *object.FloatObj:
+		switch yObj := y.(type) {
+		case *object.FloatObj:
+			return e.evalRelExpr_order_float(n, s, xObj.Value, yObj.Value)
+
+		case *object.IntObj:
+			return e.evalRelExpr_order_float(n, s, float64(xObj.Value), float64(yObj.Value))
+		}
+
+	case *object.StringObj:
+		if yObj, ok := y.(*object.StringObj); ok {
+			return e.evalRelExpr_order_string(n, s, xObj.Value, yObj.Value)
+		}
+	}
+
+	e.err(fmt.Sprintf(
+		"ordered comparison not supported between types %s and %s",
+		x.Type(), y.Type()),
+		n, s)
+	return nil
+}
+
+func (e *evalState) evalRelExpr_order_int(n *ast.BinaryExpr, s *object.Scope, x, y int64) object.Object {
 	var result bool
 	switch n.Op {
-	case token.EQL, token.IS:
-		result = x == y
-
-	case token.NEQ, token.ISNOT:
-		result = x != y
-
 	case token.LSS:
 		result = x < y
 
@@ -1233,15 +1581,9 @@ func (e *evalState) evalRelExpr_int(n *ast.BinaryExpr, s *object.Scope, x, y int
 	return object.Bool(result)
 }
 
-func (e *evalState) evalRelExpr_float(n *ast.BinaryExpr, s *object.Scope, x, y float64) object.Object {
+func (e *evalState) evalRelExpr_order_float(n *ast.BinaryExpr, s *object.Scope, x, y float64) object.Object {
 	var result bool
 	switch n.Op {
-	case token.EQL, token.IS:
-		result = x == y
-
-	case token.NEQ, token.ISNOT:
-		result = x != y
-
 	case token.LSS:
 		result = x < y
 
@@ -1262,15 +1604,9 @@ func (e *evalState) evalRelExpr_float(n *ast.BinaryExpr, s *object.Scope, x, y f
 	return object.Bool(result)
 }
 
-func (e *evalState) evalRelExpr_string(n *ast.BinaryExpr, s *object.Scope, x, y string) object.Object {
+func (e *evalState) evalRelExpr_order_string(n *ast.BinaryExpr, s *object.Scope, x, y string) object.Object {
 	var result bool
 	switch n.Op {
-	case token.EQL, token.IS:
-		result = x == y
-
-	case token.NEQ, token.ISNOT:
-		result = x != y
-
 	case token.LSS:
 		result = x < y
 
@@ -1304,22 +1640,31 @@ func (e *evalState) evalContainsExpr(n *ast.BinaryExpr, s *object.Scope) object.
 		y := e.eval(n.Y, s)
 		return e.evalContainsExpr_map(n, s, xv, y)
 
+	case *object.MemoizedRemoteObj:
+		y := e.eval(n.Y, s)
+		return e.evalContainsExpr_map(n, s, xv.Context, y)
+
 	case *object.StringObj:
 		y := e.eval(n.Y, s)
 		return e.evalContainsExpr_string(n, s, xv, y)
 
 	default:
-		e.err(fmt.Sprintf("left operand for contains must be list or map, got %s", x.Type()), n, s)
+		e.err(fmt.Sprintf("left operand for contains must be list, map, or string got %s", x.Type()), n, s)
 		return nil
 	}
 }
 
 func (e *evalState) evalContainsExpr_list(
 	n *ast.BinaryExpr, s *object.Scope, x *object.ListObj, y object.Object) object.Object {
-	ytyp := reflect.TypeOf(y)
 	for _, elt := range x.Elts {
-		if reflect.TypeOf(elt) == ytyp && reflect.DeepEqual(elt, y) {
-			return object.True
+		switch result := e.evalRelExpr_eq(n, s, elt, y).(type) {
+		case *object.BoolObj:
+			if result == object.True {
+				return result
+			}
+
+		case *object.UndefinedObj:
+			return result
 		}
 	}
 
@@ -1328,11 +1673,16 @@ func (e *evalState) evalContainsExpr_list(
 
 func (e *evalState) evalContainsExpr_map(
 	n *ast.BinaryExpr, s *object.Scope, x *object.MapObj, y object.Object) object.Object {
-	ytyp := reflect.TypeOf(y)
 	for _, kv := range x.Elts {
 		elt := kv.Key
-		if reflect.TypeOf(elt) == ytyp && reflect.DeepEqual(elt, y) {
-			return object.True
+		switch result := e.evalRelExpr_eq(n, s, elt, y).(type) {
+		case *object.BoolObj:
+			if result == object.True {
+				return result
+			}
+
+		case *object.UndefinedObj:
+			return result
 		}
 	}
 
@@ -1371,11 +1721,14 @@ func (e *evalState) evalInExpr(n *ast.BinaryExpr, s *object.Scope) object.Object
 	case *object.MapObj:
 		return e.evalContainsExpr_map(n, s, yv, x)
 
+	case *object.MemoizedRemoteObj:
+		return e.evalContainsExpr_map(n, s, yv.Context, x)
+
 	case *object.StringObj:
 		return e.evalContainsExpr_string(n, s, yv, x)
 
 	default:
-		e.err(fmt.Sprintf("right operand for in must be list or map, got %s", y.Type()), n.Y, s)
+		e.err(fmt.Sprintf("right operand for in must be list, map, or string, got %s", y.Type()), n.Y, s)
 		return nil
 	}
 }
@@ -1432,6 +1785,10 @@ func (e *evalState) evalCallExpr(n *ast.CallExpr, s *object.Scope) object.Object
 	switch raw.(type) {
 	case *object.FuncObj:
 	case *object.ExternalObj:
+	case *object.MemoizedRemoteObjMiss:
+		// Must be dispatched to the import
+		return raw
+
 	default:
 		e.err(fmt.Sprintf("attempting to call non-function: %s", raw.Type()), n.Fun, s)
 	}
@@ -1500,8 +1857,13 @@ func (e *evalState) evalCallExpr(n *ast.CallExpr, s *object.Scope) object.Object
 }
 
 func (e *evalState) evalSelectorExpr(n *ast.SelectorExpr, s *object.Scope) object.Object {
-	// Get the value which should be a map
-	raw := e.eval(n.X, s)
+	var raw object.Object
+	if x, ok := n.X.(*ast.Ident); ok {
+		raw = e.evalIdent(x, s, true)
+	} else {
+		raw = e.eval(n.X, s)
+	}
+
 	switch x := raw.(type) {
 	case *object.ExternalObj:
 		result, err := x.External.Get(n.Sel.Name)
@@ -1527,12 +1889,54 @@ func (e *evalState) evalSelectorExpr(n *ast.SelectorExpr, s *object.Scope) objec
 
 		return &object.UndefinedObj{Pos: []token.Pos{n.Sel.Pos()}}
 
+	case *object.MemoizedRemoteObj:
+		for _, elt := range x.Context.Elts {
+			if s, ok := elt.Key.(*object.StringObj); ok && s.Value == n.Sel.Name {
+				if m, ok := elt.Value.(*object.MapObj); ok {
+					// Ensure that the metadata on the outer MemoizedRemoteObj
+					// follows the lookup. Increment depth to note that we have
+					// traversed one level down.
+					return &object.MemoizedRemoteObj{
+						Tag:     x.Tag,
+						Depth:   x.Depth + 1,
+						Context: m,
+					}
+				}
+
+				return elt.Value
+			}
+		}
+
+		// Unknown selector lookups on MemoizedRemoteObj values are not
+		// necessarily undefined. Return as a MemoizedRemoteObjMiss so that we
+		// can try and look up the value through the plugin.
+		return &object.MemoizedRemoteObjMiss{MemoizedRemoteObj: x}
+
+	case *object.MemoizedRemoteObjMiss:
+		// Pass this through, so it can be executed by the import.
+		return x
+
+	case *object.ModuleObj:
+		if v := x.Scope.Lookup(n.Sel.Name); v != nil {
+			// FIXME: Maybe? I think there might be a better way to do this, but I
+			// can't think of one at this point in time. If we have a rule object in
+			// a module, it has already gone through the rule literal eval stage and
+			// this should technically be an eval on the rule.
+			if r, ok := v.(*object.RuleObj); ok {
+				return e.evalRuleObj(n.Sel.Name, r)
+			}
+
+			return v
+		}
+
+		return &object.UndefinedObj{Pos: []token.Pos{n.Sel.Pos()}}
+
 	case *object.UndefinedObj:
 		return x
 
 	default:
 		e.err(fmt.Sprintf(
-			"selectors only available for imports and maps, got %s",
+			"selectors only available for imports, maps, and modules, got %s",
 			raw.Type()), n, s)
 		return nil
 	}
@@ -1540,41 +1944,94 @@ func (e *evalState) evalSelectorExpr(n *ast.SelectorExpr, s *object.Scope) objec
 
 func (e *evalState) evalImportExpr(n *astImportExpr, s *object.Scope) object.Object {
 	// Lookup the import. If it is shadowed, then fall back.
-	if v := s.Lookup(n.Import); v != nil {
-		return e.eval(n.Original, s)
-	}
-
-	// Not an import, find the import in our map and call it
-	impt, ok := e.imports[n.Import]
-	if !ok {
-		e.err(fmt.Sprintf("import not found: %s", n.Import), n, s)
-	}
-
-	// Build the args. This must be nil (not just an empty slice) if
-	// we aren't making a call (n.Args == nil).
-	var args []interface{}
-	if n.Args != nil {
-		args = make([]interface{}, len(n.Args))
-		for i, arg := range n.Args {
-			value, err := encoding.ObjectToGo(e.eval(arg, s), nil)
-			if err != nil {
-				e.err(fmt.Sprintf("error converting argument: %s", err), n, s)
-			}
-
-			args[i] = value
+	//
+	// If the fallback results in a missed lookup on memoization, then
+	// we populate that into the request Context so that it can be
+	// sent along with the request.
+	imptName := n.Import
+	var reqCtx *object.MemoizedRemoteObj
+	if v := s.Lookup(imptName); v != nil {
+		result := e.eval(n.Original, s)
+		if o, ok := result.(*object.MemoizedRemoteObjMiss); ok {
+			imptName = o.Tag
+			reqCtx = o.MemoizedRemoteObj
+		} else {
+			return result
 		}
 	}
 
+	// Not an import, find the import in our map and call it
+	impt, ok := e.imports[imptName]
+	if !ok {
+		e.err(fmt.Sprintf("import not found: %s", imptName), n, s)
+	}
+
+	// Start building the request
+	req := &sdk.GetReq{
+		ExecId:       e.ExecId,
+		ExecDeadline: e.deadline,
+		KeyId:        42,
+	}
+
+	// Process the keys. This includes skipping any that have may have
+	// been traversed already on an import receiver.
+	req.Keys = make([]sdk.GetKey, 0, len(n.Keys))
+	for i, ixKey := range n.Keys {
+		if reqCtx != nil && int64(i) < reqCtx.Depth {
+			// Skip any keys that have been traversed already
+			continue
+		}
+
+		key := sdk.GetKey{Key: ixKey.Key}
+		// Translate the args out from each key. This must be nil (not just
+		// an empty slice) if we aren't making a call (n.Args == nil).
+		if ixKey.Args != nil {
+			key.Args = make([]interface{}, len(ixKey.Args))
+			for j, ixArg := range ixKey.Args {
+				value, err := encoding.ObjectToGo(e.eval(ixArg, s), nil)
+				if err != nil {
+					e.err(fmt.Sprintf("error converting argument: %s", err), n, s)
+				}
+
+				key.Args[j] = value
+			}
+		}
+
+		req.Keys = append(req.Keys, key)
+	}
+
+	// If we have a request context (receiver), convert the context.
+	if reqCtx != nil {
+		// Check to ensure that the context is an entirely string-keyed
+		// map first.
+		//
+		// FIXME: This is expensive. We already do the traversal in the
+		// subsequent ObjectToGo call, but the type enforcement supplied
+		// will attempt to weakly encode values that don't type-match,
+		// ie: ints, to strings if possible. It would be better if we
+		// could control this behavior somehow, so that weak conversion
+		// could be turned off, and the errors could happen in
+		// ObjectToGo.
+		for _, elt := range reqCtx.Context.Elts {
+			if elt.Key.Type() != object.STRING {
+				e.err("error converting object context for request: context has non-string map keys", n, s)
+			}
+		}
+
+		// Ensure we supply a type to ObjectToGo (mapStringInterfaceTyp)
+		// so that maps of an exclusive value type do not get converted
+		// to that type, ie: a map[string]string for a map that has all
+		// string values.
+		reqCtxM, err := encoding.ObjectToGo(reqCtx.Context, mapStringInterfaceTyp)
+		if err != nil {
+			e.err(fmt.Sprintf("error converting object context for request: %s", err), n, s)
+		}
+
+		req.Context = reqCtxM.(map[string]interface{})
+	}
+
 	// Perform the external call
-	results, err := impt.Get([]*sdk.GetReq{
-		&sdk.GetReq{
-			ExecId:       e.ExecId,
-			ExecDeadline: e.deadline,
-			KeyId:        42,
-			Keys:         n.Keys,
-			Args:         args,
-		},
-	})
+	results, err := impt.Get([]*sdk.GetReq{req})
 	if err != nil {
 		e.err(err.Error(), n, s)
 	}
@@ -1587,13 +2044,39 @@ func (e *evalState) evalImportExpr(n *astImportExpr, s *object.Scope) object.Obj
 			break
 		}
 	}
-	if result == nil || result.Value == sdk.Undefined {
+	if result == nil {
+		return &object.UndefinedObj{Pos: []token.Pos{n.Pos()}}
+	}
+
+	// Check for a returned context. If we have one, overwrite the
+	// current context that we are working with.
+	if result.Context != nil && reqCtx != nil {
+		resCtxM, err := encoding.GoToObject(result.Context)
+		if err != nil {
+			e.err(fmt.Sprintf("error converting object context from response: %s", err), n, s)
+		}
+
+		// GoToObject always returns MapObj types for maps, so this
+		// should be safe to assert here.
+		reqCtx.Context = resCtxM.(*object.MapObj)
+	}
+
+	if result.Value == sdk.Undefined {
 		return &object.UndefinedObj{Pos: []token.Pos{n.Pos()}}
 	}
 
 	obj, err := encoding.GoToObject(result.Value)
 	if err != nil {
 		e.err(err.Error(), n, s)
+	}
+
+	if m, ok := obj.(*object.MapObj); ok && result.Callable {
+		// Result is callable, wrap in MemoizedRemoteObj so that we can
+		// track it.
+		return &object.MemoizedRemoteObj{
+			Tag:     imptName,
+			Context: m,
+		}
 	}
 
 	return obj
@@ -1686,7 +2169,7 @@ func (e *evalState) exitFrame(ast.Node, *object.Scope) {
 // ----------------------------------------------------------------------------
 // Error messages
 
-const errNoMain = `No 'main' assignment found.
+const errNoMain = `%s: No 'main' assignment found.
 
 You must assign a rule to the 'main' variable. This is the entrypoint for
 a Sentinel policy. The result of this rule determines the result of the
@@ -1696,9 +2179,9 @@ const errNoReturn = `No return statement found in the function!
 
 A return statement is required to return a result from a function.`
 
-const errTimeout = `Execution of policy timed out after %s.
+const errTimeout = `Execution of policy timed out after %[1]s.
 
-Policy execution is limited to %s by the host system. Please modify the
+Policy execution is limited to %[1]s by the host system. Please modify the
 policy to execute within this time.
 `
 

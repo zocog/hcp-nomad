@@ -8,10 +8,12 @@ package sentinel
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"sync"
 	"time"
 
+	"github.com/hashicorp/sentinel/lang/semantic"
 	"github.com/mitchellh/hashstructure"
 )
 
@@ -29,9 +31,16 @@ type Sentinel struct {
 	policies     map[string]*Policy
 	policiesLock sync.RWMutex
 
+	modules     map[string]*Module
+	modulesLock sync.RWMutex
+
 	// cancelFunc is the function that should be called to stop any background
 	// tasks running.
 	cancelFunc context.CancelFunc
+
+	// TODO this is only required for testing purposes and will be removed
+	// in future versions
+	skipCheckers []semantic.Checker
 }
 
 // Config is the configuration for creating a Sentinel structure with New.
@@ -73,6 +82,7 @@ func New(cfg *Config) *Sentinel {
 	result := &Sentinel{
 		imports:     make(map[string]*sentinelImport),
 		policies:    make(map[string]*Policy),
+		modules:     make(map[string]*Module),
 		evalTimeout: 1 * time.Second,
 		cancelFunc:  ctxCancel,
 	}
@@ -294,4 +304,146 @@ func (s *Sentinel) InvalidatePolicy(id string) {
 	// Just delete the policy. The plugin TTL will eventually expire which
 	// will cause any active imports from this policy to be deallocated.
 	delete(s.policies, id)
+}
+
+//-------------------------------------------------------------------
+// Module Management
+
+// Module creates or reads the Module with the given path.
+//
+// The supplied path should be set to what the module should be
+// imported as in import statements. Hence, if the module should be
+// be imported as "foo", it should be pathed as "foo".
+//
+// Module paths cannot conflict with existing imports under normal
+// circumstances. If force is set, any existing import with a
+// matching path is removed during module configuration to ensure
+// there are no conflicts. Note that this is not safe in that the
+// import can be re-added by future calls to SetConfig, and it does
+// not also affect policy-level imports. It should only be used in
+// testing scenarios (as an example, module mocks in the CLI make use
+// of force to allow override standard imports to be overridden).
+//
+// The returned Module is locked. If the Module is ready, a read lock
+// is held. If the Module is not ready, a write lock is held. In
+// either case, Unlock must be called on the Module when the user is
+// done with it. Unlock may only be called once. To relock a Module,
+// you must call this method again.
+func (s *Sentinel) Module(path string, force bool) (*Module, error) {
+	// Fast path, acquire read lock and assume the module exists
+	s.modulesLock.RLock()
+	result, ok := s.modules[path]
+	if ok {
+		// Unlock right away so that we don't block other Module requests
+		s.modulesLock.RUnlock()
+
+		// Lock the result
+		result.Lock()
+		return result, nil
+	}
+
+	// Slow path: module didn't exist, grab a write lock so we can
+	// insert it
+	s.modulesLock.RUnlock()
+	s.modulesLock.Lock()
+
+	// Check for import conflicts.
+	if impt, ok := s.imports[path]; ok {
+		if force {
+			// Force mode, delete existing import to make way for the
+			// module.
+			s.importsLock.Lock()
+			defer s.importsLock.Unlock()
+
+			delete(s.imports, path)
+
+			// If this has a plugin binary, kill it
+			if err := impt.Close(); err != nil {
+				// Unlock so we don't block Module access
+				s.modulesLock.Unlock()
+
+				return nil, err
+			}
+		} else {
+			// Unlock so we don't block Module access
+			s.modulesLock.Unlock()
+
+			return nil, fmt.Errorf("module path %q conflicts with existing import", path)
+		}
+	}
+
+	// If it exists now (race), then return it
+	if result, ok = s.modules[path]; ok {
+		// Unlock so we don't block Module access
+		s.modulesLock.Unlock()
+
+		// Acquire read lock for same reasons as above fast path.
+		result.Lock()
+
+		// Return
+		return result, nil
+	}
+
+	// Create new module and lock it
+	result = &Module{}
+	result.Lock()
+
+	// Update the name
+	result.SetName(path)
+
+	// Insert and unlock
+	s.modules[path] = result
+	s.modulesLock.Unlock()
+
+	// Return
+	return result, nil
+}
+
+// Modules returns the list of modules that have been registered with
+// this Sentinel instance. The returned paths may represent modules
+// that are not yet "ready" but have been requested via Module().
+//
+// The results are not in any specified order.
+func (s *Sentinel) Modules() []string {
+	s.modulesLock.RLock()
+	defer s.modulesLock.RUnlock()
+
+	result := make([]string, 0, len(s.modules))
+	for k := range s.modules {
+		result = append(result, k)
+	}
+
+	return result
+}
+
+// InvalidateModule removes a single module from Sentinel, releasing
+// any currently used resources with it. If the module didn't exist, then
+// this does nothing.
+//
+// The same race considerations that apply to InvalidatePolicy apply
+// here as well. See that function for things that should be taken
+// into account.
+func (s *Sentinel) InvalidateModule(path string) {
+	s.modulesLock.Lock()
+	defer s.modulesLock.Unlock()
+
+	// Get the old module. If it exists, grab a lock. This lock will only
+	// let us grab it under two circumstances:
+	//
+	//   1.) The module is ready. In this case, its fine and we can invalidate.
+	//       Any call to Module will block on us.
+	//
+	//   2.) The module is not ready. In this case, we have the exclusive
+	//       write lock and we can continue to invalidate since the next
+	//       call to Module will block on us.
+	if m, ok := s.modules[path]; ok {
+		// We can safely unlock right away since we have the write lock
+		// to s.modulesLock.
+		m.Lock()
+		m.Unlock()
+	}
+
+	// Just delete the module. The plugin TTL will eventually expire which
+	// will cause any active imports from this module to be deallocated.
+	delete(s.modules, path)
 }

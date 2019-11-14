@@ -18,6 +18,7 @@ func init() {
 	gob.Register(StructSlice{})
 	gob.Register(StructSliceStructs{})
 	gob.Register(StructSingleUnexportedValue{})
+	gob.Register(StructSliceMaps{})
 }
 
 var GobKey = "_test_gob"
@@ -27,6 +28,7 @@ type structSingle struct{ Value int }
 type StructSingle struct{ Value int }
 type StructSlice struct{ Value []int }
 type StructSliceStructs struct{ Value []StructSingle }
+type StructSliceMaps struct{ Value []map[string]interface{} }
 
 type StructEmbeddedSingle struct{ StructSingle }
 
@@ -73,4 +75,8 @@ func (ns StructNamespace) SentinelGet(key string) (interface{}, error) {
 	default:
 		return nil, nil
 	}
+}
+
+func (ns StructNamespace) SentinelKeys() []string {
+	return []string{"value"}
 }

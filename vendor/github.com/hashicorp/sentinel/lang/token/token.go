@@ -87,14 +87,18 @@ const (
 	AS     // as
 	WHEN   // when
 
-	FUNC   // func
-	RULE   // rule
-	RETURN // return
+	FUNC     // func
+	RULE     // rule
+	RETURN   // return
+	BREAK    // break
+	CONTINUE // continue
 
 	IF  // if
 	ANY // any
 	ALL // all
 	FOR // for
+
+	CASE // case
 
 	keyword_end
 )
@@ -160,15 +164,19 @@ var tokens = [...]string{
 	AS:     "as",
 	WHEN:   "when",
 
-	FUNC:   "func",
-	RULE:   "rule",
-	RETURN: "return",
+	FUNC:     "func",
+	RULE:     "rule",
+	RETURN:   "return",
+	BREAK:    "break",
+	CONTINUE: "continue",
 
 	IF:   "if",
 	ELSE: "else",
 	ANY:  "any",
 	ALL:  "all",
 	FOR:  "for",
+
+	CASE: "case",
 }
 
 // String returns the string corresponding to the token tok.

@@ -1,0 +1,17 @@
+// The types import enables a Sentinel policy to parse an object's type.
+import "types"
+
+// Returns the object's type as a string 
+//
+// ```python
+// import "types"
+//
+// // Typically the inputs would come from an external source.
+// is_boolean = rule { types.type_of(true) is "bool" }
+// is_string = rule { types.type_of("Hello!") is "string" }
+// is_integer = rule { types.type_of(42) is "int" }
+// is_float = rule { types.type_of(42.123) is "float" }
+//
+// main = rule { is_boolean and is_string and is_integer and is_float }
+// ```
+types.type_of(obj)

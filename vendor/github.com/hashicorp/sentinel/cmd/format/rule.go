@@ -6,18 +6,19 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mitchellh/colorstring"
 	"github.com/hashicorp/sentinel/lang/object"
 	"github.com/hashicorp/sentinel/lang/printer"
 	"github.com/hashicorp/sentinel/lang/token"
 	"github.com/hashicorp/sentinel/runtime/trace"
+	"github.com/mitchellh/colorstring"
 )
 
 // RuleTrace is a formatter for rule traces.
 type RuleTrace struct {
-	FileSet *token.FileSet         // FileSet for accurate line numbers
-	Rules   map[string]*trace.Rule // Ruule map from trace.Trace
-	Color   *colorstring.Colorize  // If non-nil, color the output with this
+	FileSet  *token.FileSet         // FileSet for accurate line numbers
+	Messages string                 // Any print messages
+	Rules    map[string]*trace.Rule // Rule map from trace.Trace
+	Color    *colorstring.Colorize  // If non-nil, color the output with this
 }
 
 // String returns the format for this set of rule traces. This cannot be
@@ -33,6 +34,12 @@ func (f *RuleTrace) String() string {
 
 	// We'll collect output here
 	var buf bytes.Buffer
+
+	// Output any print messages first.
+	if f.Messages != "" {
+		buf.WriteString(f.Color.Color(fmt.Sprintf(
+			"[reset][bold]Print messages:[reset]\n\n%s\n", f.Messages)))
+	}
 
 	// Output the main rule first if there is one
 	if r, ok := f.Rules["main"]; ok {

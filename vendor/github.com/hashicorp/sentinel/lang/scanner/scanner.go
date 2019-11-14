@@ -524,7 +524,7 @@ scanAgain:
 			// keywords are longer than one letter - avoid lookup otherwise
 			tok = token.Lookup(lit)
 			switch tok {
-			case token.IDENT:
+			case token.IDENT, token.BREAK, token.CONTINUE:
 				insertSemi = true
 			}
 		} else {

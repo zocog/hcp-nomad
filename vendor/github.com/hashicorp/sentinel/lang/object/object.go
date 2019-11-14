@@ -9,7 +9,9 @@
 package object
 
 import (
+	"bytes"
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/sentinel/lang/ast"
 	"github.com/hashicorp/sentinel/lang/token"
@@ -65,6 +67,17 @@ type (
 		Elts []KeyedObj
 	}
 
+	// MemoizedRemoteObj represents a memoized return result.  This
+	// usually comes from a plugin.
+	//
+	// During specific steps of lookups of data in the underlying
+	// MapObj, the tag will follow returns of relevant data.
+	MemoizedRemoteObj struct {
+		Tag     string  // Referential tag, ie: import name
+		Depth   int64   // The traversal index, incremented each lookup
+		Context *MapObj // The data
+	}
+
 	// RuleObj represents a rule.
 	RuleObj struct {
 		Scope     *Scope       // Scope to evaluate the rule in
@@ -99,20 +112,36 @@ type (
 	RuntimeObj struct {
 		Value interface{}
 	}
+
+	// ModuleObj represents a module, a scope behind a namespace.
+	ModuleObj struct {
+		Scope *Scope
+	}
+
+	// MemoizedRemoteObjMiss represents a missed lookup on a
+	// MemoizedRemoteObj. This is used to signal a lookup or call back
+	// to the source for ultimate confirmation if the data is present
+	// or missing.
+	MemoizedRemoteObjMiss struct {
+		*MemoizedRemoteObj
+	}
 )
 
-func (o *UndefinedObj) Type() Type { return UNDEFINED }
-func (o *nullObj) Type() Type      { return NULL }
-func (o *BoolObj) Type() Type      { return BOOL }
-func (o *IntObj) Type() Type       { return INT }
-func (o *FloatObj) Type() Type     { return FLOAT }
-func (o *StringObj) Type() Type    { return STRING }
-func (o *ListObj) Type() Type      { return LIST }
-func (o *MapObj) Type() Type       { return MAP }
-func (o *RuleObj) Type() Type      { return RULE }
-func (o *FuncObj) Type() Type      { return FUNC }
-func (o *ExternalObj) Type() Type  { return EXTERNAL }
-func (o *RuntimeObj) Type() Type   { return RUNTIME }
+func (o *UndefinedObj) Type() Type          { return UNDEFINED }
+func (o *nullObj) Type() Type               { return NULL }
+func (o *BoolObj) Type() Type               { return BOOL }
+func (o *IntObj) Type() Type                { return INT }
+func (o *FloatObj) Type() Type              { return FLOAT }
+func (o *StringObj) Type() Type             { return STRING }
+func (o *ListObj) Type() Type               { return LIST }
+func (o *MapObj) Type() Type                { return MAP }
+func (o *MemoizedRemoteObj) Type() Type     { return MEMOIZED_REMOTE_OBJECT }
+func (o *RuleObj) Type() Type               { return RULE }
+func (o *FuncObj) Type() Type               { return FUNC }
+func (o *ExternalObj) Type() Type           { return EXTERNAL }
+func (o *RuntimeObj) Type() Type            { return RUNTIME }
+func (o *ModuleObj) Type() Type             { return MODULE }
+func (o *MemoizedRemoteObjMiss) Type() Type { return MEMOIZED_REMOTE_OBJECT_MISS }
 
 func (o *UndefinedObj) String() string { return "undefined" }
 func (o *nullObj) String() string      { return "null" }
@@ -121,7 +150,35 @@ func (o *IntObj) String() string       { return fmt.Sprintf("%d", o.Value) }
 func (o *FloatObj) String() string     { return fmt.Sprintf("%f", o.Value) }
 func (o *StringObj) String() string    { return fmt.Sprintf("%q", o.Value) }
 func (o *ListObj) String() string      { return fmt.Sprintf("%s", o.Elts) }
-func (o *MapObj) String() string       { return fmt.Sprintf("%s", o.Elts) }
+
+func (o *MapObj) String() string {
+	var buf bytes.Buffer
+	buf.WriteString(`{`)
+
+	// Get the keys and sort them
+	keys := make([]string, len(o.Elts))
+	keyIndex := make(map[string]int, len(o.Elts))
+	for i, elt := range o.Elts {
+		keys[i] = elt.Key.String()
+		keyIndex[keys[i]] = i
+	}
+	sort.Strings(keys)
+
+	// Build the list of map elements alphabetically ordered
+	for i, key := range keys {
+		last := i >= len(keys)-1
+		elt := o.Elts[keyIndex[key]]
+
+		buf.WriteString(fmt.Sprintf("%s: %s", key, elt.Value))
+		if !last {
+			buf.WriteString(", ")
+		}
+	}
+
+	buf.WriteString(`}`)
+	return buf.String()
+}
+
 func (o *RuleObj) String() string {
 	// TODO: use printer here once we have it
 
@@ -129,21 +186,29 @@ func (o *RuleObj) String() string {
 		return fmt.Sprintf("un-evaluated rule: %#v", o.Rule)
 	}
 
-	return fmt.Sprintf("evaluated rule. result: %v, result: %s", o.Value, o.Rule)
+	return fmt.Sprintf("evaluated rule. result: %v, result: %v", o.Value, o.Rule)
 }
-func (o *FuncObj) String() string     { return "func" }
-func (o *ExternalObj) String() string { return "external" }
-func (o *RuntimeObj) String() string  { return "runtime" }
+func (o *MemoizedRemoteObj) String() string { return o.Context.String() }
+func (o *FuncObj) String() string           { return "func" }
+func (o *ExternalObj) String() string       { return "external" }
+func (o *RuntimeObj) String() string        { return "runtime" }
+func (o *ModuleObj) String() string         { return "module" }
+func (o *MemoizedRemoteObjMiss) String() string {
+	return fmt.Sprintf("missed lookup on memoized remote object. tag: %q", o.Tag)
+}
 
-func (o *UndefinedObj) object() {}
-func (o *nullObj) object()      {}
-func (o *BoolObj) object()      {}
-func (o *IntObj) object()       {}
-func (o *FloatObj) object()     {}
-func (o *StringObj) object()    {}
-func (o *ListObj) object()      {}
-func (o *MapObj) object()       {}
-func (o *RuleObj) object()      {}
-func (o *FuncObj) object()      {}
-func (o *ExternalObj) object()  {}
-func (o *RuntimeObj) object()   {}
+func (o *UndefinedObj) object()          {}
+func (o *nullObj) object()               {}
+func (o *BoolObj) object()               {}
+func (o *IntObj) object()                {}
+func (o *FloatObj) object()              {}
+func (o *StringObj) object()             {}
+func (o *ListObj) object()               {}
+func (o *MemoizedRemoteObj) object()     {}
+func (o *MapObj) object()                {}
+func (o *RuleObj) object()               {}
+func (o *FuncObj) object()               {}
+func (o *ExternalObj) object()           {}
+func (o *RuntimeObj) object()            {}
+func (o *ModuleObj) object()             {}
+func (o *MemoizedRemoteObjMiss) object() {}
