@@ -623,7 +623,7 @@ func (s *StateStore) reconcileQuotaUsage(index uint64, txn *memdb.Txn, opts reco
 	specLimit := filteredRegions[0]
 	usageLimit := &structs.QuotaLimit{
 		Region:      specLimit.Region,
-		RegionLimit: &structs.Resources{},
+		RegionLimit: &structs.Resources{Networks: structs.Networks{{}}},
 		Hash:        specLimit.Hash,
 	}
 
