@@ -21,27 +21,27 @@ matrix:
     - os: linux
       dist: xenial
       sudo: required
-      env: GOTEST_PKGS="./api"
+      env: GOTEST_PKGS="./api/..."
       <<: *skip_for_ui_branches
     - os: linux
       dist: xenial
       sudo: required
-      env: GOTEST_PKGS="./client"
+      env: GOTEST_PKGS="./client/..."
       <<: *skip_for_ui_branches
     - os: linux
       dist: xenial
       sudo: required
-      env: GOTEST_PKGS="./drivers/docker"
+      env: GOTEST_PKGS="./drivers/docker/..."
       <<: *skip_for_ui_branches
     - os: linux
       dist: xenial
       sudo: required
-      env: GOTEST_PKGS="./drivers/exec"
+      env: GOTEST_PKGS="./drivers/exec/..."
       <<: *skip_for_ui_branches
     - os: linux
       dist: xenial
       sudo: required
-      env: GOTEST_PKGS="./nomad"
+      env: GOTEST_PKGS="./nomad/..."
       <<: *skip_for_ui_branches
     - os: linux
       dist: xenial
