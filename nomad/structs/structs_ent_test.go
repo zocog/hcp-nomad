@@ -3,11 +3,14 @@
 package structs
 
 import (
+	"bytes"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/ugorji/go/codec"
 )
 
 func TestSentinelPolicySetHash(t *testing.T) {
@@ -445,4 +448,36 @@ func TestQuotaLimit_Superset(t *testing.T) {
 	superset, dimensions = l5.Superset(l3)
 	assert.False(t, superset)
 	assert.Len(t, dimensions, 2)
+}
+
+// TestQuotaUsageSerialization tests that custom json
+// marshalling functions get exercised to base64 QuotaUsage.Used
+// map keys, which are binary bytes
+func TestQuotaUsageSerialization(t *testing.T) {
+	input := QuotaUsage{
+		Name: "foo",
+		Used: map[string]*QuotaLimit{
+			"\x01": {
+				Region: "global",
+				RegionLimit: &Resources{
+					CPU:      5000,
+					MemoryMB: 2000,
+				},
+				Hash: []byte{0x1},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	encoder := codec.NewEncoder(&buf, JsonHandle)
+	require.NoError(t, encoder.Encode(input))
+
+	// ensure that Used key is a base64("\x01"") == `AQ==`
+	require.Contains(t, buf.String(), `"Used":{"AQ==":{`)
+
+	var out QuotaUsage
+	decoder := codec.NewDecoder(&buf, JsonHandle)
+	require.NoError(t, decoder.Decode(&out))
+
+	require.Equal(t, input, out)
 }
