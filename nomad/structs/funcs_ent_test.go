@@ -20,6 +20,9 @@ func TestUpdateUsageFromPlan(t *testing.T) {
 				RegionLimit: &Resources{
 					CPU:      2000,
 					MemoryMB: 1000,
+					// Omit networks, testing backwards compatibility
+					// for limits persisted before network quotas.
+					// Networks: Networks{{}},
 				},
 			},
 		},
@@ -87,6 +90,7 @@ func TestUpdateUsageFromPlan(t *testing.T) {
 		RegionLimit: &Resources{
 			CPU:      1964,
 			MemoryMB: 946,
+			Networks: Networks{{}},
 		},
 	}
 	assert.Equal(expected, effected[0])

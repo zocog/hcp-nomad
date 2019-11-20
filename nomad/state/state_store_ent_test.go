@@ -308,7 +308,7 @@ func TestStateStore_UpsertAllocs_Quota_NewAlloc(t *testing.T) {
 	r := mock.Alloc().Resources
 	expected.Add(r)
 	expected.Add(r)
-	expected.Networks = nil
+	expected.Networks[0] = &structs.NetworkResource{MBits: expected.Networks[0].MBits}
 	expected.DiskMB = 0
 	expected.IOPS = 0
 	assert.Equal(expected, used.RegionLimit)
@@ -415,7 +415,9 @@ func TestStateStore_UpsertAllocs_Quota_StopAlloc(t *testing.T) {
 	used := usage.Used[string(qs.Limits[0].Hash)]
 	assert.NotNil(used)
 	assert.Equal("global", used.Region)
-	expected := &structs.Resources{}
+	expected := &structs.Resources{
+		Networks: structs.Networks{{MBits: 0}},
+	}
 	assert.Equal(expected, used.RegionLimit)
 }
 
@@ -518,7 +520,7 @@ func TestStateStore_UpdateAllocsFromClient_Quota_StopAlloc(t *testing.T) {
 	used := usage.Used[string(qs.Limits[0].Hash)]
 	assert.NotNil(used)
 	assert.Equal("global", used.Region)
-	expected := &structs.Resources{}
+	expected := &structs.Resources{Networks: structs.Networks{{}}}
 	assert.Equal(expected, used.RegionLimit)
 }
 
@@ -587,7 +589,11 @@ func TestStateStore_UpsertNamespaces_NewQuota(t *testing.T) {
 	used := usage.Used[string(qs.Limits[0].Hash)]
 	assert.NotNil(used)
 	assert.Equal("global", used.Region)
-	expected.Networks = nil
+
+	// Clear fields unused by QuotaLimits
+	expected.Networks[0] = &structs.NetworkResource{
+		MBits: expected.Networks[0].MBits,
+	}
 	expected.DiskMB = 0
 	expected.IOPS = 0
 	assert.Equal(expected, used.RegionLimit)
@@ -638,7 +644,8 @@ func TestStateStore_UpsertNamespaces_RemoveQuota(t *testing.T) {
 	used := usage.Used[string(qs.Limits[0].Hash)]
 	assert.NotNil(used)
 	assert.Equal("global", used.Region)
-	assert.Equal(&structs.Resources{}, used.RegionLimit)
+	expected := &structs.Resources{Networks: structs.Networks{{}}}
+	assert.Equal(expected, used.RegionLimit)
 }
 
 func TestStateStore_UpsertNamespaces_ChangeQuota(t *testing.T) {
@@ -687,7 +694,8 @@ func TestStateStore_UpsertNamespaces_ChangeQuota(t *testing.T) {
 	used := usage.Used[string(qs1.Limits[0].Hash)]
 	assert.NotNil(used)
 	assert.Equal("global", used.Region)
-	assert.Equal(&structs.Resources{}, used.RegionLimit)
+	expected := &structs.Resources{Networks: structs.Networks{{}}}
+	assert.Equal(expected, used.RegionLimit)
 
 	// 7. Assert that the QuotaUsage for new spec is populated.
 	usage, err = state.QuotaUsageByName(nil, qs2.Name)
@@ -701,10 +709,13 @@ func TestStateStore_UpsertNamespaces_ChangeQuota(t *testing.T) {
 	used = usage.Used[string(qs2.Limits[0].Hash)]
 	assert.NotNil(used)
 	assert.Equal("global", used.Region)
-	a1.Resources.Networks = nil
-	a1.Resources.DiskMB = 0
-	a1.Resources.IOPS = 0
-	assert.Equal(a1.Resources, used.RegionLimit)
+	expected.Networks = a1.Resources.Networks
+	expected = &structs.Resources{
+		CPU:      a1.Resources.CPU,
+		MemoryMB: a1.Resources.MemoryMB,
+		Networks: structs.Networks{{MBits: a1.Resources.Networks[0].MBits}},
+	}
+	assert.Equal(expected, used.RegionLimit)
 }
 
 func TestStateStore_UpsertQuotaSpec(t *testing.T) {
@@ -855,7 +866,7 @@ func TestStateStore_UpsertQuotaSpec_Usage(t *testing.T) {
 	used := usage.Used[string(limits[0].Hash)]
 	assert.NotNil(used)
 	assert.Equal("global", used.Region)
-	expected.Networks = nil
+	expected.Networks[0] = &structs.NetworkResource{MBits: expected.Networks[0].MBits}
 	expected.DiskMB = 0
 	expected.IOPS = 0
 	assert.Equal(expected, used.RegionLimit)
