@@ -503,6 +503,26 @@ func (q *QuotaUsage) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (q *QuotaUsage) UnmarshalJSON(data []byte) error {
+	type Alias QuotaUsage
+	aux := &struct{ *Alias }{Alias: (*Alias)(q)}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	convertedMap := make(map[string]*QuotaLimit, len(aux.Used))
+	for k, v := range aux.Used {
+		decoded, err := base64.StdEncoding.DecodeString(k)
+		if err != nil {
+			return err
+		}
+		convertedMap[string(decoded)] = v
+	}
+	aux.Used = convertedMap
+
+	return nil
+}
+
 // QuotaUsageFromSpec initializes a quota specification that can be used to
 // track the usage for the specification.
 func QuotaUsageFromSpec(spec *QuotaSpec) *QuotaUsage {
