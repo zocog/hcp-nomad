@@ -413,14 +413,24 @@ func (q *QuotaLimit) AddResource(r *Resources) {
 	q.RegionLimit.CPU += r.CPU
 	q.RegionLimit.MemoryMB += r.MemoryMB
 
-	// Backwards compatibility: limit may have been persisted without networks
+	if len(r.Networks) == 0 {
+		return
+	}
+
+	// If bits were claimed by this resource, add them
+	bits := 0
+	for _, n := range r.Networks {
+		bits += n.MBits
+	}
+
+	if bits == 0 {
+		return
+	}
+
 	if q.RegionLimit.Networks == nil {
 		q.RegionLimit.Networks = Networks{{}}
 	}
-
-	for _, n := range r.Networks {
-		q.RegionLimit.Networks[0].MBits += n.MBits
-	}
+	q.RegionLimit.Networks[0].MBits += bits
 }
 
 // SubtractResource removes the resources to the QuotaLimit
@@ -428,7 +438,10 @@ func (q *QuotaLimit) SubtractResource(r *Resources) {
 	q.RegionLimit.CPU -= r.CPU
 	q.RegionLimit.MemoryMB -= r.MemoryMB
 
-	// Backwards compatibility: limit may have been persisted without networks
+	if len(r.Networks) == 0 {
+		return
+	}
+
 	if q.RegionLimit.Networks == nil {
 		q.RegionLimit.Networks = Networks{{}}
 	}
@@ -438,8 +451,10 @@ func (q *QuotaLimit) SubtractResource(r *Resources) {
 		bits -= n.MBits
 	}
 
-	// We may be subtracting an r that has networks from a limit that was persisted
-	// without one, which can make bits negative
+	// If this limit was persisted without Networks, subtracting the bits specified in
+	// the resource here will result in negative usage. (CPU and MemoryMB don't need
+	// this check because they have always been specified in the limit and so have been
+	// added already)
 	if bits < 0 {
 		bits = 0
 	}
