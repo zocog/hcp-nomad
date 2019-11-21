@@ -6,7 +6,7 @@ version: 2
 jobs:
   test-nomad:
     machine:
-      image: ubuntu-1604:201903-01
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GOLANG_VERSION: 1.12.13
@@ -80,7 +80,7 @@ jobs:
         path: /tmp/test-reports
   test-api:
     machine:
-      image: ubuntu-1604:201903-01
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GOLANG_VERSION: 1.12.13
@@ -154,7 +154,7 @@ jobs:
         path: /tmp/test-reports
   test-exec:
     machine:
-      image: ubuntu-1604:201903-01
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GOLANG_VERSION: 1.12.13
@@ -228,7 +228,7 @@ jobs:
         path: /tmp/test-reports
   test-client:
     machine:
-      image: ubuntu-1604:201903-01
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GOLANG_VERSION: 1.12.13
@@ -302,7 +302,7 @@ jobs:
         path: /tmp/test-reports
   test-shared-exec:
     machine:
-      image: ubuntu-1604:201903-01
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GOLANG_VERSION: 1.12.13
@@ -449,7 +449,7 @@ jobs:
     working_directory: ~/project/website
   test-other:
     machine:
-      image: ubuntu-1604:201903-01
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GOLANG_VERSION: 1.12.13
@@ -580,7 +580,7 @@ jobs:
         path: /tmp/test-reports
   test-website:
     machine:
-      image: ubuntu-1604:201903-01
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     steps:
     - checkout
@@ -594,7 +594,7 @@ jobs:
     - NOMAD_SLOW_TEST: 1
   test-docker:
     machine:
-      image: circleci/classic:201808-01
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GOLANG_VERSION: 1.12.13
@@ -724,7 +724,7 @@ jobs:
     - NOMAD_SLOW_TEST: 1
   test-32bit:
     machine:
-      image: ubuntu-1604:201903-01
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GOLANG_VERSION: 1.12.13

@@ -3,9 +3,9 @@ version: 2.1
 references:
   # environment specific references - aim to avoid conflicts
   go-machine-image: &go_machine_image
-    circleci/classic:201808-01
+    default
   go-machine-recent-image: &go_machine_recent_image
-    ubuntu-1604:201903-01
+    default
 
 executors:
   go:
