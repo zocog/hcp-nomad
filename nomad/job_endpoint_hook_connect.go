@@ -35,8 +35,8 @@ var (
 	connectVersionConstraint = func() *structs.Constraint {
 		return &structs.Constraint{
 			LTarget: "${attr.consul.version}",
-			RTarget: ">= 1.6.0beta1",
-			Operand: "version",
+			RTarget: ">= 1.6.0-beta1",
+			Operand: structs.ConstraintSemver,
 		}
 	}
 )
@@ -142,7 +142,6 @@ func groupConnectHook(g *structs.TaskGroup) error {
 			if !found {
 				g.Networks[0].DynamicPorts = append(g.Networks[0].DynamicPorts, port)
 			}
-			return nil
 		}
 	}
 	return nil

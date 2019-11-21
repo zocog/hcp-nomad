@@ -718,6 +718,7 @@ func TestJobEndpoint_Register_Dispatched(t *testing.T) {
 	require.Error(err)
 	require.Contains(err.Error(), "job can't be submitted with 'Dispatched'")
 }
+
 func TestJobEndpoint_Register_EnforceIndex(t *testing.T) {
 	t.Parallel()
 	s1 := TestServer(t, func(c *Config) {
@@ -847,6 +848,8 @@ func TestJobEndpoint_Register_EnforceIndex(t *testing.T) {
 	}
 }
 
+// TestJobEndpoint_Register_Vault_Disabled asserts that submitting a job that
+// uses Vault when Vault is *disabled* results in an error.
 func TestJobEndpoint_Register_Vault_Disabled(t *testing.T) {
 	t.Parallel()
 	s1 := TestServer(t, func(c *Config) {
@@ -880,6 +883,9 @@ func TestJobEndpoint_Register_Vault_Disabled(t *testing.T) {
 	}
 }
 
+// TestJobEndpoint_Register_Vault_AllowUnauthenticated asserts submitting a job
+// with a Vault policy but without a Vault token is *succeeds* if
+// allow_unauthenticated=true.
 func TestJobEndpoint_Register_Vault_AllowUnauthenticated(t *testing.T) {
 	t.Parallel()
 	s1 := TestServer(t, func(c *Config) {
@@ -931,6 +937,65 @@ func TestJobEndpoint_Register_Vault_AllowUnauthenticated(t *testing.T) {
 	if out.CreateIndex != resp.JobModifyIndex {
 		t.Fatalf("index mis-match")
 	}
+}
+
+// TestJobEndpoint_Register_Vault_OverrideConstraint asserts that job
+// submitters can specify their own Vault constraint to override the
+// automatically injected one.
+func TestJobEndpoint_Register_Vault_OverrideConstraint(t *testing.T) {
+	t.Parallel()
+	s1 := TestServer(t, func(c *Config) {
+		c.NumSchedulers = 0 // Prevent automatic dequeue
+	})
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	testutil.WaitForLeader(t, s1.RPC)
+
+	// Enable vault and allow authenticated
+	tr := true
+	s1.config.VaultConfig.Enabled = &tr
+	s1.config.VaultConfig.AllowUnauthenticated = &tr
+
+	// Replace the Vault Client on the server
+	s1.vault = &TestVaultClient{}
+
+	// Create the register request with a job asking for a vault policy
+	job := mock.Job()
+	job.TaskGroups[0].Tasks[0].Vault = &structs.Vault{
+		Policies:   []string{"foo"},
+		ChangeMode: structs.VaultChangeModeRestart,
+	}
+	job.TaskGroups[0].Tasks[0].Constraints = []*structs.Constraint{
+		{
+			LTarget: "${attr.vault.version}",
+			Operand: "is_set",
+		},
+	}
+	req := &structs.JobRegisterRequest{
+		Job: job,
+		WriteRequest: structs.WriteRequest{
+			Region:    "global",
+			Namespace: job.Namespace,
+		},
+	}
+
+	// Fetch the response
+	var resp structs.JobRegisterResponse
+	err := msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp)
+	require.NoError(t, err)
+
+	// Check for the job in the FSM
+	state := s1.fsm.State()
+	ws := memdb.NewWatchSet()
+	out, err := state.JobByID(ws, job.Namespace, job.ID)
+	require.NoError(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, resp.JobModifyIndex, out.CreateIndex)
+
+	// Assert constraint was not overridden by the server
+	outConstraints := out.TaskGroups[0].Tasks[0].Constraints
+	require.Len(t, outConstraints, 1)
+	require.True(t, job.TaskGroups[0].Tasks[0].Constraints[0].Equals(outConstraints[0]))
 }
 
 func TestJobEndpoint_Register_Vault_NoToken(t *testing.T) {
@@ -1112,6 +1177,87 @@ func TestJobEndpoint_Register_Vault_Policies(t *testing.T) {
 	if out.VaultToken != "" {
 		t.Fatalf("vault token not cleared")
 	}
+}
+
+// TestJobEndpoint_Register_SemverConstraint asserts that semver ordering is
+// used when evaluating semver constraints.
+func TestJobEndpoint_Register_SemverConstraint(t *testing.T) {
+	t.Parallel()
+	s1 := TestServer(t, nil)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	testutil.WaitForLeader(t, s1.RPC)
+	state := s1.State()
+
+	// Create a job with a semver constraint
+	job := mock.Job()
+	job.Constraints = []*structs.Constraint{
+		{
+			LTarget: "${attr.vault.version}",
+			RTarget: ">= 0.6.1",
+			Operand: structs.ConstraintSemver,
+		},
+	}
+	job.TaskGroups[0].Count = 1
+
+	// Insert 2 Nodes, 1 matching the constraint, 1 not
+	node1 := mock.Node()
+	node1.Attributes["vault.version"] = "1.3.0-beta1+ent"
+	node1.ComputeClass()
+	require.NoError(t, state.UpsertNode(1, node1))
+
+	node2 := mock.Node()
+	delete(node2.Attributes, "vault.version")
+	node2.ComputeClass()
+	require.NoError(t, state.UpsertNode(2, node2))
+
+	// Create the register request
+	req := &structs.JobRegisterRequest{
+		Job: job,
+		WriteRequest: structs.WriteRequest{
+			Region:    "global",
+			Namespace: job.Namespace,
+		},
+	}
+
+	// Fetch the response
+	var resp structs.JobRegisterResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp))
+	require.NotZero(t, resp.Index)
+
+	// Wait for placements
+	allocReq := &structs.JobSpecificRequest{
+		JobID: job.ID,
+		QueryOptions: structs.QueryOptions{
+			Region:    "global",
+			Namespace: structs.DefaultNamespace,
+		},
+	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		resp := structs.JobAllocationsResponse{}
+		err := msgpackrpc.CallWithCodec(codec, "Job.Allocations", allocReq, &resp)
+		if err != nil {
+			return false, err
+		}
+		if n := len(resp.Allocations); n != 1 {
+			return false, fmt.Errorf("expected 1 alloc, found %d", n)
+		}
+		alloc := resp.Allocations[0]
+		if alloc.NodeID != node1.ID {
+			return false, fmt.Errorf("expected alloc to be one node=%q but found node=%q",
+				node1.ID, alloc.NodeID)
+		}
+		return true, nil
+	}, func(waitErr error) {
+		evals, err := state.EvalsByJob(nil, structs.DefaultNamespace, job.ID)
+		require.NoError(t, err)
+		for i, e := range evals {
+			t.Logf("%d Eval: %s", i, pretty.Sprint(e))
+		}
+
+		require.NoError(t, waitErr)
+	})
 }
 
 func TestJobEndpoint_Revert(t *testing.T) {
@@ -2117,6 +2263,7 @@ func TestJobEndpoint_Deregister_ACL(t *testing.T) {
 	// Create and register a job
 	job := mock.Job()
 	err := state.UpsertJob(100, job)
+	require.Nil(err)
 
 	// Deregister and purge
 	req := &structs.JobDeregisterRequest{
@@ -3647,6 +3794,29 @@ func TestJobEndpoint_Allocations_Blocking(t *testing.T) {
 	}
 }
 
+// TestJobEndpoint_Allocations_NoJobID asserts not setting a JobID in the
+// request returns an error.
+func TestJobEndpoint_Allocations_NoJobID(t *testing.T) {
+	t.Parallel()
+	s1 := TestServer(t, nil)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	testutil.WaitForLeader(t, s1.RPC)
+
+	get := &structs.JobSpecificRequest{
+		JobID: "",
+		QueryOptions: structs.QueryOptions{
+			Region:    "global",
+			Namespace: structs.DefaultNamespace,
+		},
+	}
+
+	var resp structs.JobAllocationsResponse
+	err := msgpackrpc.CallWithCodec(codec, "Job.Allocations", get, &resp)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "missing job ID")
+}
+
 func TestJobEndpoint_Evaluations(t *testing.T) {
 	t.Parallel()
 	s1 := TestServer(t, nil)
@@ -4390,6 +4560,7 @@ func TestJobEndpoint_ValidateJob_ConsulConnect(t *testing.T) {
 
 		tg := j.TaskGroups[0]
 		tg.Services = tgServices
+		tg.Networks = nil
 
 		err := validateJob(j)
 		require.Error(t, err)
