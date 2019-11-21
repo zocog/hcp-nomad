@@ -7,6 +7,9 @@ references:
   go-machine-recent-image: &go_machine_recent_image
     default
 
+orbs:
+  slack: circleci/slack@3.2.0
+
 executors:
   go:
     working_directory: /go/src/github.com/hashicorp/nomad

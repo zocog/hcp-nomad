@@ -1,0 +1,62 @@
+---
+executor: go
+steps:
+  - add_ssh_keys:
+      fingerprints:
+      # "CircleCI SSH Checkout" SSH key associated with hashicorp-ci GitHub user
+      - "c6:96:98:82:dc:04:6c:39:dd:ac:83:05:e3:15:1c:98"
+  - checkout
+  - run:
+      name: Merge Merge OSS master branch
+      command: |
+        set -eux -o pipefail
+        # FAIL_REASON is used in the slack message below.
+        # We don't add a custom reason for every case, just the common ones.
+        echo "export FAIL_REASON='for an unknown reason, @mahmood please investigate: $CIRCLE_BUILD_URL'" >> $BASH_ENV
+        #
+        # Configure Git
+        git config --global user.email "hashicorp-ci@users.noreply.github.com"
+        git config --global user.name "hashicorp-ci"
+
+        # Merge OSS master branch to Enterprise merge branch
+        git remote add oss https://github.com/hashicorp/nomad.git
+        git fetch oss
+        git_merge_branch="ci/oss-merge-$(date +%Y%m%d%H%M%S)"
+
+        git checkout -b "${git_merge_branch}"
+        latest_oss_commit="$(git rev-parse oss/master)"
+        message="Merge Nomad OSS branch 'master' at commit ${latest_oss_commit}"
+        if ! git merge -m "$message" oss/master; then
+          # try to merge common conflicting files
+          git status
+          git checkout --theirs CHANGELOG.md
+          git checkout --theirs version/version.go
+          git checkout --theirs command/agent/bindata_assetfs.go
+          git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go
+
+          # attempt merging again
+          if ! git commit -m "$message"; then
+            echo "export FAIL_REASON='because git was unable to auto-merge'" >> $BASH_ENV
+            exit 1
+          fi
+        fi
+
+        # sanity check - do basic compile build
+        if ! make GOTAGS="ent codegen_generated" pkg/linux_amd64/nomad ; then
+          echo "export FAIL_REASON='because nomad failed to compile after auto-merge'" >> $BASH_ENV
+          exit 1
+        fi
+
+        # now merge and push
+        git checkout master
+        git merge "${git_merge_branch}"
+        git push origin master
+
+  - slack/status:
+      webhook: $SLACK_WEBHOOK_OSS_ENT_AUTOMERGE
+      ## only notify on failing builds to avoid spamming now
+      fail_only: true
+      failure_message: >
+        :red_circle: The Nomad OSS -> ENT merge failed today $FAIL_REASON.
+      success_message: >
+        :tada: The Nomad OSS -> ENT merge just happened automatically.

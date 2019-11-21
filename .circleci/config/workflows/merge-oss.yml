@@ -1,0 +1,12 @@
+triggers:
+- schedule:
+    cron: 0 12 * * 1-5
+    filters:
+      branches:
+        only: master
+
+jobs:
+- merge-oss:
+    filters:
+      branches:
+        only: master
