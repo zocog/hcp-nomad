@@ -1,4 +1,5 @@
-## 0.10.2 (Unreleased)
+## 0.10.2 (November 22, 2019)
+
 FEATURES:
 
  * **Nomad Monitor**: New `nomad monitor` command allows remotely following
