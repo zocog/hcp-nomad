@@ -1,5 +1,6 @@
 triggers:
 - schedule:
+    # Run at noon UTC on weekdays
     cron: 0 12 * * 1-5
     filters:
       branches:
