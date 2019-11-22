@@ -30,7 +30,7 @@ Usage: nomad monitor [options]
 General Options:
 
 	` + generalOptionsUsage() + `
-	
+
 Monitor Specific Options:
 
   -log-level <level>
@@ -38,6 +38,9 @@ Monitor Specific Options:
 
   -node-id <node-id>
     Sets the specific node to monitor
+
+  -server-id <server-id>
+    Sets the specific server to monitor
 
   -json
     Sets log output to JSON format
@@ -87,6 +90,28 @@ func (c *MonitorCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error initializing client: %s", err))
 		c.Ui.Error(commandErrorText(c))
 		return 1
+	}
+
+	// Query the node info and lookup prefix
+	if len(nodeID) == 1 {
+		c.Ui.Error(fmt.Sprintf("Node identifier must contain at least two characters."))
+		return 1
+	}
+
+	if nodeID != "" {
+		nodeID = sanitizeUUIDPrefix(nodeID)
+		nodes, _, err := client.Nodes().PrefixList(nodeID)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error querying node: %v", err))
+			return 1
+		}
+
+		if len(nodes) > 1 {
+			out := formatNodeStubList(nodes, false)
+			c.Ui.Output(fmt.Sprintf("Prefix matched multiple nodes\n\n%s", out))
+			return 1
+		}
+		nodeID = nodes[0].ID
 	}
 
 	params := map[string]string{
