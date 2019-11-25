@@ -6,6 +6,7 @@ steps:
       # "CircleCI SSH Checkout" SSH key associated with hashicorp-ci GitHub user
       - "c6:96:98:82:dc:04:6c:39:dd:ac:83:05:e3:15:1c:98"
   - checkout
+  - install-circleci-local-cli
   - run:
       name: Merge Merge OSS master branch
       command: |
@@ -32,7 +33,10 @@ steps:
           git checkout --theirs CHANGELOG.md
           git checkout --theirs version/version.go
           git checkout --theirs command/agent/bindata_assetfs.go
-          git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go
+          # Regenerate enterprise Circle CI config to apply changes from OSS merge.
+          make -C .circleci CIRCLECI="circleci-local-cli --skip-update-check" config.yml
+
+          git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go .circleci/config.yml
 
           # attempt merging again
           if ! git commit -m "$message"; then

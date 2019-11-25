@@ -454,6 +454,9 @@ jobs:
         - c6:96:98:82:dc:04:6c:39:dd:ac:83:05:e3:15:1c:98
     - checkout
     - run:
+        command: "CCI_VERSION=\"0.1.5879\"\nCCI_SHA256=\"f178ea62c781aec06267017404f87983c87f171fd0e66ef3737916246ae66dd6\"\n\nURL=\"https://github.com/CircleCI-Public/circleci-cli/releases/download/v${CCI_VERSION}/circleci-cli_${CCI_VERSION}_linux_amd64.tar.gz\"\n\nmkdir -p /tmp/circleci-cli/\ncurl --fail --show-error --location \\\n  -o /tmp/circleci-cli/cli.tar.gz \"${URL}\"\n\necho \"$CCI_SHA256 /tmp/circleci-cli/cli.tar.gz\" | sha256sum -c\n\ntar -xz --strip-components=1 \\\n  -C /tmp/circleci-cli \\\n  -f /tmp/circleci-cli/cli.tar.gz \\\n  \"circleci-cli_${CCI_VERSION}_linux_amd64/circleci\" \n\nsudo cp /tmp/circleci-cli/circleci /usr/bin/circleci-local-cli\n\ncircleci-local-cli version\n"
+        name: Install CircleCI CLI 0.1.5879
+    - run:
         command: |
           set -eux -o pipefail
           # FAIL_REASON is used in the slack message below.
@@ -478,7 +481,10 @@ jobs:
             git checkout --theirs CHANGELOG.md
             git checkout --theirs version/version.go
             git checkout --theirs command/agent/bindata_assetfs.go
-            git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go
+            # Regenerate enterprise Circle CI config to apply changes from OSS merge.
+            make -C .circleci CIRCLECI="circleci-local-cli --skip-update-check" config.yml
+
+            git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go .circleci/config.yml
 
             # attempt merging again
             if ! git commit -m "$message"; then
