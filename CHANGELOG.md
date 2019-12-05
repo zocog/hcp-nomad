@@ -4,7 +4,7 @@ IMPROVEMENTS:
 
 * scheduler: Removed penalty for allocation's previous node if the allocation did not fail. [[GH-6781](https://github.com/hashicorp/nomad/issues/6781)]
 
-## 0.10.2 (Unreleased)
+## 0.10.2 (December 4, 2019)
 
 FEATURES:
 
@@ -104,6 +104,12 @@ BUG FIXES:
  * ui: Fixed navigation via clicking recent allocation row [[GH-6087](https://github.com/hashicorp/nomad/pull/6087)]
  * ui: Fixed a bug where the allocation log viewer would render HTML or hide content that matched XML syntax [[GH-6048](https://github.com/hashicorp/nomad/issues/6048)]
  * ui: Fixed a bug where allocation log viewer doesn't show all content in Firefox [[GH-6466](https://github.com/hashicorp/nomad/issues/6466)]
+
+## 0.9.7 (December 4, 2019)
+
+BUG FIXES:
+
+ * core: Fixed server panic caused by a plan evicting and preempting allocs on a node [[GH-6792](https://github.com/hashicorp/nomad/issues/6792)]
 
 ## 0.9.6 (October 7, 2019)
 
