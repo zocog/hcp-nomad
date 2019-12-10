@@ -137,8 +137,9 @@ func testJoin(t *testing.T, s1 *Server, other ...*Server) {
 
 func TestServer_RPC(t *testing.T) {
 	t.Parallel()
-	s1 := TestServer(t, nil)
-	defer s1.Shutdown()
+
+	s1, cleanupS1 := TestServer(t, nil)
+	defer cleanupS1()
 
 	var out struct{}
 	if err := s1.RPC("Status.Ping", struct{}{}, &out); err != nil {
@@ -148,6 +149,7 @@ func TestServer_RPC(t *testing.T) {
 
 func TestServer_RPC_TLS(t *testing.T) {
 	t.Parallel()
+
 	const (
 		cafile  = "../helper/tlsutil/testdata/ca.pem"
 		foocert = "../helper/tlsutil/testdata/nomad-foo.pem"
@@ -155,7 +157,8 @@ func TestServer_RPC_TLS(t *testing.T) {
 	)
 	dir := tmpDir(t)
 	defer os.RemoveAll(dir)
-	s1 := TestServer(t, func(c *Config) {
+
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.Region = "regionFoo"
 		c.BootstrapExpect = 3
 		c.DevMode = false
@@ -170,9 +173,9 @@ func TestServer_RPC_TLS(t *testing.T) {
 			KeyFile:              fookey,
 		}
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 
-	s2 := TestServer(t, func(c *Config) {
+	s2, cleanupS2 := TestServer(t, func(c *Config) {
 		c.Region = "regionFoo"
 		c.BootstrapExpect = 3
 		c.DevMode = false
@@ -187,8 +190,9 @@ func TestServer_RPC_TLS(t *testing.T) {
 			KeyFile:              fookey,
 		}
 	})
-	defer s2.Shutdown()
-	s3 := TestServer(t, func(c *Config) {
+	defer cleanupS2()
+
+	s3, cleanupS3 := TestServer(t, func(c *Config) {
 		c.Region = "regionFoo"
 		c.BootstrapExpect = 3
 		c.DevMode = false
@@ -203,7 +207,7 @@ func TestServer_RPC_TLS(t *testing.T) {
 			KeyFile:              fookey,
 		}
 	})
-	defer s3.Shutdown()
+	defer cleanupS3()
 
 	TestJoin(t, s1, s2, s3)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -214,6 +218,7 @@ func TestServer_RPC_TLS(t *testing.T) {
 
 func TestServer_RPC_MixedTLS(t *testing.T) {
 	t.Parallel()
+
 	const (
 		cafile  = "../helper/tlsutil/testdata/ca.pem"
 		foocert = "../helper/tlsutil/testdata/nomad-foo.pem"
@@ -221,7 +226,8 @@ func TestServer_RPC_MixedTLS(t *testing.T) {
 	)
 	dir := tmpDir(t)
 	defer os.RemoveAll(dir)
-	s1 := TestServer(t, func(c *Config) {
+
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.Region = "regionFoo"
 		c.BootstrapExpect = 3
 		c.DevMode = false
@@ -236,9 +242,9 @@ func TestServer_RPC_MixedTLS(t *testing.T) {
 			KeyFile:              fookey,
 		}
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 
-	s2 := TestServer(t, func(c *Config) {
+	s2, cleanupS2 := TestServer(t, func(c *Config) {
 		c.Region = "regionFoo"
 		c.BootstrapExpect = 3
 		c.DevMode = false
@@ -253,15 +259,16 @@ func TestServer_RPC_MixedTLS(t *testing.T) {
 			KeyFile:              fookey,
 		}
 	})
-	defer s2.Shutdown()
-	s3 := TestServer(t, func(c *Config) {
+	defer cleanupS2()
+
+	s3, cleanupS3 := TestServer(t, func(c *Config) {
 		c.Region = "regionFoo"
 		c.BootstrapExpect = 3
 		c.DevMode = false
 		c.DevDisableBootstrap = true
 		c.DataDir = path.Join(dir, "node3")
 	})
-	defer s3.Shutdown()
+	defer cleanupS3()
 
 	TestJoin(t, s1, s2, s3)
 
@@ -283,16 +290,17 @@ func TestServer_RPC_MixedTLS(t *testing.T) {
 
 func TestServer_Regions(t *testing.T) {
 	t.Parallel()
+
 	// Make the servers
-	s1 := TestServer(t, func(c *Config) {
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.Region = "region1"
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 
-	s2 := TestServer(t, func(c *Config) {
+	s2, cleanupS2 := TestServer(t, func(c *Config) {
 		c.Region = "region2"
 	})
-	defer s2.Shutdown()
+	defer cleanupS2()
 
 	// Join them together
 	s2Addr := fmt.Sprintf("127.0.0.1:%d",
@@ -315,10 +323,11 @@ func TestServer_Regions(t *testing.T) {
 
 func TestServer_Reload_Vault(t *testing.T) {
 	t.Parallel()
-	s1 := TestServer(t, func(c *Config) {
+
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.Region = "global"
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 
 	if s1.vault.Running() {
 		t.Fatalf("Vault client should not be running")
@@ -356,10 +365,10 @@ func TestServer_Reload_TLSConnections_PlaintextToTLS(t *testing.T) {
 	dir := tmpDir(t)
 	defer os.RemoveAll(dir)
 
-	s1 := TestServer(t, func(c *Config) {
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.DataDir = path.Join(dir, "nodeA")
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 
 	// assert that the server started in plaintext mode
 	assert.Equal(s1.config.TLSConfig.CertFile, "")
@@ -406,7 +415,7 @@ func TestServer_Reload_TLSConnections_TLSToPlaintext_RPC(t *testing.T) {
 	dir := tmpDir(t)
 	defer os.RemoveAll(dir)
 
-	s1 := TestServer(t, func(c *Config) {
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.DataDir = path.Join(dir, "nodeB")
 		c.TLSConfig = &config.TLSConfig{
 			EnableHTTP:           true,
@@ -417,7 +426,7 @@ func TestServer_Reload_TLSConnections_TLSToPlaintext_RPC(t *testing.T) {
 			KeyFile:              fookey,
 		}
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 
 	newTLSConfig := &config.TLSConfig{}
 
@@ -453,7 +462,7 @@ func TestServer_Reload_TLSConnections_TLSToPlaintext_OnlyRPC(t *testing.T) {
 	dir := tmpDir(t)
 	defer os.RemoveAll(dir)
 
-	s1 := TestServer(t, func(c *Config) {
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.DataDir = path.Join(dir, "nodeB")
 		c.TLSConfig = &config.TLSConfig{
 			EnableHTTP:           true,
@@ -464,7 +473,7 @@ func TestServer_Reload_TLSConnections_TLSToPlaintext_OnlyRPC(t *testing.T) {
 			KeyFile:              fookey,
 		}
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 
 	newTLSConfig := &config.TLSConfig{
 		EnableHTTP:           true,
@@ -507,7 +516,7 @@ func TestServer_Reload_TLSConnections_PlaintextToTLS_OnlyRPC(t *testing.T) {
 	dir := tmpDir(t)
 	defer os.RemoveAll(dir)
 
-	s1 := TestServer(t, func(c *Config) {
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.DataDir = path.Join(dir, "nodeB")
 		c.TLSConfig = &config.TLSConfig{
 			EnableHTTP:           true,
@@ -518,7 +527,7 @@ func TestServer_Reload_TLSConnections_PlaintextToTLS_OnlyRPC(t *testing.T) {
 			KeyFile:              fookey,
 		}
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 
 	newTLSConfig := &config.TLSConfig{
 		EnableHTTP:           true,
@@ -551,8 +560,9 @@ func TestServer_Reload_TLSConnections_PlaintextToTLS_OnlyRPC(t *testing.T) {
 // Test that Raft connections are reloaded as expected when a Nomad server is
 // upgraded from plaintext to TLS
 func TestServer_Reload_TLSConnections_Raft(t *testing.T) {
-	assert := assert.New(t)
 	t.Parallel()
+	assert := assert.New(t)
+
 	const (
 		cafile  = "../../helper/tlsutil/testdata/ca.pem"
 		foocert = "../../helper/tlsutil/testdata/nomad-foo.pem"
@@ -563,7 +573,7 @@ func TestServer_Reload_TLSConnections_Raft(t *testing.T) {
 	dir := tmpDir(t)
 	defer os.RemoveAll(dir)
 
-	s1 := TestServer(t, func(c *Config) {
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 2
 		c.DevMode = false
 		c.DevDisableBootstrap = true
@@ -571,9 +581,9 @@ func TestServer_Reload_TLSConnections_Raft(t *testing.T) {
 		c.NodeName = "node1"
 		c.Region = "regionFoo"
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 
-	s2 := TestServer(t, func(c *Config) {
+	s2, cleanupS2 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 2
 		c.DevMode = false
 		c.DevDisableBootstrap = true
@@ -581,7 +591,7 @@ func TestServer_Reload_TLSConnections_Raft(t *testing.T) {
 		c.NodeName = "node2"
 		c.Region = "regionFoo"
 	})
-	defer s2.Shutdown()
+	defer cleanupS2()
 
 	TestJoin(t, s1, s2)
 	servers := []*Server{s1, s2}
