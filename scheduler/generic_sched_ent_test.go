@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Test that scaling up a job in a way that will cause the job to exceed the
@@ -68,12 +69,12 @@ func TestServiceSched_JobModify_IncrCount_QuotaLimit(t *testing.T) {
 		}
 		allocs = append(allocs, alloc)
 	}
-	noErr(t, h.State.UpsertAllocs(h.NextIndex(), allocs))
+	require.NoError(t, h.State.UpsertAllocs(h.NextIndex(), allocs))
 
 	// Update the task group count to 10 each
 	job2 := job.Copy()
 	job2.TaskGroups[0].Count = 10
-	noErr(t, h.State.UpsertJob(h.NextIndex(), job2))
+	require.NoError(t, h.State.UpsertJob(h.NextIndex(), job2))
 
 	// Create a mock evaluation to deal with drain
 	eval := &structs.Evaluation{
@@ -84,7 +85,7 @@ func TestServiceSched_JobModify_IncrCount_QuotaLimit(t *testing.T) {
 		JobID:       job.ID,
 		Status:      structs.EvalStatusPending,
 	}
-	noErr(t, h.State.UpsertEvals(h.NextIndex(), []*structs.Evaluation{eval}))
+	require.NoError(t, h.State.UpsertEvals(h.NextIndex(), []*structs.Evaluation{eval}))
 
 	// Process the evaluation
 	assert.Nil(h.Process(NewServiceScheduler, eval))
