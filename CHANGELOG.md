@@ -1,3 +1,10 @@
+## 0.10.3 (January 29, 2020)
+
+SECURITY:
+
+ * agent: Added unauthenticated connection timeouts and limits to prevent resource exhaustion. [[GH-7002](https://github.com/hashicorp/nomad/issues/7002)]
+ * server: Fixed insufficient validation for role and region for RPC connections when TLS enabled. [[GH-7003](https://github.com/hashicorp/nomad/issues/7003)]
+
 ## 0.10.2 (December 4, 2019)
 
 FEATURES:
