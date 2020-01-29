@@ -734,10 +734,11 @@ func TestRPC_Limits_OK(t *testing.T) {
 		}
 
 		// Now assert each error is a clientside read deadline error
+		deadline := time.After(10 * time.Second)
 		for i := 0; i < maxConns; i++ {
 			select {
-			case <-time.After(1 * time.Second):
-				t.Fatalf("timed out waiting for conn error %d", i)
+			case <-deadline:
+				t.Fatalf("timed out waiting for conn error %d/%d", i+1, maxConns)
 			case err := <-errCh:
 				testutil.RequireDeadlineErr(t, err)
 			}
@@ -791,7 +792,7 @@ func TestRPC_Limits_OK(t *testing.T) {
 		for _, conn := range conns {
 			conn.Close()
 		}
-		for _ = range conns {
+		for range conns {
 			err := <-errCh
 			require.Contains(t, err.Error(), "use of closed network connection")
 		}
