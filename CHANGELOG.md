@@ -2,36 +2,45 @@
 
 FEATURES:
 
-* jobspec: Add `shutdown_delay` to task groups so task groups can delay shutdown
-  after deregistering from Consul [[GH-6746](https://github.com/hashicorp/nomad/issues/6746)]
+ * consul/connect: Nomad may now register Consul Connect services when Consul is configured with ACLs enabled [[GH-6701](https://github.com/hashicorp/nomad/issues/6701)]
+ * jobspec: Add `shutdown_delay` to task groups so task groups can delay shutdown after deregistering from Consul [[GH-6746](https://github.com/hashicorp/nomad/issues/6746)]
 
 IMPROVEMENTS:
 
-* build: Updated to Go 1.12.16 [[GH-7009](https://github.com/hashicorp/nomad/issues/7009)]
-* cli: Added option to change the name of the file created by the `nomad init` command [[GH-6520]](https://github.com/hashicorp/nomad/pull/6520)
-* cli: Included namespace in output when querying job stauts. [[GH-6912](https://github.com/hashicorp/nomad/issues/6912)]
-* scheduler: Removed penalty for allocation's previous node if the allocation did not fail. [[GH-6781](https://github.com/hashicorp/nomad/issues/6781)]
-* scheduler: Reduced logging verbosity during preemption [[GH-6849](https://github.com/hashicorp/nomad/issues/6849)]
-* ui: Updated Run Job button to be conditionally enabled according to ACLs [[GH-5944](https://github.com/hashicorp/nomad/pull/5944)]
-* consul: Add support for service `canary_meta`
+ * build: Updated to Go 1.12.16 [[GH-7009](https://github.com/hashicorp/nomad/issues/7009)]
+  * cli: Included namespace in output when querying job status [[GH-6912](https://github.com/hashicorp/nomad/issues/6912)]
+ * cli: Added option to change the name of the file created by the `nomad init` command [[GH-6520]](https://github.com/hashicorp/nomad/pull/6520)
+ * client: Supported AWS EC2 Instance Metadata Service Version 2 (IMDSv2) [[GH-6779](https://github.com/hashicorp/nomad/issues/6779)]
+  * consul: Add support for service `canary_meta` [[GH-6690](https://github.com/hashicorp/nomad/pull/6690)]
+ * driver/docker: Added a `disable_log_collection` parameter to disable nomad log collection [[GH-6820](https://github.com/hashicorp/nomad/issues/6820)]
+ * server: Introduced a `default_scheduler_config` config parameter to seed initial preemption configuration. [[GH-6935](https://github.com/hashicorp/nomad/issues/6935)]
+ * scheduler: Removed penalty for allocation's previous node if the allocation did not fail. [[GH-6781](https://github.com/hashicorp/nomad/issues/6781)]
+ * scheduler: Reduced logging verbosity during preemption [[GH-6849](https://github.com/hashicorp/nomad/issues/6849)]
+ * ui: Updated Run Job button to be conditionally enabled according to ACLs [[GH-5944](https://github.com/hashicorp/nomad/pull/5944)]
 
 BUG FIXES:
 
+ * agent: Fixed a panic when using `nomad monitor` on a client node [[GH-7053](https://github.com/hashicorp/nomad/issues/7053)]
  * agent: Fixed race condition in logging when using `nomad monitor` command [[GH-6872](https://github.com/hashicorp/nomad/issues/6872)]
- * agent: Fixed a bug where `nomad monitor -server-id` only work for a server's name instead of uuid or name. [[GH-7015](https://github.com/hashicorp/nomad/issues/7015)]
- * cli: Fixed a bug where `nomad monitor -node-id` would cause a cli panic when no nodes where found. [[GH-6828](https://github.com/hashicorp/nomad/issues/6828)]
- * config: Fixed a bug where agent startup would fail if the `consul.timeout` configuration was set. [[GH-6907](https://github.com/hashicorp/nomad/issues/6907)]
- * consul: Fixed a bug where script-based health checks would fail if the service configuration included interpolation. [[GH-6916](https://github.com/hashicorp/nomad/issues/6916)]
- * consul/connect: Fixed a bug where Connect-enabled jobs failed to validate when service names used interpolation. [[GH-6855](https://github.com/hashicorp/nomad/issues/6855)]
- * scheduler: Fixed a bug that caused evicted allocs on a lost node to be stuck in running. [[GH-6902](https://github.com/hashicorp/nomad/issues/6902)]
- * scheduler: Fixed a bug where `nomad job plan/apply` returned errors instead of a partial placement warning for ineligible nodes. [[GH-6968](https://github.com/hashicorp/nomad/issues/6968)]
+ * agent: Fixed a bug where `nomad monitor -server-id` only work for a server's name instead of uuid or name [[GH-7015](https://github.com/hashicorp/nomad/issues/7015)]
+ * core: Addressed an inconsistency where allocations created prior to 0.9 had missing fields [[GH-6922](https://github.com/hashicorp/nomad/issues/6922)]
+ * cli: Fixed a bug where error messages appeared interleaved with help text inconsistently [[GH-6865](https://github.com/hashicorp/nomad/issues/6865)]
+ * cli: Fixed a bug where `nomad monitor -node-id` would cause a cli panic when no nodes where found [[GH-6828](https://github.com/hashicorp/nomad/issues/6828)]
+ * config: Fixed a bug where agent startup would fail if the `consul.timeout` configuration was set [[GH-6907](https://github.com/hashicorp/nomad/issues/6907)]
+ * consul: Fixed a bug where script-based health checks would fail if the service configuration included interpolation [[GH-6916](https://github.com/hashicorp/nomad/issues/6916)]
+ * consul/connect: Fixed a bug where Connect-enabled jobs failed to validate when service names used interpolation [[GH-6855](https://github.com/hashicorp/nomad/issues/6855)]
+ * drivers: Fixed a bug where exec, java, and raw_exec drivers collected and emited stats every second regardless of the telemetry config [[GH-7043](https://github.com/hashicorp/nomad/issues/7043)]
+ * driver/exec: Fixed a bug where systemd cgroup wasn't removed upon a task completion [[GH-6839](https://github.com/hashicorp/nomad/issues/6839)]
+ * server: Fixed a deadlock that may occur when server leadership flaps very quickly [[GH-6977](https://github.com/hashicorp/nomad/issues/6977)]
+ * scheduler: Fixed a bug that caused evicted allocs on a lost node to be stuck in running [[GH-6902](https://github.com/hashicorp/nomad/issues/6902)]
+ * scheduler: Fixed a bug where `nomad job plan/apply` returned errors instead of ignoring system job updates for ineligible nodes. [[GH-6996](https://github.com/hashicorp/nomad/issues/6996)]
 
 ## 0.10.3 (January 29, 2020)
 
 SECURITY:
 
- * agent: Added unauthenticated connection timeouts and limits to prevent resource exhaustion. CVE-2020-7218 [GH-7002]
- * server: Fixed insufficient validation for role and region for RPC connections when TLS enabled. CVE-2020-7956 [GH-7003]
+ * agent: Added unauthenticated connection timeouts and limits to prevent resource exhaustion. CVE-2020-7218 [[GH-7002](https://github.com/hashicorp/nomad/issues/7002)]
+ * server: Fixed insufficient validation for role and region for RPC connections when TLS enabled. CVE-2020-7956 [[GH-7003](https://github.com/hashicorp/nomad/issues/7003)]
 
 IMPROVEMENTS:
 
