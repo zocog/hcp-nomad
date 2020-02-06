@@ -8,17 +8,13 @@ import (
 )
 
 // registerLogAppliers registers all the Nomad Pro Raft log appliers.
-func (n *nomadFSM) registerLogAppliers() {
-	n.registerProLogAppliers()
-}
+func (n *nomadFSM) registerLogAppliers() {}
 
 // registerSnapshotRestorers registers all the Nomad Enterprise snapshot
 // restorers.
-func (n *nomadFSM) registerSnapshotRestorers() {
-	n.registerProSnapshotRestorers()
-}
+func (n *nomadFSM) registerSnapshotRestorers() {}
 
 // persistEnterpriseTables persists all the Nomad Pro state store tables.
 func (s *nomadSnapshot) persistEnterpriseTables(sink raft.SnapshotSink, encoder *codec.Encoder) error {
-	return s.persistProTables(sink, encoder)
+	return nil
 }

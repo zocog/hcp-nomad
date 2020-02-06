@@ -1,5 +1,6 @@
-// +build pro ent
+// +build ent
 
+// TODO what to do with this file
 package state
 
 import memdb "github.com/hashicorp/go-memdb"

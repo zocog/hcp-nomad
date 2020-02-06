@@ -1,5 +1,6 @@
-// +build pro ent
+// +build ent
 
+// TODO drew combine into fsm_ent.go
 package nomad
 
 import (

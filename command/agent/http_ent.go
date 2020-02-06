@@ -4,7 +4,6 @@ package agent
 
 // registerEnterpriseHandlers registers Nomad Pro and Premium endpoints
 func (s *HTTPServer) registerEnterpriseHandlers() {
-	s.registerProHandlers()
 	s.registerEntHandlers()
 }
 
@@ -17,4 +16,8 @@ func (s *HTTPServer) registerEntHandlers() {
 	s.mux.HandleFunc("/v1/quota-usages", s.wrap(s.QuotaUsagesRequest))
 	s.mux.HandleFunc("/v1/quota/", s.wrap(s.QuotaSpecificRequest))
 	s.mux.HandleFunc("/v1/quota", s.wrap(s.QuotaCreateRequest))
+
+	s.mux.HandleFunc("/v1/namespaces", s.wrap(s.NamespacesRequest))
+	s.mux.HandleFunc("/v1/namespace", s.wrap(s.NamespaceCreateRequest))
+	s.mux.HandleFunc("/v1/namespace/", s.wrap(s.NamespaceSpecificRequest))
 }
