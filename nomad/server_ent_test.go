@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/lib/freeport"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/nomad/command/agent/consul"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/mock"
