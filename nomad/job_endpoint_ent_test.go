@@ -18,10 +18,10 @@ import (
 
 func TestJobEndpoint_Register_Sentinel(t *testing.T) {
 	t.Parallel()
-	s1, root := testACLServer(t, func(c *Config) {
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
 
@@ -73,10 +73,10 @@ func TestJobEndpoint_Register_Sentinel(t *testing.T) {
 
 func TestJobEndpoint_Register_Sentinel_DriverForce(t *testing.T) {
 	t.Parallel()
-	s1, root := testACLServer(t, func(c *Config) {
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
 
@@ -132,10 +132,10 @@ func TestJobEndpoint_Register_Sentinel_DriverForce(t *testing.T) {
 
 func TestJobEndpoint_Plan_Sentinel(t *testing.T) {
 	t.Parallel()
-	s1, root := testACLServer(t, func(c *Config) {
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
 
@@ -193,10 +193,10 @@ func TestJobEndpoint_Plan_Sentinel(t *testing.T) {
 
 func TestJobEndpoint_Register_ACL_Namespace(t *testing.T) {
 	t.Parallel()
-	s1, _ := testACLServer(t, func(c *Config) {
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
 

@@ -13,27 +13,27 @@ import (
 
 func TestAdvancedAutopilot_DesignateNonVoter(t *testing.T) {
 	assert := assert.New(t)
-	s1 := testServer(t, func(c *Config) {
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.RaftConfig.ProtocolVersion = 3
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 
-	s2 := testServer(t, func(c *Config) {
+	s2, cleanupS2 := TestServer(t, func(c *Config) {
 		c.DevDisableBootstrap = true
 		c.RaftConfig.ProtocolVersion = 3
 	})
-	defer s2.Shutdown()
+	defer cleanupS2()
 
-	s3 := testServer(t, func(c *Config) {
+	s3, cleanupS3 := TestServer(t, func(c *Config) {
 		c.DevDisableBootstrap = true
 		c.NonVoter = true
 		c.RaftConfig.ProtocolVersion = 3
 	})
-	defer s3.Shutdown()
+	defer cleanupS3()
 
 	testutil.WaitForLeader(t, s1.RPC)
 
-	testJoin(t, s1, s2, s3)
+	TestJoin(t, s1, s2, s3)
 	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2, s3})) })
 
 	// Wait twice the server stabilization threshold to give the server
@@ -58,30 +58,30 @@ func TestAdvancedAutopilot_DesignateNonVoter(t *testing.T) {
 
 func TestAdvancedAutopilot_RedundancyZone(t *testing.T) {
 	assert := assert.New(t)
-	s1 := testServer(t, func(c *Config) {
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.EnableRedundancyZones = true
 		c.RedundancyZone = "east"
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 
-	s2 := testServer(t, func(c *Config) {
+	s2, cleanupS2 := TestServer(t, func(c *Config) {
 		c.DevDisableBootstrap = true
 		c.RaftConfig.ProtocolVersion = 3
 		c.RedundancyZone = "west"
 	})
-	defer s2.Shutdown()
+	defer cleanupS2()
 
-	s3 := testServer(t, func(c *Config) {
+	s3, cleanupS3 := TestServer(t, func(c *Config) {
 		c.DevDisableBootstrap = true
 		c.RaftConfig.ProtocolVersion = 3
 		c.RedundancyZone = "west-2"
 	})
-	defer s3.Shutdown()
+	defer cleanupS3()
 
 	testutil.WaitForLeader(t, s1.RPC)
 
-	testJoin(t, s1, s2, s3)
+	TestJoin(t, s1, s2, s3)
 	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2, s3})) })
 
 	// Wait past the stabilization time to give the servers a chance to be promoted
@@ -99,13 +99,14 @@ func TestAdvancedAutopilot_RedundancyZone(t *testing.T) {
 	}
 
 	// Join s4
-	s4 := testServer(t, func(c *Config) {
+	s4, cleanupS4 := TestServer(t, func(c *Config) {
 		c.DevDisableBootstrap = true
 		c.RaftConfig.ProtocolVersion = 3
 		c.RedundancyZone = "west-2"
 	})
-	defer s4.Shutdown()
-	testJoin(t, s1, s4)
+	defer cleanupS4()
+
+	TestJoin(t, s1, s4)
 	time.Sleep(2*s1.config.AutopilotConfig.ServerStabilizationTime + s1.config.AutopilotInterval)
 
 	// s4 should not be a voter yet
@@ -135,21 +136,21 @@ func TestAdvancedAutopilot_RedundancyZone(t *testing.T) {
 }
 
 func TestAdvancedAutopilot_UpgradeMigration(t *testing.T) {
-	s1 := testServer(t, func(c *Config) {
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.RaftConfig.ProtocolVersion = 3
 		c.Build = "0.8.0"
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 
-	s2 := testServer(t, func(c *Config) {
+	s2, cleanupS2 := TestServer(t, func(c *Config) {
 		c.DevDisableBootstrap = true
 		c.RaftConfig.ProtocolVersion = 3
 		c.Build = "0.8.1"
 	})
-	defer s2.Shutdown()
+	defer cleanupS2()
 
 	testutil.WaitForLeader(t, s1.RPC)
-	testJoin(t, s1, s2)
+	TestJoin(t, s1, s2)
 
 	// Wait for the migration to complete
 	retry.Run(t, func(r *retry.R) {
@@ -181,22 +182,22 @@ func TestAdvancedAutopilot_UpgradeMigration(t *testing.T) {
 }
 
 func TestAdvancedAutopilot_CustomUpgradeMigration(t *testing.T) {
-	s1 := testServer(t, func(c *Config) {
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.EnableCustomUpgrades = true
 		c.UpgradeVersion = "0.0.1"
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 
-	s2 := testServer(t, func(c *Config) {
+	s2, cleanupS2 := TestServer(t, func(c *Config) {
 		c.DevDisableBootstrap = true
 		c.RaftConfig.ProtocolVersion = 3
 		c.UpgradeVersion = "0.0.2"
 	})
-	defer s2.Shutdown()
+	defer cleanupS2()
 
 	testutil.WaitForLeader(t, s1.RPC)
-	testJoin(t, s1, s2)
+	TestJoin(t, s1, s2)
 
 	// Wait for the migration to complete
 	retry.Run(t, func(r *retry.R) {
@@ -228,30 +229,30 @@ func TestAdvancedAutopilot_CustomUpgradeMigration(t *testing.T) {
 }
 
 func TestAdvancedAutopilot_DisableUpgradeMigration(t *testing.T) {
-	s1 := testServer(t, func(c *Config) {
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.DisableUpgradeMigration = true
 		c.Build = "0.8.0"
 	})
-	defer s1.Shutdown()
+	defer cleanupS1()
 
 	testutil.WaitForLeader(t, s1.RPC)
 
-	s2 := testServer(t, func(c *Config) {
+	s2, cleanupS2 := TestServer(t, func(c *Config) {
 		c.DevDisableBootstrap = true
 		c.RaftConfig.ProtocolVersion = 3
 		c.Build = "0.8.0"
 	})
-	defer s2.Shutdown()
+	defer cleanupS2()
 
-	s3 := testServer(t, func(c *Config) {
+	s3, cleanupS3 := TestServer(t, func(c *Config) {
 		c.DevDisableBootstrap = true
 		c.RaftConfig.ProtocolVersion = 3
 		c.Build = "0.8.1"
 	})
-	defer s3.Shutdown()
+	defer cleanupS3()
 
-	testJoin(t, s1, s2, s3)
+	TestJoin(t, s1, s2, s3)
 
 	// Wait for both servers to be added as voters
 	retry.Run(t, func(r *retry.R) {
