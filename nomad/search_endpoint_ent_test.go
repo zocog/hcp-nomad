@@ -17,11 +17,11 @@ import (
 func TestSearch_PrefixSearch_Quota(t *testing.T) {
 	assert := assert.New(t)
 	t.Parallel()
-	s := testServer(t, func(c *Config) {
+	s, cleanup := TestServer(t, func(c *Config) {
 		c.NumSchedulers = 0
 	})
+	defer cleanup()
 
-	defer s.Shutdown()
 	codec := rpcClient(t, s)
 	testutil.WaitForLeader(t, s.RPC)
 
@@ -53,10 +53,10 @@ func TestSearch_PrefixSearch_Quota(t *testing.T) {
 func TestSearch_PrefixSearch_Quota_ACL(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
-	s, root := testACLServer(t, func(c *Config) {
+	s, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.NumSchedulers = 0
 	})
-	defer s.Shutdown()
+	defer cleanupS1()
 	codec := rpcClient(t, s)
 	testutil.WaitForLeader(t, s.RPC)
 	state := s.fsm.State()

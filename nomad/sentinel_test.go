@@ -15,8 +15,8 @@ import (
 
 func TestServer_Sentinel_EnforceScope(t *testing.T) {
 	t.Parallel()
-	s1, _ := testACLServer(t, nil)
-	defer s1.Shutdown()
+	s1, _, cleanupS1 := TestACLServer(t, nil)
+	defer cleanupS1()
 	testutil.WaitForLeader(t, s1.RPC)
 
 	// data call back for enforement
@@ -62,8 +62,8 @@ func TestServer_Sentinel_EnforceScope(t *testing.T) {
 
 func TestServer_Sentinel_EnforceScope_MultiJobPolicies(t *testing.T) {
 	t.Parallel()
-	s1, _ := testACLServer(t, nil)
-	defer s1.Shutdown()
+	s1, _, cleanupS1 := TestACLServer(t, nil)
+	defer cleanupS1()
 	testutil.WaitForLeader(t, s1.RPC)
 
 	// data call back for enforement
@@ -95,8 +95,8 @@ func TestServer_Sentinel_EnforceScope_MultiJobPolicies(t *testing.T) {
 // Ensure the standard lib is present
 func TestServer_Sentinel_EnforceScope_Stdlib(t *testing.T) {
 	t.Parallel()
-	s1, _ := testACLServer(t, nil)
-	defer s1.Shutdown()
+	s1, _, cleanupS1 := TestACLServer(t, nil)
+	defer cleanupS1()
 	testutil.WaitForLeader(t, s1.RPC)
 
 	// data call back for enforement
@@ -122,8 +122,8 @@ func TestServer_Sentinel_EnforceScope_Stdlib(t *testing.T) {
 
 func TestServer_SentinelPoliciesByScope(t *testing.T) {
 	t.Parallel()
-	s1, _ := testACLServer(t, nil)
-	defer s1.Shutdown()
+	s1, _, cleanupS1 := TestACLServer(t, nil)
+	defer cleanupS1()
 	testutil.WaitForLeader(t, s1.RPC)
 
 	// Create a fake policy
@@ -140,8 +140,8 @@ func TestServer_SentinelPoliciesByScope(t *testing.T) {
 
 func TestServer_PrepareSentinelPolicies(t *testing.T) {
 	t.Parallel()
-	s1, _ := testACLServer(t, nil)
-	defer s1.Shutdown()
+	s1, _, cleanupS1 := TestACLServer(t, nil)
+	defer cleanupS1()
 	testutil.WaitForLeader(t, s1.RPC)
 
 	// Create a fake policy
