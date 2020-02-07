@@ -193,7 +193,7 @@ func TestJobEndpoint_Plan_Sentinel(t *testing.T) {
 
 func TestJobEndpoint_Register_ACL_Namespace(t *testing.T) {
 	t.Parallel()
-	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+	s1, _, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
 	defer cleanupS1()
