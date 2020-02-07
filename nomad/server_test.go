@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/nomad/command/agent/consul"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/helper/uuid"
@@ -95,6 +96,7 @@ func testServer(t *testing.T, cb func(*Config)) *Server {
 	config.RaftConfig.StartAsLeader = !config.DevDisableBootstrap
 	config.Logger = testlog.HCLogger(t)
 	catalog := consul.NewMockCatalog(config.Logger)
+	acls := consul.NewMockACLsAPI(config.Logger)
 
 	for i := 10; i >= 0; i-- {
 		// Get random ports
@@ -106,7 +108,7 @@ func testServer(t *testing.T, cb func(*Config)) *Server {
 		config.SerfConfig.MemberlistConfig.BindPort = ports[1]
 
 		// Create server
-		server, err := NewServer(config, catalog)
+		server, err := NewServer(config, catalog, acls)
 		if err == nil {
 			return server
 		} else if i == 0 {
