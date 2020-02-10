@@ -5,6 +5,7 @@ package state
 import memdb "github.com/hashicorp/go-memdb"
 
 const (
+	TableNamespaces       = "namespaces"
 	TableSentinelPolicies = "sentinel_policy"
 	TableQuotaSpec        = "quota_spec"
 	TableQuotaUsage       = "quota_usage"

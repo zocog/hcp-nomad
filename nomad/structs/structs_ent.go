@@ -44,7 +44,9 @@ const (
 
 	// SentinelEnforcementLevelHardMandatory prevents an operation on failure
 	SentinelEnforcementLevelHardMandatory = "hard-mandatory"
+)
 
+var (
 	// validNamespaceName is used to validate a namespace name
 	validNamespaceName = regexp.MustCompile("^[a-zA-Z0-9-]{1,128}$")
 )
