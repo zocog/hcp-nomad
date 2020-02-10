@@ -29,11 +29,6 @@ const (
 	QuotaSpecDeleteRequestType
 )
 
-var (
-	// validNamespaceName is used to validate a namespace name
-	validNamespaceName = regexp.MustCompile("^[a-zA-Z0-9-]{1,128}$")
-)
-
 const (
 	// maxNamespaceDescriptionLength limits a namespace description length
 	maxNamespaceDescriptionLength = 256
