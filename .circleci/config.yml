@@ -784,7 +784,7 @@ jobs:
         path: /tmp/test-reports
   test-docker:
     machine:
-      image: circleci/classic:201808-01
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
