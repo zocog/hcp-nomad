@@ -7,7 +7,7 @@ version: 2
 jobs:
   test-nomad:
     machine:
-      image: default
+      image: ubuntu-1604:201903-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -83,7 +83,7 @@ jobs:
         path: /tmp/test-reports
   test-api:
     machine:
-      image: default
+      image: ubuntu-1604:201903-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -159,7 +159,7 @@ jobs:
         path: /tmp/test-reports
   test-exec:
     machine:
-      image: default
+      image: ubuntu-1604:201903-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -235,7 +235,7 @@ jobs:
         path: /tmp/test-reports
   test-client:
     machine:
-      image: default
+      image: ubuntu-1604:201903-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -311,7 +311,7 @@ jobs:
         path: /tmp/test-reports
   test-shared-exec:
     machine:
-      image: default
+      image: ubuntu-1604:201903-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -444,7 +444,6 @@ jobs:
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
-<<<<<<< HEAD
   merge-oss:
     docker:
     - image: golang:1.12.16
@@ -648,10 +647,7 @@ jobs:
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
-  build-website:
-=======
   website-docker-image:
->>>>>>> oss/master
     docker:
     - image: circleci/buildpack-deps
     shell: /usr/bin/env bash -euo pipefail -c
@@ -676,7 +672,7 @@ jobs:
         name: Build Docker Image if Necessary
   test-other:
     machine:
-      image: default
+      image: ubuntu-1604:201903-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -809,28 +805,9 @@ jobs:
         path: /tmp/test-reports
     - store_artifacts:
         path: /tmp/test-reports
-<<<<<<< HEAD
-  test-website:
-    machine:
-      image: default
-    working_directory: ~/go/src/github.com/hashicorp/nomad
-    steps:
-    - checkout
-    - run:
-        command: make test-website
-    environment:
-    - GIT_PAGER: cat
-    - GOLANG_VERSION: 1.12.16
-    - GOMAXPROCS: 1
-    - GOPATH: /home/circleci/go
-    - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
-    - NOMAD_SLOW_TEST: 1
-    - PAGER: cat
-=======
->>>>>>> oss/master
   test-docker:
     machine:
-      image: default
+      image: circleci/classic:201808-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -966,7 +943,7 @@ jobs:
     - PAGER: cat
   test-32bit:
     machine:
-      image: default
+      image: ubuntu-1604:201903-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -1131,14 +1108,6 @@ workflows:
             ignore:
             - stable-website
             - /^docs-.*/
-<<<<<<< HEAD
-    - test-website:
-        filters:
-          branches:
-            ignore:
-            - /^.-ui\b.*/
-            - /^docs-.*/
-            - stable-website
   merge-oss:
     jobs:
     - merge-oss:
@@ -1151,8 +1120,6 @@ workflows:
         filters:
           branches:
             only: master
-=======
->>>>>>> oss/master
   website:
     jobs:
     - website-docker-image:
