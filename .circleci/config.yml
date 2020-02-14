@@ -7,7 +7,7 @@ version: 2
 jobs:
   test-nomad:
     machine:
-      default
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -83,7 +83,7 @@ jobs:
         path: /tmp/test-reports
   test-api:
     machine:
-      default
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -159,7 +159,7 @@ jobs:
         path: /tmp/test-reports
   test-exec:
     machine:
-      default
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -235,7 +235,7 @@ jobs:
         path: /tmp/test-reports
   test-client:
     machine:
-      default
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -311,7 +311,7 @@ jobs:
         path: /tmp/test-reports
   test-shared-exec:
     machine:
-      default
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -649,7 +649,7 @@ jobs:
     - PAGER: cat
   test-other:
     machine:
-      default
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -920,7 +920,7 @@ jobs:
     - PAGER: cat
   test-32bit:
     machine:
-      default
+      image: default
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
