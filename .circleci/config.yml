@@ -444,7 +444,6 @@ jobs:
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
-<<<<<<< HEAD
   merge-oss:
     docker:
     - image: golang:1.12.16
@@ -648,32 +647,6 @@ jobs:
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
-  build-website:
-=======
-  website-docker-image:
->>>>>>> oss/master
-    docker:
-    - image: circleci/buildpack-deps
-    shell: /usr/bin/env bash -euo pipefail -c
-    steps:
-    - checkout
-    - setup_remote_docker
-    - run:
-        command: |
-          echo 'export PACKAGE_LOCK_CHANGED=$(git diff --name-only $(git log --pretty=format:'%h' -n1 HEAD~1)...HEAD | grep -c website/package-lock.json)' >> $BASH_ENV
-        name: Diff package-lock.json
-    - run:
-        command: |
-          if [ "$CIRCLE_BRANCH" = "master" ] && [ $PACKAGE_LOCK_CHANGED -gt 0 ]; then
-            cd website/
-            docker build -t hashicorp/nomad-website:$CIRCLE_SHA1 .
-            docker tag hashicorp/nomad-website:$CIRCLE_SHA1 hashicorp/nomad-website:latest
-            docker login -u $DOCKER_USER -p $DOCKER_PASS
-            docker push hashicorp/nomad-website
-          else
-            echo "Not building a new website docker image - branch is not master and/or dependencies have not changed."
-          fi
-        name: Build Docker Image if Necessary
   test-other:
     machine:
       image: default
@@ -809,25 +782,6 @@ jobs:
         path: /tmp/test-reports
     - store_artifacts:
         path: /tmp/test-reports
-<<<<<<< HEAD
-  test-website:
-    machine:
-      image: default
-    working_directory: ~/go/src/github.com/hashicorp/nomad
-    steps:
-    - checkout
-    - run:
-        command: make test-website
-    environment:
-    - GIT_PAGER: cat
-    - GOLANG_VERSION: 1.12.16
-    - GOMAXPROCS: 1
-    - GOPATH: /home/circleci/go
-    - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
-    - NOMAD_SLOW_TEST: 1
-    - PAGER: cat
-=======
->>>>>>> oss/master
   test-docker:
     machine:
       image: default
@@ -1131,14 +1085,6 @@ workflows:
             ignore:
             - stable-website
             - /^docs-.*/
-<<<<<<< HEAD
-    - test-website:
-        filters:
-          branches:
-            ignore:
-            - /^.-ui\b.*/
-            - /^docs-.*/
-            - stable-website
   merge-oss:
     jobs:
     - merge-oss:
@@ -1151,10 +1097,4 @@ workflows:
         filters:
           branches:
             only: master
-=======
->>>>>>> oss/master
-  website:
-    jobs:
-    - website-docker-image:
-        context: static-sites
   version: 2
