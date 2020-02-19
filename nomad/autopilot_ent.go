@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/autopilot_ent"
-	log "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/consul/agent/license"
 	"github.com/hashicorp/raft"
 )
 
@@ -51,12 +51,16 @@ func (s *Server) getNodeMeta(serverID raft.ServerID) (map[string]string, error) 
 	return meta, nil
 }
 
+// FeatureCheck no-ops consul enterprise license feature checking functionality
+func (s *Server) FeatureCheck(feature license.Features, allowPrevious, emitLog bool) error {
+	return nil
+}
+
 // Set up the enterprise version of autopilot
 func (s *Server) setupEnterpriseAutopilot(config *Config) {
 	apDelegate := &AdvancedAutopilotDelegate{
 		AutopilotDelegate: AutopilotDelegate{server: s},
 	}
-	stdLogger := s.logger.StandardLogger(&log.StandardLoggerOptions{InferLevels: true})
-	apDelegate.promoter = autopilot_ent.NewAdvancedPromoter(stdLogger, apDelegate, s.getNodeMeta)
-	s.autopilot = autopilot.NewAutopilot(stdLogger, apDelegate, config.AutopilotInterval, config.ServerHealthInterval)
+	apDelegate.promoter = autopilot_ent.NewAdvancedPromoter(s.logger, apDelegate, s.getNodeMeta, s.FeatureCheck)
+	s.autopilot = autopilot.NewAutopilot(s.logger, apDelegate, config.AutopilotInterval, config.ServerHealthInterval)
 }
