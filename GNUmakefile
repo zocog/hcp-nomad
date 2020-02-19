@@ -194,7 +194,7 @@ progenerate-all: progenerate-structs proto
 generate-structs: LOCAL_PACKAGES = $(shell go list ./... | grep -v '/vendor/')
 generate-structs: ## Update generated code
 	@echo "--> Running go generate..."
-	@go generate -tags="ent" $(LOCAL_PACKAGES)
+	@go generate -tags="ent consulent" $(LOCAL_PACKAGES)
 
 .PHONY: progenerate-structs
 progenerate-structs: LOCAL_PACKAGES = $(shell go list ./... | grep -v '/vendor/')
@@ -245,7 +245,7 @@ dev: vendorfmt changelogfmt hclfmt ## Build for the current development platform
 	@rm -f $(GOPATH)/bin/nomad
 	@$(MAKE) --no-print-directory \
 		$(DEV_TARGET) \
-		GO_TAGS="ent $(NOMAD_UI_TAG)"
+		GO_TAGS="ent consulent $(NOMAD_UI_TAG)"
 	@mkdir -p $(PROJECT_ROOT)/bin
 	@mkdir -p $(GOPATH)/bin
 	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(PROJECT_ROOT)/bin/
