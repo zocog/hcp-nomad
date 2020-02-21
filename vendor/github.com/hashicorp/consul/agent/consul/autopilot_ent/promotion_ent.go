@@ -1,11 +1,15 @@
+// +build consulent
+
 package autopilot_ent
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/autopilot"
+	"github.com/hashicorp/consul/agent/license"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 )
@@ -22,25 +26,30 @@ type autopilotServer struct {
 	redundancyZone     string
 }
 
+type FeatureChecker func(license.Features, bool, bool) error
+
 // AdvancedPromoter handles the advanced promotion logic for supporting enterprise
 // features like redundancy zones and upgrade migrations.
 type AdvancedPromoter struct {
-	logger   *log.Logger
+	logger   hclog.Logger
 	delegate autopilot.Delegate
 
 	// nodeMetaFunc is a function that returns the node meta tag/values for
 	// a given raft server ID.
 	nodeMetaFunc func(raft.ServerID) (map[string]string, error)
 
+	featureCheck FeatureChecker
+
 	// lastUpgradeTagWarning is the time since the last tag warning.
 	lastUpgradeTagWarning time.Time
 }
 
-func NewAdvancedPromoter(logger *log.Logger, delegate autopilot.Delegate, nodeMetaFunc func(raft.ServerID) (map[string]string, error)) *AdvancedPromoter {
+func NewAdvancedPromoter(logger hclog.Logger, delegate autopilot.Delegate, nodeMetaFunc func(raft.ServerID) (map[string]string, error), featureCheck FeatureChecker) *AdvancedPromoter {
 	return &AdvancedPromoter{
-		logger:       logger,
+		logger:       logger.Named(logging.Autopilot),
 		delegate:     delegate,
 		nodeMetaFunc: nodeMetaFunc,
+		featureCheck: featureCheck,
 	}
 }
 
@@ -65,9 +74,10 @@ func (a *AdvancedPromoter) PromoteNonVoters(conf *autopilot.Config, health autop
 
 		meta, err := a.nodeMetaFunc(s.ID)
 		if err != nil {
-			a.logger.Printf("[ERR] autopilot: error getting node metadata for server id %q: %s", s.ID, err)
+			a.logger.Error("error getting node metadata for server", "id", s.ID, "error", err)
 		} else {
 			if conf.RedundancyZoneTag != "" {
+				a.featureCheck(license.FeatureRedundancyZone, true, true)
 				zone := meta[conf.RedundancyZoneTag]
 				if zone != "" {
 					if autopilot.IsPotentialVoter(s.Suffrage) && server.health.IsStable(now, conf) {
@@ -78,12 +88,16 @@ func (a *AdvancedPromoter) PromoteNonVoters(conf *autopilot.Config, health autop
 			}
 
 			if conf.UpgradeVersionTag != "" {
-				raw := meta[conf.UpgradeVersionTag]
-				version, err := version.NewVersion(raw)
-				if err != nil {
-					a.logger.Printf("[ERR] autopilot: error parsing version for server id %q: %s", s.ID, err)
+				raw, exists := meta[conf.UpgradeVersionTag]
+				if exists {
+					version, err := version.NewVersion(raw)
+					if err != nil {
+						a.logger.Error("error parsing version for server", "id", s.ID, "error", err)
+					} else {
+						server.version = version
+					}
 				} else {
-					server.version = version
+					a.logger.Error("UpgradeVersionTag not found in config meta block", "upgrade_version_tag", conf.UpgradeVersionTag)
 				}
 			}
 		}
@@ -92,7 +106,7 @@ func (a *AdvancedPromoter) PromoteNonVoters(conf *autopilot.Config, health autop
 	}
 
 	// Construct a view of the servers in the cluster
-	for _, member := range a.delegate.Serf().Members() {
+	for _, member := range a.delegate.SerfLAN().Members() {
 		serverInfo, err := a.delegate.IsServer(member)
 		if err != nil || serverInfo == nil {
 			continue
@@ -121,15 +135,15 @@ func (a *AdvancedPromoter) PromoteNonVoters(conf *autopilot.Config, health autop
 	// them to begin promoting them and demoting old servers. If we don't have enough servers
 	// with version info, skip this step.
 	var migrationInfo migrationInfo
-	if !conf.DisableUpgradeMigration {
+	err := a.featureCheck(license.FeatureAutoUpgrades, true, !conf.DisableUpgradeMigration)
+	if err == nil && !conf.DisableUpgradeMigration {
 		if len(servers) == len(raftServers) {
 			migrationInfo = computeMigrationInfo(servers)
 		} else if conf.UpgradeVersionTag != "" {
 			// If they defined an upgrade tag but didn't set it, log a warning at a throttled rate
 			if now.Sub(a.lastUpgradeTagWarning) > UpgradeWarnInterval {
 				a.lastUpgradeTagWarning = now
-				a.logger.Println("[WARN] autopilot: UpgradeVersionTag %q defined but not set for all "+
-					"servers, skipping migration check", conf.UpgradeVersionTag)
+				a.logger.Warn("UpgradeVersionTag defined but not set for all servers, skipping migration check", "upgrade_version_tag", conf.UpgradeVersionTag)
 			}
 		}
 	}
@@ -139,6 +153,8 @@ func (a *AdvancedPromoter) PromoteNonVoters(conf *autopilot.Config, health autop
 	for _, server := range servers {
 		// Don't promote nodes marked non-voter
 		if server.designatedNonVoter {
+			// this will do the check and cause a warning to be emitted if using unlicensed
+			a.featureCheck(license.FeatureReadScalability, false, true)
 			continue
 		}
 

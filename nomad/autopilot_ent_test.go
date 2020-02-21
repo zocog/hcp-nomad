@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/autopilot"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/assert"

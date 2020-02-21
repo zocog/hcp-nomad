@@ -194,7 +194,7 @@ progenerate-all: progenerate-structs proto
 generate-structs: LOCAL_PACKAGES = $(shell go list ./... | grep -v '/vendor/')
 generate-structs: ## Update generated code
 	@echo "--> Running go generate..."
-	@go generate -tags="ent" $(LOCAL_PACKAGES)
+	@go generate -tags="ent consulent" $(LOCAL_PACKAGES)
 
 .PHONY: progenerate-structs
 progenerate-structs: LOCAL_PACKAGES = $(shell go list ./... | grep -v '/vendor/')
@@ -245,7 +245,7 @@ dev: vendorfmt changelogfmt hclfmt ## Build for the current development platform
 	@rm -f $(GOPATH)/bin/nomad
 	@$(MAKE) --no-print-directory \
 		$(DEV_TARGET) \
-		GO_TAGS="ent $(NOMAD_UI_TAG)"
+		GO_TAGS="ent consulent $(NOMAD_UI_TAG)"
 	@mkdir -p $(PROJECT_ROOT)/bin
 	@mkdir -p $(GOPATH)/bin
 	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(PROJECT_ROOT)/bin/
@@ -308,7 +308,7 @@ test-nomad: dev ## Run Nomad test suites
 		$(if $(ENABLE_RACE),-race) $(if $(VERBOSE),-v) \
 		-cover \
 		-timeout=15m \
-		-tags="ent $(GO_TAGS)" $(GOTEST_PKGS) $(if $(VERBOSE), >test.log ; echo $$? > exit-code)
+		-tags="ent consulent $(GO_TAGS)" $(GOTEST_PKGS) $(if $(VERBOSE), >test.log ; echo $$? > exit-code)
 	@if [ $(VERBOSE) ] ; then \
 		bash -C "$(PROJECT_ROOT)/scripts/test_check.sh" ; \
 	fi
@@ -320,7 +320,7 @@ protest-nomad: prodev ## Run Nomad test suites
 		$(if $(ENABLE_RACE),-race) $(if $(VERBOSE),-v) \
 		-cover \
 		-timeout=15m \
-		-tags="pro $(GO_TAGS)" $(GOTEST_PKGS) $(if $(VERBOSE), >test.log ; echo $$? > exit-code)
+		-tags="pro consulent $(GO_TAGS)" $(GOTEST_PKGS) $(if $(VERBOSE), >test.log ; echo $$? > exit-code)
 	@if [ $(VERBOSE) ] ; then \
 		bash -C "$(PROJECT_ROOT)/scripts/test_check.sh" ; \
 	fi
