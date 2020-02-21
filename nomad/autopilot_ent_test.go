@@ -1,3 +1,5 @@
+// +build ent pro consulent
+
 package nomad
 
 import (
