@@ -473,7 +473,7 @@ jobs:
         name: Build Docker Image if Necessary
   merge-oss:
     docker:
-    - image: golang:1.12.16
+    - image: golang:1.14
     working_directory: /go/src/github.com/hashicorp/nomad
     steps:
     - run:
