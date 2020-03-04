@@ -16,26 +16,27 @@ import (
 func TestAdvancedAutopilot_DesignateNonVoter(t *testing.T) {
 	assert := assert.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.BootstrapExpect = 2
 		c.RaftConfig.ProtocolVersion = 3
 	})
 	defer cleanupS1()
 
 	s2, cleanupS2 := TestServer(t, func(c *Config) {
-		c.DevDisableBootstrap = true
+		c.BootstrapExpect = 2
 		c.RaftConfig.ProtocolVersion = 3
 	})
 	defer cleanupS2()
 
 	s3, cleanupS3 := TestServer(t, func(c *Config) {
-		c.DevDisableBootstrap = true
+		c.BootstrapExpect = 2
 		c.NonVoter = true
 		c.RaftConfig.ProtocolVersion = 3
 	})
 	defer cleanupS3()
 
-	testutil.WaitForLeader(t, s1.RPC)
-
 	TestJoin(t, s1, s2, s3)
+
+	testutil.WaitForLeader(t, s1.RPC)
 	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2, s3})) })
 
 	// Wait twice the server stabilization threshold to give the server
@@ -48,12 +49,12 @@ func TestAdvancedAutopilot_DesignateNonVoter(t *testing.T) {
 	servers := future.Configuration().Servers
 
 	// s2 should be a voter
-	if !autopilot.IsPotentialVoter(servers[1].Suffrage) || servers[1].ID != s2.config.RaftConfig.LocalID {
+	if !autopilot.IsPotentialVoter(findServer(t, servers, s2).Suffrage) {
 		t.Fatalf("bad: %v", servers)
 	}
 
 	// s3 should remain a non-voter
-	if autopilot.IsPotentialVoter(servers[2].Suffrage) || servers[2].ID != s3.config.RaftConfig.LocalID {
+	if autopilot.IsPotentialVoter(findServer(t, servers, s3).Suffrage) {
 		t.Fatalf("bad: %v", servers)
 	}
 }
@@ -61,6 +62,7 @@ func TestAdvancedAutopilot_DesignateNonVoter(t *testing.T) {
 func TestAdvancedAutopilot_RedundancyZone(t *testing.T) {
 	assert := assert.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.BootstrapExpect = 3
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.EnableRedundancyZones = true
 		c.RedundancyZone = "east"
@@ -68,22 +70,23 @@ func TestAdvancedAutopilot_RedundancyZone(t *testing.T) {
 	defer cleanupS1()
 
 	s2, cleanupS2 := TestServer(t, func(c *Config) {
-		c.DevDisableBootstrap = true
+		c.BootstrapExpect = 3
 		c.RaftConfig.ProtocolVersion = 3
+		c.AutopilotConfig.EnableRedundancyZones = true
 		c.RedundancyZone = "west"
 	})
 	defer cleanupS2()
 
 	s3, cleanupS3 := TestServer(t, func(c *Config) {
-		c.DevDisableBootstrap = true
+		c.BootstrapExpect = 3
 		c.RaftConfig.ProtocolVersion = 3
+		c.AutopilotConfig.EnableRedundancyZones = true
 		c.RedundancyZone = "west-2"
 	})
 	defer cleanupS3()
 
-	testutil.WaitForLeader(t, s1.RPC)
-
 	TestJoin(t, s1, s2, s3)
+	testutil.WaitForLeader(t, s1.RPC)
 	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2, s3})) })
 
 	// Wait past the stabilization time to give the servers a chance to be promoted
@@ -96,19 +99,21 @@ func TestAdvancedAutopilot_RedundancyZone(t *testing.T) {
 		servers := future.Configuration().Servers
 		assert.Equal(3, len(servers))
 		// s2 and s3 should be voters now
-		assert.Equal(raft.Voter, servers[1].Suffrage)
-		assert.Equal(raft.Voter, servers[2].Suffrage)
+		assert.Equal(raft.Voter, findServer(t, servers, s2).Suffrage)
+		assert.Equal(raft.Voter, findServer(t, servers, s3).Suffrage)
 	}
 
 	// Join s4
 	s4, cleanupS4 := TestServer(t, func(c *Config) {
-		c.DevDisableBootstrap = true
+		c.BootstrapExpect = 0
 		c.RaftConfig.ProtocolVersion = 3
+		c.AutopilotConfig.EnableRedundancyZones = true
 		c.RedundancyZone = "west-2"
 	})
 	defer cleanupS4()
 
 	TestJoin(t, s1, s4)
+	t.Log("before sleeping")
 	time.Sleep(2*s1.config.AutopilotConfig.ServerStabilizationTime + s1.config.AutopilotInterval)
 
 	// s4 should not be a voter yet
@@ -116,7 +121,7 @@ func TestAdvancedAutopilot_RedundancyZone(t *testing.T) {
 		future := s1.raft.GetConfiguration()
 		assert.Nil(future.Error())
 		servers := future.Configuration().Servers
-		assert.Equal(raft.Nonvoter, servers[3].Suffrage)
+		assert.Equal(raft.Nonvoter, findServer(t, servers, s4).Suffrage)
 	}
 
 	s3.Shutdown()
@@ -139,20 +144,21 @@ func TestAdvancedAutopilot_RedundancyZone(t *testing.T) {
 
 func TestAdvancedAutopilot_UpgradeMigration(t *testing.T) {
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.BootstrapExpect = 2
 		c.RaftConfig.ProtocolVersion = 3
 		c.Build = "0.8.0"
 	})
 	defer cleanupS1()
 
 	s2, cleanupS2 := TestServer(t, func(c *Config) {
-		c.DevDisableBootstrap = true
+		c.BootstrapExpect = 2
 		c.RaftConfig.ProtocolVersion = 3
 		c.Build = "0.8.1"
 	})
 	defer cleanupS2()
 
-	testutil.WaitForLeader(t, s1.RPC)
 	TestJoin(t, s1, s2)
+	testutil.WaitForLeader(t, s1.RPC)
 
 	// Wait for the migration to complete
 	retry.Run(t, func(r *retry.R) {
@@ -164,12 +170,12 @@ func TestAdvancedAutopilot_UpgradeMigration(t *testing.T) {
 			switch s.ID {
 			case raft.ServerID(s1.config.NodeID):
 				if got, want := s.Suffrage, raft.Nonvoter; got != want {
-					r.Fatalf("got %v want %v", got, want)
+					r.Fatalf("%v got %v want %v", s.ID, got, want)
 				}
 
 			case raft.ServerID(s2.config.NodeID):
 				if got, want := s.Suffrage, raft.Voter; got != want {
-					r.Fatalf("got %v want %v", got, want)
+					r.Fatalf("%v got %v want %v", s.ID, got, want)
 				}
 
 			default:
@@ -185,6 +191,7 @@ func TestAdvancedAutopilot_UpgradeMigration(t *testing.T) {
 
 func TestAdvancedAutopilot_CustomUpgradeMigration(t *testing.T) {
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.BootstrapExpect = 2
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.EnableCustomUpgrades = true
 		c.UpgradeVersion = "0.0.1"
@@ -192,14 +199,15 @@ func TestAdvancedAutopilot_CustomUpgradeMigration(t *testing.T) {
 	defer cleanupS1()
 
 	s2, cleanupS2 := TestServer(t, func(c *Config) {
-		c.DevDisableBootstrap = true
+		c.BootstrapExpect = 2
 		c.RaftConfig.ProtocolVersion = 3
+		c.AutopilotConfig.EnableCustomUpgrades = true
 		c.UpgradeVersion = "0.0.2"
 	})
 	defer cleanupS2()
 
-	testutil.WaitForLeader(t, s1.RPC)
 	TestJoin(t, s1, s2)
+	testutil.WaitForLeader(t, s1.RPC)
 
 	// Wait for the migration to complete
 	retry.Run(t, func(r *retry.R) {
@@ -211,12 +219,12 @@ func TestAdvancedAutopilot_CustomUpgradeMigration(t *testing.T) {
 			switch s.ID {
 			case raft.ServerID(s1.config.NodeID):
 				if got, want := s.Suffrage, raft.Nonvoter; got != want {
-					r.Fatalf("got %v want %v", got, want)
+					r.Fatalf("%v got %v want %v", s.ID, got, want)
 				}
 
 			case raft.ServerID(s2.config.NodeID):
 				if got, want := s.Suffrage, raft.Voter; got != want {
-					r.Fatalf("got %v want %v", got, want)
+					r.Fatalf("%v got %v want %v", s.ID, got, want)
 				}
 
 			default:
@@ -241,14 +249,14 @@ func TestAdvancedAutopilot_DisableUpgradeMigration(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC)
 
 	s2, cleanupS2 := TestServer(t, func(c *Config) {
-		c.DevDisableBootstrap = true
+		c.BootstrapExpect = 0
 		c.RaftConfig.ProtocolVersion = 3
 		c.Build = "0.8.0"
 	})
 	defer cleanupS2()
 
 	s3, cleanupS3 := TestServer(t, func(c *Config) {
-		c.DevDisableBootstrap = true
+		c.BootstrapExpect = 0
 		c.RaftConfig.ProtocolVersion = 3
 		c.Build = "0.8.1"
 	})
@@ -273,4 +281,18 @@ func TestAdvancedAutopilot_DisableUpgradeMigration(t *testing.T) {
 			r.Fatal("server 1 should be leader")
 		}
 	})
+}
+
+func findServer(t *testing.T, servers []raft.Server, s *Server) raft.Server {
+	t.Helper()
+
+	id := s.config.RaftConfig.LocalID
+	for _, rs := range servers {
+		if rs.ID == id {
+			return rs
+		}
+	}
+
+	t.Fatalf("server %v not found: %v", id, servers)
+	panic("cannot happen")
 }
