@@ -499,6 +499,9 @@ jobs:
           git config --global user.email "hashicorp-ci@users.noreply.github.com"
           git config --global user.name "hashicorp-ci"
 
+          # fetch latest master - to support oss->ent propagation through rebuilds
+          git pull origin master
+
           # Merge OSS master branch to Enterprise merge branch
           git remote add oss https://github.com/hashicorp/nomad.git
           git fetch oss
@@ -514,6 +517,7 @@ jobs:
             git checkout --theirs version/version.go
             git checkout --theirs command/agent/bindata_assetfs.go
             # Regenerate enterprise Circle CI config to apply changes from OSS merge.
+            rm -f .circleci/config.yml
             make -C .circleci CIRCLECI="circleci-local-cli --skip-update-check" config.yml
 
             git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go .circleci/config.yml
@@ -523,10 +527,19 @@ jobs:
               echo "export FAIL_REASON='because git was unable to auto-merge'" >> $BASH_ENV
               exit 1
             fi
+          else
+            # regenerate config if necessary even if it merged cleanly
+            rm -f .circleci/config.yml config.yml
+            make -C .circleci CIRCLECI="circleci-local-cli --skip-update-check" config.yml
+
+            if ! git diff-index --quiet HEAD .circleci/config.yml; then
+              git add .circleci/config.yml
+              git commit -m "regenerated CircleCI CI file"
+            fi
           fi
 
-          # sanity check - do basic compile build
-          if ! make GOTAGS="ent codegen_generated" pkg/linux_amd64/nomad ; then
+          # quick check - do basic compile build
+          if ! make GO_TAGS="ent consulent codegen_generated" pkg/linux_amd64/nomad ; then
             echo "export FAIL_REASON='because nomad failed to compile after auto-merge'" >> $BASH_ENV
             exit 1
           fi
