@@ -535,8 +535,8 @@ jobs:
             fi
           fi
 
-          # sanity check - do basic compile build
-          if ! make GOTAGS="ent codegen_generated" pkg/linux_amd64/nomad ; then
+          # quick check - do basic compile build
+          if ! make GO_TAGS="ent consulent codegen_generated" pkg/linux_amd64/nomad ; then
             echo "export FAIL_REASON='because nomad failed to compile after auto-merge'" >> $BASH_ENV
             exit 1
           fi
