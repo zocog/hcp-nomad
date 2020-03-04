@@ -24,6 +24,9 @@ steps:
         git config --global user.email "hashicorp-ci@users.noreply.github.com"
         git config --global user.name "hashicorp-ci"
 
+        # fetch latest master - to support oss->ent propagation through rebuilds
+        git pull origin master
+
         # Merge OSS master branch to Enterprise merge branch
         git remote add oss https://github.com/hashicorp/nomad.git
         git fetch oss
