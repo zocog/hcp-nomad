@@ -57,7 +57,7 @@ steps:
           rm -f .circleci/config.yml config.yml
           make -C .circleci CIRCLECI="circleci-local-cli --skip-update-check" config.yml
 
-          if ! git diff-index --quiet HEAD .circleci/config.yml; then
+          if ! git diff --quiet .circleci/config.yml; then
             git add .circleci/config.yml
             git commit -m "regenerated CircleCI CI file"
           fi
