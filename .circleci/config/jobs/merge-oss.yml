@@ -64,7 +64,7 @@ steps:
         fi
 
         # quick check - do basic compile build
-        if ! make GO_TAGS="ent consulent codegen_generated" pkg/linux_amd64/nomad ; then
+        if ! make pkg/linux_amd64/nomad ; then
           echo "export FAIL_REASON='because nomad failed to compile after auto-merge'" >> $BASH_ENV
           exit 1
         fi
