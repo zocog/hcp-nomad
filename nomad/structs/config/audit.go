@@ -104,6 +104,9 @@ func (a *AuditConfig) Merge(b *AuditConfig) *AuditConfig {
 	} else if len(b.Sinks) != 0 {
 		result.Sinks = auditSinkSliceMerge(a.Sinks, b.Sinks)
 	}
+	if b.LogRotateDurationHCL != "" {
+		result.LogRotateDurationHCL = b.LogRotateDurationHCL
+	}
 
 	// Merge Filters
 	if len(a.Filters) == 0 && len(b.Filters) != 0 {
