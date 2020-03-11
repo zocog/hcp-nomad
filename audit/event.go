@@ -15,6 +15,7 @@ const (
 
 type EventType string
 type Stage string
+type HTTPOperation string
 
 // Event represents a audit log entry.
 type Event struct {

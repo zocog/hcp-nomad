@@ -26,18 +26,21 @@ func TestStage_Matches(t *testing.T) {
 
 func TestStage_Valid(t *testing.T) {
 	cases := []struct {
-		s Stage
-		e bool
+		s     Stage
+		valid bool
 	}{
-		{s: OperationComplete, e: true},
-		{s: OperationReceived, e: true},
-		{s: AllStages, e: true},
-		{s: Stage("foo"), e: false},
+		{s: OperationComplete, valid: true},
+		{s: OperationReceived, valid: true},
+		{s: AllStages, valid: true},
+		{s: Stage("*"), valid: true},
+		{s: Stage("OperationComplete"), valid: true},
+		{s: Stage("OperationReceived"), valid: true},
+		{s: Stage("foo"), valid: false},
 	}
 
 	for _, tc := range cases {
-		t.Run(fmt.Sprintf("%s expect %v", tc.s, tc.e), func(t *testing.T) {
-			require.Equal(t, tc.e, tc.s.Valid())
+		t.Run(fmt.Sprintf("%s expect %v", tc.s, tc.valid), func(t *testing.T) {
+			require.Equal(t, tc.valid, tc.s.Valid())
 		})
 	}
 
