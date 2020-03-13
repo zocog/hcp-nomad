@@ -56,21 +56,25 @@ type Config struct {
 }
 
 type Filter struct {
-	Type      FilterType
-	Endpoint  []string
-	Stage     []string
-	Operation []string
+	Type       FilterType
+	Endpoints  []string
+	Stages     []string
+	Operations []string
 }
 
+// NewAuditor creates an auditor which can be used to send events
+// to a file sink and filter based off of specified criteria. Will return
+// an error if not properly configured.
 func NewAuditor(cfg *Config) (*Auditor, error) {
 	broker := eventlogger.NewBroker()
 
-	// Configure filters
+	// Configure and generate filters
 	filters, err := generateFiltersFromConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
 
+	// Register filters to broker
 	var filterIDs []eventlogger.NodeID
 	for id, n := range filters {
 		err := broker.RegisterNode(id, n)
@@ -80,6 +84,7 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 		filterIDs = append(filterIDs, id)
 	}
 
+	// Create JSONFormatter node
 	jsonfmtID := eventlogger.NodeID(uuid.Generate())
 	fmtNode := &eventlogger.JSONFormatter{}
 	err = broker.RegisterNode(jsonfmtID, fmtNode)
@@ -87,7 +92,7 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 		return nil, err
 	}
 
-	// Configure Sink
+	// Configure file sink
 	sinkID := eventlogger.NodeID(uuid.Generate())
 	sink := &eventlogger.FileSink{
 		Path:        cfg.Path,
@@ -102,6 +107,7 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 		return nil, err
 	}
 
+	// Register pipeline to broker
 	var NodeIDs []eventlogger.NodeID
 	NodeIDs = append(NodeIDs, filterIDs...)
 	NodeIDs = append(NodeIDs, jsonfmtID, sinkID)
@@ -120,6 +126,8 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	}, nil
 }
 
+// Event is used to send Events through the auditing pipeline
+// Will return an error depending on configured delivery guarantees.
 func (a *Auditor) Event(ctx context.Context, event *Event) error {
 	status, err := a.broker.Send(ctx, a.et, event)
 	if err != nil {

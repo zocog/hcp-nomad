@@ -16,7 +16,7 @@ import (
 func NewHTTPFilter(log hclog.InterceptLogger, f Filter) (eventlogger.Node, error) {
 	// Generate and ensure stages are valid
 	var stages []Stage
-	for _, s := range f.Stage {
+	for _, s := range f.Stages {
 		stage := Stage(s)
 		if !stage.Valid() {
 			return nil, fmt.Errorf("Unknown stage %s", s)
@@ -26,8 +26,8 @@ func NewHTTPFilter(log hclog.InterceptLogger, f Filter) (eventlogger.Node, error
 
 	return &HTTPEventFilter{
 		Stages:     stages,
-		Endpoints:  f.Endpoint,
-		Operations: f.Operation,
+		Endpoints:  f.Endpoints,
+		Operations: f.Operations,
 		log:        log,
 	}, nil
 }
@@ -68,11 +68,10 @@ func (s *HTTPEventFilter) Process(ctx context.Context, e *eventlogger.Event) (*e
 	// Iterate over Endpoints that are potentially filtered
 	for _, pattern := range s.Endpoints {
 		if endpointMatches(pattern, event.Request.Endpoint) {
-
 			// Check if we should ignore stage for matching endpoint
 			for _, stage := range s.Stages {
 				if stage.Matches(event.Stage) {
-					s.log.Debug("Filtering audit event matched", "stage", stage)
+					s.log.Debug("Filtering audit event matched", "pattern", pattern, "stage", stage)
 					// Return nil to signal that the event should be discarded.
 					return nil, nil
 				}
@@ -81,6 +80,7 @@ func (s *HTTPEventFilter) Process(ctx context.Context, e *eventlogger.Event) (*e
 			// Check if we should ignore operation for matching endpoint
 			for _, operation := range s.Operations {
 				if operation == "*" || strings.ToUpper(operation) == event.Request.Operation {
+					s.log.Debug("Filtering audit event matched", "pattern", pattern, "operation", operation)
 					// Return nil to signal that the event should be discarded.
 					return nil, nil
 				}

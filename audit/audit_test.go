@@ -24,18 +24,12 @@ type eventWrapper struct {
 	Payload   Event     `json:"payload"`
 }
 
-// TestNewAuditBroker ensures we can create a new AuditBroker without Error
-func TestNewAuditor(t *testing.T) {
-	t.Parallel()
-}
-
-func TestAuditor_Filters(t *testing.T) {
-	t.Parallel()
-}
-
+// TestAuditor tests we can send an event all the way through the pipeline
+// and to a sink, and that we can process the JSON file
 func TestAuditor(t *testing.T) {
 	t.Parallel()
 
+	// Create a temp directory for the audit log file
 	tmpDir, err := ioutil.TempDir("", t.Name())
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
@@ -60,12 +54,6 @@ func TestAuditor(t *testing.T) {
 	dat, err := ioutil.ReadFile(filepath.Join(tmpDir, "audit.log"))
 	require.NoError(t, err)
 
-	type eventWrapper struct {
-		CreatedAt time.Time `json"created_at"`
-		EventType string    `json:"event_type"`
-		Payload   Event     `json:"payload"`
-	}
-
 	// Ensure we can unmarshal back to an event
 	var jsonEvent eventWrapper
 	err = json.Unmarshal(dat, &jsonEvent)
@@ -88,10 +76,11 @@ func TestAuditor_Filter(t *testing.T) {
 		FileName: "audit.log",
 		Path:     tmpDir,
 		Filters: []Filter{
+			// filter all stages for endpoints matching /v1/job
 			{
-				Type:     HTTPEvent,
-				Stage:    []string{"*"},
-				Endpoint: []string{"/v1/job/*"},
+				Type:      HTTPEvent,
+				Stages:    []string{"*"},
+				Endpoints: []string{"/v1/job/*"},
 			},
 		},
 	})
@@ -141,20 +130,21 @@ func TestAuditor_Filter(t *testing.T) {
 
 }
 
-// func TestAuditor_Mode_Enforced(t *testing.T) {
-// 	t.Parallel()
+func TestAuditor_Mode_Enforced(t *testing.T) {
+	t.Parallel()
+	t.SkipNow()
 
-// 	tmpDir, err := ioutil.TempDir("", t.Name())
-// 	require.NoError(t, err)
-// 	defer os.RemoveAll(tmpDir)
+	// tmpDir, err := ioutil.TempDir("", t.Name())
+	// require.NoError(t, err)
+	// defer os.RemoveAll(tmpDir)
 
-// 	auditor, err := NewAuditor(&Config{
-// 		Enabled: true,
-// 		Mode:    Enforced,
-// 	})
-// 	require.NoError(t, err)
+	// auditor, err := NewAuditor(&Config{
+	// 	Enabled: true,
+	// 	RunMode: Enforced,
+	// })
+	// require.NoError(t, err)
 
-// }
+}
 
 func testEvent(et eventlogger.EventType, s Stage) *Event {
 	e := &Event{

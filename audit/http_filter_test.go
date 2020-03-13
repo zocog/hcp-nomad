@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestHTTPEventFilter_Proccess tests that different variations of HTTPEventFilter
+// correctly filter, or ignore events
 func TestHTTPEventFilter_Proccess(t *testing.T) {
 	t.Parallel()
 
@@ -35,17 +37,17 @@ func TestHTTPEventFilter_Proccess(t *testing.T) {
 		{
 			desc: "filter operation",
 			e: &eventlogger.Event{
-				Payload: &Event{Request: Request{Operation: "GET"}},
+				Payload: &Event{Request: Request{Endpoint: "/ui/", Operation: "GET"}},
 			},
-			f:      &HTTPEventFilter{Operations: []string{"get"}},
+			f:      &HTTPEventFilter{Endpoints: []string{"*"}, Operations: []string{"get"}},
 			filter: true,
 		},
 		{
 			desc: "filter wildcard operation",
 			e: &eventlogger.Event{
-				Payload: &Event{Request: Request{Operation: "POST"}},
+				Payload: &Event{Request: Request{Endpoint: "/ui/", Operation: "POST"}},
 			},
-			f:      &HTTPEventFilter{Operations: []string{"*"}},
+			f:      &HTTPEventFilter{Endpoints: []string{"/ui/"}, Operations: []string{"*"}},
 			filter: true,
 		},
 		{
@@ -53,35 +55,38 @@ func TestHTTPEventFilter_Proccess(t *testing.T) {
 			e: &eventlogger.Event{
 				Payload: &Event{
 					Request: Request{
-						Endpoint: "/v1/job/ed344e0a-7290-d117-41d3-a64f853ca3c2/allocations",
+						Endpoint:  "/v1/job/ed344e0a-7290-d117-41d3-a64f853ca3c2/allocations",
+						Operation: "GET",
 					},
 				},
 			},
-			f:      &HTTPEventFilter{Endpoints: []string{"/v1/job/ed344e0a-7290-d117-41d3-a64f853ca3c2/allocations"}},
+			f:      &HTTPEventFilter{Operations: []string{"GET"}, Endpoints: []string{"/v1/job/ed344e0a-7290-d117-41d3-a64f853ca3c2/allocations"}},
 			filter: true,
 		},
 		{
 			desc: "filter globbed endpoint",
 			e: &eventlogger.Event{
 				Payload: &Event{
+					Stage: OperationReceived,
 					Request: Request{
 						Endpoint: "/v1/job/ed344e0a-7290-d117-41d3-a64f853ca3c2/allocations",
 					},
 				},
 			},
-			f:      &HTTPEventFilter{Endpoints: []string{"/v1/job/*/allocations"}},
+			f:      &HTTPEventFilter{Stages: []Stage{OperationReceived}, Endpoints: []string{"/v1/job/*/allocations"}},
 			filter: true,
 		},
 		{
 			desc: "filter wildcard",
 			e: &eventlogger.Event{
 				Payload: &Event{
+					Stage: OperationReceived,
 					Request: Request{
 						Endpoint: "/v1/job/ed344e0a-7290-d117-41d3-a64f853ca3c2/allocations",
 					},
 				},
 			},
-			f:      &HTTPEventFilter{Endpoints: []string{"*"}},
+			f:      &HTTPEventFilter{Stages: []Stage{OperationReceived}, Endpoints: []string{"*"}},
 			filter: true,
 		},
 	}
