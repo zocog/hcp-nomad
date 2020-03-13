@@ -5,6 +5,7 @@ package audit
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/go-eventlogger"
@@ -12,10 +13,22 @@ import (
 	"github.com/ryanuber/go-glob"
 )
 
-func (a *Auditor) NewHTTPFilter(f Filter) (eventlogger.Node, error) {
-	// temp stub to return something
+func NewHTTPFilter(log hclog.InterceptLogger, f Filter) (eventlogger.Node, error) {
+	// Generate and ensure stages are valid
+	var stages []Stage
+	for _, s := range f.Stage {
+		stage := Stage(s)
+		if !stage.Valid() {
+			return nil, fmt.Errorf("Unknown stage %s", s)
+		}
+		stages = append(stages, stage)
+	}
+
 	return &HTTPEventFilter{
-		// Stages: f.Stage,
+		Stages:     stages,
+		Endpoints:  f.Endpoint,
+		Operations: f.Operation,
+		log:        log,
 	}, nil
 }
 
@@ -52,28 +65,28 @@ func (s *HTTPEventFilter) Process(ctx context.Context, e *eventlogger.Event) (*e
 		return nil, errors.New("Unprocessable event")
 	}
 
-	// Check if we should ignore stage
-	for _, stage := range s.Stages {
-		if stage.Matches(event.Stage) {
-			s.log.Debug("Filtering audit event stage %s matched")
-			// Return nil to signal that the event should be discarded.
-			return nil, nil
-		}
-	}
-
-	// Check if we should ignore operation
-	for _, operation := range s.Operations {
-		if operation == "*" || strings.ToUpper(operation) == event.Request.Operation {
-			// Return nil to signal that the event should be discarded.
-			return nil, nil
-		}
-	}
-
-	// Check if we should ignore endpoint
+	// Iterate over Endpoints that are potentially filtered
 	for _, pattern := range s.Endpoints {
 		if endpointMatches(pattern, event.Request.Endpoint) {
-			// Return nil to signal that the event should be discarded.
-			return nil, nil
+
+			// Check if we should ignore stage for matching endpoint
+			for _, stage := range s.Stages {
+				if stage.Matches(event.Stage) {
+					s.log.Debug("Filtering audit event matched", "stage", stage)
+					// Return nil to signal that the event should be discarded.
+					return nil, nil
+				}
+			}
+
+			// Check if we should ignore operation for matching endpoint
+			for _, operation := range s.Operations {
+				if operation == "*" || strings.ToUpper(operation) == event.Request.Operation {
+					// Return nil to signal that the event should be discarded.
+					return nil, nil
+				}
+			}
+
+			// No filtering to be done, requires endpoint + stage or operation
 		}
 	}
 

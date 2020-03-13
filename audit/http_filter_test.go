@@ -12,6 +12,8 @@ import (
 )
 
 func TestHTTPEventFilter_Proccess(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		desc   string
 		f      *HTTPEventFilter

@@ -5,6 +5,8 @@ package audit
 import (
 	"context"
 	"time"
+
+	"github.com/hashicorp/go-eventlogger"
 )
 
 const (
@@ -13,17 +15,16 @@ const (
 	AllStages         Stage = "*"
 )
 
-type EventType string
 type Stage string
 type HTTPOperation string
 
 // Event represents a audit log entry.
 type Event struct {
-	ID        string    `json:"id"`
-	Type      EventType `json:"type"`
-	Stage     Stage     `json:"stage"`
-	Timestamp time.Time `json:"time_stamp"`
-	Version   string    `json:"version"`
+	ID        string                `json:"id"`
+	Stage     Stage                 `json:"stage"`
+	Type      eventlogger.EventType `json:"type"`
+	Timestamp time.Time             `json:"time_stamp"`
+	Version   int                   `json:"version"`
 	Auth      `json:"auth"`
 	Request   `json:"request"`
 	Response  `json:"response"`
@@ -50,10 +51,10 @@ type Request struct {
 type Response struct {
 	StatusCode int    `json:"status_code"`
 	Error      string `json:"error"`
-	raw        []byte `json:"-"`
+	raw        []byte
 }
 
-// Checks if stage matches a particular stage
+// Matches checks if stage matches a particular stage
 // or if either stage is AllStages
 func (s Stage) Matches(b Stage) bool {
 	return s == b || s == AllStages || b == AllStages

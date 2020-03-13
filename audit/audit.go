@@ -4,6 +4,7 @@ package audit
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -29,10 +30,12 @@ type Auditor struct {
 	broker *eventlogger.Broker
 	et     eventlogger.EventType
 	log    hclog.InterceptLogger
+	mode   RunMode
 }
 
 type Config struct {
-	Enabled RunMode
+	Enabled bool
+	RunMode RunMode
 
 	// FileName is the name that the audit log should follow.
 	// If rotation is enabled the pattern will be name-timestamp.log
@@ -59,10 +62,32 @@ type Filter struct {
 	Operation []string
 }
 
-func NewAuditBroker(cfg Config) (*Auditor, error) {
+func NewAuditor(cfg *Config) (*Auditor, error) {
+	broker := eventlogger.NewBroker()
+
+	// Configure filters
+	filters, err := generateFiltersFromConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	var filterIDs []eventlogger.NodeID
+	for id, n := range filters {
+		err := broker.RegisterNode(id, n)
+		if err != nil {
+			return nil, err
+		}
+		filterIDs = append(filterIDs, id)
+	}
+
 	jsonfmtID := eventlogger.NodeID(uuid.Generate())
 	fmtNode := &eventlogger.JSONFormatter{}
+	err = broker.RegisterNode(jsonfmtID, fmtNode)
+	if err != nil {
+		return nil, err
+	}
 
+	// Configure Sink
 	sinkID := eventlogger.NodeID(uuid.Generate())
 	sink := &eventlogger.FileSink{
 		Path:        cfg.Path,
@@ -72,25 +97,18 @@ func NewAuditBroker(cfg Config) (*Auditor, error) {
 		MaxDuration: cfg.MaxDuration,
 		MaxFiles:    cfg.MaxFiles,
 	}
-
-	broker := eventlogger.NewBroker()
-	err := broker.RegisterNode(jsonfmtID, fmtNode)
-	if err != nil {
-		return nil, err
-	}
-
 	err = broker.RegisterNode(sinkID, sink)
 	if err != nil {
 		return nil, err
 	}
 
+	var NodeIDs []eventlogger.NodeID
+	NodeIDs = append(NodeIDs, filterIDs...)
+	NodeIDs = append(NodeIDs, jsonfmtID, sinkID)
 	err = broker.RegisterPipeline(eventlogger.Pipeline{
 		EventType:  AuditEvent,
 		PipelineID: AuditPipeline,
-		NodeIDs: []eventlogger.NodeID{
-			jsonfmtID,
-			sinkID,
-		},
+		NodeIDs:    NodeIDs,
 	})
 	if err != nil {
 		return nil, err
@@ -98,10 +116,11 @@ func NewAuditBroker(cfg Config) (*Auditor, error) {
 
 	return &Auditor{
 		broker: broker,
+		et:     AuditEvent,
 	}, nil
 }
 
-func (a *Auditor) Event(ctx context.Context, s Stage, event Event) error {
+func (a *Auditor) Event(ctx context.Context, event *Event) error {
 	status, err := a.broker.Send(ctx, a.et, event)
 	if err != nil {
 		return err
@@ -112,4 +131,23 @@ func (a *Auditor) Event(ctx context.Context, s Stage, event Event) error {
 	}
 
 	return nil
+}
+
+func generateFiltersFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.Node, error) {
+	nodeMap := make(map[eventlogger.NodeID]eventlogger.Node)
+
+	for _, f := range cfg.Filters {
+		switch f.Type {
+		case HTTPEvent:
+			nodeID := eventlogger.NodeID(uuid.Generate())
+			node, err := NewHTTPFilter(cfg.Logger, f)
+			if err != nil {
+				return nil, err
+			}
+			nodeMap[nodeID] = node
+		default:
+			return nil, fmt.Errorf("Unsuppoorted filter type %s", f.Type)
+		}
+	}
+	return nodeMap, nil
 }

@@ -10,6 +10,8 @@ import (
 )
 
 func TestStage_String(t *testing.T) {
+	t.Parallel()
+
 	require.Equal(t, "OperationReceived", OperationReceived.String())
 	require.Equal(t, "OperationComplete", OperationComplete.String())
 	require.Equal(t, "*", AllStages.String())
@@ -17,6 +19,8 @@ func TestStage_String(t *testing.T) {
 }
 
 func TestStage_Matches(t *testing.T) {
+	t.Parallel()
+
 	require.True(t, AllStages.Matches(OperationComplete))
 	require.True(t, AllStages.Matches(OperationReceived))
 
@@ -25,6 +29,8 @@ func TestStage_Matches(t *testing.T) {
 }
 
 func TestStage_Valid(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		s     Stage
 		valid bool
