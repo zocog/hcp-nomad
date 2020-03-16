@@ -25,9 +25,9 @@ type Event struct {
 	Type      eventlogger.EventType `json:"type"`
 	Timestamp time.Time             `json:"time_stamp"`
 	Version   int                   `json:"version"`
-	Auth      `json:"auth"`
-	Request   `json:"request"`
-	Response  `json:"response"`
+	Auth      *Auth                 `json:"auth"`
+	Request   *Request              `json:"request"`
+	Response  *Response             `json:"response,omitempty"`
 }
 
 type Auth struct {

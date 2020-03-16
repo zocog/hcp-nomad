@@ -24,10 +24,22 @@ func NewHTTPFilter(log hclog.InterceptLogger, f Filter) (eventlogger.Node, error
 		stages = append(stages, stage)
 	}
 
+	// Canonicalize endpoints
+	var endpoints []string
+	for _, e := range f.Endpoints {
+		endpoints = append(endpoints, strings.ToUpper(e))
+	}
+
+	// Canonicalize operations
+	var operations []string
+	for _, op := range f.Operations {
+		operations = append(operations, strings.ToUpper(op))
+	}
+
 	return &HTTPEventFilter{
 		Stages:     stages,
-		Endpoints:  f.Endpoints,
-		Operations: f.Operations,
+		Endpoints:  endpoints,
+		Operations: operations,
 		log:        log,
 	}, nil
 }
@@ -71,7 +83,7 @@ func (s *HTTPEventFilter) Process(ctx context.Context, e *eventlogger.Event) (*e
 			// Check if we should ignore stage for matching endpoint
 			for _, stage := range s.Stages {
 				if stage.Matches(event.Stage) {
-					s.log.Debug("Filtering audit event matched", "pattern", pattern, "stage", stage)
+					s.log.Trace("Filtering audit event matched", "pattern", pattern, "stage", stage)
 					// Return nil to signal that the event should be discarded.
 					return nil, nil
 				}
@@ -79,8 +91,8 @@ func (s *HTTPEventFilter) Process(ctx context.Context, e *eventlogger.Event) (*e
 
 			// Check if we should ignore operation for matching endpoint
 			for _, operation := range s.Operations {
-				if operation == "*" || strings.ToUpper(operation) == event.Request.Operation {
-					s.log.Debug("Filtering audit event matched", "pattern", pattern, "operation", operation)
+				if operation == "*" || operation == event.Request.Operation {
+					s.log.Trace("Filtering audit event matched", "pattern", pattern, "operation", operation)
 					// Return nil to signal that the event should be discarded.
 					return nil, nil
 				}
@@ -95,11 +107,6 @@ func (s *HTTPEventFilter) Process(ctx context.Context, e *eventlogger.Event) (*e
 }
 
 func endpointMatches(pattern, operation string) bool {
-	// all operations
-	if pattern == "*" {
-		return true
-	}
-
 	// exact match
 	if pattern == operation {
 		return true

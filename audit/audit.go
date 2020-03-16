@@ -126,20 +126,33 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	}, nil
 }
 
-// Event is used to send Events through the auditing pipeline
-// Will return an error depending on configured delivery guarantees.
-func (a *Auditor) Event(ctx context.Context, event *Event) error {
-	status, err := a.broker.Send(ctx, a.et, event)
+func (a *Auditor) Event(ctx context.Context, eventType string, payload interface{}) error {
+	status, err := a.broker.Send(ctx, a.et, payload)
 	if err != nil {
 		return err
 	}
 
 	if len(status.Warnings) > 0 {
-		a.log.Debug("Auditor: encountered warnings writing events %#v", status.Warnings)
+		a.log.Warn("Auditor: encountered warnings writing events", "warnings:", status.Warnings)
 	}
 
 	return nil
 }
+
+// Event is used to send Events through the auditing pipeline
+// Will return an error depending on configured delivery guarantees.
+// func (a *Auditor) Event(ctx context.Context, event *Event) error {
+// 	status, err := a.broker.Send(ctx, a.et, event)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	if len(status.Warnings) > 0 {
+// 		a.log.Warn("Auditor: encountered warnings writing events", "warnings:", status.Warnings)
+// 	}
+
+// 	return nil
+// }
 
 func generateFiltersFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.Node, error) {
 	nodeMap := make(map[eventlogger.NodeID]eventlogger.Node)

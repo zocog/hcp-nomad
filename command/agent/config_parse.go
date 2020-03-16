@@ -76,6 +76,12 @@ func ParseConfigFile(path string) (*Config, error) {
 		return nil, err
 	}
 
+	// parse and handle enterprise specific config
+	err = c.entParseConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	// report unexpected keys
 	err = extraKeys(c)
 	if err != nil {
@@ -139,7 +145,6 @@ func extraKeys(c *Config) error {
 	}
 
 	// Remove AuditConfig extra keys
-<<<<<<< HEAD
 	for _, f := range c.Audit.Filters {
 		helper.RemoveEqualFold(&c.Audit.ExtraKeysHCL, f.Name)
 		helper.RemoveEqualFold(&c.Audit.ExtraKeysHCL, "filter")
@@ -150,13 +155,6 @@ func extraKeys(c *Config) error {
 		helper.RemoveEqualFold(&c.Audit.ExtraKeysHCL, "sink")
 	}
 
-=======
-	for _, hv := range c.Audit.Filters {
-		removeEqualFold(&c.Audit.ExtraKeysHCL, hv.Name)
-		removeEqualFold(&c.Audit.ExtraKeysHCL, "filter")
-	}
-
->>>>>>> 2de43992b... Audit Config HCL parsing
 	for _, k := range []string{"enabled_schedulers", "start_join", "retry_join", "server_join"} {
 		helper.RemoveEqualFold(&c.ExtraKeysHCL, k)
 		helper.RemoveEqualFold(&c.ExtraKeysHCL, "server")
