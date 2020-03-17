@@ -105,13 +105,6 @@ func (a *AuditConfig) Merge(b *AuditConfig) *AuditConfig {
 		result.Sinks = auditSinkSliceMerge(a.Sinks, b.Sinks)
 	}
 
-	// Merge Sinks
-	if len(a.Sinks) == 0 && len(b.Sinks) != 0 {
-		result.Sinks = copySliceAuditSink(b.Sinks)
-	} else if len(b.Sinks) != 0 {
-		result.Sinks = auditSinkSliceMerge(a.Sinks, b.Sinks)
-	}
-
 	// Merge Filters
 	if len(a.Filters) == 0 && len(b.Filters) != 0 {
 		result.Filters = copySliceAuditFilter(b.Filters)
@@ -120,17 +113,6 @@ func (a *AuditConfig) Merge(b *AuditConfig) *AuditConfig {
 	}
 
 	return result
-}
-
-func (a *AuditSink) Copy() *AuditSink {
-	if a == nil {
-		return nil
-	}
-
-	nc := new(AuditSink)
-	*nc = *a
-
-	return nc
 }
 
 func (a *AuditSink) Copy() *AuditSink {

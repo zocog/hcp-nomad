@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/go-eventlogger"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad/helper/uuid"
@@ -37,20 +38,20 @@ type Auditor struct {
 
 type Config struct {
 	Enabled bool
-	Filters []Filter
-	Sinks   []Sink
+	Filters []FilterConfig
+	Sinks   []SinkConfig
 
 	Logger hclog.InterceptLogger
 }
 
-type Filter struct {
+type FilterConfig struct {
 	Type       FilterType
 	Endpoints  []string
 	Stages     []string
 	Operations []string
 }
 
-type Sink struct {
+type SinkConfig struct {
 	Name              string
 	Type              SinkType
 	Format            SinkFormat
@@ -68,6 +69,7 @@ type Sink struct {
 // to a file sink and filter based off of specified criteria. Will return
 // an error if not properly configured.
 func NewAuditor(cfg *Config) (*Auditor, error) {
+	spew.Dump("CFG", cfg.Sinks, cfg.Filters)
 	var nodeIDs []eventlogger.NodeID
 	broker := eventlogger.NewBroker()
 
@@ -104,8 +106,8 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	}
 
 	// Register sink nodes
-	for id, n := range sinks {
-		err := broker.RegisterNode(id, n)
+	for id, s := range sinks {
+		err := broker.RegisterNode(id, s)
 		if err != nil {
 			return nil, err
 		}
@@ -125,6 +127,7 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	return &Auditor{
 		broker: broker,
 		et:     AuditEvent,
+		log:    cfg.Logger,
 	}, nil
 }
 
@@ -194,7 +197,7 @@ func generateSinksFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.No
 	return sinks, nil
 }
 
-func newFileSink(s Sink) (eventlogger.NodeID, eventlogger.Node, error) {
+func newFileSink(s SinkConfig) (eventlogger.NodeID, eventlogger.Node, error) {
 	// TODO:drew eventually creation of a sink will need to ensure
 	// that there is a corresponding format node for the sink's
 	// format, currently JSON is the only option and is statically defined.

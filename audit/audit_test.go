@@ -36,8 +36,8 @@ func TestAuditor(t *testing.T) {
 
 	auditor, err := NewAuditor(&Config{
 		Enabled: true,
-		Filters: []Filter{},
-		Sinks: []Sink{
+		Filters: []FilterConfig{},
+		Sinks: []SinkConfig{
 			{
 				Name:              "json file",
 				Type:              FileSink,
@@ -79,7 +79,7 @@ func TestAuditor_Filter(t *testing.T) {
 	auditor, err := NewAuditor(&Config{
 		Logger:  testlog.HCLogger(t),
 		Enabled: true,
-		Filters: []Filter{
+		Filters: []FilterConfig{
 			// filter all stages for endpoints matching /v1/job
 			{
 				Type:      HTTPEvent,
@@ -87,7 +87,7 @@ func TestAuditor_Filter(t *testing.T) {
 				Endpoints: []string{"/v1/job/*"},
 			},
 		},
-		Sinks: []Sink{
+		Sinks: []SinkConfig{
 			{
 				Name:              "json file",
 				Type:              FileSink,

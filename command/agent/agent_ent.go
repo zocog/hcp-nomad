@@ -27,14 +27,14 @@ func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 		enabled = *a.config.Audit.Enabled
 	}
 
-	var filters []audit.Filter
+	var filters []audit.FilterConfig
 	for _, f := range a.config.Audit.Filters {
 		filterType := audit.FilterType(f.Type)
 		if !filterType.Valid() {
 			return fmt.Errorf("Invalid filter type %s", f.Type)
 		}
 
-		filter := audit.Filter{
+		filter := audit.FilterConfig{
 			Type:       filterType,
 			Endpoints:  f.Endpoints,
 			Stages:     f.Stages,
@@ -43,7 +43,7 @@ func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 		filters = append(filters, filter)
 	}
 
-	var sinks []audit.Sink
+	var sinks []audit.SinkConfig
 	for _, s := range a.config.Audit.Sinks {
 		// Split file name from path
 		dir, file := filepath.Split(s.Path)
@@ -70,7 +70,7 @@ func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 			return fmt.Errorf("Invalid delivery guarantee %s", s.DeliveryGuarantee)
 		}
 
-		sink := audit.Sink{
+		sink := audit.SinkConfig{
 			Name:              s.Name,
 			Type:              sinkType,
 			DeliveryGuarantee: delivery,

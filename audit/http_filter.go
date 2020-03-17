@@ -13,7 +13,7 @@ import (
 	"github.com/ryanuber/go-glob"
 )
 
-func NewHTTPFilter(log hclog.InterceptLogger, f Filter) (eventlogger.Node, error) {
+func NewHTTPFilter(log hclog.InterceptLogger, f FilterConfig) (eventlogger.Node, error) {
 	// Generate and ensure stages are valid
 	var stages []Stage
 	for _, s := range f.Stages {
