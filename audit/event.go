@@ -43,14 +43,14 @@ type Request struct {
 	ID          string            `json:"id"`
 	Operation   string            `json:"operation"`
 	Endpoint    string            `json:"endpoint"`
-	Namespace   map[string]string `json:"namespace"`
-	RequestMeta map[string]string `json:"request_meta"`
-	NodeMeta    map[string]string `json:"node_meta"`
+	Namespace   map[string]string `json:"namespace,omitempty"`
+	RequestMeta map[string]string `json:"request_meta,omitempty"`
+	NodeMeta    map[string]string `json:"node_meta,omitempty"`
 }
 
 type Response struct {
 	StatusCode int    `json:"status_code"`
-	Error      string `json:"error"`
+	Error      string `json:"error,omitempty"`
 	raw        []byte
 }
 
