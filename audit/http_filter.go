@@ -24,12 +24,6 @@ func NewHTTPFilter(log hclog.InterceptLogger, f Filter) (eventlogger.Node, error
 		stages = append(stages, stage)
 	}
 
-	// Canonicalize endpoints
-	var endpoints []string
-	for _, e := range f.Endpoints {
-		endpoints = append(endpoints, strings.ToUpper(e))
-	}
-
 	// Canonicalize operations
 	var operations []string
 	for _, op := range f.Operations {
@@ -38,7 +32,7 @@ func NewHTTPFilter(log hclog.InterceptLogger, f Filter) (eventlogger.Node, error
 
 	return &HTTPEventFilter{
 		Stages:     stages,
-		Endpoints:  endpoints,
+		Endpoints:  f.Endpoints,
 		Operations: operations,
 		log:        log,
 	}, nil

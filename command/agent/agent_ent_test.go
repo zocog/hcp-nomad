@@ -6,11 +6,12 @@ import (
 	"testing"
 
 	"github.com/hashicorp/nomad/helper"
+	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/structs/config"
 	"github.com/stretchr/testify/require"
 )
 
-func TestsetupEnterpriseAgent(t *testing.T) {
+func TestSetupEnterpriseAgent(t *testing.T) {
 	a := &Agent{
 		config: &Config{
 			Audit: &config.AuditConfig{
@@ -19,6 +20,6 @@ func TestsetupEnterpriseAgent(t *testing.T) {
 		},
 	}
 
-	err := a.setupEnterpriseAgent()
+	err := a.setupEnterpriseAgent(testlog.HCLogger(t))
 	require.NoError(t, err)
 }

@@ -17,6 +17,7 @@ const (
 
 type Stage string
 type HTTPOperation string
+type FilterType string
 
 // Event represents a audit log entry.
 type Event struct {
@@ -71,6 +72,15 @@ func (s Stage) Valid() bool {
 
 func (s Stage) String() string {
 	return string(s)
+}
+
+func (f FilterType) Valid() bool {
+	switch f {
+	case HTTPEvent:
+		return true
+	default:
+		return false
+	}
 }
 
 type Eventer interface {

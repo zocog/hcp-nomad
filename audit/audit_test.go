@@ -19,7 +19,7 @@ import (
 )
 
 type eventWrapper struct {
-	CreatedAt time.Time `json"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 	EventType string    `json:"event_type"`
 	Payload   Event     `json:"payload"`
 }
@@ -35,11 +35,18 @@ func TestAuditor(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	auditor, err := NewAuditor(&Config{
-		Enabled:  true,
-		RunMode:  Enforced,
-		FileName: "audit.log",
-		Path:     tmpDir,
-		Filters:  []Filter{},
+		Enabled: true,
+		Filters: []Filter{},
+		Sinks: []Sink{
+			{
+				Name:              "json file",
+				Type:              FileSink,
+				Format:            JSONFmt,
+				DeliveryGuarantee: Enforced,
+				FileName:          "audit.log",
+				Path:              tmpDir,
+			},
+		},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, auditor)
@@ -47,7 +54,7 @@ func TestAuditor(t *testing.T) {
 	e := testEvent(AuditEvent, OperationReceived)
 
 	// Send event
-	err = auditor.Event(context.Background(), e)
+	err = auditor.Event(context.Background(), "audit", e)
 	require.NoError(t, err)
 
 	// Read from audit log
@@ -70,17 +77,24 @@ func TestAuditor_Filter(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	auditor, err := NewAuditor(&Config{
-		Logger:   testlog.HCLogger(t),
-		Enabled:  true,
-		RunMode:  Enforced,
-		FileName: "audit.log",
-		Path:     tmpDir,
+		Logger:  testlog.HCLogger(t),
+		Enabled: true,
 		Filters: []Filter{
 			// filter all stages for endpoints matching /v1/job
 			{
 				Type:      HTTPEvent,
 				Stages:    []string{"*"},
 				Endpoints: []string{"/v1/job/*"},
+			},
+		},
+		Sinks: []Sink{
+			{
+				Name:              "json file",
+				Type:              FileSink,
+				Format:            JSONFmt,
+				DeliveryGuarantee: Enforced,
+				FileName:          "audit.log",
+				Path:              tmpDir,
 			},
 		},
 	})
@@ -92,7 +106,7 @@ func TestAuditor_Filter(t *testing.T) {
 	notFiltered.Request.Endpoint = "/v1/allocations"
 
 	// Send event
-	err = auditor.Event(context.Background(), notFiltered)
+	err = auditor.Event(context.Background(), "audit", notFiltered)
 	require.NoError(t, err)
 
 	// Read from audit log
@@ -113,7 +127,7 @@ func TestAuditor_Filter(t *testing.T) {
 	filtered.ID = "filtered-event"
 
 	// Send filtered event
-	err = auditor.Event(context.Background(), filtered)
+	err = auditor.Event(context.Background(), "audit", filtered)
 	require.NoError(t, err)
 
 	// Re-Read from audit log
@@ -153,14 +167,14 @@ func testEvent(et eventlogger.EventType, s Stage) *Event {
 		Stage:     s,
 		Timestamp: time.Now(),
 		Version:   1,
-		Auth: Auth{
+		Auth: &Auth{
 			AccessorID: uuid.Generate(),
 			Name:       "user@hashicorp.com",
 			Policies:   []string{"global"},
 			Global:     true,
 			CreateTime: time.Now(),
 		},
-		Request: Request{
+		Request: &Request{
 			ID:        uuid.Generate(),
 			Operation: "GET",
 			Endpoint:  "/v1/job/ed344e0a-7290-d117-41d3-a64f853ca3c2/allocations",

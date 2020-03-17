@@ -14,15 +14,17 @@ import (
 )
 
 type RunMode string
-type FilterType string
+type SinkType string
+type SinkFormat string
 
 const (
 	AuditPipeline         = "audit-pipeline"
 	Enforced      RunMode = "enforced"
-	Disabled      RunMode = "false"
 	BestEffort    RunMode = "best-effort"
 
 	HTTPEvent  FilterType            = "HTTPEvent"
+	FileSink   SinkType              = "file"
+	JSONFmt    SinkFormat            = "json"
 	AuditEvent eventlogger.EventType = "audit"
 )
 
@@ -35,22 +37,8 @@ type Auditor struct {
 
 type Config struct {
 	Enabled bool
-	RunMode RunMode
-
-	// FileName is the name that the audit log should follow.
-	// If rotation is enabled the pattern will be name-timestamp.log
-	FileName string
-
-	// Mode
-	Mode os.FileMode
-
-	// Path where audit log files should be stored.
-	Path string
-
-	MaxBytes    int
-	MaxDuration time.Duration
-	MaxFiles    int
-	Filters     []Filter
+	Filters []Filter
+	Sinks   []Sink
 
 	Logger hclog.InterceptLogger
 }
@@ -62,10 +50,25 @@ type Filter struct {
 	Operations []string
 }
 
+type Sink struct {
+	Name              string
+	Type              SinkType
+	Format            SinkFormat
+	DeliveryGuarantee RunMode
+	// Mode
+	Mode           os.FileMode
+	FileName       string
+	Path           string
+	RotateDuration time.Duration
+	RotateBytes    int
+	RotateMaxFiles int
+}
+
 // NewAuditor creates an auditor which can be used to send events
 // to a file sink and filter based off of specified criteria. Will return
 // an error if not properly configured.
 func NewAuditor(cfg *Config) (*Auditor, error) {
+	var nodeIDs []eventlogger.NodeID
 	broker := eventlogger.NewBroker()
 
 	// Configure and generate filters
@@ -75,13 +78,13 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	}
 
 	// Register filters to broker
-	var filterIDs []eventlogger.NodeID
 	for id, n := range filters {
 		err := broker.RegisterNode(id, n)
 		if err != nil {
 			return nil, err
 		}
-		filterIDs = append(filterIDs, id)
+		// Add filter ID to nodeIDs
+		nodeIDs = append(nodeIDs, id)
 	}
 
 	// Create JSONFormatter node
@@ -91,30 +94,29 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Add jsonfmtID to nodeIDs
+	nodeIDs = append(nodeIDs, jsonfmtID)
 
-	// Configure file sink
-	sinkID := eventlogger.NodeID(uuid.Generate())
-	sink := &eventlogger.FileSink{
-		Path:        cfg.Path,
-		FileName:    cfg.FileName,
-		Mode:        cfg.Mode,
-		MaxBytes:    cfg.MaxBytes,
-		MaxDuration: cfg.MaxDuration,
-		MaxFiles:    cfg.MaxFiles,
-	}
-	err = broker.RegisterNode(sinkID, sink)
+	// Create sink nodes
+	sinks, err := generateSinksFromConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
 
+	// Register sink nodes
+	for id, n := range sinks {
+		err := broker.RegisterNode(id, n)
+		if err != nil {
+			return nil, err
+		}
+		nodeIDs = append(nodeIDs, id)
+	}
+
 	// Register pipeline to broker
-	var NodeIDs []eventlogger.NodeID
-	NodeIDs = append(NodeIDs, filterIDs...)
-	NodeIDs = append(NodeIDs, jsonfmtID, sinkID)
 	err = broker.RegisterPipeline(eventlogger.Pipeline{
 		EventType:  AuditEvent,
 		PipelineID: AuditPipeline,
-		NodeIDs:    NodeIDs,
+		NodeIDs:    nodeIDs,
 	})
 	if err != nil {
 		return nil, err
@@ -171,4 +173,67 @@ func generateFiltersFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.
 		}
 	}
 	return nodeMap, nil
+}
+
+func generateSinksFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.Node, error) {
+	sinks := make(map[eventlogger.NodeID]eventlogger.Node)
+
+	for _, s := range cfg.Sinks {
+		switch s.Type {
+		case FileSink:
+			nodeID, node, err := newFileSink(s)
+			if err != nil {
+				return nil, err
+			}
+			sinks[nodeID] = node
+
+		default:
+			return nil, fmt.Errorf("Unsuppoorted sink type %s", s.Type)
+		}
+	}
+	return sinks, nil
+}
+
+func newFileSink(s Sink) (eventlogger.NodeID, eventlogger.Node, error) {
+	// TODO:drew eventually creation of a sink will need to ensure
+	// that there is a corresponding format node for the sink's
+	// format, currently JSON is the only option and is statically defined.
+	sinkID := eventlogger.NodeID(uuid.Generate())
+	sink := &eventlogger.FileSink{
+		Format:      string(s.Format),
+		Path:        s.Path,
+		FileName:    s.FileName,
+		Mode:        s.Mode,
+		MaxBytes:    s.RotateBytes,
+		MaxDuration: s.RotateDuration,
+		MaxFiles:    s.RotateMaxFiles,
+	}
+	return sinkID, sink, nil
+}
+
+func (s SinkType) Valid() bool {
+	switch s {
+	case FileSink:
+		return true
+	default:
+		return false
+	}
+}
+
+func (s SinkFormat) Valid() bool {
+	switch s {
+	case JSONFmt:
+		return true
+	default:
+		return false
+	}
+}
+
+func (r RunMode) Valid() bool {
+	switch r {
+	case Enforced, BestEffort:
+		return true
+	default:
+		return false
+	}
 }

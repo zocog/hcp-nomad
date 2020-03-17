@@ -37,15 +37,15 @@ func TestHTTPEventFilter_Proccess(t *testing.T) {
 		{
 			desc: "filter operation",
 			e: &eventlogger.Event{
-				Payload: &Event{Request: Request{Endpoint: "/ui/", Operation: "GET"}},
+				Payload: &Event{Request: &Request{Endpoint: "/ui/", Operation: "GET"}},
 			},
-			f:      &HTTPEventFilter{Endpoints: []string{"*"}, Operations: []string{"get"}},
+			f:      &HTTPEventFilter{Endpoints: []string{"*"}, Operations: []string{"GET"}},
 			filter: true,
 		},
 		{
 			desc: "filter wildcard operation",
 			e: &eventlogger.Event{
-				Payload: &Event{Request: Request{Endpoint: "/ui/", Operation: "POST"}},
+				Payload: &Event{Request: &Request{Endpoint: "/ui/", Operation: "POST"}},
 			},
 			f:      &HTTPEventFilter{Endpoints: []string{"/ui/"}, Operations: []string{"*"}},
 			filter: true,
@@ -54,7 +54,7 @@ func TestHTTPEventFilter_Proccess(t *testing.T) {
 			desc: "filter full endpoint",
 			e: &eventlogger.Event{
 				Payload: &Event{
-					Request: Request{
+					Request: &Request{
 						Endpoint:  "/v1/job/ed344e0a-7290-d117-41d3-a64f853ca3c2/allocations",
 						Operation: "GET",
 					},
@@ -68,7 +68,7 @@ func TestHTTPEventFilter_Proccess(t *testing.T) {
 			e: &eventlogger.Event{
 				Payload: &Event{
 					Stage: OperationReceived,
-					Request: Request{
+					Request: &Request{
 						Endpoint: "/v1/job/ed344e0a-7290-d117-41d3-a64f853ca3c2/allocations",
 					},
 				},
@@ -81,7 +81,7 @@ func TestHTTPEventFilter_Proccess(t *testing.T) {
 			e: &eventlogger.Event{
 				Payload: &Event{
 					Stage: OperationReceived,
-					Request: Request{
+					Request: &Request{
 						Endpoint: "/v1/job/ed344e0a-7290-d117-41d3-a64f853ca3c2/allocations",
 					},
 				},
