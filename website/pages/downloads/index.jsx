@@ -2,13 +2,12 @@ import fetch from 'isomorphic-unfetch'
 import VERSION from '../../data/version.js'
 import ProductDownloader from '@hashicorp/react-product-downloader'
 import Head from 'next/head'
+import HashiHead from '@hashicorp/react-head'
 
 export default function DownloadsPage({ downloadData }) {
   return (
     <div id="p-downloads" className="g-container">
-      <Head>
-        <title key="title">Downloads | Nomad by HashiCorp</title>
-      </Head>
+      <HashiHead is={Head} title="Downloads | Nomad by HashiCorp" />
       <ProductDownloader
         product="Nomad"
         version={VERSION}
@@ -31,4 +30,15 @@ export async function unstable_getStaticProps() {
       }, {})
     })
     .then(r => ({ props: { downloadData: r } }))
+    .catch(() => {
+      throw new Error(
+        `--------------------------------------------------------
+        Unable to resolve version ${VERSION} on releases.hashicorp.com from link
+        <https://releases.hashicorp.com/nomad/${VERSION}/index.json>. Usually this
+        means that the specified version has not yet been released. The downloads page
+        version can only be updated after the new version has been released, to ensure
+        that it works for all users.
+        ----------------------------------------------------------`
+      )
+    })
 }
