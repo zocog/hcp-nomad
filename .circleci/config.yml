@@ -38,16 +38,16 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.1/consul_1.6.1_linux_amd64.zip
+          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.1
+        name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.3/vault_1.2.3_linux_amd64.zip
+          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
-        name: Install Vault 1.2.3
+        name: Install Vault 1.2.4
     - run:
         command: |
           if [ ! -z $GOTESTARCH ] && [ $GOTESTARCH == "386" ]; then
@@ -114,16 +114,16 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.1/consul_1.6.1_linux_amd64.zip
+          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.1
+        name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.3/vault_1.2.3_linux_amd64.zip
+          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
-        name: Install Vault 1.2.3
+        name: Install Vault 1.2.4
     - run:
         command: |
           if [ ! -z $GOTESTARCH ] && [ $GOTESTARCH == "386" ]; then
@@ -190,16 +190,16 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.1/consul_1.6.1_linux_amd64.zip
+          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.1
+        name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.3/vault_1.2.3_linux_amd64.zip
+          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
-        name: Install Vault 1.2.3
+        name: Install Vault 1.2.4
     - run:
         command: |
           if [ ! -z $GOTESTARCH ] && [ $GOTESTARCH == "386" ]; then
@@ -266,16 +266,16 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.1/consul_1.6.1_linux_amd64.zip
+          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.1
+        name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.3/vault_1.2.3_linux_amd64.zip
+          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
-        name: Install Vault 1.2.3
+        name: Install Vault 1.2.4
     - run:
         command: |
           if [ ! -z $GOTESTARCH ] && [ $GOTESTARCH == "386" ]; then
@@ -342,16 +342,16 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.1/consul_1.6.1_linux_amd64.zip
+          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.1
+        name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.3/vault_1.2.3_linux_amd64.zip
+          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
-        name: Install Vault 1.2.3
+        name: Install Vault 1.2.4
     - run:
         command: |
           if [ ! -z $GOTESTARCH ] && [ $GOTESTARCH == "386" ]; then
@@ -700,7 +700,7 @@ jobs:
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
     - GOTEST_PKGS: ''
-    - GOTEST_PKGS_EXCLUDE: ./api|./client|./drivers/docker|./drivers/exec|./drivers/rkt|./drivers/shared/executor|./nomad|./devices
+    - GOTEST_PKGS_EXCLUDE: ./api|./client|./drivers/docker|./drivers/exec|./drivers/shared/executor|./nomad|./devices
     - GOTESTARCH: amd64
     steps:
     - checkout
@@ -720,16 +720,16 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.1/consul_1.6.1_linux_amd64.zip
+          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.1
+        name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.3/vault_1.2.3_linux_amd64.zip
+          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
-        name: Install Vault 1.2.3
+        name: Install Vault 1.2.4
     - run:
         command: |
           if [ ! -z $GOTESTARCH ] && [ $GOTESTARCH == "386" ]; then
@@ -790,16 +790,16 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.1/consul_1.6.1_linux_amd64.zip
+          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.1
+        name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.3/vault_1.2.3_linux_amd64.zip
+          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
-        name: Install Vault 1.2.3
+        name: Install Vault 1.2.4
     - run:
         command: |
           if [ -z $GOTEST_PKGS_EXCLUDE ];
@@ -855,16 +855,16 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.1/consul_1.6.1_linux_amd64.zip
+          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.1
+        name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.3/vault_1.2.3_linux_amd64.zip
+          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
-        name: Install Vault 1.2.3
+        name: Install Vault 1.2.4
     - run:
         command: |
           if [ ! -z $GOTESTARCH ] && [ $GOTESTARCH == "386" ]; then
@@ -991,16 +991,16 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.1/consul_1.6.1_linux_amd64.zip
+          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.1
+        name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.3/vault_1.2.3_linux_amd64.zip
+          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
-        name: Install Vault 1.2.3
+        name: Install Vault 1.2.4
     - run:
         command: |
           if [ ! -z $GOTESTARCH ] && [ $GOTESTARCH == "386" ]; then
