@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-eventlogger"
@@ -30,11 +31,14 @@ const (
 )
 
 type Auditor struct {
+	broker *eventlogger.Broker
+	et     eventlogger.EventType
+	log    hclog.InterceptLogger
+	mode   RunMode
+
+	// l protects enabled
+	l       sync.RWMutex
 	enabled bool
-	broker  *eventlogger.Broker
-	et      eventlogger.EventType
-	log     hclog.InterceptLogger
-	mode    RunMode
 }
 
 type Config struct {
@@ -146,6 +150,8 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 }
 
 func (a *Auditor) Enabled() bool {
+	a.l.RLock()
+	defer a.l.RUnlock()
 	return a.enabled
 }
 
