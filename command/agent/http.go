@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -486,6 +487,90 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			resp.Header().Set("Content-Type", "application/json")
 			resp.Write(buf.Bytes())
 		}
+	}
+	return f
+}
+
+type AuditResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func NewAuditResponseWriter(w http.ResponseWriter) *AuditResponseWriter {
+	return &AuditResponseWriter{w, http.StatusOK}
+}
+
+func (a AuditResponseWriter) WriteHeader(code int) {
+	a.statusCode = code
+	a.ResponseWriter.WriteHeader(code)
+}
+
+type handlerFn func(resp http.ResponseWriter, req *http.Request) (interface{}, error)
+
+func (s HTTPServer) auditHandler(handler handlerFn) handlerFn {
+	f := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+		// Fast path if eventer is disabled
+		if !s.agent.eventer.Enabled() {
+			return handler(resp, req)
+		}
+
+		// Create a writer that captures response code
+		rw := NewAuditResponseWriter(resp)
+
+		// get token info
+		var authToken string
+		s.parseToken(req, &authToken)
+		var err error
+		var token *structs.ACLToken
+
+		if srv := s.agent.Server(); srv != nil {
+			token, err = srv.ResolveSecretToken(authToken)
+		} else {
+			// Not a Server; use the Client for token resolution
+			token, err = s.agent.Client().ResolveSecretToken(authToken)
+		}
+		if err != nil {
+			// If error is no token create an empty one
+			if err == structs.ErrTokenNotFound {
+				token = &structs.ACLToken{}
+			} else {
+				return nil, err
+			}
+		}
+		auth := &audit.Auth{
+			AccessorID: token.AccessorID,
+			Name:       token.Name,
+			Policies:   token.Policies,
+			Global:     token.Global,
+			CreateTime: token.CreateTime,
+		}
+
+		event := s.eventFromReq(req, auth)
+		err = s.agent.eventer.Event(context.Background(), "audit", event)
+		if err != nil {
+			// Error sending event, circumvent handler
+			return nil, err
+		}
+
+		obj, err := handler(rw, req)
+		// Set status code from handler potentially writing it
+		event.Response = &audit.Response{}
+		event.Response.StatusCode = rw.statusCode
+
+		code, errMsg := errCodeFromHandler(err)
+		if errMsg != "" {
+			event.Response.Error = errMsg
+		} else if code != 0 {
+			event.Response.StatusCode = code
+		}
+
+		event.Stage = audit.OperationComplete
+		err = s.agent.eventer.Event(context.Background(), "audit", event)
+		if err != nil {
+			return nil, err
+		}
+
+		return obj, nil
 	}
 	return f
 }

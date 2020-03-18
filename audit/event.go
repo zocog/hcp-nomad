@@ -33,10 +33,10 @@ type Event struct {
 
 type Auth struct {
 	AccessorID string    `json:"accessor_id"`
-	Name       string    `json:"name"`
-	Type       string    `json:"type"`
-	Policies   []string  `json:"policies"`
-	Global     bool      `json:"global"`
+	Name       string    `json:"name,omitempty"`
+	Type       string    `json:"type,omitempty"`
+	Policies   []string  `json:"policies,omitempty"`
+	Global     bool      `json:"global,omitempty"`
 	CreateTime time.Time `json:"create_time"`
 }
 

@@ -4,11 +4,11 @@ package audit
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/go-eventlogger"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad/helper/uuid"
@@ -30,10 +30,11 @@ const (
 )
 
 type Auditor struct {
-	broker *eventlogger.Broker
-	et     eventlogger.EventType
-	log    hclog.InterceptLogger
-	mode   RunMode
+	enabled bool
+	broker  *eventlogger.Broker
+	et      eventlogger.EventType
+	log     hclog.InterceptLogger
+	mode    RunMode
 }
 
 type Config struct {
@@ -69,7 +70,6 @@ type SinkConfig struct {
 // to a file sink and filter based off of specified criteria. Will return
 // an error if not properly configured.
 func NewAuditor(cfg *Config) (*Auditor, error) {
-	spew.Dump("CFG", cfg.Sinks, cfg.Filters)
 	var nodeIDs []eventlogger.NodeID
 	broker := eventlogger.NewBroker()
 
@@ -99,8 +99,12 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	// Add jsonfmtID to nodeIDs
 	nodeIDs = append(nodeIDs, jsonfmtID)
 
+	if len(cfg.Sinks) > 1 {
+		return nil, errors.New("Multiple sinks not currently supported")
+	}
+
 	// Create sink nodes
-	sinks, err := generateSinksFromConfig(cfg)
+	sinks, successThreshold, err := generateSinksFromConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -124,11 +128,25 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 		return nil, err
 	}
 
+	// set successThreshold
+	// TODO(drew) go-eventlogger SetSuccessThreshold currently can't
+	// specify which sink passed and which hasn't so we are unable to
+	// support multiple sinks with different delivery guarantees
+	err = broker.SetSuccessThreshold(AuditEvent, successThreshold)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Auditor{
-		broker: broker,
-		et:     AuditEvent,
-		log:    cfg.Logger,
+		enabled: cfg.Enabled,
+		broker:  broker,
+		et:      AuditEvent,
+		log:     cfg.Logger,
 	}, nil
+}
+
+func (a *Auditor) Enabled() bool {
+	return a.enabled
 }
 
 func (a *Auditor) Event(ctx context.Context, eventType string, payload interface{}) error {
@@ -143,21 +161,6 @@ func (a *Auditor) Event(ctx context.Context, eventType string, payload interface
 
 	return nil
 }
-
-// Event is used to send Events through the auditing pipeline
-// Will return an error depending on configured delivery guarantees.
-// func (a *Auditor) Event(ctx context.Context, event *Event) error {
-// 	status, err := a.broker.Send(ctx, a.et, event)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	if len(status.Warnings) > 0 {
-// 		a.log.Warn("Auditor: encountered warnings writing events", "warnings:", status.Warnings)
-// 	}
-
-// 	return nil
-// }
 
 func generateFiltersFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.Node, error) {
 	nodeMap := make(map[eventlogger.NodeID]eventlogger.Node)
@@ -178,26 +181,27 @@ func generateFiltersFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.
 	return nodeMap, nil
 }
 
-func generateSinksFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.Node, error) {
+func generateSinksFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.Node, int, error) {
 	sinks := make(map[eventlogger.NodeID]eventlogger.Node)
+	successThreshold := 0
 
 	for _, s := range cfg.Sinks {
 		switch s.Type {
 		case FileSink:
-			nodeID, node, err := newFileSink(s)
-			if err != nil {
-				return nil, err
-			}
+			nodeID, node := newFileSink(s)
 			sinks[nodeID] = node
-
+			// Increase successThreshold for Guaranteed Delivery
+			if s.DeliveryGuarantee == Enforced {
+				successThreshold = 1
+			}
 		default:
-			return nil, fmt.Errorf("Unsuppoorted sink type %s", s.Type)
+			return nil, successThreshold, fmt.Errorf("Unsuppoorted sink type %s", s.Type)
 		}
 	}
-	return sinks, nil
+	return sinks, successThreshold, nil
 }
 
-func newFileSink(s SinkConfig) (eventlogger.NodeID, eventlogger.Node, error) {
+func newFileSink(s SinkConfig) (eventlogger.NodeID, eventlogger.Node) {
 	// TODO:drew eventually creation of a sink will need to ensure
 	// that there is a corresponding format node for the sink's
 	// format, currently JSON is the only option and is statically defined.
@@ -211,7 +215,7 @@ func newFileSink(s SinkConfig) (eventlogger.NodeID, eventlogger.Node, error) {
 		MaxDuration: s.RotateDuration,
 		MaxFiles:    s.RotateMaxFiles,
 	}
-	return sinkID, sink, nil
+	return sinkID, sink
 }
 
 func (s SinkType) Valid() bool {
