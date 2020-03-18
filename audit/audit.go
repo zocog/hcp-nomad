@@ -168,6 +168,10 @@ func (a *Auditor) Event(ctx context.Context, eventType string, payload interface
 	return nil
 }
 
+func (a *Auditor) Reopen() error {
+	return a.broker.Reopen(context.Background())
+}
+
 func generateFiltersFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.Node, error) {
 	nodeMap := make(map[eventlogger.NodeID]eventlogger.Node)
 

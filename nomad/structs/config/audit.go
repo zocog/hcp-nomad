@@ -27,7 +27,7 @@ type AuditSink struct {
 	Name string `hcl:",key"`
 
 	// DeliveryGuarantee is the level at which delivery of logs must
-	// be met in order to succesfully make requests
+	// be met in order to successfully make requests
 	DeliveryGuarantee string `hcl:"delivery_guarantee"`
 
 	// Type is the sink type to configure. (file)

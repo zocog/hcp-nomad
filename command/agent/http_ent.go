@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/nomad/audit"
+	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
 
@@ -31,30 +32,46 @@ func (s *HTTPServer) registerEntHandlers() {
 	s.mux.HandleFunc("/v1/namespace/", s.wrap(s.NamespaceSpecificRequest))
 }
 
-type AuditResponseWriter struct {
+type auditResponseWriter struct {
 	http.ResponseWriter
 	statusCode int
 }
 
-func NewAuditResponseWriter(w http.ResponseWriter) *AuditResponseWriter {
-	return &AuditResponseWriter{w, http.StatusOK}
+func newAuditResponseWriter(w http.ResponseWriter) *auditResponseWriter {
+	return &auditResponseWriter{w, http.StatusOK}
 }
 
-func (a AuditResponseWriter) WriteHeader(code int) {
+func (a auditResponseWriter) WriteHeader(code int) {
 	a.statusCode = code
 	a.ResponseWriter.WriteHeader(code)
 }
 
-func (s *HTTPServer) eventFromReq(req *http.Request, auth *audit.Auth) *audit.Event {
+func (s *HTTPServer) eventFromReq(ctx context.Context, req *http.Request, auth *audit.Auth) *audit.Event {
+	var namespace string
+	parseNamespace(req, &namespace)
+
+	// Get request ID
+	reqIDRaw := ctx.Value(ContextKeyReqID)
+	reqID, ok := reqIDRaw.(string)
+	if !ok {
+		s.logger.Error("Failed to convert context value for request ID")
+		reqID = uuid.Generate()
+	}
+
 	return &audit.Event{
+		ID:        uuid.Generate(),
 		Stage:     audit.OperationReceived,
 		Type:      audit.AuditEvent,
 		Timestamp: time.Now(),
 		Version:   0,
 		Auth:      auth,
 		Request: &audit.Request{
+			ID:        reqID,
 			Operation: req.Method,
 			Endpoint:  req.URL.String(),
+			Namespace: map[string]string{
+				"id": namespace,
+			},
 			RequestMeta: map[string]string{
 				"remote_address": req.RemoteAddr,
 				"user_agent":     req.UserAgent(),
@@ -66,140 +83,158 @@ func (s *HTTPServer) eventFromReq(req *http.Request, auth *audit.Auth) *audit.Ev
 	}
 }
 
+func (s *HTTPServer) auditHTTPHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		reqID := uuid.Generate()
+		ctx = context.WithValue(ctx, ContextKeyReqID, reqID)
+		req = req.WithContext(ctx)
+
+		// Create a writer that captures response code
+		rw := newAuditResponseWriter(w)
+
+		event, err := s.auditReq(ctx, req)
+		if err != nil {
+			// Error sending event, circumvent handler
+			return
+		}
+
+		// Invoke wrapped handler
+		h.ServeHTTP(rw, req)
+
+		err = s.auditResp(ctx, rw, event, nil)
+		if err != nil {
+			// handle this error case (write new response body?)
+			return
+		}
+	})
+}
+
+func (s *HTTPServer) auditReq(ctx context.Context, req *http.Request) (*audit.Event, error) {
+	// get token info
+	var authToken string
+	s.parseToken(req, &authToken)
+	var err error
+	var token *structs.ACLToken
+
+	if srv := s.agent.Server(); srv != nil {
+		token, err = srv.ResolveSecretToken(authToken)
+	} else {
+		// Not a Server; use the Client for token resolution
+		token, err = s.agent.Client().ResolveSecretToken(authToken)
+	}
+	if err != nil {
+		// If error is no token create an empty one
+		if err == structs.ErrTokenNotFound {
+			token = &structs.ACLToken{}
+		} else {
+			return nil, err
+		}
+	}
+	auth := &audit.Auth{
+		AccessorID: token.AccessorID,
+		Name:       token.Name,
+		Policies:   token.Policies,
+		Global:     token.Global,
+		CreateTime: token.CreateTime,
+	}
+
+	event := s.eventFromReq(ctx, req, auth)
+	err = s.agent.eventer.Event(ctx, "audit", event)
+	if err != nil {
+		// Error sending event, circumvent handler
+		return nil, err
+	}
+
+	return event, nil
+}
+
+func (s *HTTPServer) auditResp(ctx context.Context, rw *auditResponseWriter, e *audit.Event, respErr error) error {
+	// Set status code from handler potentially writing it
+	e.Response = &audit.Response{}
+	e.Response.StatusCode = rw.statusCode
+
+	code, errMsg := errCodeFromHandler(respErr)
+	if errMsg != "" {
+		e.Response.Error = errMsg
+	} else if code != 0 {
+		e.Response.StatusCode = code
+	}
+
+	e.Stage = audit.OperationComplete
+	err := s.agent.eventer.Event(ctx, "audit", e)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *HTTPServer) auditHandler(handler handlerFn) handlerFn {
 	f := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+		// Set context request ID
+		ctx := req.Context()
+		reqID := uuid.Generate()
+		ctx = context.WithValue(ctx, ContextKeyReqID, reqID)
+		req = req.WithContext(ctx)
+
 		// Fast path if eventer is disabled
-		if !s.agent.eventer.Enabled() {
+		if s.agent.eventer == nil || !s.agent.eventer.Enabled() {
 			return handler(resp, req)
 		}
 
 		// Create a writer that captures response code
-		rw := NewAuditResponseWriter(resp)
+		rw := newAuditResponseWriter(resp)
 
-		// get token info
-		var authToken string
-		s.parseToken(req, &authToken)
-		var err error
-		var token *structs.ACLToken
-
-		if srv := s.agent.Server(); srv != nil {
-			token, err = srv.ResolveSecretToken(authToken)
-		} else {
-			// Not a Server; use the Client for token resolution
-			token, err = s.agent.Client().ResolveSecretToken(authToken)
-		}
-		if err != nil {
-			// If error is no token create an empty one
-			if err == structs.ErrTokenNotFound {
-				token = &structs.ACLToken{}
-			} else {
-				return nil, err
-			}
-		}
-		auth := &audit.Auth{
-			AccessorID: token.AccessorID,
-			Name:       token.Name,
-			Policies:   token.Policies,
-			Global:     token.Global,
-			CreateTime: token.CreateTime,
-		}
-
-		event := s.eventFromReq(req, auth)
-		err = s.agent.eventer.Event(context.Background(), "audit", event)
+		event, err := s.auditReq(ctx, req)
 		if err != nil {
 			// Error sending event, circumvent handler
 			return nil, err
 		}
 
-		obj, err := handler(rw, req)
-		// Set status code from handler potentially writing it
-		event.Response = &audit.Response{}
-		event.Response.StatusCode = rw.statusCode
+		// Invoke wrapped handler
+		obj, rspErr := handler(rw, req)
 
-		code, errMsg := errCodeFromHandler(err)
-		if errMsg != "" {
-			event.Response.Error = errMsg
-		} else if code != 0 {
-			event.Response.StatusCode = code
-		}
-
-		event.Stage = audit.OperationComplete
-		err = s.agent.eventer.Event(context.Background(), "audit", event)
+		err = s.auditResp(ctx, rw, event, rspErr)
 		if err != nil {
 			return nil, err
 		}
 
-		return obj, nil
+		return obj, rspErr
 	}
 	return f
 }
 
 func (s *HTTPServer) auditByteHandler(handler handlerByteFn) handlerByteFn {
 	f := func(resp http.ResponseWriter, req *http.Request) ([]byte, error) {
+		// Set context request ID
+		ctx := req.Context()
+		reqID := uuid.Generate()
+		ctx = context.WithValue(ctx, ContextKeyReqID, reqID)
+		req = req.WithContext(ctx)
+
 		// Fast path if eventer is disabled
 		if !s.agent.eventer.Enabled() {
 			return handler(resp, req)
 		}
 
 		// Create a writer that captures response code
-		rw := NewAuditResponseWriter(resp)
+		rw := newAuditResponseWriter(resp)
 
-		// get token info
-		var authToken string
-		s.parseToken(req, &authToken)
-		var err error
-		var token *structs.ACLToken
-
-		if srv := s.agent.Server(); srv != nil {
-			token, err = srv.ResolveSecretToken(authToken)
-		} else {
-			// Not a Server; use the Client for token resolution
-			token, err = s.agent.Client().ResolveSecretToken(authToken)
-		}
-		if err != nil {
-			// If error is no token create an empty one
-			if err == structs.ErrTokenNotFound {
-				token = &structs.ACLToken{}
-			} else {
-				return nil, err
-			}
-		}
-		auth := &audit.Auth{
-			AccessorID: token.AccessorID,
-			Name:       token.Name,
-			Policies:   token.Policies,
-			Global:     token.Global,
-			CreateTime: token.CreateTime,
-		}
-
-		event := s.eventFromReq(req, auth)
-		err = s.agent.eventer.Event(context.Background(), "audit", event)
+		event, err := s.auditReq(ctx, req)
 		if err != nil {
 			// Error sending event, circumvent handler
 			return nil, err
 		}
 
-		// invoke wrapped handler
-		obj, err := handler(rw, req)
+		// Invoke wrapped handler
+		obj, rspErr := handler(rw, req)
 
-		// Set status code from handler potentially writing it
-		event.Response = &audit.Response{}
-		event.Response.StatusCode = rw.statusCode
-
-		code, errMsg := errCodeFromHandler(err)
-		if errMsg != "" {
-			event.Response.Error = errMsg
-		} else if code != 0 {
-			event.Response.StatusCode = code
-		}
-
-		event.Stage = audit.OperationComplete
-		err = s.agent.eventer.Event(context.Background(), "audit", event)
+		err = s.auditResp(ctx, rw, event, rspErr)
 		if err != nil {
 			return nil, err
 		}
 
-		return obj, nil
+		return obj, rspErr
 	}
 	return f
 }
