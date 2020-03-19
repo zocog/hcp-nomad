@@ -28,6 +28,8 @@ const (
 	FileSink   SinkType              = "file"
 	JSONFmt    SinkFormat            = "json"
 	AuditEvent eventlogger.EventType = "audit"
+
+	SchemaV1 = 1
 )
 
 type Auditor struct {

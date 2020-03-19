@@ -55,7 +55,7 @@ func (s *HTTPServer) eventFromReq(ctx context.Context, req *http.Request, auth *
 	reqID, ok := reqIDRaw.(string)
 	if !ok {
 		s.logger.Error("Failed to convert context value for request ID")
-		reqID = uuid.Generate()
+		reqID = MissingRequestID
 	}
 
 	return &audit.Event{
@@ -63,7 +63,7 @@ func (s *HTTPServer) eventFromReq(ctx context.Context, req *http.Request, auth *
 		Stage:     audit.OperationReceived,
 		Type:      audit.AuditEvent,
 		Timestamp: time.Now(),
-		Version:   0,
+		Version:   audit.SchemaV1,
 		Auth:      auth,
 		Request: &audit.Request{
 			ID:        reqID,
@@ -104,6 +104,7 @@ func (s *HTTPServer) auditHTTPHandler(h http.Handler) http.Handler {
 
 		err = s.auditResp(ctx, rw, event, nil)
 		if err != nil {
+			s.logger.Error("Error auditing response from HTTPHandler", "err", err.Error())
 			// handle this error case (write new response body?)
 			return
 		}
@@ -115,6 +116,9 @@ func (s *HTTPServer) auditReq(ctx context.Context, req *http.Request) (*audit.Ev
 	var authToken string
 	s.parseToken(req, &authToken)
 	var err error
+	// TODO OPTIMIZATION:
+	// Look into adding this to the request context so it can be used
+	// in the invoked handlers
 	var token *structs.ACLToken
 
 	if srv := s.agent.Server(); srv != nil {
