@@ -135,6 +135,11 @@ func (s *HTTPServer) auditReq(ctx context.Context, req *http.Request) (*audit.Ev
 			return nil, err
 		}
 	}
+	// Prevent nil token with anonymous one
+	if token == nil {
+		token = structs.AnonymousACLToken
+	}
+
 	auth := &audit.Auth{
 		AccessorID: token.AccessorID,
 		Name:       token.Name,
