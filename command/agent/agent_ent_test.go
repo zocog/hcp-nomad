@@ -16,6 +16,15 @@ func TestSetupEnterpriseAgent(t *testing.T) {
 		config: &Config{
 			Audit: &config.AuditConfig{
 				Enabled: helper.BoolToPtr(true),
+				Sinks: []*config.AuditSink{
+					{
+						Name:              "file-sink",
+						Path:              "/tmp/path/audit.log",
+						DeliveryGuarantee: "best-effort",
+						Type:              "file",
+						Format:            "json",
+					},
+				},
 			},
 		},
 	}

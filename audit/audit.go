@@ -15,23 +15,49 @@ import (
 	"github.com/hashicorp/nomad/helper/uuid"
 )
 
+// RunMode specifies how errors should be handled when processing an event.
+// A RunMode of enforced will return all errors. A RunMode of best effort
+// will log the errors and return without errors. This is meant to prevent
+// blocking requests from completing when there is an underlying issue with
+// the auditing pipeline.
 type RunMode string
+
+// SinkType specifies the type of sink for the audit log pipeline. Currently
+// only file sinks with JSON SinkFormat are supported.
 type SinkType string
+
+// SinkFormat specifies the output format for a sink. Currently only
+// JSON is supported.
 type SinkFormat string
 
 const (
-	AuditPipeline         = "audit-pipeline"
-	Enforced      RunMode = "enforced"
-	BestEffort    RunMode = "best-effort"
+	AuditPipeline = "audit-pipeline"
 
-	HTTPEvent  FilterType            = "HTTPEvent"
-	FileSink   SinkType              = "file"
-	JSONFmt    SinkFormat            = "json"
+	// Enforced RunMode ensures an error is returned upon event failure.
+	Enforced RunMode = "enforced"
+
+	// BestEffort will log errors to prevent blocking requests from completing.
+	BestEffort RunMode = "best-effort"
+
+	// HTTPEvent is a FilterType to specify a filter should apply to HTTP Events.
+	HTTPEvent FilterType = "HTTPEvent"
+
+	// FileSink is a SinkType indicating file.
+	FileSink SinkType = "file"
+
+	// JSONFmt is a SinkFormat indicating JSON output.
+	JSONFmt SinkFormat = "json"
+
+	// AuditEvent is an eventlogger EventType that is used to specify auditing.
+	// related events.
 	AuditEvent eventlogger.EventType = "audit"
 
+	// SchemaV1 is the v1 schema version.
 	SchemaV1 = 1
 )
 
+// Auditor is the main struct for sending auditing events. It's configured
+// broker will send events of the event type et
 type Auditor struct {
 	broker *eventlogger.Broker
 	et     eventlogger.EventType
@@ -43,6 +69,7 @@ type Auditor struct {
 	enabled bool
 }
 
+// Config determines how an Auditor should be configured
 type Config struct {
 	Enabled bool
 	Filters []FilterConfig
@@ -51,14 +78,26 @@ type Config struct {
 	Logger hclog.InterceptLogger
 }
 
+// FilterConfig holds the options and settings to create a Filter.
 type FilterConfig struct {
-	Type       FilterType
-	Endpoints  []string
-	Stages     []string
+	// Type specifies the type of filter that should be created.
+	Type FilterType
+
+	// Endpoints is a collection of endpoints that a filter should apply to.
+	Endpoints []string
+
+	// Stages specify which stage of an audit log request a filter should be
+	// applied to. OperationReceived, OperationCreated,* (all stages).
+	Stages []string
+
+	// Operations specify which operations a filter should apply to. For
+	// HTTPFilter types this equates to HTTP verbs.
 	Operations []string
 }
 
+// SinkConfig holds the configuration options for creating an audit log sink.
 type SinkConfig struct {
+	// The name of the sink
 	Name              string
 	Type              SinkType
 	Format            SinkFormat
@@ -143,24 +182,37 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 		return nil, err
 	}
 
+	mode := BestEffort
+	if successThreshold > 0 {
+		mode = Enforced
+	}
+
 	return &Auditor{
 		enabled: cfg.Enabled,
 		broker:  broker,
 		et:      AuditEvent,
 		log:     cfg.Logger,
+		mode:    mode,
 	}, nil
 }
 
+// Enabled returns whether or not an auditor is enabled
 func (a *Auditor) Enabled() bool {
 	a.l.RLock()
 	defer a.l.RUnlock()
 	return a.enabled
 }
 
+// Event is used to send an audit log event.
 func (a *Auditor) Event(ctx context.Context, eventType string, payload interface{}) error {
 	status, err := a.broker.Send(ctx, a.et, payload)
 	if err != nil {
-		return err
+		// Only return error if mode is enforced
+		if a.mode == Enforced {
+			return err
+		}
+		// If run mode isn't inforced, log that we encountered an error
+		a.log.Error("Failed to complete audit log. RunMode not enforced", "err", err.Error())
 	}
 
 	if len(status.Warnings) > 0 {
@@ -170,6 +222,8 @@ func (a *Auditor) Event(ctx context.Context, eventType string, payload interface
 	return nil
 }
 
+// Reopen is used during a SIGHUP to reopen nodes, most importantly the underlying
+// file sink.
 func (a *Auditor) Reopen() error {
 	return a.broker.Reopen(context.Background())
 }
@@ -191,6 +245,36 @@ func generateFiltersFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.
 		}
 	}
 	return nodeMap, nil
+}
+
+// Valid checks is a given SinkType is valid
+func (s SinkType) Valid() bool {
+	switch s {
+	case FileSink:
+		return true
+	default:
+		return false
+	}
+}
+
+// Valid checks is a given SinkFormat is valid
+func (s SinkFormat) Valid() bool {
+	switch s {
+	case JSONFmt:
+		return true
+	default:
+		return false
+	}
+}
+
+// Valid checks is a given RunMode is valid
+func (r RunMode) Valid() bool {
+	switch r {
+	case Enforced, BestEffort:
+		return true
+	default:
+		return false
+	}
 }
 
 func generateSinksFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.Node, int, error) {
@@ -228,31 +312,4 @@ func newFileSink(s SinkConfig) (eventlogger.NodeID, eventlogger.Node) {
 		MaxFiles:    s.RotateMaxFiles,
 	}
 	return sinkID, sink
-}
-
-func (s SinkType) Valid() bool {
-	switch s {
-	case FileSink:
-		return true
-	default:
-		return false
-	}
-}
-
-func (s SinkFormat) Valid() bool {
-	switch s {
-	case JSONFmt:
-		return true
-	default:
-		return false
-	}
-}
-
-func (r RunMode) Valid() bool {
-	switch r {
-	case Enforced, BestEffort:
-		return true
-	default:
-		return false
-	}
 }

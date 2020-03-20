@@ -24,7 +24,7 @@ type Event struct {
 	ID        string                `json:"id"`
 	Stage     Stage                 `json:"stage"`
 	Type      eventlogger.EventType `json:"type"`
-	Timestamp time.Time             `json:"time_stamp"`
+	Timestamp time.Time             `json:"timestamp"`
 	Version   int                   `json:"version"`
 	Auth      *Auth                 `json:"auth"`
 	Request   *Request              `json:"request"`
@@ -32,12 +32,12 @@ type Event struct {
 }
 
 type Auth struct {
-	AccessorID string    `json:"accessor_id"`
+	AccessorID string    `json:"accessor_id,omitempty"`
 	Name       string    `json:"name,omitempty"`
 	Type       string    `json:"type,omitempty"`
 	Policies   []string  `json:"policies,omitempty"`
 	Global     bool      `json:"global,omitempty"`
-	CreateTime time.Time `json:"create_time"`
+	CreateTime time.Time `json:"create_time,omitempty"`
 }
 
 type Request struct {

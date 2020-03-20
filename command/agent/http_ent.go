@@ -47,13 +47,14 @@ func (a auditResponseWriter) WriteHeader(code int) {
 }
 
 func (s *HTTPServer) eventFromReq(ctx context.Context, req *http.Request, auth *audit.Auth) *audit.Event {
+	// retrieve namespace from request headers
 	var namespace string
 	parseNamespace(req, &namespace)
 
 	// Get request ID
 	reqIDRaw := ctx.Value(ContextKeyReqID)
 	reqID, ok := reqIDRaw.(string)
-	if !ok {
+	if !ok || reqID == "" {
 		s.logger.Error("Failed to convert context value for request ID")
 		reqID = MissingRequestID
 	}
@@ -85,6 +86,12 @@ func (s *HTTPServer) eventFromReq(ctx context.Context, req *http.Request, auth *
 
 func (s *HTTPServer) auditHTTPHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// Fast-Path if disabled
+		if s.agent.eventer == nil || !s.agent.eventer.Enabled() {
+			h.ServeHTTP(w, req)
+			return
+		}
+
 		ctx := req.Context()
 		reqID := uuid.Generate()
 		ctx = context.WithValue(ctx, ContextKeyReqID, reqID)
@@ -93,7 +100,7 @@ func (s *HTTPServer) auditHTTPHandler(h http.Handler) http.Handler {
 		// Create a writer that captures response code
 		rw := newAuditResponseWriter(w)
 
-		event, err := s.auditReq(ctx, req)
+		event, err := s.createAudit(ctx, req)
 		if err != nil {
 			// Error sending event, circumvent handler
 			return
@@ -111,7 +118,7 @@ func (s *HTTPServer) auditHTTPHandler(h http.Handler) http.Handler {
 	})
 }
 
-func (s *HTTPServer) auditReq(ctx context.Context, req *http.Request) (*audit.Event, error) {
+func (s *HTTPServer) createAudit(ctx context.Context, req *http.Request) (*audit.Event, error) {
 	// get token info
 	var authToken string
 	s.parseToken(req, &authToken)
@@ -166,7 +173,8 @@ func (s *HTTPServer) auditResp(ctx context.Context, rw *auditResponseWriter, e *
 	code, errMsg := errCodeFromHandler(respErr)
 	if errMsg != "" {
 		e.Response.Error = errMsg
-	} else if code != 0 {
+	}
+	if code != 0 {
 		e.Response.StatusCode = code
 	}
 
@@ -194,9 +202,11 @@ func (s *HTTPServer) auditHandler(handler handlerFn) handlerFn {
 		// Create a writer that captures response code
 		rw := newAuditResponseWriter(resp)
 
-		event, err := s.auditReq(ctx, req)
+		// Create audit event from request
+		event, err := s.createAudit(ctx, req)
 		if err != nil {
 			// Error sending event, circumvent handler
+			s.logger.Error("Failed to audit log request, blocking response", "err", err.Error())
 			return nil, err
 		}
 
@@ -205,6 +215,7 @@ func (s *HTTPServer) auditHandler(handler handlerFn) handlerFn {
 
 		err = s.auditResp(ctx, rw, event, rspErr)
 		if err != nil {
+			s.logger.Error("Failed to audit log response, blocking response", "err", err.Error())
 			return nil, err
 		}
 
@@ -213,7 +224,7 @@ func (s *HTTPServer) auditHandler(handler handlerFn) handlerFn {
 	return f
 }
 
-func (s *HTTPServer) auditByteHandler(handler handlerByteFn) handlerByteFn {
+func (s *HTTPServer) auditNonJSONHandler(handler handlerByteFn) handlerByteFn {
 	f := func(resp http.ResponseWriter, req *http.Request) ([]byte, error) {
 		// Set context request ID
 		ctx := req.Context()
@@ -222,16 +233,18 @@ func (s *HTTPServer) auditByteHandler(handler handlerByteFn) handlerByteFn {
 		req = req.WithContext(ctx)
 
 		// Fast path if eventer is disabled
-		if !s.agent.eventer.Enabled() {
+		if s.agent.eventer == nil || !s.agent.eventer.Enabled() {
 			return handler(resp, req)
 		}
 
 		// Create a writer that captures response code
 		rw := newAuditResponseWriter(resp)
 
-		event, err := s.auditReq(ctx, req)
+		// Create audit event from request
+		event, err := s.createAudit(ctx, req)
 		if err != nil {
 			// Error sending event, circumvent handler
+			s.logger.Error("Failed to audit log request, blocking response", "err", err.Error())
 			return nil, err
 		}
 
@@ -240,6 +253,7 @@ func (s *HTTPServer) auditByteHandler(handler handlerByteFn) handlerByteFn {
 
 		err = s.auditResp(ctx, rw, event, rspErr)
 		if err != nil {
+			s.logger.Error("Failed to audit log response, blocking response", "err", err.Error())
 			return nil, err
 		}
 
