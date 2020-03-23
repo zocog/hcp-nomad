@@ -4,11 +4,11 @@ package audit
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"os"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/hashicorp/go-eventlogger"
 	"github.com/hashicorp/go-hclog"
@@ -22,31 +22,29 @@ import (
 // the auditing pipeline.
 type RunMode string
 
+const (
+	// Enforced RunMode ensures an error is returned upon event failure.
+	Enforced RunMode = "enforced"
+	// BestEffort will log errors to prevent blocking requests from completing.
+	BestEffort RunMode = "best-effort"
+)
+
 // SinkType specifies the type of sink for the audit log pipeline. Currently
 // only file sinks with JSON SinkFormat are supported.
 type SinkType string
+
+// FileSink is a SinkType indicating file.
+const FileSink SinkType = "file"
 
 // SinkFormat specifies the output format for a sink. Currently only
 // JSON is supported.
 type SinkFormat string
 
+// JSONFmt is a SinkFormat indicating JSON output.
+const JSONFmt SinkFormat = "json"
+
 const (
 	AuditPipeline = "audit-pipeline"
-
-	// Enforced RunMode ensures an error is returned upon event failure.
-	Enforced RunMode = "enforced"
-
-	// BestEffort will log errors to prevent blocking requests from completing.
-	BestEffort RunMode = "best-effort"
-
-	// HTTPEvent is a FilterType to specify a filter should apply to HTTP Events.
-	HTTPEvent FilterType = "HTTPEvent"
-
-	// FileSink is a SinkType indicating file.
-	FileSink SinkType = "file"
-
-	// JSONFmt is a SinkFormat indicating JSON output.
-	JSONFmt SinkFormat = "json"
 
 	// AuditEvent is an eventlogger EventType that is used to specify auditing.
 	// related events.
@@ -55,19 +53,6 @@ const (
 	// SchemaV1 is the v1 schema version.
 	SchemaV1 = 1
 )
-
-// Auditor is the main struct for sending auditing events. It's configured
-// broker will send events of the event type et
-type Auditor struct {
-	broker *eventlogger.Broker
-	et     eventlogger.EventType
-	log    hclog.InterceptLogger
-	mode   RunMode
-
-	// l protects enabled
-	l       sync.RWMutex
-	enabled bool
-}
 
 // Config determines how an Auditor should be configured
 type Config struct {
@@ -109,9 +94,6 @@ type SinkConfig struct {
 	// DeliveryGuarantee specifies how strict we handle errors.
 	DeliveryGuarantee RunMode
 
-	// Mode
-	Mode os.FileMode
-
 	// FileName is the name of the audit log. If file rotation is enabled
 	// It will be post-fixed by a timestamp
 	FileName string
@@ -131,6 +113,19 @@ type SinkConfig struct {
 	RotateMaxFiles int
 }
 
+// Auditor is the main struct for sending auditing events. If configured
+// broker will send events of the event type et through all configured
+// filters and sinks
+type Auditor struct {
+	broker *eventlogger.Broker
+	log    hclog.InterceptLogger
+	mode   RunMode
+
+	// l protects enabled
+	l       sync.RWMutex
+	enabled bool
+}
+
 // NewAuditor creates an auditor which can be used to send events
 // to a file sink and filter based off of specified criteria. Will return
 // an error if not properly configured.
@@ -141,14 +136,14 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	// Configure and generate filters
 	filters, err := generateFiltersFromConfig(cfg)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to generate filters")
 	}
 
 	// Register filters to broker
 	for id, n := range filters {
 		err := broker.RegisterNode(id, n)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to register filter nodes")
 		}
 		// Add filter ID to nodeIDs
 		nodeIDs = append(nodeIDs, id)
@@ -159,26 +154,22 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	fmtNode := &eventlogger.JSONFormatter{}
 	err = broker.RegisterNode(jsonfmtID, fmtNode)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to register json node")
 	}
 	// Add jsonfmtID to nodeIDs
 	nodeIDs = append(nodeIDs, jsonfmtID)
 
-	if len(cfg.Sinks) > 1 {
-		return nil, errors.New("Multiple sinks not currently supported")
-	}
-
 	// Create sink nodes
 	sinks, successThreshold, err := generateSinksFromConfig(cfg)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to generate sinks")
 	}
 
 	// Register sink nodes
 	for id, s := range sinks {
 		err := broker.RegisterNode(id, s)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to register sink")
 		}
 		nodeIDs = append(nodeIDs, id)
 	}
@@ -190,16 +181,16 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 		NodeIDs:    nodeIDs,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to register pipeline")
 	}
 
-	// set successThreshold
-	// TODO(drew) go-eventlogger SetSuccessThreshold currently can't
+	// Set successThreshold
+	// TODO(drew) go-eventlogger SetSuccessThreshold currently does not
 	// specify which sink passed and which hasn't so we are unable to
 	// support multiple sinks with different delivery guarantees
 	err = broker.SetSuccessThreshold(AuditEvent, successThreshold)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to set success threshold")
 	}
 
 	mode := BestEffort
@@ -210,7 +201,6 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	return &Auditor{
 		enabled: cfg.Enabled,
 		broker:  broker,
-		et:      AuditEvent,
 		log:     cfg.Logger,
 		mode:    mode,
 	}, nil
@@ -225,7 +215,7 @@ func (a *Auditor) Enabled() bool {
 
 // Event is used to send an audit log event.
 func (a *Auditor) Event(ctx context.Context, eventType string, payload interface{}) error {
-	status, err := a.broker.Send(ctx, a.et, payload)
+	status, err := a.broker.Send(ctx, AuditEvent, payload)
 	if err != nil {
 		// Only return error if mode is enforced
 		if a.mode == Enforced {
@@ -236,7 +226,7 @@ func (a *Auditor) Event(ctx context.Context, eventType string, payload interface
 	}
 
 	if len(status.Warnings) > 0 {
-		a.log.Warn("Auditor: encountered warnings writing events", "warnings:", status.Warnings)
+		a.log.Warn("encountered warnings writing events", "warnings:", status.Warnings)
 	}
 
 	return nil
@@ -250,6 +240,9 @@ func (a *Auditor) Reopen() error {
 
 // SetEnabled sets the auditor to enabled or disabled
 func (a *Auditor) SetEnabled(enabled bool) {
+	a.l.Lock()
+	defer a.l.Unlock()
+
 	a.enabled = enabled
 }
 
@@ -306,6 +299,10 @@ func generateSinksFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.No
 	sinks := make(map[eventlogger.NodeID]eventlogger.Node)
 	successThreshold := 0
 
+	if len(cfg.Sinks) > 1 {
+		return nil, 0, errors.New("multiple sinks not currently supported")
+	}
+
 	for _, s := range cfg.Sinks {
 		switch s.Type {
 		case FileSink:
@@ -313,7 +310,7 @@ func generateSinksFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.No
 			sinks[nodeID] = node
 			// Increase successThreshold for Guaranteed Delivery
 			if s.DeliveryGuarantee == Enforced {
-				successThreshold = 1
+				successThreshold++
 			}
 		default:
 			return nil, successThreshold, fmt.Errorf("Unsuppoorted sink type %s", s.Type)
@@ -333,7 +330,6 @@ func newFileSink(s SinkConfig) (eventlogger.NodeID, eventlogger.Node) {
 		Format:      string(s.Format),
 		Path:        s.Path,
 		FileName:    s.FileName,
-		Mode:        s.Mode,
 		MaxBytes:    s.RotateBytes,
 		MaxDuration: s.RotateDuration,
 		MaxFiles:    s.RotateMaxFiles,

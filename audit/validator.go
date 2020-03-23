@@ -5,6 +5,7 @@ package audit
 import (
 	"context"
 	"errors"
+	"reflect"
 
 	"github.com/hashicorp/go-eventlogger"
 	"github.com/hashicorp/go-hclog"
@@ -27,7 +28,9 @@ func NewValidator(cfg Config) *Validator {
 func (v *Validator) Process(ctx context.Context, e *eventlogger.Event) (*eventlogger.Event, error) {
 	_, ok := e.Payload.(*Event)
 	if !ok {
-		v.log.Error("Auditor: event payload is not an Audit Event")
+		t := reflect.TypeOf(e.Payload)
+		v.log.Error("Auditor: event payload is not an Audit Event", "event type",
+			t.Name, "creation time", e.CreatedAt)
 		return nil, errors.New("unallowed Event payload")
 	}
 	return e, nil

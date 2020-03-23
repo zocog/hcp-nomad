@@ -9,15 +9,20 @@ import (
 	"github.com/hashicorp/go-eventlogger"
 )
 
+// Stage is the stage of the audit request.
+type Stage string
+
 const (
 	OperationReceived Stage = "OperationReceived"
 	OperationComplete Stage = "OperationComplete"
 	AllStages         Stage = "*"
 )
 
-type Stage string
-type HTTPOperation string
+// FilterType is an event type to apply a filter to
 type FilterType string
+
+// HTTPEvent is a FilterType to specify a filter should apply to HTTP Events.
+const HTTPEvent FilterType = "HTTPEvent"
 
 // Event represents a audit log entry.
 type Event struct {

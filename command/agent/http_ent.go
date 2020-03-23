@@ -84,41 +84,7 @@ func (s *HTTPServer) eventFromReq(ctx context.Context, req *http.Request, auth *
 	}
 }
 
-func (s *HTTPServer) auditHTTPHandler(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		// Fast-Path if disabled
-		if s.agent.eventer == nil || !s.agent.eventer.Enabled() {
-			h.ServeHTTP(w, req)
-			return
-		}
-
-		ctx := req.Context()
-		reqID := uuid.Generate()
-		ctx = context.WithValue(ctx, ContextKeyReqID, reqID)
-		req = req.WithContext(ctx)
-
-		// Create a writer that captures response code
-		rw := newAuditResponseWriter(w)
-
-		event, err := s.createAudit(ctx, req)
-		if err != nil {
-			// Error sending event, circumvent handler
-			return
-		}
-
-		// Invoke wrapped handler
-		h.ServeHTTP(rw, req)
-
-		err = s.auditResp(ctx, rw, event, nil)
-		if err != nil {
-			s.logger.Error("Error auditing response from HTTPHandler", "err", err.Error())
-			// handle this error case (write new response body?)
-			return
-		}
-	})
-}
-
-func (s *HTTPServer) createAudit(ctx context.Context, req *http.Request) (*audit.Event, error) {
+func (s *HTTPServer) auditRequest(ctx context.Context, req *http.Request) (*audit.Event, error) {
 	// get token info
 	var authToken string
 	s.parseToken(req, &authToken)
@@ -139,6 +105,7 @@ func (s *HTTPServer) createAudit(ctx context.Context, req *http.Request) (*audit
 		if err == structs.ErrTokenNotFound {
 			token = &structs.ACLToken{}
 		} else {
+			s.logger.Error("retrieving acl token from request", "err", err)
 			return nil, err
 		}
 	}
@@ -163,6 +130,42 @@ func (s *HTTPServer) createAudit(ctx context.Context, req *http.Request) (*audit
 	}
 
 	return event, nil
+}
+
+func (s *HTTPServer) auditHTTPHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// Fast-Path if disabled
+		if s.agent.eventer == nil || !s.agent.eventer.Enabled() {
+			h.ServeHTTP(w, req)
+			return
+		}
+
+		ctx := req.Context()
+		reqID := uuid.Generate()
+		ctx = context.WithValue(ctx, ContextKeyReqID, reqID)
+		req = req.WithContext(ctx)
+
+		// Create a writer that captures response code
+		rw := newAuditResponseWriter(w)
+
+		event, err := s.auditRequest(ctx, req)
+		if err != nil {
+			s.logger.Error("error creating audit entry from request", "err", err, "request_id", reqID)
+			// TODO only circumvent if auditor delivery guarantee is enforced
+			// Error sending event, circumvent handler
+			return
+		}
+
+		// Invoke wrapped handler
+		h.ServeHTTP(rw, req)
+
+		err = s.auditResp(ctx, rw, event, nil)
+		if err != nil {
+			s.logger.Error("auditing response from HTTPHandler", "err", err, "request_id", reqID)
+			// handle this error case (write new response body?)
+			return
+		}
+	})
 }
 
 func (s *HTTPServer) auditResp(ctx context.Context, rw *auditResponseWriter, e *audit.Event, respErr error) error {
@@ -203,10 +206,10 @@ func (s *HTTPServer) auditHandler(handler handlerFn) handlerFn {
 		rw := newAuditResponseWriter(resp)
 
 		// Create audit event from request
-		event, err := s.createAudit(ctx, req)
+		event, err := s.auditRequest(ctx, req)
 		if err != nil {
 			// Error sending event, circumvent handler
-			s.logger.Error("Failed to audit log request, blocking response", "err", err.Error())
+			s.logger.Error("failed to audit log request, blocking response", "err", err, "request_id", reqID)
 			return nil, err
 		}
 
@@ -215,7 +218,7 @@ func (s *HTTPServer) auditHandler(handler handlerFn) handlerFn {
 
 		err = s.auditResp(ctx, rw, event, rspErr)
 		if err != nil {
-			s.logger.Error("Failed to audit log response, blocking response", "err", err.Error())
+			s.logger.Error("failed to audit log response, blocking response", "err", err, "request_id", reqID)
 			return nil, err
 		}
 
@@ -241,10 +244,10 @@ func (s *HTTPServer) auditNonJSONHandler(handler handlerByteFn) handlerByteFn {
 		rw := newAuditResponseWriter(resp)
 
 		// Create audit event from request
-		event, err := s.createAudit(ctx, req)
+		event, err := s.auditRequest(ctx, req)
 		if err != nil {
 			// Error sending event, circumvent handler
-			s.logger.Error("Failed to audit log request, blocking response", "err", err.Error())
+			s.logger.Error("failed to audit log request, blocking response", "err", err, "request_id", reqID)
 			return nil, err
 		}
 
@@ -253,7 +256,7 @@ func (s *HTTPServer) auditNonJSONHandler(handler handlerByteFn) handlerByteFn {
 
 		err = s.auditResp(ctx, rw, event, rspErr)
 		if err != nil {
-			s.logger.Error("Failed to audit log response, blocking response", "err", err.Error())
+			s.logger.Error("failed to audit log response, blocking response", "err", err, "request_id", reqID)
 			return nil, err
 		}
 

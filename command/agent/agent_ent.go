@@ -10,28 +10,41 @@ import (
 	"github.com/hashicorp/nomad/audit"
 	"github.com/hashicorp/nomad/command/agent/event"
 	"github.com/hashicorp/nomad/nomad/structs/config"
+	"github.com/pkg/errors"
 )
 
 // Ensure audit.Auditor is an Eventer
 var _ event.Eventer = &audit.Auditor{}
 
 func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
+	// Ensure we have at least empty Auditor config
 	if a.config.Audit == nil {
 		a.config.Audit = DefaultConfig().Audit
 	}
 
+	// Setup auditor
+	auditor, err := a.setupAuditor(a.config.Audit, logger)
+	if err != nil {
+		return errors.Wrap(err, "error configuring auditor")
+	}
+
+	// set eventer
+	a.eventer = auditor
+
+	return nil
+}
+
+func (a *Agent) setupAuditor(cfg *config.AuditConfig, logger hclog.InterceptLogger) (*audit.Auditor, error) {
 	var enabled bool
-	if a.config.Audit.Enabled == nil {
-		enabled = false
-	} else {
-		enabled = *a.config.Audit.Enabled
+	if cfg.Enabled != nil {
+		enabled = *cfg.Enabled
 	}
 
 	var filters []audit.FilterConfig
-	for _, f := range a.config.Audit.Filters {
+	for _, f := range cfg.Filters {
 		filterType := audit.FilterType(f.Type)
 		if !filterType.Valid() {
-			return fmt.Errorf("Invalid filter type %s", f.Type)
+			return nil, fmt.Errorf("Invalid filter type %s", f.Type)
 		}
 
 		filter := audit.FilterConfig{
@@ -44,7 +57,7 @@ func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 	}
 
 	var sinks []audit.SinkConfig
-	for _, s := range a.config.Audit.Sinks {
+	for _, s := range cfg.Sinks {
 		// Split file name from path
 		dir, file := filepath.Split(s.Path)
 
@@ -56,13 +69,13 @@ func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 		// Check that the sink type is valid
 		sinkType := audit.SinkType(s.Type)
 		if !sinkType.Valid() {
-			return fmt.Errorf("Invalid sink type %s", s.Type)
+			return nil, fmt.Errorf("Invalid sink type %s", s.Type)
 		}
 
 		// Check that the sink format is valid
 		sinkFmt := audit.SinkFormat(s.Format)
 		if !sinkFmt.Valid() {
-			return fmt.Errorf("Invalid sink format %s", s.Format)
+			return nil, fmt.Errorf("Invalid sink format %s", s.Format)
 		}
 
 		// Set default delivery guarantee to enforced
@@ -72,7 +85,7 @@ func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 
 		delivery := audit.RunMode(s.DeliveryGuarantee)
 		if !delivery.Valid() {
-			return fmt.Errorf("Invalid delivery guarantee %s", s.DeliveryGuarantee)
+			return nil, fmt.Errorf("Invalid delivery guarantee %s", s.DeliveryGuarantee)
 		}
 
 		sink := audit.SinkConfig{
@@ -101,35 +114,25 @@ func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 		sinks = append(sinks, defaultSink)
 	}
 
-	cfg := &audit.Config{
+	auditCfg := &audit.Config{
 		Enabled: enabled,
 		Filters: filters,
 		Sinks:   sinks,
 		Logger:  logger.ResetNamedIntercept("audit"),
 	}
 
-	auditor, err := audit.NewAuditor(cfg)
+	auditor, err := audit.NewAuditor(auditCfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// set eventer
-	a.eventer = auditor
-
-	return nil
+	return auditor, nil
 }
 
 // entReloadEventer enables or disables the eventer and calls reopen.
 // Assumes caller has nil checked cfg
 func (a *Agent) entReloadEventer(cfg *config.AuditConfig) error {
-	var enabled bool
-
-	if cfg.Enabled == nil {
-		enabled = false
-	} else {
-		enabled = *cfg.Enabled
-	}
-
+	enabled := cfg.Enabled != nil && *cfg.Enabled
 	a.eventer.SetEnabled(enabled)
 
 	if err := a.eventer.Reopen(); err != nil {

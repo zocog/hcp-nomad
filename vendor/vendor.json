@@ -237,7 +237,7 @@
 		{"path":"github.com/hashicorp/go-discover/provider/triton","checksumSHA1":"n2iQu2IbTPw2XpWF2CqBrFSMjwI=","revision":"7698de1390a18e1d38f55ad02d4cab8917b9219d","revisionTime":"2020-01-08T19:47:35Z","tree":true},
 		{"path":"github.com/hashicorp/go-discover/provider/vsphere","checksumSHA1":"ITGtrKPY8G8FvhoLglCGKgP9Lcc=","revision":"7698de1390a18e1d38f55ad02d4cab8917b9219d","revisionTime":"2020-01-08T19:47:35Z","tree":true},
 		{"path":"github.com/hashicorp/go-envparse","checksumSHA1":"FKmqR4DC3nCXtnT9pe02z5CLNWo=","revision":"310ca1881b22af3522e3a8638c0b426629886196","revisionTime":"2018-01-19T21:58:41Z"},
-		{"path":"github.com/hashicorp/go-eventlogger","checksumSHA1":"Z3pb2UROqEzdBq0/nFvW4Wa+AKA=","revision":"b2fd4652f5c095ad6692a945de7df4b93b8446b0","revisionTime":"2020-03-19T19:45:26Z"},
+		{"path":"github.com/hashicorp/go-eventlogger","checksumSHA1":"uvW9cvPtyxhGOqD/8wlOmX6uAvw=","revision":"18f7b17d7cc841d0d1066d87f8f1cfa1e34780fe","revisionTime":"2020-03-23T12:20:44Z"},
 		{"path":"github.com/hashicorp/go-getter","checksumSHA1":"d4brua17AGQqMNtngK4xKOUwboY=","revision":"f5101da0117392c6e7960c934f05a2fd689a5b5f","revisionTime":"2019-08-22T19:45:07Z"},
 		{"path":"github.com/hashicorp/go-getter/helper/url","checksumSHA1":"9J+kDr29yDrwsdu2ULzewmqGjpA=","revision":"b345bfcec894fb7ff3fdf9b21baf2f56ea423d98","revisionTime":"2018-04-10T17:49:45Z"},
 		{"path":"github.com/hashicorp/go-hclog","checksumSHA1":"tNgHh706sto5/99XYD5jIuBDqa8=","revision":"0e86804c9e4bede0738cbbc370e705ef82580e7e","revisionTime":"2020-01-11T00:06:39Z","version":"v0.11.0","versionExact":"v0.11.0"},
