@@ -2,6 +2,8 @@
 
 package agent
 
+import "net/http"
+
 // registerEnterpriseHandlers registers Nomad Pro and Premium endpoints
 func (s *HTTPServer) registerEnterpriseHandlers() {
 	s.registerEntHandlers()
@@ -20,4 +22,16 @@ func (s *HTTPServer) registerEntHandlers() {
 	s.mux.HandleFunc("/v1/namespaces", s.wrap(s.NamespacesRequest))
 	s.mux.HandleFunc("/v1/namespace", s.wrap(s.NamespaceCreateRequest))
 	s.mux.HandleFunc("/v1/namespace/", s.wrap(s.NamespaceSpecificRequest))
+}
+
+func (s HTTPServer) auditHandler(h handlerFn) handlerFn {
+	return h
+}
+
+func (s *HTTPServer) auditByteHandler(h handlerByteFn) handlerByteFn {
+	return h
+}
+
+func (s *HTTPServer) auditHTTPHandler(h http.Handler) http.Handler {
+	return h
 }
