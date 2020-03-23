@@ -76,8 +76,15 @@ func ParseConfigFile(path string) (*Config, error) {
 		return nil, err
 	}
 
-	// parse and handle enterprise specific config
-	err = c.entParseConfig()
+	// Add enterprise audit sinks for time.Duration parsing
+	for i, sink := range c.Audit.Sinks {
+		tds = append(tds, td{
+			fmt.Sprintf("audit.sink.%d", i), &sink.RotateDuration, &sink.RotateDurationHCL,
+		})
+	}
+
+	// convert strings to time.Durations
+	err = durations(tds)
 	if err != nil {
 		return nil, err
 	}

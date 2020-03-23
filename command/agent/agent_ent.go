@@ -9,15 +9,15 @@ import (
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad/audit"
 	"github.com/hashicorp/nomad/command/agent/event"
+	"github.com/hashicorp/nomad/nomad/structs/config"
 )
 
 // Ensure audit.Auditor is an Eventer
 var _ event.Eventer = &audit.Auditor{}
 
 func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
-	if a.config.Audit.Enabled == nil || *a.config.Audit.Enabled != true {
-		// configure disabled auditor
-		return nil
+	if a.config.Audit == nil {
+		a.config.Audit = DefaultConfig().Audit
 	}
 
 	var enabled bool
@@ -65,6 +65,11 @@ func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 			return fmt.Errorf("Invalid sink format %s", s.Format)
 		}
 
+		// Set default delivery guarantee to enforced
+		if s.DeliveryGuarantee == "" {
+			s.DeliveryGuarantee = "enforced"
+		}
+
 		delivery := audit.RunMode(s.DeliveryGuarantee)
 		if !delivery.Valid() {
 			return fmt.Errorf("Invalid delivery guarantee %s", s.DeliveryGuarantee)
@@ -84,6 +89,18 @@ func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 		sinks = append(sinks, sink)
 	}
 
+	// Configure default sink if none are configured
+	if len(sinks) == 0 {
+		defaultSink := audit.SinkConfig{
+			Name:     "default-sink",
+			Type:     audit.FileSink,
+			Format:   audit.JSONFmt,
+			FileName: "audit.log",
+			Path:     filepath.Join(a.config.DataDir, "audit"),
+		}
+		sinks = append(sinks, defaultSink)
+	}
+
 	cfg := &audit.Config{
 		Enabled: enabled,
 		Filters: filters,
@@ -98,6 +115,26 @@ func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 
 	// set eventer
 	a.eventer = auditor
+
+	return nil
+}
+
+// entReloadEventer enables or disables the eventer and calls reopen.
+// Assumes caller has nil checked cfg
+func (a *Agent) entReloadEventer(cfg *config.AuditConfig) error {
+	var enabled bool
+
+	if cfg.Enabled == nil {
+		enabled = false
+	} else {
+		enabled = *cfg.Enabled
+	}
+
+	a.eventer.SetEnabled(enabled)
+
+	if err := a.eventer.Reopen(); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -97,17 +97,37 @@ type FilterConfig struct {
 
 // SinkConfig holds the configuration options for creating an audit log sink.
 type SinkConfig struct {
-	// The name of the sink
-	Name              string
-	Type              SinkType
-	Format            SinkFormat
+	// Name is the name of the sink.
+	Name string
+
+	// Type is the SinkType of the sink.
+	Type SinkType
+
+	// Format is the output format for the sink (json).
+	Format SinkFormat
+
+	// DeliveryGuarantee specifies how strict we handle errors.
 	DeliveryGuarantee RunMode
+
 	// Mode
-	Mode           os.FileMode
-	FileName       string
-	Path           string
+	Mode os.FileMode
+
+	// FileName is the name of the audit log. If file rotation is enabled
+	// It will be post-fixed by a timestamp
+	FileName string
+
+	// Path is the location where audit log(s) are stored.
+	Path string
+
+	// RotateDuration is the length of time between file rotations.
 	RotateDuration time.Duration
-	RotateBytes    int
+
+	// RotateBytes is the amount of bytes that can be written to a file
+	// before it is rotated.
+	RotateBytes int
+
+	// RotateMaxFiles is the maximum number of old audit log files
+	// that can be retained before pruning.
 	RotateMaxFiles int
 }
 
@@ -228,6 +248,11 @@ func (a *Auditor) Reopen() error {
 	return a.broker.Reopen(context.Background())
 }
 
+// SetEnabled sets the auditor to enabled or disabled
+func (a *Auditor) SetEnabled(enabled bool) {
+	a.enabled = enabled
+}
+
 func generateFiltersFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.Node, error) {
 	nodeMap := make(map[eventlogger.NodeID]eventlogger.Node)
 
@@ -301,6 +326,8 @@ func newFileSink(s SinkConfig) (eventlogger.NodeID, eventlogger.Node) {
 	// TODO:drew eventually creation of a sink will need to ensure
 	// that there is a corresponding format node for the sink's
 	// format, currently JSON is the only option and is statically defined.
+
+	// TODO: DeliveryGuarantee will eventually be defined at the sink level
 	sinkID := eventlogger.NodeID(uuid.Generate())
 	sink := &eventlogger.FileSink{
 		Format:      string(s.Format),

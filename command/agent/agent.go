@@ -1005,9 +1005,17 @@ func (a *Agent) Reload(newConfig *Config) error {
 
 	// Update eventer config
 	if newConfig.Audit != nil {
-		if err := a.entReloadEventer(a.config.Audit); err != nil {
+		if err := a.entReloadEventer(newConfig.Audit); err != nil {
 			return err
 		}
+
+		// a.config.Audit = newConfig.Audit
+		// // TODO(drew) what else needs to be done here to properly reopen
+		// // adjust new config
+		// err := a.eventer.Reopen()
+		// if err != nil {
+		// 	return err
+		// }
 	}
 
 	fullUpdateTLSConfig := func() {
