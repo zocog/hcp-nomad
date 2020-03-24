@@ -69,6 +69,51 @@ func TestAuditor(t *testing.T) {
 	require.Equal(t, e.Request.Endpoint, jsonEvent.Payload.Request.Endpoint)
 }
 
+// TestAuditor_NewDir tests a directory that doesn't exist is properly made
+func TestAuditor_NewDir(t *testing.T) {
+	t.Parallel()
+
+	// Create a temp directory for the audit log file
+	tmpDir, err := ioutil.TempDir("", t.Name())
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	auditDir := filepath.Join(tmpDir, "audit")
+	auditor, err := NewAuditor(&Config{
+		Enabled: true,
+		Filters: []FilterConfig{},
+		Sinks: []SinkConfig{
+			{
+				Name:              "json file",
+				Type:              FileSink,
+				Format:            JSONFmt,
+				DeliveryGuarantee: Enforced,
+				FileName:          "audit.log",
+				Path:              auditDir,
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, auditor)
+
+	e := testEvent(AuditEvent, OperationReceived)
+
+	// Send event
+	err = auditor.Event(context.Background(), "audit", e)
+	require.NoError(t, err)
+
+	// Read from audit log
+	dat, err := ioutil.ReadFile(filepath.Join(auditDir, "audit.log"))
+	require.NoError(t, err)
+
+	// Ensure we can unmarshal back to an event
+	var jsonEvent eventWrapper
+	err = json.Unmarshal(dat, &jsonEvent)
+	require.NoError(t, err)
+
+	require.Equal(t, e.Request.Endpoint, jsonEvent.Payload.Request.Endpoint)
+}
+
 func TestAuditor_Filter(t *testing.T) {
 	t.Parallel()
 
