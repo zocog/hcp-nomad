@@ -25,9 +25,17 @@ jobs:
     - run:
         command: |
           set -x
+
+          os="linux"
+          if [[ "$OSTYPE" == "darwin"* ]]
+          then
+            os="darwin"
+          fi
+
           echo installing golang ${GOLANG_VERSION}
           sudo rm -rf /usr/local/go
-          wget -O /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.linux-amd64.tar.gz
+          sudo mkdir -p /usr/local
+          curl -SL --fail -o /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.${os}-amd64.tar.gz
           sudo tar -C /usr/local -xzf /tmp/golang.tar.gz
           rm -rf /tmp/golang.tar.gz
         name: install golang
@@ -38,13 +46,13 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
         name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
         name: Install Vault 1.2.4
@@ -101,9 +109,17 @@ jobs:
     - run:
         command: |
           set -x
+
+          os="linux"
+          if [[ "$OSTYPE" == "darwin"* ]]
+          then
+            os="darwin"
+          fi
+
           echo installing golang ${GOLANG_VERSION}
           sudo rm -rf /usr/local/go
-          wget -O /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.linux-amd64.tar.gz
+          sudo mkdir -p /usr/local
+          curl -SL --fail -o /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.${os}-amd64.tar.gz
           sudo tar -C /usr/local -xzf /tmp/golang.tar.gz
           rm -rf /tmp/golang.tar.gz
         name: install golang
@@ -114,13 +130,13 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
         name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
         name: Install Vault 1.2.4
@@ -177,9 +193,17 @@ jobs:
     - run:
         command: |
           set -x
+
+          os="linux"
+          if [[ "$OSTYPE" == "darwin"* ]]
+          then
+            os="darwin"
+          fi
+
           echo installing golang ${GOLANG_VERSION}
           sudo rm -rf /usr/local/go
-          wget -O /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.linux-amd64.tar.gz
+          sudo mkdir -p /usr/local
+          curl -SL --fail -o /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.${os}-amd64.tar.gz
           sudo tar -C /usr/local -xzf /tmp/golang.tar.gz
           rm -rf /tmp/golang.tar.gz
         name: install golang
@@ -190,13 +214,13 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
         name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
         name: Install Vault 1.2.4
@@ -253,9 +277,17 @@ jobs:
     - run:
         command: |
           set -x
+
+          os="linux"
+          if [[ "$OSTYPE" == "darwin"* ]]
+          then
+            os="darwin"
+          fi
+
           echo installing golang ${GOLANG_VERSION}
           sudo rm -rf /usr/local/go
-          wget -O /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.linux-amd64.tar.gz
+          sudo mkdir -p /usr/local
+          curl -SL --fail -o /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.${os}-amd64.tar.gz
           sudo tar -C /usr/local -xzf /tmp/golang.tar.gz
           rm -rf /tmp/golang.tar.gz
         name: install golang
@@ -266,13 +298,13 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
         name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
         name: Install Vault 1.2.4
@@ -329,9 +361,17 @@ jobs:
     - run:
         command: |
           set -x
+
+          os="linux"
+          if [[ "$OSTYPE" == "darwin"* ]]
+          then
+            os="darwin"
+          fi
+
           echo installing golang ${GOLANG_VERSION}
           sudo rm -rf /usr/local/go
-          wget -O /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.linux-amd64.tar.gz
+          sudo mkdir -p /usr/local
+          curl -SL --fail -o /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.${os}-amd64.tar.gz
           sudo tar -C /usr/local -xzf /tmp/golang.tar.gz
           rm -rf /tmp/golang.tar.gz
         name: install golang
@@ -342,13 +382,13 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
         name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
         name: Install Vault 1.2.4
@@ -707,9 +747,17 @@ jobs:
     - run:
         command: |
           set -x
+
+          os="linux"
+          if [[ "$OSTYPE" == "darwin"* ]]
+          then
+            os="darwin"
+          fi
+
           echo installing golang ${GOLANG_VERSION}
           sudo rm -rf /usr/local/go
-          wget -O /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.linux-amd64.tar.gz
+          sudo mkdir -p /usr/local
+          curl -SL --fail -o /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.${os}-amd64.tar.gz
           sudo tar -C /usr/local -xzf /tmp/golang.tar.gz
           rm -rf /tmp/golang.tar.gz
         name: install golang
@@ -720,13 +768,13 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
         name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
         name: Install Vault 1.2.4
@@ -790,13 +838,13 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
         name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
         name: Install Vault 1.2.4
@@ -842,9 +890,17 @@ jobs:
     - run:
         command: |
           set -x
+
+          os="linux"
+          if [[ "$OSTYPE" == "darwin"* ]]
+          then
+            os="darwin"
+          fi
+
           echo installing golang ${GOLANG_VERSION}
           sudo rm -rf /usr/local/go
-          wget -O /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.linux-amd64.tar.gz
+          sudo mkdir -p /usr/local
+          curl -SL --fail -o /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.${os}-amd64.tar.gz
           sudo tar -C /usr/local -xzf /tmp/golang.tar.gz
           rm -rf /tmp/golang.tar.gz
         name: install golang
@@ -855,13 +911,13 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
         name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
         name: Install Vault 1.2.4
@@ -978,9 +1034,17 @@ jobs:
     - run:
         command: |
           set -x
+
+          os="linux"
+          if [[ "$OSTYPE" == "darwin"* ]]
+          then
+            os="darwin"
+          fi
+
           echo installing golang ${GOLANG_VERSION}
           sudo rm -rf /usr/local/go
-          wget -O /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.linux-amd64.tar.gz
+          sudo mkdir -p /usr/local
+          curl -SL --fail -o /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.${os}-amd64.tar.gz
           sudo tar -C /usr/local -xzf /tmp/golang.tar.gz
           rm -rf /tmp/golang.tar.gz
         name: install golang
@@ -991,13 +1055,13 @@ jobs:
         name: install protoc
     - run:
         command: |
-          wget -q -O /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
         name: Install Consul 1.6.4
     - run:
         command: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/vault.zip https://releases.hashicorp.com/vault/1.2.4/vault_1.2.4_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
         name: Install Vault 1.2.4
