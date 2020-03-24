@@ -135,9 +135,5 @@ func (a *Agent) entReloadEventer(cfg *config.AuditConfig) error {
 	enabled := cfg.Enabled != nil && *cfg.Enabled
 	a.auditor.SetEnabled(enabled)
 
-	if err := a.auditor.Reopen(); err != nil {
-		return err
-	}
-
 	return nil
 }
