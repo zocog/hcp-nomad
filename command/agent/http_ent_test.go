@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/nomad/audit"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/stretchr/testify/require"
@@ -28,11 +29,11 @@ func TestAuditWrapHTTPHandler(t *testing.T) {
 		failAudit    bool
 		body         string
 	}{
-		{
-			desc:         "wrapped endpoint success",
-			path:         "/v1/agent/health",
-			expectedCode: 200,
-		},
+		// {
+		// 	desc:         "wrapped endpoint success",
+		// 	path:         "/v1/agent/health",
+		// 	expectedCode: 200,
+		// },
 		{
 			desc:         "failure auditing request",
 			path:         "/v1/agent/health",
@@ -40,14 +41,14 @@ func TestAuditWrapHTTPHandler(t *testing.T) {
 			failAudit:    true,
 			body:         "event not written to enough sinks",
 		},
-		{
-			desc:         "handler returns error",
-			path:         "/v1/agent/health",
-			handlerErr:   "error",
-			expectedCode: 500,
-			failAudit:    false,
-			body:         "error",
-		},
+		// {
+		// 	desc:         "handler returns error",
+		// 	path:         "/v1/agent/health",
+		// 	handlerErr:   "error",
+		// 	expectedCode: 500,
+		// 	failAudit:    false,
+		// 	body:         "error",
+		// },
 	}
 
 	s := makeHTTPServer(t, nil)
@@ -104,6 +105,7 @@ func TestAuditWrapHTTPHandler(t *testing.T) {
 			require.NoError(t, err)
 
 			s.Server.wrap(handler)(resp, req)
+			spew.Dump(resp.Body.String())
 			require.Equal(t, tc.expectedCode, resp.Code)
 
 			if tc.body != "" {
@@ -146,12 +148,11 @@ func TestAuditNonJSONHandler(t *testing.T) {
 		},
 	}
 
+	parentTestName := t.Name()
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
 			s := makeHTTPServer(t, nil)
 			defer s.Shutdown()
-
-			parentTestName := t.Name()
 
 			handler := func(resp http.ResponseWriter, req *http.Request) ([]byte, error) {
 				if tc.handlerErr != "" {
