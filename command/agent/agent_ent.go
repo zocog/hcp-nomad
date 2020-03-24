@@ -29,7 +29,7 @@ func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 	}
 
 	// set eventer
-	a.eventer = auditor
+	a.auditor = auditor
 
 	return nil
 }
@@ -133,9 +133,9 @@ func (a *Agent) setupAuditor(cfg *config.AuditConfig, logger hclog.InterceptLogg
 // Assumes caller has nil checked cfg
 func (a *Agent) entReloadEventer(cfg *config.AuditConfig) error {
 	enabled := cfg.Enabled != nil && *cfg.Enabled
-	a.eventer.SetEnabled(enabled)
+	a.auditor.SetEnabled(enabled)
 
-	if err := a.eventer.Reopen(); err != nil {
+	if err := a.auditor.Reopen(); err != nil {
 		return err
 	}
 

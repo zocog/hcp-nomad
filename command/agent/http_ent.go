@@ -123,7 +123,7 @@ func (s *HTTPServer) auditRequest(ctx context.Context, req *http.Request) (*audi
 	}
 
 	event := s.eventFromReq(ctx, req, auth)
-	err = s.agent.eventer.Event(ctx, "audit", event)
+	err = s.agent.auditor.Event(ctx, "audit", event)
 	if err != nil {
 		// Error sending event, circumvent handler
 		return nil, err
@@ -135,7 +135,7 @@ func (s *HTTPServer) auditRequest(ctx context.Context, req *http.Request) (*audi
 func (s *HTTPServer) auditHTTPHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		// Fast-Path if disabled
-		if s.agent.eventer == nil || !s.agent.eventer.Enabled() {
+		if s.agent.auditor == nil || !s.agent.auditor.Enabled() {
 			h.ServeHTTP(w, req)
 			return
 		}
@@ -182,7 +182,7 @@ func (s *HTTPServer) auditResp(ctx context.Context, rw *auditResponseWriter, e *
 	}
 
 	e.Stage = audit.OperationComplete
-	err := s.agent.eventer.Event(ctx, "audit", e)
+	err := s.agent.auditor.Event(ctx, "audit", e)
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func (s *HTTPServer) auditHandler(handler handlerFn) handlerFn {
 		req = req.WithContext(ctx)
 
 		// Fast path if eventer is disabled
-		if s.agent.eventer == nil || !s.agent.eventer.Enabled() {
+		if s.agent.auditor == nil || !s.agent.auditor.Enabled() {
 			return handler(resp, req)
 		}
 
@@ -236,7 +236,7 @@ func (s *HTTPServer) auditNonJSONHandler(handler handlerByteFn) handlerByteFn {
 		req = req.WithContext(ctx)
 
 		// Fast path if eventer is disabled
-		if s.agent.eventer == nil || !s.agent.eventer.Enabled() {
+		if s.agent.auditor == nil || !s.agent.auditor.Enabled() {
 			return handler(resp, req)
 		}
 

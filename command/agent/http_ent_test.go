@@ -84,7 +84,7 @@ func TestAuditWrapHTTPHandler(t *testing.T) {
 
 			require.NoError(t, err)
 			// Set the server eventer
-			s.eventer = auditor
+			s.auditor = auditor
 
 			// If we want to intentionally fail, make it so the auditor
 			// cannot write to the tmp file.
@@ -180,7 +180,7 @@ func TestAuditNonJSONHandler(t *testing.T) {
 
 			require.NoError(t, err)
 			// Set the server eventer
-			s.eventer = auditor
+			s.auditor = auditor
 
 			// If we want to intentionally fail, make it so the auditor
 			// cannot write to the tmp file.

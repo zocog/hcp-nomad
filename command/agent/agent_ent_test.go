@@ -56,7 +56,7 @@ func TestSetupEnterpriseAgent_Disabled(t *testing.T) {
 	require.NoError(t, err)
 
 	// Ensure eventer is disabled
-	require.False(t, a.eventer.Enabled())
+	require.False(t, a.auditor.Enabled())
 }
 
 func TestEntReloadEventer(t *testing.T) {
@@ -94,5 +94,5 @@ func TestEntReloadEventer(t *testing.T) {
 	err = a.entReloadEventer(cfg)
 	require.NoError(t, err)
 
-	require.False(t, a.eventer.Enabled())
+	require.False(t, a.auditor.Enabled())
 }
