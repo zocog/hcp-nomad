@@ -6,3 +6,7 @@ package agent
 func DefaultEntConfig() *Config {
 	return &Config{}
 }
+
+func (c *Config) entParseConfig() error {
+	return nil
+}

@@ -2,7 +2,9 @@
 
 package agent
 
-import "github.com/hashicorp/nomad/helper"
+import (
+	"github.com/hashicorp/nomad/helper"
+)
 
 // DefaultEntConfig allows configuring enterprise only default configuration
 // values.
