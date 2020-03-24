@@ -246,6 +246,14 @@ func (a *Auditor) SetEnabled(enabled bool) {
 	a.enabled = enabled
 }
 
+// DeliveryEnforced is a way for callers that do not have full control
+// over error handling to check if DeliveryGuarantee is Enforced.
+// This allows callers to determine if they should swallow and log
+// errors instead of returning them, blocking a request
+func (a *Auditor) DeliveryEnforced() bool {
+	return a.mode == Enforced
+}
+
 func generateFiltersFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.Node, error) {
 	nodeMap := make(map[eventlogger.NodeID]eventlogger.Node)
 

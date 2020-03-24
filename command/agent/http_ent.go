@@ -151,7 +151,6 @@ func (s *HTTPServer) auditHTTPHandler(h http.Handler) http.Handler {
 		event, err := s.auditRequest(ctx, req)
 		if err != nil {
 			s.logger.Error("error creating audit entry from request", "err", err, "request_id", reqID)
-			// TODO only circumvent if auditor delivery guarantee is enforced
 			// Error sending event, circumvent handler
 			return
 		}

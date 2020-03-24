@@ -146,12 +146,12 @@ func TestAuditNonJSONHandler(t *testing.T) {
 		},
 	}
 
-	s := makeHTTPServer(t, nil)
-	defer s.Shutdown()
-
-	parentTestName := t.Name()
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
+			s := makeHTTPServer(t, nil)
+			defer s.Shutdown()
+
+			parentTestName := t.Name()
 
 			handler := func(resp http.ResponseWriter, req *http.Request) ([]byte, error) {
 				if tc.handlerErr != "" {
