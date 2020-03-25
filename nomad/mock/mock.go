@@ -1253,3 +1253,36 @@ func ACLManagementToken() *structs.ACLToken {
 		ModifyIndex: 20,
 	}
 }
+
+func ScalingPolicy() *structs.ScalingPolicy {
+	return &structs.ScalingPolicy{
+		ID:  uuid.Generate(),
+		Min: 1,
+		Max: 100,
+		Target: map[string]string{
+			structs.ScalingTargetNamespace: structs.DefaultNamespace,
+			structs.ScalingTargetJob:       uuid.Generate(),
+			structs.ScalingTargetGroup:     uuid.Generate(),
+		},
+		Policy: map[string]interface{}{
+			"a": "b",
+		},
+		Enabled:     true,
+		CreateIndex: 10,
+		ModifyIndex: 20,
+	}
+}
+
+func JobWithScalingPolicy() (*structs.Job, *structs.ScalingPolicy) {
+	job := Job()
+	policy := &structs.ScalingPolicy{
+		ID:      uuid.Generate(),
+		Min:     int64(job.TaskGroups[0].Count),
+		Max:     int64(job.TaskGroups[0].Count),
+		Policy:  map[string]interface{}{},
+		Enabled: true,
+	}
+	policy.TargetTaskGroup(job, job.TaskGroups[0])
+	job.TaskGroups[0].Scaling = policy
+	return job, policy
+}

@@ -236,6 +236,9 @@ func TestParse(t *testing.T) {
 										Weight:  helper.Int8ToPtr(25),
 									},
 								},
+								RestartPolicy: &api.RestartPolicy{
+									Attempts: helper.IntToPtr(10),
+								},
 								Services: []*api.Service{
 									{
 										Tags:       []string{"foo", "bar"},
@@ -1126,6 +1129,31 @@ func TestParse(t *testing.T) {
 						EnableTagOverride: true,
 					}},
 				}},
+			},
+			false,
+		},
+
+		{
+			"tg-scaling-policy.hcl",
+			&api.Job{
+				ID:   helper.StringToPtr("elastic"),
+				Name: helper.StringToPtr("elastic"),
+				TaskGroups: []*api.TaskGroup{
+					{
+						Name: helper.StringToPtr("group"),
+						Scaling: &api.ScalingPolicy{
+							Min: helper.Int64ToPtr(5),
+							Max: 100,
+							Policy: map[string]interface{}{
+								"foo": "bar",
+								"b":   true,
+								"val": 5,
+								"f":   .1,
+							},
+							Enabled: helper.BoolToPtr(false),
+						},
+					},
+				},
 			},
 			false,
 		},

@@ -666,6 +666,106 @@ func TestHTTP_JobDelete(t *testing.T) {
 	})
 }
 
+func TestHTTP_Job_ScaleTaskGroup(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	httpTest(t, nil, func(s *TestAgent) {
+		// Create the job
+		job := mock.Job()
+		args := structs.JobRegisterRequest{
+			Job: job,
+			WriteRequest: structs.WriteRequest{
+				Region:    "global",
+				Namespace: structs.DefaultNamespace,
+			},
+		}
+		var resp structs.JobRegisterResponse
+		require.NoError(s.Agent.RPC("Job.Register", &args, &resp))
+
+		newCount := job.TaskGroups[0].Count + 1
+		scaleReq := &api.ScalingRequest{
+			Count:  helper.Int64ToPtr(int64(newCount)),
+			Reason: helper.StringToPtr("testing"),
+			Target: map[string]string{
+				"Job":   job.ID,
+				"Group": job.TaskGroups[0].Name,
+			},
+		}
+		buf := encodeReq(scaleReq)
+
+		// Make the HTTP request to scale the job group
+		req, err := http.NewRequest("POST", "/v1/job/"+job.ID+"/scale", buf)
+		require.NoError(err)
+		respW := httptest.NewRecorder()
+
+		// Make the request
+		obj, err := s.Server.JobSpecificRequest(respW, req)
+		require.NoError(err)
+
+		// Check the response
+		resp = obj.(structs.JobRegisterResponse)
+		require.NotEmpty(resp.EvalID)
+
+		// Check for the index
+		require.NotEmpty(respW.Header().Get("X-Nomad-Index"))
+
+		// Check that the group count was changed
+		getReq := structs.JobSpecificRequest{
+			JobID: job.ID,
+			QueryOptions: structs.QueryOptions{
+				Region:    "global",
+				Namespace: structs.DefaultNamespace,
+			},
+		}
+		var getResp structs.SingleJobResponse
+		err = s.Agent.RPC("Job.GetJob", &getReq, &getResp)
+		require.NoError(err)
+		require.NotNil(getResp.Job)
+		require.Equal(newCount, getResp.Job.TaskGroups[0].Count)
+	})
+}
+
+func TestHTTP_Job_ScaleStatus(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	httpTest(t, nil, func(s *TestAgent) {
+		// Create the job
+		job := mock.Job()
+		args := structs.JobRegisterRequest{
+			Job: job,
+			WriteRequest: structs.WriteRequest{
+				Region:    "global",
+				Namespace: structs.DefaultNamespace,
+			},
+		}
+		var resp structs.JobRegisterResponse
+		if err := s.Agent.RPC("Job.Register", &args, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Make the HTTP request to scale the job group
+		req, err := http.NewRequest("GET", "/v1/job/"+job.ID+"/scale", nil)
+		require.NoError(err)
+		respW := httptest.NewRecorder()
+
+		// Make the request
+		obj, err := s.Server.JobSpecificRequest(respW, req)
+		require.NoError(err)
+
+		// Check the response
+		status := obj.(*structs.JobScaleStatus)
+		require.NotEmpty(resp.EvalID)
+		require.Equal(job.TaskGroups[0].Count, status.TaskGroups[job.TaskGroups[0].Name].Desired)
+
+		// Check for the index
+		require.NotEmpty(respW.Header().Get("X-Nomad-Index"))
+	})
+}
+
 func TestHTTP_JobForceEvaluate(t *testing.T) {
 	t.Parallel()
 	httpTest(t, nil, func(s *TestAgent) {
@@ -1574,7 +1674,12 @@ func TestJobs_ApiJobToStructsJob(t *testing.T) {
 								Weight:  helper.Int8ToPtr(50),
 							},
 						},
-
+						RestartPolicy: &api.RestartPolicy{
+							Interval: helper.TimeToPtr(2 * time.Second),
+							Attempts: helper.IntToPtr(10),
+							Delay:    helper.TimeToPtr(20 * time.Second),
+							Mode:     helper.StringToPtr("delay"),
+						},
 						Services: []*api.Service{
 							{
 								Id:                "id",
@@ -1922,6 +2027,12 @@ func TestJobs_ApiJobToStructsJob(t *testing.T) {
 						},
 						Env: map[string]string{
 							"hello": "world",
+						},
+						RestartPolicy: &structs.RestartPolicy{
+							Interval: 2 * time.Second,
+							Attempts: 10,
+							Delay:    20 * time.Second,
+							Mode:     "delay",
 						},
 						Services: []*structs.Service{
 							{
@@ -2274,6 +2385,12 @@ func TestJobs_ApiJobToStructsJob(t *testing.T) {
 									},
 								},
 							},
+						},
+						RestartPolicy: &structs.RestartPolicy{
+							Interval: 1 * time.Second,
+							Attempts: 5,
+							Delay:    10 * time.Second,
+							Mode:     "delay",
 						},
 						Meta: map[string]string{
 							"lol": "code",

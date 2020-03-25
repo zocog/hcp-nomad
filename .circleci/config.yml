@@ -14,6 +14,7 @@ jobs:
     - GOLANG_VERSION: 1.14.1
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
@@ -98,6 +99,7 @@ jobs:
     - GOLANG_VERSION: 1.14.1
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
@@ -182,6 +184,7 @@ jobs:
     - GOLANG_VERSION: 1.14.1
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
@@ -266,6 +269,7 @@ jobs:
     - GOLANG_VERSION: 1.14.1
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
@@ -350,6 +354,7 @@ jobs:
     - GOLANG_VERSION: 1.14.1
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
@@ -481,6 +486,7 @@ jobs:
     - GIT_PAGER: cat
     - GOMAXPROCS: 1
     - GOPATH: /go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
@@ -724,6 +730,7 @@ jobs:
     - GIT_PAGER: cat
     - GOMAXPROCS: 1
     - GOPATH: /go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
@@ -736,6 +743,7 @@ jobs:
     - GOLANG_VERSION: 1.14.1
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
@@ -819,6 +827,7 @@ jobs:
     - GIT_PAGER: cat
     - GOMAXPROCS: 1
     - GOPATH: /go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
@@ -879,6 +888,7 @@ jobs:
     - GOLANG_VERSION: 1.14.1
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
@@ -962,6 +972,7 @@ jobs:
     - GIT_PAGER: cat
     - GOMAXPROCS: 1
     - GOPATH: /go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
@@ -1011,6 +1022,7 @@ jobs:
     - GIT_PAGER: cat
     - GOMAXPROCS: 1
     - GOPATH: /go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
@@ -1023,6 +1035,7 @@ jobs:
     - GOLANG_VERSION: 1.14.1
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat

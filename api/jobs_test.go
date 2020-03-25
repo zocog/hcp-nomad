@@ -157,9 +157,10 @@ func TestJobs_Canonicalize(t *testing.T) {
 						Migrate: DefaultMigrateStrategy(),
 						Tasks: []*Task{
 							{
-								KillTimeout: timeToPtr(5 * time.Second),
-								LogConfig:   DefaultLogConfig(),
-								Resources:   DefaultResources(),
+								KillTimeout:   timeToPtr(5 * time.Second),
+								LogConfig:     DefaultLogConfig(),
+								Resources:     DefaultResources(),
+								RestartPolicy: defaultServiceJobRestartPolicy(),
 							},
 						},
 					},
@@ -222,9 +223,10 @@ func TestJobs_Canonicalize(t *testing.T) {
 						},
 						Tasks: []*Task{
 							{
-								KillTimeout: timeToPtr(5 * time.Second),
-								LogConfig:   DefaultLogConfig(),
-								Resources:   DefaultResources(),
+								KillTimeout:   timeToPtr(5 * time.Second),
+								LogConfig:     DefaultLogConfig(),
+								Resources:     DefaultResources(),
+								RestartPolicy: defaultBatchJobRestartPolicy(),
 							},
 						},
 					},
@@ -316,10 +318,11 @@ func TestJobs_Canonicalize(t *testing.T) {
 						Migrate: DefaultMigrateStrategy(),
 						Tasks: []*Task{
 							{
-								Name:        "task1",
-								LogConfig:   DefaultLogConfig(),
-								Resources:   DefaultResources(),
-								KillTimeout: timeToPtr(5 * time.Second),
+								Name:          "task1",
+								LogConfig:     DefaultLogConfig(),
+								Resources:     DefaultResources(),
+								KillTimeout:   timeToPtr(5 * time.Second),
+								RestartPolicy: defaultServiceJobRestartPolicy(),
 							},
 						},
 					},
@@ -362,6 +365,10 @@ func TestJobs_Canonicalize(t *testing.T) {
 									"port_map": []map[string]int{{
 										"db": 6379,
 									}},
+								},
+								RestartPolicy: &RestartPolicy{
+									// inherit other values from TG
+									Attempts: intToPtr(20),
 								},
 								Resources: &Resources{
 									CPU:      intToPtr(500),
@@ -485,6 +492,12 @@ func TestJobs_Canonicalize(t *testing.T) {
 									"port_map": []map[string]int{{
 										"db": 6379,
 									}},
+								},
+								RestartPolicy: &RestartPolicy{
+									Interval: timeToPtr(5 * time.Minute),
+									Attempts: intToPtr(20),
+									Delay:    timeToPtr(25 * time.Second),
+									Mode:     stringToPtr("delay"),
 								},
 								Resources: &Resources{
 									CPU:      intToPtr(500),
@@ -712,10 +725,11 @@ func TestJobs_Canonicalize(t *testing.T) {
 						Migrate: DefaultMigrateStrategy(),
 						Tasks: []*Task{
 							{
-								Name:        "task1",
-								LogConfig:   DefaultLogConfig(),
-								Resources:   DefaultResources(),
-								KillTimeout: timeToPtr(5 * time.Second),
+								Name:          "task1",
+								LogConfig:     DefaultLogConfig(),
+								Resources:     DefaultResources(),
+								KillTimeout:   timeToPtr(5 * time.Second),
+								RestartPolicy: defaultServiceJobRestartPolicy(),
 							},
 						},
 					},
@@ -755,10 +769,185 @@ func TestJobs_Canonicalize(t *testing.T) {
 						Migrate: DefaultMigrateStrategy(),
 						Tasks: []*Task{
 							{
+								Name:          "task1",
+								LogConfig:     DefaultLogConfig(),
+								Resources:     DefaultResources(),
+								KillTimeout:   timeToPtr(5 * time.Second),
+								RestartPolicy: defaultServiceJobRestartPolicy(),
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
+			name: "restart_merge",
+			input: &Job{
+				Name:     stringToPtr("foo"),
+				ID:       stringToPtr("bar"),
+				ParentID: stringToPtr("lol"),
+				TaskGroups: []*TaskGroup{
+					{
+						Name: stringToPtr("bar"),
+						RestartPolicy: &RestartPolicy{
+							Delay:    timeToPtr(15 * time.Second),
+							Attempts: intToPtr(2),
+							Interval: timeToPtr(30 * time.Minute),
+							Mode:     stringToPtr("fail"),
+						},
+						Tasks: []*Task{
+							{
+								Name: "task1",
+								RestartPolicy: &RestartPolicy{
+									Attempts: intToPtr(5),
+									Delay:    timeToPtr(1 * time.Second),
+								},
+							},
+						},
+					},
+					{
+						Name: stringToPtr("baz"),
+						RestartPolicy: &RestartPolicy{
+							Delay:    timeToPtr(20 * time.Second),
+							Attempts: intToPtr(2),
+							Interval: timeToPtr(30 * time.Minute),
+							Mode:     stringToPtr("fail"),
+						},
+						Tasks: []*Task{
+							{
+								Name: "task1",
+							},
+						},
+					},
+				},
+			},
+			expected: &Job{
+				Namespace:         stringToPtr(DefaultNamespace),
+				ID:                stringToPtr("bar"),
+				Name:              stringToPtr("foo"),
+				Region:            stringToPtr("global"),
+				Type:              stringToPtr("service"),
+				ParentID:          stringToPtr("lol"),
+				Priority:          intToPtr(50),
+				AllAtOnce:         boolToPtr(false),
+				ConsulToken:       stringToPtr(""),
+				VaultToken:        stringToPtr(""),
+				Stop:              boolToPtr(false),
+				Stable:            boolToPtr(false),
+				Version:           uint64ToPtr(0),
+				Status:            stringToPtr(""),
+				StatusDescription: stringToPtr(""),
+				CreateIndex:       uint64ToPtr(0),
+				ModifyIndex:       uint64ToPtr(0),
+				JobModifyIndex:    uint64ToPtr(0),
+				Update: &UpdateStrategy{
+					Stagger:          timeToPtr(30 * time.Second),
+					MaxParallel:      intToPtr(1),
+					HealthCheck:      stringToPtr("checks"),
+					MinHealthyTime:   timeToPtr(10 * time.Second),
+					HealthyDeadline:  timeToPtr(5 * time.Minute),
+					ProgressDeadline: timeToPtr(10 * time.Minute),
+					AutoRevert:       boolToPtr(false),
+					Canary:           intToPtr(0),
+					AutoPromote:      boolToPtr(false),
+				},
+				TaskGroups: []*TaskGroup{
+					{
+						Name:  stringToPtr("bar"),
+						Count: intToPtr(1),
+						EphemeralDisk: &EphemeralDisk{
+							Sticky:  boolToPtr(false),
+							Migrate: boolToPtr(false),
+							SizeMB:  intToPtr(300),
+						},
+						RestartPolicy: &RestartPolicy{
+							Delay:    timeToPtr(15 * time.Second),
+							Attempts: intToPtr(2),
+							Interval: timeToPtr(30 * time.Minute),
+							Mode:     stringToPtr("fail"),
+						},
+						ReschedulePolicy: &ReschedulePolicy{
+							Attempts:      intToPtr(0),
+							Interval:      timeToPtr(0),
+							DelayFunction: stringToPtr("exponential"),
+							Delay:         timeToPtr(30 * time.Second),
+							MaxDelay:      timeToPtr(1 * time.Hour),
+							Unlimited:     boolToPtr(true),
+						},
+						Update: &UpdateStrategy{
+							Stagger:          timeToPtr(30 * time.Second),
+							MaxParallel:      intToPtr(1),
+							HealthCheck:      stringToPtr("checks"),
+							MinHealthyTime:   timeToPtr(10 * time.Second),
+							HealthyDeadline:  timeToPtr(5 * time.Minute),
+							ProgressDeadline: timeToPtr(10 * time.Minute),
+							AutoRevert:       boolToPtr(false),
+							Canary:           intToPtr(0),
+							AutoPromote:      boolToPtr(false),
+						},
+						Migrate: DefaultMigrateStrategy(),
+						Tasks: []*Task{
+							{
 								Name:        "task1",
 								LogConfig:   DefaultLogConfig(),
 								Resources:   DefaultResources(),
 								KillTimeout: timeToPtr(5 * time.Second),
+								RestartPolicy: &RestartPolicy{
+									Attempts: intToPtr(5),
+									Delay:    timeToPtr(1 * time.Second),
+									Interval: timeToPtr(30 * time.Minute),
+									Mode:     stringToPtr("fail"),
+								},
+							},
+						},
+					},
+					{
+						Name:  stringToPtr("baz"),
+						Count: intToPtr(1),
+						EphemeralDisk: &EphemeralDisk{
+							Sticky:  boolToPtr(false),
+							Migrate: boolToPtr(false),
+							SizeMB:  intToPtr(300),
+						},
+						RestartPolicy: &RestartPolicy{
+							Delay:    timeToPtr(20 * time.Second),
+							Attempts: intToPtr(2),
+							Interval: timeToPtr(30 * time.Minute),
+							Mode:     stringToPtr("fail"),
+						},
+						ReschedulePolicy: &ReschedulePolicy{
+							Attempts:      intToPtr(0),
+							Interval:      timeToPtr(0),
+							DelayFunction: stringToPtr("exponential"),
+							Delay:         timeToPtr(30 * time.Second),
+							MaxDelay:      timeToPtr(1 * time.Hour),
+							Unlimited:     boolToPtr(true),
+						},
+						Update: &UpdateStrategy{
+							Stagger:          timeToPtr(30 * time.Second),
+							MaxParallel:      intToPtr(1),
+							HealthCheck:      stringToPtr("checks"),
+							MinHealthyTime:   timeToPtr(10 * time.Second),
+							HealthyDeadline:  timeToPtr(5 * time.Minute),
+							ProgressDeadline: timeToPtr(10 * time.Minute),
+							AutoRevert:       boolToPtr(false),
+							Canary:           intToPtr(0),
+							AutoPromote:      boolToPtr(false),
+						},
+						Migrate: DefaultMigrateStrategy(),
+						Tasks: []*Task{
+							{
+								Name:        "task1",
+								LogConfig:   DefaultLogConfig(),
+								Resources:   DefaultResources(),
+								KillTimeout: timeToPtr(5 * time.Second),
+								RestartPolicy: &RestartPolicy{
+									Delay:    timeToPtr(20 * time.Second),
+									Attempts: intToPtr(2),
+									Interval: timeToPtr(30 * time.Minute),
+									Mode:     stringToPtr("fail"),
+								},
 							},
 						},
 					},
@@ -907,6 +1096,46 @@ func TestJobs_Info(t *testing.T) {
 	if result == nil || *result.ID != *job.ID {
 		t.Fatalf("expect: %#v, got: %#v", job, result)
 	}
+}
+
+func TestJobs_ScaleInvalidAction(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	c, s := makeClient(t, nil, nil)
+	defer s.Stop()
+	jobs := c.Jobs()
+
+	// Check if invalid inputs fail
+	tests := []struct {
+		jobID string
+		group string
+		value int
+		want  string
+	}{
+		{"", "", 1, "404"},
+		{"i-dont-exist", "", 1, "400"},
+		{"", "i-dont-exist", 1, "404"},
+		{"i-dont-exist", "me-neither", 1, "404"},
+	}
+	for _, test := range tests {
+		_, _, err := jobs.Scale(test.jobID, test.group, &test.value, stringToPtr("reason"), nil, nil, nil)
+		require.Errorf(err, "expected jobs.Scale(%s, %s) to fail", test.jobID, test.group)
+		require.Containsf(err.Error(), test.want, "jobs.Scale(%s, %s) error doesn't contain %s, got: %s", test.jobID, test.group, test.want, err)
+	}
+
+	// Register test job
+	job := testJob()
+	job.ID = stringToPtr("TestJobs_Scale")
+	_, wm, err := jobs.Register(job, nil)
+	require.NoError(err)
+	assertWriteMeta(t, wm)
+
+	// Perform a scaling action with bad group name, verify error
+	_, _, err = jobs.Scale(*job.ID, "incorrect-group-name", intToPtr(2),
+		stringToPtr("because"), nil, nil, nil)
+	require.Error(err)
+	require.Contains(err.Error(), "does not exist")
 }
 
 func TestJobs_Versions(t *testing.T) {
@@ -1532,4 +1761,125 @@ func TestJobs_AddSpread(t *testing.T) {
 	if !reflect.DeepEqual(job.Spreads, expect) {
 		t.Fatalf("expect: %#v, got: %#v", expect, job.Spreads)
 	}
+}
+
+// TestJobs_ScaleAction tests the scale target for task group count
+func TestJobs_ScaleAction(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	c, s := makeClient(t, nil, nil)
+	defer s.Stop()
+	jobs := c.Jobs()
+
+	id := "job-id/with\\troublesome:characters\n?&字\000"
+	job := testJobWithScalingPolicy()
+	job.ID = &id
+	groupName := *job.TaskGroups[0].Name
+	groupCount := *job.TaskGroups[0].Count
+
+	// Trying to scale against a target before it exists returns an error
+	_, _, err := jobs.Scale(id, "missing", intToPtr(groupCount+1), stringToPtr("this won't work"), nil, nil, nil)
+	require.Error(err)
+	require.Contains(err.Error(), "not found")
+
+	// Register the job
+	regResp, wm, err := jobs.Register(job, nil)
+	require.NoError(err)
+	assertWriteMeta(t, wm)
+
+	// Perform scaling action
+	newCount := groupCount + 1
+	scalingResp, wm, err := jobs.Scale(id, groupName,
+		intToPtr(newCount), stringToPtr("need more instances"), nil, nil, nil)
+
+	require.NoError(err)
+	require.NotNil(scalingResp)
+	require.NotEmpty(scalingResp.EvalID)
+	require.NotEmpty(scalingResp.EvalCreateIndex)
+	require.Greater(scalingResp.JobModifyIndex, regResp.JobModifyIndex)
+	assertWriteMeta(t, wm)
+
+	// Query the job again
+	resp, _, err := jobs.Info(*job.ID, nil)
+	require.NoError(err)
+	require.Equal(*resp.TaskGroups[0].Count, newCount)
+
+	// TODO: check that scaling event was persisted
+}
+
+func TestJobs_ScaleAction_Noop(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	c, s := makeClient(t, nil, nil)
+	defer s.Stop()
+	jobs := c.Jobs()
+
+	id := "job-id/with\\troublesome:characters\n?&字\000"
+	job := testJobWithScalingPolicy()
+	job.ID = &id
+	groupName := *job.TaskGroups[0].Name
+	prevCount := *job.TaskGroups[0].Count
+
+	// Register the job
+	regResp, wm, err := jobs.Register(job, nil)
+	require.NoError(err)
+	assertWriteMeta(t, wm)
+
+	// Perform scaling action
+	scaleResp, wm, err := jobs.Scale(id, groupName,
+		nil, stringToPtr("no count, just informative"), nil, nil, nil)
+
+	require.NoError(err)
+	require.NotNil(scaleResp)
+	require.Empty(scaleResp.EvalID)
+	require.Empty(scaleResp.EvalCreateIndex)
+	assertWriteMeta(t, wm)
+
+	// Query the job again
+	resp, _, err := jobs.Info(*job.ID, nil)
+	require.NoError(err)
+	require.Equal(*resp.TaskGroups[0].Count, prevCount)
+	require.Equal(regResp.JobModifyIndex, scaleResp.JobModifyIndex)
+	require.Empty(scaleResp.EvalCreateIndex)
+	require.Empty(scaleResp.EvalID)
+
+	// TODO: check that scaling event was persisted
+}
+
+// TestJobs_ScaleStatus tests the /scale status endpoint for task group count
+func TestJobs_ScaleStatus(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	c, s := makeClient(t, nil, nil)
+	defer s.Stop()
+	jobs := c.Jobs()
+
+	// Trying to retrieve a status before it exists returns an error
+	id := "job-id/with\\troublesome:characters\n?&字\000"
+	_, _, err := jobs.ScaleStatus(id, nil)
+	require.Error(err)
+	require.Contains(err.Error(), "not found")
+
+	// Register the job
+	job := testJobWithScalingPolicy()
+	job.ID = &id
+	groupName := *job.TaskGroups[0].Name
+	groupCount := *job.TaskGroups[0].Count
+	_, wm, err := jobs.Register(job, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	assertWriteMeta(t, wm)
+
+	// Query the scaling endpoint and verify success
+	result, qm, err := jobs.ScaleStatus(id, nil)
+	require.NoError(err)
+	assertQueryMeta(t, qm)
+
+	// Check that the result is what we expect
+	require.Equal(groupCount, result.TaskGroups[groupName].Desired)
 }

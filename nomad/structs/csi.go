@@ -273,24 +273,25 @@ func (v *CSIVolume) RemoteID() string {
 
 func (v *CSIVolume) Stub() *CSIVolListStub {
 	stub := CSIVolListStub{
-		ID:                 v.ID,
-		Namespace:          v.Namespace,
-		Name:               v.Name,
-		ExternalID:         v.ExternalID,
-		Topologies:         v.Topologies,
-		AccessMode:         v.AccessMode,
-		AttachmentMode:     v.AttachmentMode,
-		MountOptions:       v.MountOptions,
-		CurrentReaders:     len(v.ReadAllocs),
-		CurrentWriters:     len(v.WriteAllocs),
-		Schedulable:        v.Schedulable,
-		PluginID:           v.PluginID,
-		Provider:           v.Provider,
-		ControllersHealthy: v.ControllersHealthy,
-		NodesHealthy:       v.NodesHealthy,
-		NodesExpected:      v.NodesExpected,
-		CreateIndex:        v.CreateIndex,
-		ModifyIndex:        v.ModifyIndex,
+		ID:                  v.ID,
+		Namespace:           v.Namespace,
+		Name:                v.Name,
+		ExternalID:          v.ExternalID,
+		Topologies:          v.Topologies,
+		AccessMode:          v.AccessMode,
+		AttachmentMode:      v.AttachmentMode,
+		MountOptions:        v.MountOptions,
+		CurrentReaders:      len(v.ReadAllocs),
+		CurrentWriters:      len(v.WriteAllocs),
+		Schedulable:         v.Schedulable,
+		PluginID:            v.PluginID,
+		Provider:            v.Provider,
+		ControllersHealthy:  v.ControllersHealthy,
+		ControllersExpected: v.ControllersExpected,
+		NodesHealthy:        v.NodesHealthy,
+		NodesExpected:       v.NodesExpected,
+		CreateIndex:         v.CreateIndex,
+		ModifyIndex:         v.ModifyIndex,
 	}
 
 	return &stub
@@ -327,6 +328,12 @@ func (v *CSIVolume) WriteFreeClaims() bool {
 	default:
 		return false
 	}
+}
+
+// InUse tests whether any allocations are actively using the volume
+func (v *CSIVolume) InUse() bool {
+	return len(v.ReadAllocs) != 0 ||
+		len(v.WriteAllocs) != 0
 }
 
 // Copy returns a copy of the volume, which shares only the Topologies slice
