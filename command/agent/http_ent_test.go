@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/nomad/audit"
 	"github.com/hashicorp/nomad/command/agent/event"
+	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/stretchr/testify/require"
 )
@@ -69,6 +70,7 @@ func TestAuditWrapHTTPHandler(t *testing.T) {
 			defer os.RemoveAll(tmpDir)
 
 			auditor, err := audit.NewAuditor(&audit.Config{
+				Logger:  testlog.HCLogger(t),
 				Enabled: true,
 				Sinks: []audit.SinkConfig{
 					{
@@ -150,6 +152,7 @@ func TestAuditNonJSONHandler(t *testing.T) {
 			defer os.RemoveAll(tmpDir)
 
 			auditor, err := audit.NewAuditor(&audit.Config{
+				Logger:  testlog.HCLogger(t),
 				Enabled: true,
 				Sinks: []audit.SinkConfig{
 					{

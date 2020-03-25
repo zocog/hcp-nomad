@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/nomad/audit"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -139,6 +140,7 @@ func (s *HTTPServer) auditHTTPHandler(h http.Handler) http.Handler {
 			h.ServeHTTP(w, req)
 			return
 		}
+		defer metrics.MeasureSince([]string{"http", "audit", "http_handler"}, time.Now())
 
 		ctx := req.Context()
 		reqID := uuid.Generate()
@@ -200,6 +202,7 @@ func (s *HTTPServer) auditHandler(handler handlerFn) handlerFn {
 		if s.agent.auditor == nil || !s.agent.auditor.Enabled() {
 			return handler(resp, req)
 		}
+		defer metrics.MeasureSince([]string{"http", "audit", "handler"}, time.Now())
 
 		// Create a writer that captures response code
 		rw := newAuditResponseWriter(resp)
@@ -238,6 +241,7 @@ func (s *HTTPServer) auditNonJSONHandler(handler handlerByteFn) handlerByteFn {
 		if s.agent.auditor == nil || !s.agent.auditor.Enabled() {
 			return handler(resp, req)
 		}
+		defer metrics.MeasureSince([]string{"http", "audit", "non_json_handler"}, time.Now())
 
 		// Create a writer that captures response code
 		rw := newAuditResponseWriter(resp)
