@@ -39,7 +39,7 @@ func TestCSIPluginEndpoint_ACLNamespaceAlloc(t *testing.T) {
 
 	// Create the plugin and then some allocations to pretend to be the allocs that are
 	// running the plugin tasks
-	deleteNodes := CreateTestCSIPlugin(srv.fsm.State(), "foo")
+	deleteNodes := state.CreateTestCSIPlugin(srv.fsm.State(), "foo")
 	defer deleteNodes()
 
 	plug, _ := state.CSIPluginByID(memdb.NewWatchSet(), "foo")
