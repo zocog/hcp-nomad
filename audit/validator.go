@@ -17,7 +17,7 @@ type Validator struct {
 
 var _ eventlogger.Node = &Validator{}
 
-func NewValidator(cfg Config) *Validator {
+func NewValidator(cfg *Config) *Validator {
 	return &Validator{
 		log: cfg.Logger.NamedIntercept("AuditValidator"),
 	}

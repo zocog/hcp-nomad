@@ -130,8 +130,18 @@ type Auditor struct {
 // to a file sink and filter based off of specified criteria. Will return
 // an error if not properly configured.
 func NewAuditor(cfg *Config) (*Auditor, error) {
+	if cfg.Logger == nil {
+		return nil, errors.New("no logger configured")
+	}
+
 	var nodeIDs []eventlogger.NodeID
 	broker := eventlogger.NewBroker()
+
+	// Create and register validator node
+	validatorID := eventlogger.NodeID(uuid.Generate())
+	validator := NewValidator(cfg)
+	broker.RegisterNode(validatorID, validator)
+	nodeIDs = append(nodeIDs, validatorID)
 
 	// Configure and generate filters
 	filters, err := generateFiltersFromConfig(cfg)
@@ -215,6 +225,11 @@ func (a *Auditor) Enabled() bool {
 
 // Event is used to send an audit log event.
 func (a *Auditor) Event(ctx context.Context, eventType string, payload interface{}) error {
+	// fast-path if disabled.
+	if !a.Enabled() {
+		return nil
+	}
+
 	status, err := a.broker.Send(ctx, AuditEvent, payload)
 	if err != nil {
 		// Only return error if mode is enforced

@@ -186,22 +186,39 @@ func TestAuditor_Filter(t *testing.T) {
 		logs = append(logs, scanner.Text())
 	}
 	require.Len(t, logs, 1)
-
 }
 
-func TestAuditor_Mode_Enforced(t *testing.T) {
+func TestAuditor_Mode_BestEffort(t *testing.T) {
 	t.Parallel()
-	t.SkipNow()
 
-	// tmpDir, err := ioutil.TempDir("", t.Name())
-	// require.NoError(t, err)
-	// defer os.RemoveAll(tmpDir)
+	logger := testlog.HCLogger(t)
+	// Create a temp directory for the audit log file
+	tmpDir, err := ioutil.TempDir("", t.Name())
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
 
-	// auditor, err := NewAuditor(&Config{
-	// 	Enabled: true,
-	// 	RunMode: Enforced,
-	// })
-	// require.NoError(t, err)
+	auditor, err := NewAuditor(&Config{
+		Logger:  logger,
+		Enabled: true,
+		Filters: []FilterConfig{},
+		Sinks: []SinkConfig{
+			{
+				Name:   "json file",
+				Type:   FileSink,
+				Format: JSONFmt,
+				// BestEffort
+				DeliveryGuarantee: BestEffort,
+				FileName:          "audit.log",
+				Path:              tmpDir,
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, auditor)
+
+	// Send event that will fail validation
+	err = auditor.Event(context.Background(), "audit", []byte("not an event"))
+	require.NoError(t, err)
 
 }
 
