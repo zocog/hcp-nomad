@@ -2899,6 +2899,17 @@ func TestStateStore_CSIVolume(t *testing.T) {
 	err = state.CSIVolumeRegister(index, []*structs.CSIVolume{v0, v1})
 	require.NoError(t, err)
 
+	// volume registration is idempotent, unless identies are changed
+	index++
+	err = state.CSIVolumeRegister(index, []*structs.CSIVolume{v0, v1})
+	require.NoError(t, err)
+
+	index++
+	v2 := v0.Copy()
+	v2.PluginID = "new-id"
+	err = state.CSIVolumeRegister(index, []*structs.CSIVolume{v2})
+	require.Error(t, err, fmt.Sprintf("volume exists: %s", v0.ID))
+
 	ws := memdb.NewWatchSet()
 	iter, err := state.CSIVolumesByNamespace(ws, ns)
 	require.NoError(t, err)
@@ -2958,7 +2969,11 @@ func TestStateStore_CSIVolume(t *testing.T) {
 	vs = slurp(iter)
 	require.True(t, vs[0].ReadSchedulable())
 
-	// Deregister
+	// registration is an error when the volume is in use
+	index++
+	err = state.CSIVolumeRegister(index, []*structs.CSIVolume{v0})
+	require.Error(t, err, fmt.Sprintf("volume exists: %s", vol0))
+	// as is deregistration
 	index++
 	err = state.CSIVolumeDeregister(index, ns, []string{vol0})
 	require.Error(t, err, fmt.Sprintf("volume in use: %s", vol0))
@@ -2989,14 +3004,11 @@ func TestStateStore_CSIVolume(t *testing.T) {
 	require.Equal(t, 1, len(vs))
 }
 
-// TestStateStore_CSIPluginNodes uses the state from jobs, and uses node fingerprinting to update health
+// TestStateStore_CSIPluginNodes uses node fingerprinting to create a plugin and update health
 func TestStateStore_CSIPluginNodes(t *testing.T) {
 	index := uint64(999)
 	state := testStateStore(t)
-	testStateStore_CSIPluginNodes(t, index, state)
-}
 
-func testStateStore_CSIPluginNodes(t *testing.T, index uint64, state *StateStore) (uint64, *StateStore) {
 	// Create Nodes fingerprinting the plugins
 	ns := []*structs.Node{mock.Node(), mock.Node()}
 
@@ -3078,6 +3090,20 @@ func testStateStore_CSIPluginNodes(t *testing.T, index uint64, state *StateStore
 	require.Equal(t, 0, plug.ControllersHealthy)
 	require.Equal(t, 2, plug.NodesHealthy)
 
+	// Volume using the plugin
+	index++
+	vol := &structs.CSIVolume{
+		ID:        uuid.Generate(),
+		Namespace: "n",
+		PluginID:  "foo",
+	}
+	err = state.CSIVolumeRegister(index, []*structs.CSIVolume{vol})
+	require.NoError(t, err)
+
+	vol, err = state.CSIVolumeByID(ws, "n", vol.ID)
+	require.NoError(t, err)
+	require.True(t, vol.Schedulable)
+
 	// Node plugin is removed
 	n1 := ns[1].Copy()
 	n1.CSINodePlugins = map[string]*structs.CSIInfo{}
@@ -3102,14 +3128,93 @@ func testStateStore_CSIPluginNodes(t *testing.T, index uint64, state *StateStore
 	require.NoError(t, err)
 	require.Nil(t, plug)
 
-	return index, state
+	// Volume exists and is safe to query, but unschedulable
+	vol, err = state.CSIVolumeByID(ws, "n", vol.ID)
+	require.NoError(t, err)
+	require.False(t, vol.Schedulable)
 }
 
-// TestStateStore_CSIPluginBackwards gets the node state first, and the job state second
-func TestStateStore_CSIPluginBackwards(t *testing.T) {
-	index := uint64(999)
-	state := testStateStore(t)
-	index, state = testStateStore_CSIPluginNodes(t, index, state)
+func TestStateStore_CSIPluginJobs(t *testing.T) {
+	s := testStateStore(t)
+	deleteNodes := CreateTestCSIPlugin(s, "foo")
+	defer deleteNodes()
+
+	index := uint64(1001)
+
+	controllerJob := mock.Job()
+	controllerJob.TaskGroups[0].Tasks[0].CSIPluginConfig = &structs.TaskCSIPluginConfig{
+		ID:   "foo",
+		Type: structs.CSIPluginTypeController,
+	}
+
+	nodeJob := mock.Job()
+	nodeJob.TaskGroups[0].Tasks[0].CSIPluginConfig = &structs.TaskCSIPluginConfig{
+		ID:   "foo",
+		Type: structs.CSIPluginTypeNode,
+	}
+
+	err := s.UpsertJob(index, controllerJob)
+	require.NoError(t, err)
+	index++
+
+	err = s.UpsertJob(index, nodeJob)
+	require.NoError(t, err)
+	index++
+
+	// Get the plugin, and make better fake allocations for it
+	ws := memdb.NewWatchSet()
+	plug, err := s.CSIPluginByID(ws, "foo")
+	require.NoError(t, err)
+	index++
+
+	as := []*structs.Allocation{}
+	for id, info := range plug.Controllers {
+		as = append(as, &structs.Allocation{
+			ID:        info.AllocID,
+			Namespace: controllerJob.Namespace,
+			JobID:     controllerJob.ID,
+			Job:       controllerJob,
+			TaskGroup: "web",
+			EvalID:    uuid.Generate(),
+			NodeID:    id,
+		})
+	}
+	for id, info := range plug.Nodes {
+		as = append(as, &structs.Allocation{
+			ID:        info.AllocID,
+			JobID:     nodeJob.ID,
+			Namespace: nodeJob.Namespace,
+			Job:       nodeJob,
+			TaskGroup: "web",
+			EvalID:    uuid.Generate(),
+			NodeID:    id,
+		})
+	}
+
+	err = s.UpsertAllocs(index, as)
+	require.NoError(t, err)
+	index++
+
+	// Delete a job
+	err = s.DeleteJob(index, controllerJob.Namespace, controllerJob.ID)
+	require.NoError(t, err)
+	index++
+
+	// plugin still exists
+	plug, err = s.CSIPluginByID(ws, "foo")
+	require.NoError(t, err)
+	require.NotNil(t, plug)
+	require.Equal(t, 0, len(plug.Controllers))
+
+	// Delete a job
+	err = s.DeleteJob(index, nodeJob.Namespace, nodeJob.ID)
+	require.NoError(t, err)
+	index++
+
+	// plugin was collected
+	plug, err = s.CSIPluginByID(ws, "foo")
+	require.NoError(t, err)
+	require.Nil(t, plug)
 }
 
 func TestStateStore_Indexes(t *testing.T) {
