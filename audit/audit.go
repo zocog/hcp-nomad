@@ -140,8 +140,20 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	// Create and register validator node
 	validatorID := eventlogger.NodeID(uuid.Generate())
 	validator := NewValidator(cfg)
-	broker.RegisterNode(validatorID, validator)
+	err := broker.RegisterNode(validatorID, validator)
+	if err != nil {
+		return nil, errors.Wrap(err, "creating validator node")
+	}
 	nodeIDs = append(nodeIDs, validatorID)
+
+	// Create and register health check filter
+	hcheckID := eventlogger.NodeID(uuid.Generate())
+	hcheckFilter := &HealthCheckFilter{}
+	err = broker.RegisterNode(hcheckID, hcheckFilter)
+	if err != nil {
+		return nil, errors.Wrap(err, "creating health check filter node")
+	}
+	nodeIDs = append(nodeIDs, hcheckID)
 
 	// Configure and generate filters
 	filters, err := generateFiltersFromConfig(cfg)
