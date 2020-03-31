@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/ugorji/go/codec"
 )
 
 func TestNamespace_Validate(t *testing.T) {

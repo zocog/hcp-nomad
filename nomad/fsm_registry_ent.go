@@ -3,8 +3,8 @@
 package nomad
 
 import (
+	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
-	"github.com/ugorji/go/codec"
 )
 
 // registerLogAppliers registers all the Nomad Enterprise and Pro Raft log appliers.
