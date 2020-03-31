@@ -8,10 +8,10 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/raft"
-	"github.com/ugorji/go/codec"
 )
 
 // Offset the Nomad Pro specific values so that we don't overlap
