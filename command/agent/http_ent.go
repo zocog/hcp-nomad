@@ -60,6 +60,7 @@ func (s *HTTPServer) eventFromReq(ctx context.Context, req *http.Request, auth *
 		reqID = MissingRequestID
 	}
 
+	agentCfg := s.agent.GetConfig()
 	return &audit.Event{
 		ID:        uuid.Generate(),
 		Stage:     audit.OperationReceived,
@@ -79,7 +80,7 @@ func (s *HTTPServer) eventFromReq(ctx context.Context, req *http.Request, auth *
 				"user_agent":     req.UserAgent(),
 			},
 			NodeMeta: map[string]string{
-				"ip": s.Addr,
+				"ip": agentCfg.AdvertiseAddrs.HTTP,
 			},
 		},
 	}
