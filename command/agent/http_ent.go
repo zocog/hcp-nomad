@@ -80,6 +80,8 @@ func (s *HTTPServer) eventFromReq(ctx context.Context, req *http.Request, auth *
 				"user_agent":     req.UserAgent(),
 			},
 			NodeMeta: map[string]string{
+				// Use the HTTP address since this is an HTTP-originated audit log.
+				// May differ from the server's RPC/Serf IPs.
 				"ip": agentCfg.AdvertiseAddrs.HTTP,
 			},
 		},
