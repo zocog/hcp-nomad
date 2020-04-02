@@ -9,11 +9,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/nomad/audit"
 	"github.com/hashicorp/nomad/command/agent/event"
 	"github.com/hashicorp/nomad/helper/testlog"
+	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/stretchr/testify/require"
 )
@@ -32,19 +35,19 @@ func TestAuditWrapHTTPHandler(t *testing.T) {
 	}{
 		{
 			desc:         "wrapped endpoint success",
-			path:         "/v1/agent/health",
+			path:         "/v1/metrics",
 			expectedCode: 200,
 		},
 		{
 			desc:         "failure auditing request",
-			path:         "/v1/agent/health",
+			path:         "/v1/metrics",
 			expectedCode: 500,
 			auditErr:     errors.New("event not written to enough sinks"),
 			body:         "event not written to enough sinks",
 		},
 		{
 			desc:         "handler returns error",
-			path:         "/v1/agent/health",
+			path:         "/v1/metrics",
 			handlerErr:   "error",
 			expectedCode: 500,
 			body:         "error",
@@ -98,8 +101,44 @@ func TestAuditWrapHTTPHandler(t *testing.T) {
 			if tc.body != "" {
 				require.Equal(t, tc.body, resp.Body.String())
 			}
+
+			if tc.auditErr == nil {
+				// Read from audit log
+				dat, err := ioutil.ReadFile(filepath.Join(tmpDir, "audit.log"))
+				require.NoError(t, err)
+				require.NotEmpty(t, dat)
+			}
 		})
 	}
+}
+
+func TestEventFromReq(t *testing.T) {
+	s := makeHTTPServer(t, nil)
+	defer s.Shutdown()
+
+	req, err := http.NewRequest("GET", "/v1/metrics", nil)
+	require.NoError(t, err)
+
+	// Add to request context
+	ctx := req.Context()
+	reqID := uuid.Generate()
+	ctx = context.WithValue(ctx, ContextKeyReqID, reqID)
+	req = req.WithContext(ctx)
+
+	auth := &audit.Auth{
+		AccessorID: uuid.Generate(),
+		Name:       "token name",
+		Global:     false,
+		CreateTime: time.Now(),
+	}
+
+	srv := s.Server
+	event := srv.eventFromReq(ctx, req, auth)
+
+	require.Equal(t, srv.agent.GetConfig().AdvertiseAddrs.HTTP, event.Request.NodeMeta["ip"])
+	require.Equal(t, audit.OperationReceived, event.Stage)
+	require.Equal(t, reqID, event.Request.ID)
+	require.Equal(t, auth, event.Auth)
 }
 
 func TestAuditNonJSONHandler(t *testing.T) {
@@ -115,19 +154,19 @@ func TestAuditNonJSONHandler(t *testing.T) {
 	}{
 		{
 			desc:         "wrapped endpoint success",
-			path:         "/v1/agent/health",
+			path:         "/v1/metrics",
 			expectedCode: 200,
 		},
 		{
 			desc:         "failure auditing request",
-			path:         "/v1/agent/health",
+			path:         "/v1/metrics",
 			expectedCode: 500,
 			auditErr:     errors.New("event not written to enough sinks"),
 			body:         "event not written to enough sinks",
 		},
 		{
 			desc:         "handler returns error",
-			path:         "/v1/agent/health",
+			path:         "/v1/metrics",
 			expectedCode: 500,
 			handlerErr:   "error",
 			body:         "error",
@@ -179,6 +218,13 @@ func TestAuditNonJSONHandler(t *testing.T) {
 
 			if tc.body != "" {
 				require.Equal(t, tc.body, resp.Body.String())
+			}
+
+			if tc.auditErr == nil {
+				// Read from audit log
+				dat, err := ioutil.ReadFile(filepath.Join(tmpDir, "audit.log"))
+				require.NoError(t, err)
+				require.NotEmpty(t, dat)
 			}
 		})
 	}
