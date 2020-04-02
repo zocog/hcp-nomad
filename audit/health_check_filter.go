@@ -18,7 +18,7 @@ const healthcheck = "/v1/agent/health"
 func (h *HealthCheckFilter) Process(ctx context.Context, e *eventlogger.Event) (*eventlogger.Event, error) {
 	event, _ := e.Payload.(*Event)
 
-	if strings.Contains(event.Request.Endpoint, healthcheck) {
+	if strings.HasPrefix(event.Request.Endpoint, healthcheck) {
 		return nil, nil
 	}
 	return e, nil
