@@ -4,6 +4,7 @@ package audit
 
 import (
 	"context"
+	"strings"
 
 	"github.com/hashicorp/go-eventlogger"
 )
@@ -16,7 +17,8 @@ const healthcheck = "/v1/agent/health"
 // Process filters out healthcheck requests.
 func (h *HealthCheckFilter) Process(ctx context.Context, e *eventlogger.Event) (*eventlogger.Event, error) {
 	event, _ := e.Payload.(*Event)
-	if event.Request.Endpoint == healthcheck {
+
+	if strings.HasPrefix(event.Request.Endpoint, healthcheck) {
 		return nil, nil
 	}
 	return e, nil
