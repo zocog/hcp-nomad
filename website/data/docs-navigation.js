@@ -32,7 +32,7 @@ export default [
     category: 'internals',
     content: [
       'architecture',
-      { category: 'plugins', content: ['base', 'task-drivers', 'devices'] },
+      { category: 'plugins', content: ['base', 'task-drivers', 'devices', 'csi'] },
       {
         category: 'scheduling',
         content: ['scheduling', 'preemption']
@@ -156,6 +156,7 @@ export default [
       'dispatch_payload',
       'env',
       'ephemeral_disk',
+      'expose',
       'group',
       'job',
       'lifecycle',
