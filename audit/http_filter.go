@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/hashicorp/go-eventlogger"
@@ -73,7 +74,7 @@ func (s *HTTPEventFilter) Process(ctx context.Context, e *eventlogger.Event) (*e
 
 	// Iterate over Endpoints that are potentially filtered
 	for _, pattern := range s.Endpoints {
-		if endpointMatches(pattern, event.Request.Endpoint) {
+		if s.endpointMatches(pattern, event.Request.Endpoint) {
 			// Check if we should ignore stage for matching endpoint
 			for _, stage := range s.Stages {
 				if stage.Matches(event.Stage) {
@@ -100,7 +101,16 @@ func (s *HTTPEventFilter) Process(ctx context.Context, e *eventlogger.Event) (*e
 	return e, nil
 }
 
-func endpointMatches(pattern, operation string) bool {
+func (s *HTTPEventFilter) endpointMatches(pattern, request string) bool {
+	var operation string
+	// Remove any query params from URL
+	operationPath, err := url.Parse(request)
+	if err != nil {
+		s.log.Warn("parsing URL to remove query params")
+		operation = request
+	}
+	operation = operationPath.Path
+
 	// exact match
 	if pattern == operation {
 		return true

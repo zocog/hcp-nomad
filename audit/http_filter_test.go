@@ -89,6 +89,32 @@ func TestHTTPEventFilter_Proccess(t *testing.T) {
 			f:      &HTTPEventFilter{Stages: []Stage{OperationReceived}, Endpoints: []string{"*"}},
 			filter: true,
 		},
+		{
+			desc: "filter query params",
+			e: &eventlogger.Event{
+				Payload: &Event{
+					Stage: OperationReceived,
+					Request: &Request{
+						Endpoint: "/v1/jobs?prefix=foo#fragment",
+					},
+				},
+			},
+			f:      &HTTPEventFilter{Stages: []Stage{OperationReceived}, Endpoints: []string{"/v1/jobs"}},
+			filter: true,
+		},
+		{
+			desc: "glob with query params",
+			e: &eventlogger.Event{
+				Payload: &Event{
+					Stage: OperationReceived,
+					Request: &Request{
+						Endpoint: "/v1/job/job-id/allocations?all=true",
+					},
+				},
+			},
+			f:      &HTTPEventFilter{Stages: []Stage{OperationReceived}, Endpoints: []string{"/v1/job/*/allocations"}},
+			filter: true,
+		},
 	}
 
 	for _, tc := range cases {
