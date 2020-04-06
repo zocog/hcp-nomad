@@ -102,14 +102,11 @@ func (s *HTTPEventFilter) Process(ctx context.Context, e *eventlogger.Event) (*e
 }
 
 func (s *HTTPEventFilter) endpointMatches(pattern, request string) bool {
-	var operation string
+	operation := request
 	// Remove any query params from URL
-	operationPath, err := url.Parse(request)
-	if err != nil {
-		s.log.Warn("parsing URL to remove query params")
-		operation = request
+	if operationPath, err := url.Parse(request); err == nil {
+		operation = operationPath.Path
 	}
-	operation = operationPath.Path
 
 	// exact match
 	if pattern == operation {
