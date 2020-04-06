@@ -89,6 +89,47 @@ func TestHTTPEventFilter_Proccess(t *testing.T) {
 			f:      &HTTPEventFilter{Stages: []Stage{OperationReceived}, Endpoints: []string{"*"}},
 			filter: true,
 		},
+		{
+			desc: "filter query params",
+			e: &eventlogger.Event{
+				Payload: &Event{
+					Stage: OperationReceived,
+					Request: &Request{
+						Endpoint: "/v1/jobs?prefix=foo#fragment",
+					},
+				},
+			},
+			f:      &HTTPEventFilter{Stages: []Stage{OperationReceived}, Endpoints: []string{"/v1/jobs"}},
+			filter: true,
+		},
+		{
+			desc: "glob with query params",
+			e: &eventlogger.Event{
+				Payload: &Event{
+					Stage: OperationReceived,
+					Request: &Request{
+						Endpoint: "/v1/job/job-id/allocations?all=true",
+					},
+				},
+			},
+			f:      &HTTPEventFilter{Stages: []Stage{OperationReceived}, Endpoints: []string{"/v1/job/*/allocations"}},
+			filter: true,
+		},
+		{
+			desc: "invalid query params and fragments",
+			e: &eventlogger.Event{
+				Payload: &Event{
+					Stage: OperationReceived,
+					Request: &Request{
+						// Use some examples from
+						// https://github.com/golang/go/blob/master/src/net/url/url_test.go
+						Endpoint: "/v1/job/job-id/allocations?all=true;x=1/y&#!$&%27()*+,;=",
+					},
+				},
+			},
+			f:      &HTTPEventFilter{Stages: []Stage{OperationReceived}, Endpoints: []string{"/v1/job/*/allocations"}},
+			filter: true,
+		},
 	}
 
 	for _, tc := range cases {
