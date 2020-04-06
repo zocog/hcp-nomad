@@ -101,10 +101,10 @@ func (s *HTTPEventFilter) Process(ctx context.Context, e *eventlogger.Event) (*e
 	return e, nil
 }
 
-func (s *HTTPEventFilter) endpointMatches(pattern, request string) bool {
-	operation := request
+func (s *HTTPEventFilter) endpointMatches(pattern, requestURL string) bool {
+	operation := requestURL
 	// Remove any query params from URL
-	if operationPath, err := url.Parse(request); err == nil {
+	if operationPath, err := url.Parse(requestURL); err == nil {
 		operation = operationPath.Path
 	}
 
