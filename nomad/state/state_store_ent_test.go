@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStateStore_UpsertSentinelPolicy(t *testing.T) {
@@ -1162,4 +1163,18 @@ func TestStateStore_RestoreQuotaUsage(t *testing.T) {
 	out, err := state.QuotaUsageByName(ws, usage.Name)
 	assert.Nil(err)
 	assert.Equal(usage, out)
+}
+
+func TestStateStore_UpsertLicense(t *testing.T) {
+	t.Parallel()
+	state := testStateStore(t)
+
+	lic := mock.StoredLicense()
+
+	assert.Nil(t, state.UpsertLicense(1000, lic))
+
+	ws := memdb.NewWatchSet()
+	out, err := state.License(ws)
+	require.Nil(t, err)
+	require.Equal(t, out, lic)
 }

@@ -69,3 +69,10 @@ func QuotaUsage() *structs.QuotaUsage {
 
 	return qu
 }
+
+func StoredLicense() *structs.StoredLicense {
+	return &structs.StoredLicense{
+		Valid:  true,
+		Signed: "mock license",
+	}
+}

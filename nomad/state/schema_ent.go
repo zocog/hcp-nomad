@@ -9,6 +9,7 @@ const (
 	TableSentinelPolicies = "sentinel_policy"
 	TableQuotaSpec        = "quota_spec"
 	TableQuotaUsage       = "quota_usage"
+	TableLicense          = "license"
 )
 
 func init() {
@@ -18,6 +19,7 @@ func init() {
 		quotaSpecTableSchema,
 		quotaUsageTableSchema,
 		namespaceTableSchema,
+		licenseTableSchema,
 	}...)
 }
 
@@ -102,6 +104,22 @@ func quotaUsageTableSchema() *memdb.TableSchema {
 				Unique:       true,
 				Indexer: &memdb.StringFieldIndex{
 					Field: "Name",
+				},
+			},
+		},
+	}
+}
+
+func licenseTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: TableLicense,
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: true,
+				Unique:       true,
+				Indexer: &memdb.ConditionalIndex{
+					Conditional: func(obj interface{}) (bool, error) { return true, nil },
 				},
 			},
 		},

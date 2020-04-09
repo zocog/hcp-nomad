@@ -27,6 +27,8 @@ const (
 	SentinelPolicyDeleteRequestType
 	QuotaSpecUpsertRequestType
 	QuotaSpecDeleteRequestType
+	LicenseUpsertRequestType
+	LicenseDeleteRequestType
 )
 
 const (
@@ -166,6 +168,20 @@ type NamespaceDeleteRequest struct {
 // NamespaceUpsertRequest is used to upsert a set of namespaces
 type NamespaceUpsertRequest struct {
 	Namespaces []*Namespace
+	WriteRequest
+}
+
+type StoredLicense struct {
+	Valid  bool
+	Signed string
+
+	// Raft Indexes
+	CreateIndex uint64
+	ModifyIndex uint64
+}
+
+type LicenseUpsertRequest struct {
+	License *StoredLicense
 	WriteRequest
 }
 

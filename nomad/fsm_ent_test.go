@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFSM_UpsertNamespaces(t *testing.T) {
@@ -431,4 +432,48 @@ func TestFSM_UpsertNamespaces_ModifyQuota(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("err: %s", err)
 	})
+}
+
+func TestFSM_UpsertLicense(t *testing.T) {
+	t.Parallel()
+	fsm := testFSM(t)
+
+	license := mock.StoredLicense()
+	req := structs.LicenseUpsertRequest{
+		License: license,
+	}
+	buf, err := structs.Encode(structs.LicenseUpsertRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify we are registered
+	ws := memdb.NewWatchSet()
+	out, err := fsm.State().License(ws)
+	assert.Nil(t, err)
+	assert.NotNil(t, out)
+}
+
+func TestFSM_SnapshotRestore_License(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	// Add some state
+	fsm := testFSM(t)
+	state := fsm.State()
+	lic := mock.StoredLicense()
+	assert.Nil(state.UpsertLicense(1000, lic))
+
+	// Verify the contents
+	fsm2 := testSnapshotRestore(t, fsm)
+	state2 := fsm2.State()
+	ws := memdb.NewWatchSet()
+	out1, _ := state2.License(ws)
+	require.NotNil(t, out1)
+	assert.Equal(lic, out1)
 }

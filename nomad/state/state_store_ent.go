@@ -749,3 +749,63 @@ func (r *StateRestore) QuotaUsageRestore(usage *structs.QuotaUsage) error {
 	}
 	return nil
 }
+
+// License is used when restoring from a snapshot.
+func (r *StateRestore) LicenseRestore(license *structs.StoredLicense) error {
+	if err := r.txn.Insert(TableLicense, license); err != nil {
+		return fmt.Errorf("inserting license failed: %s", err)
+	}
+
+	return nil
+}
+
+func (s *StateStore) License(ws memdb.WatchSet) (*structs.StoredLicense, error) {
+	txn := s.db.Txn(false)
+	defer txn.Abort()
+
+	// Get the license blob
+	watchCh, c, err := txn.FirstWatch("license", "id")
+	if err != nil {
+		return nil, fmt.Errorf("failed license lookup: %s", err)
+	}
+	ws.Add(watchCh)
+
+	lic, ok := c.(*structs.StoredLicense)
+	if !ok {
+		return nil, nil
+	}
+
+	return lic, nil
+}
+
+// UpsertLicense is used to store the current license blob
+func (s *StateStore) UpsertLicense(index uint64, license *structs.StoredLicense) error {
+	txn := s.db.Txn(true)
+	defer txn.Abort()
+	if err := s.upsertLicenseImpl(index, license, txn); err != nil {
+		return err
+	}
+	txn.Commit()
+	return nil
+}
+
+func (s *StateStore) upsertLicenseImpl(index uint64, license *structs.StoredLicense, txn *memdb.Txn) error {
+	// Check for an existing license
+	existing, err := txn.First("license", "id")
+	if err != nil {
+		return fmt.Errorf("failed license lookup: %s", err)
+	}
+
+	// Set the indexes.
+	if existing != nil {
+		license.CreateIndex = existing.(*structs.StoredLicense).CreateIndex
+	} else {
+		license.CreateIndex = index
+	}
+	license.ModifyIndex = index
+
+	if err := txn.Insert("license", license); err != nil {
+		return fmt.Errorf("failed updating license: %s", err)
+	}
+	return nil
+}
