@@ -204,6 +204,7 @@ func (n *nomadFSM) allocQuota(allocID string) (string, error) {
 	return ns.Quota, nil
 }
 
+// applyLicenseUpsert is used to upsert a new license
 func (n *nomadFSM) applyLicenseUpsert(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSince([]string{"nomad", "fsm", "apply_license_upsert"}, time.Now())
 	var req structs.LicenseUpsertRequest

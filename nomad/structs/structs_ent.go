@@ -171,8 +171,9 @@ type NamespaceUpsertRequest struct {
 	WriteRequest
 }
 
+// StoredLicense is used to store and retrieve the signed license blob
+// used for checking enterprise features
 type StoredLicense struct {
-	Valid  bool
 	Signed string
 
 	// Raft Indexes

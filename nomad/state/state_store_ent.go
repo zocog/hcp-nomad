@@ -759,6 +759,7 @@ func (r *StateRestore) LicenseRestore(license *structs.StoredLicense) error {
 	return nil
 }
 
+// License is used to lookup the stored enterprise license
 func (s *StateStore) License(ws memdb.WatchSet) (*structs.StoredLicense, error) {
 	txn := s.db.Txn(false)
 	defer txn.Abort()

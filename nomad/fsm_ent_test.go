@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestFSM_UpsertNamespaces(t *testing.T) {
@@ -474,6 +473,6 @@ func TestFSM_SnapshotRestore_License(t *testing.T) {
 	state2 := fsm2.State()
 	ws := memdb.NewWatchSet()
 	out1, _ := state2.License(ws)
-	require.NotNil(t, out1)
+	assert.NotNil(t, out1)
 	assert.Equal(lic, out1)
 }

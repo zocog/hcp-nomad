@@ -110,6 +110,8 @@ func quotaUsageTableSchema() *memdb.TableSchema {
 	}
 }
 
+// licenseTableSchema returns the MemDB schema for the license table.
+// This table is used to store the enterprise license.
 func licenseTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: TableLicense,
