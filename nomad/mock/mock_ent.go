@@ -72,7 +72,6 @@ func QuotaUsage() *structs.QuotaUsage {
 
 func StoredLicense() *structs.StoredLicense {
 	return &structs.StoredLicense{
-		Valid:  true,
 		Signed: "mock license",
 	}
 }
