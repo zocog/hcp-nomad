@@ -9,6 +9,7 @@ type EnterpriseEndpoints struct {
 	Namespace *Namespace
 	Quota     *Quota
 	Sentinel  *Sentinel
+	License   *License
 }
 
 // NewEnterpriseEndpoints returns the set of Nomad Enterprise and Pro only
@@ -18,6 +19,7 @@ func NewEnterpriseEndpoints(s *Server) *EnterpriseEndpoints {
 		Namespace: &Namespace{s},
 		Quota:     &Quota{s},
 		Sentinel:  &Sentinel{s},
+		License:   &License{s},
 	}
 }
 
@@ -26,4 +28,5 @@ func (e *EnterpriseEndpoints) Register(rpcServer *rpc.Server) {
 	rpcServer.Register(e.Namespace)
 	rpcServer.Register(e.Quota)
 	rpcServer.Register(e.Sentinel)
+	rpcServer.Register(e.License)
 }
