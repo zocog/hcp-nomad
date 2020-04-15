@@ -21,6 +21,14 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 	if done, err := l.srv.forward("License.UpsertLicense", args, args, reply); done {
 		return err
 	}
+
+	// Check OperatorWrite permissions
+	if aclObj, err := l.srv.ResolveToken(args.AuthToken); err != nil {
+		return err
+	} else if aclObj != nil && !aclObj.AllowOperatorWrite() {
+		return structs.ErrPermissionDenied
+	}
+
 	defer metrics.MeasureSince([]string{"nomad", "license", "upsert_license"}, time.Now())
 
 	// Update via Raft
@@ -45,6 +53,14 @@ func (l *License) GetLicense(args *structs.LicenseGetRequest, reply *structs.Lic
 	if done, err := l.srv.forward("License.GetLicense", args, args, reply); done {
 		return err
 	}
+
+	// Check OperatorWrite permissions
+	if aclObj, err := l.srv.ResolveToken(args.AuthToken); err != nil {
+		return err
+	} else if aclObj != nil && !aclObj.AllowOperatorRead() {
+		return structs.ErrPermissionDenied
+	}
+
 	defer metrics.MeasureSince([]string{"nomad", "license", "get_license"}, time.Now())
 
 	// Setup the blocking query
