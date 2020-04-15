@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLicenseEndpoint_GetLicense(t *testing.T) {
@@ -25,7 +26,7 @@ func TestLicenseEndpoint_GetLicense(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Region: "global"},
 	}
 	var resp structs.LicenseGetResponse
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "License.GetLicense", get, &resp))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.GetLicense", get, &resp))
 	assert.EqualValues(1000, resp.Index)
 	assert.Equal(l, resp.License)
 }
@@ -46,12 +47,11 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Region: "global"},
 	}
 	var resp structs.GenericResponse
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", req, &resp))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", req, &resp))
 	assert.NotEqual(uint64(0), resp.Index)
 
 	// Check we created the license
 	out, err := s1.fsm.State().License(nil)
+	require.NoError(t, err)
 	assert.Equal(out.Signed, l.Signed)
-	assert.Nil(err)
-	assert.NotNil(out)
 }
