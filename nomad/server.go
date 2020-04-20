@@ -23,6 +23,7 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	log "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-licensing"
 	multierror "github.com/hashicorp/go-multierror"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/hashicorp/nomad/command/agent/consul"
@@ -235,6 +236,9 @@ type Server struct {
 
 	// EnterpriseState is used to fill in state for Pro/Ent builds
 	EnterpriseState
+
+	// Watcher is used to manage an enterprise license
+	Watcher licensing.Watcher
 
 	left         bool
 	shutdown     bool
