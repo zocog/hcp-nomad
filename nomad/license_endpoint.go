@@ -76,7 +76,7 @@ func (l *License) GetLicense(args *structs.LicenseGetRequest, reply *structs.Lic
 			// Set the output
 			reply.License = out
 			if out != nil {
-				reply.Index = 0
+				reply.Index = out.ModifyIndex
 			} else {
 				// Use the last index the affected the license table
 				index, err := s.Index(state.TableLicense)

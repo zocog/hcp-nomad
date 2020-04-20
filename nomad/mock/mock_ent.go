@@ -72,6 +72,7 @@ func QuotaUsage() *structs.QuotaUsage {
 
 func StoredLicense() *structs.StoredLicense {
 	return &structs.StoredLicense{
-		Signed: "mock license",
+		Signed:      "mock license",
+		CreateIndex: uint64(1000),
 	}
 }

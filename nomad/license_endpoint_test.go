@@ -21,14 +21,14 @@ func TestLicenseEndpoint_GetLicense(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC)
 
 	l := mock.StoredLicense()
-	require.NoError(t, s1.fsm.State().UpsertLicense(1000, l))
+	require.NoError(t, s1.fsm.State().UpsertLicense(1001, l))
 
 	get := &structs.LicenseGetRequest{
 		QueryOptions: structs.QueryOptions{Region: "global"},
 	}
 	var resp structs.LicenseGetResponse
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.GetLicense", get, &resp))
-	assert.EqualValues(uint64(1000), resp.Index)
+	assert.EqualValues(uint64(1001), resp.Index)
 	assert.Equal(l, resp.License)
 }
 
