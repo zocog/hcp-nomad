@@ -31,6 +31,8 @@ func (s *HTTPServer) registerEntHandlers() {
 	s.mux.HandleFunc("/v1/namespaces", s.wrap(s.NamespacesRequest))
 	s.mux.HandleFunc("/v1/namespace", s.wrap(s.NamespaceCreateRequest))
 	s.mux.HandleFunc("/v1/namespace/", s.wrap(s.NamespaceSpecificRequest))
+
+	s.mux.HandleFunc("/v1/operator/license", s.wrap(s.OperatorLicenseRequest))
 }
 
 type auditResponseWriter struct {
