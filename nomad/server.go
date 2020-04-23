@@ -238,7 +238,7 @@ type Server struct {
 	EnterpriseState
 
 	// Watcher is used to manage an enterprise license
-	Watcher licensing.Watcher
+	Watcher *licensing.Watcher
 
 	left         bool
 	shutdown     bool

@@ -3,8 +3,18 @@
 package nomad
 
 import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/hashicorp/go-licensing"
+	"github.com/hashicorp/go-memdb"
+	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/sentinel/sentinel"
 )
+
+// Temporary Nomad-Enterprise licenses should operate for six hours
+var temporaryLicenseTimeLimit = time.Hour * 6
 
 type EnterpriseState struct {
 	// sentinel is a shared instance of the policy engine
@@ -36,6 +46,94 @@ func (s *Server) setupEnterprise(config *Config) error {
 
 	s.setupEnterpriseAutopilot(config)
 
+	return nil
+}
+
+func watcherStartUpOpts() (*licensing.WatcherOptions, error) {
+	now := time.Now()
+	tempLicense, pubKey, err := licensing.TemporaryLicense(nomadLicense.ProductName, nil, now.Add(temporaryLicenseTimeLimit))
+	if err != nil {
+		return nil, fmt.Errorf("error creating temporary license: %w")
+	}
+	return &licensing.WatcherOptions{
+		ProductName:          nomadLicense.ProductName,
+		InitLicense:          tempLicense,
+		AdditionalPublicKeys: []string{pubKey},
+	}, nil
+}
+
+func (s *Server) setupWatcher(ctx context.Context) error {
+	// setup a logger for licensing
+	licLogger := s.logger.Named("licensing")
+
+	// Configure the setup options for the license watcher
+	opts, err := watcherStartUpOpts()
+	if err != nil {
+		return fmt.Errorf("error setting up license watcher options: %w", err)
+	}
+
+	// Create the new watcher with options
+	watcher, _, err := licensing.NewWatcher(opts)
+	if err != nil {
+		return fmt.Errorf("error creating license watcher: %w", err)
+	}
+	s.Watcher = watcher
+
+	go func() {
+		// licenseSet tracks whether or not a permanent license has been set
+		var licenseSet bool
+
+		// watchSetEmitted tracks whether or not the watch set has emitted an error
+		var watchSetEmitted bool
+
+		// watchSetCh is used to cache the watch set chan for this goroutine
+		var watchSetCh <-chan error
+		watchSet := memdb.NewWatchSet()
+
+		for {
+			stored, err := s.State().License(watchSet)
+			if err != nil {
+				licLogger.Error("error fetching license from state store", "error", err)
+			}
+			if stored != nil && stored.Signed != "" {
+				if _, err := watcher.SetLicense(stored.Signed); err != nil {
+					licLogger.Error("error setting license", "error", err)
+				}
+				licenseSet = true
+			}
+
+			// Create a new watchSetCh if it's our first or the previous has emitted
+			if watchSetCh == nil || watchSetEmitted {
+				watchSetCh = watchSet.WatchChan(s.shutdownCtx)
+			}
+
+			select {
+			// Exit the goroutine if the server is closing
+			case <-s.shutdownCh:
+				return
+			// If watchSetCh returns a nil error, there is a new license. If it returns an actual error,
+			// the context is done or canceled, and the function can exit.
+			case err := <-watchSetCh:
+				watchSetEmitted = true
+				if err != nil {
+					licLogger.Info("retreiving new license")
+				} else {
+					return
+				}
+			// This final case checks for licensing errors, primarily expirations.
+			case err := <-s.Watcher.ErrorCh():
+				licLogger.Error("error received from watcher", "error", err)
+
+				// If a permanent license has not been set, we close the server.
+				if !licenseSet {
+					licLogger.Error("temporary license expired; shutting down server")
+					s.Shutdown()
+					return
+				}
+				licLogger.Error("license expired") //TODO: more info
+			}
+		}
+	}()
 	return nil
 }
 
