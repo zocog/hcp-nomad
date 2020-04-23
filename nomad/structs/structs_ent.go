@@ -198,6 +198,15 @@ type LicenseGetResponse struct {
 	QueryMeta
 }
 
+type LicensePutRequest struct {
+	License string
+	WriteRequest
+}
+
+type LicenseResetRequest struct {
+	WriteRequest
+}
+
 // SentinelPolicy is used to represent a Sentinel policy
 type SentinelPolicy struct {
 	Name             string // Unique name

@@ -5,44 +5,61 @@ package agent
 import (
 	"net/http"
 
-	"github.com/hashicorp/consul-enterprise/api"
-	license "github.com/hashicorp/go-licensing"
+	"github.com/hashicorp/nomad/api"
+	"github.com/hashicorp/nomad/nomad/structs"
 )
 
 func (s *HTTPServer) OperatorLicenseRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	switch req.Method {
 	case "GET":
-		return s.OperatorGetLicense(resp, req)
+		return s.operatorGetLicense(resp, req)
 	case "PUT":
-		return s.OperatorPutLicense(resp, req)
+		return s.operatorPutLicense(resp, req)
 	case "DELETE":
-		return s.OperatorResetLicense(resp, req)
+		return s.operatorResetLicense(resp, req)
 	default:
 		return nil, CodedError(404, ErrInvalidMethod)
 	}
 }
 
-func (s *HTTPServer) OperatorGetLicense(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// var args structs.LicenseGetRequest
+func (s *HTTPServer) operatorGetLicense(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var args structs.LicenseGetRequest
 
-	return nil, nil
-}
-
-func (s *HTTPServer) OperatorPutLicense(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-
-	return nil, nil
-}
-
-func (s *HTTPServer) OperatorResetLicense(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-
-	return nil, nil
-}
-
-func convertLicense(l *license.License) *api.License {
-	modules := make([]string, len(l.Modules))
-	for i, mod := range l.Modules {
-		modules[i] = mod.DisplayString()
+	if s.parse(resp, req, &args.Region, &args.QueryOptions) {
+		return nil, nil
 	}
 
-	return &api.License{}
+	// TODO change to structs.LicenseResponse
+	var reply structs.LicenseGetResponse
+	if err := s.agent.RPC("Operator.GetLicense", &args, &reply); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (s *HTTPServer) operatorPutLicense(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var args structs.LicensePutRequest
+
+	s.parseWriteRequest(req, &args.WriteRequest)
+
+	// TODO change to structs.LicenseResponse
+	var reply api.GenericResponse
+	if err := s.agent.RPC("Operator.UpsertLicense", &args, &reply); err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+func (s *HTTPServer) operatorResetLicense(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var args structs.LicenseResetRequest
+
+	s.parseWriteRequest(req, &args.WriteRequest)
+
+	// TODO change to structs.LicenseResponse
+	var reply api.GenericResponse
+	if err := s.agent.RPC("Operator.ResetLicense", &args, &reply); err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
