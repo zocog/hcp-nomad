@@ -181,15 +181,18 @@ type StoredLicense struct {
 	ModifyIndex uint64
 }
 
+// LicenseUpsertRequest is used to store a signed license text blob
 type LicenseUpsertRequest struct {
 	License *StoredLicense
 	WriteRequest
 }
 
+// LicenseGetRequest is used to request a signed license text blob
 type LicenseGetRequest struct {
 	QueryOptions
 }
 
+// LicenseGetResponse is used to respond to a request for a signed license text blob
 type LicenseGetResponse struct {
 	License *StoredLicense
 	QueryMeta
