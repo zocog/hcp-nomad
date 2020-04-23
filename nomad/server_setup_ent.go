@@ -49,11 +49,11 @@ func (s *Server) setupEnterprise(config *Config) error {
 	return nil
 }
 
-func watcherStartUpOpts() (*licensing.WatcherOptions, error) {
+func watcherStartupOpts() (*licensing.WatcherOptions, error) {
 	now := time.Now()
 	tempLicense, pubKey, err := licensing.TemporaryLicense(nomadLicense.ProductName, nil, now.Add(temporaryLicenseTimeLimit))
 	if err != nil {
-		return nil, fmt.Errorf("error creating temporary license: %w")
+		return nil, fmt.Errorf("error creating temporary license: %w", err)
 	}
 	return &licensing.WatcherOptions{
 		ProductName:          nomadLicense.ProductName,
@@ -105,6 +105,7 @@ func (s *Server) setupWatcher(ctx context.Context) error {
 			// Create a new watchSetCh if it's our first or the previous has emitted
 			if watchSetCh == nil || watchSetEmitted {
 				watchSetCh = watchSet.WatchChan(s.shutdownCtx)
+				watchSetEmitted = false
 			}
 
 			select {
