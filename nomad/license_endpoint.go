@@ -3,6 +3,7 @@
 package nomad
 
 import (
+	"fmt"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
@@ -27,6 +28,11 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 		return err
 	} else if aclObj != nil && !aclObj.AllowOperatorWrite() {
 		return structs.ErrPermissionDenied
+	}
+
+	// Validate license pre-upsert
+	if _, err := l.srv.Watcher.ValidateLicense(args.License.Signed); err != nil {
+		return fmt.Errorf("error validating license: %w", err)
 	}
 
 	defer metrics.MeasureSince([]string{"nomad", "license", "upsert_license"}, time.Now())
