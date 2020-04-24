@@ -47,8 +47,7 @@ func (s *Server) setupEnterprise(config *Config) error {
 	s.setupEnterpriseAutopilot(config)
 
 	if err := s.setupWatcher(s.shutdownCtx); err != nil {
-		s.logger.Named("licensing").Error("failed to setup license watcher", "error", err)
-		s.Shutdown()
+		return err
 	}
 
 	return nil
