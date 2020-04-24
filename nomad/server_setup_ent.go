@@ -50,8 +50,7 @@ func (s *Server) setupEnterprise(config *Config) error {
 }
 
 func watcherStartupOpts() (*licensing.WatcherOptions, error) {
-	now := time.Now()
-	tempLicense, pubKey, err := licensing.TemporaryLicense(nomadLicense.ProductName, nil, now.Add(temporaryLicenseTimeLimit))
+	tempLicense, pubKey, err := licensing.TemporaryLicense(nomadLicense.ProductName, nil, temporaryLicenseTimeLimit)
 	if err != nil {
 		return nil, fmt.Errorf("error creating temporary license: %w", err)
 	}
@@ -67,7 +66,7 @@ func (s *Server) setupWatcher(ctx context.Context) error {
 	licLogger := s.logger.Named("licensing")
 
 	// Configure the setup options for the license watcher
-	opts, err := watcherStartUpOpts()
+	opts, err := watcherStartupOpts()
 	if err != nil {
 		return fmt.Errorf("error setting up license watcher options: %w", err)
 	}
@@ -104,7 +103,7 @@ func (s *Server) setupWatcher(ctx context.Context) error {
 
 			// Create a new watchSetCh if it's our first or the previous has emitted
 			if watchSetCh == nil || watchSetEmitted {
-				watchSetCh = watchSet.WatchChan(s.shutdownCtx)
+				watchSetCh = watchSet.WatchCh(s.shutdownCtx)
 				watchSetEmitted = false
 			}
 
@@ -132,6 +131,8 @@ func (s *Server) setupWatcher(ctx context.Context) error {
 					return
 				}
 				licLogger.Error("license expired") //TODO: more info
+			case warnLicense := <-s.Watcher.WarningCh():
+				licLogger.Warn("license expiring", "time_left", time.Until(warnLicense.ExpirationTime).Truncate(time.Second))
 			}
 		}
 	}()
