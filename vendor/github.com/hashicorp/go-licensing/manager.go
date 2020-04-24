@@ -2,6 +2,7 @@ package licensing
 
 import (
 	"crypto"
+	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/hashicorp/errwrap"
 	multierror "github.com/hashicorp/go-multierror"
-	"golang.org/x/crypto/ed25519"
 )
 
 var (
@@ -58,7 +58,7 @@ func NewLicenseManager(supplementalPubKeys []string) (*LicenseManager, error) {
 		}
 
 		if len(keyBytes) != ed25519.PublicKeySize {
-			return nil, fmt.Errorf("a public key is the wrong size")
+			return nil, fmt.Errorf("public key is the wrong size")
 		}
 
 		ret.pubKeys = append(ret.pubKeys, ed25519.PublicKey(keyBytes))
