@@ -52,7 +52,7 @@ func (s *Server) setupEnterprise(config *Config) error {
 func watcherStartupOpts() (*licensing.WatcherOptions, error) {
 	tempLicense, pubKey, err := licensing.TemporaryLicense(nomadLicense.ProductName, nil, temporaryLicenseTimeLimit)
 	if err != nil {
-		return nil, fmt.Errorf("error creating temporary license: %w", err)
+		return nil, fmt.Errorf("failed creating temporary license: %w", err)
 	}
 	return &licensing.WatcherOptions{
 		ProductName:          nomadLicense.ProductName,
@@ -68,13 +68,13 @@ func (s *Server) setupWatcher(ctx context.Context) error {
 	// Configure the setup options for the license watcher
 	opts, err := watcherStartupOpts()
 	if err != nil {
-		return fmt.Errorf("error setting up license watcher options: %w", err)
+		return fmt.Errorf("failed setting up license watcher options: %w", err)
 	}
 
 	// Create the new watcher with options
 	watcher, _, err := licensing.NewWatcher(opts)
 	if err != nil {
-		return fmt.Errorf("error creating license watcher: %w", err)
+		return fmt.Errorf("failed creating license watcher: %w", err)
 	}
 	s.Watcher = watcher
 
@@ -92,11 +92,11 @@ func (s *Server) setupWatcher(ctx context.Context) error {
 		for {
 			stored, err := s.State().License(watchSet)
 			if err != nil {
-				licLogger.Error("error fetching license from state store", "error", err)
+				licLogger.Error("failed fetching license from state store", "error", err)
 			}
 			if stored != nil && stored.Signed != "" {
 				if _, err := watcher.SetLicense(stored.Signed); err != nil {
-					licLogger.Error("error setting license", "error", err)
+					licLogger.Error("failed setting license", "error", err)
 				}
 				licenseSet = true
 			}
@@ -116,13 +116,13 @@ func (s *Server) setupWatcher(ctx context.Context) error {
 			case err := <-watchSetCh:
 				watchSetEmitted = true
 				if err != nil {
-					licLogger.Info("retreiving new license")
+					licLogger.Debug("retreiving new license")
 				} else {
 					return
 				}
 			// This final case checks for licensing errors, primarily expirations.
 			case err := <-s.Watcher.ErrorCh():
-				licLogger.Error("error received from watcher", "error", err)
+				licLogger.Error("received error from watcher", "error", err)
 
 				// If a permanent license has not been set, we close the server.
 				if !licenseSet {
