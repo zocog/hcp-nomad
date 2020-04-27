@@ -1,9 +1,15 @@
 package nomad
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/base64"
 	"testing"
+	"time"
 
+	"github.com/hashicorp/go-licensing"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/acl"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -35,16 +41,65 @@ func TestLicenseEndpoint_GetLicense(t *testing.T) {
 func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 	assert := assert.New(t)
 	t.Parallel()
-	s1, cleanupS1 := TestServer(t, nil)
+
+	// Generate key pair
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+
+	// Encoded public key
+	pubKey := base64.StdEncoding.EncodeToString(pub)
+
+	now := time.Now()
+	exp := 1 * time.Hour
+	// Create an initial temporary license
+	newLicense := &licensing.License{
+		LicenseID:       "temporary-license",
+		CustomerID:      "temporary license customer",
+		InstallationID:  "*",
+		Product:         nomadLicense.ProductName,
+		IssueTime:       now,
+		StartTime:       now,
+		ExpirationTime:  now.Add(exp),
+		TerminationTime: now.Add(exp),
+		Flags:           nil,
+	}
+
+	// Sign the license
+	signedTemp, err := newLicense.SignedString(priv)
+	require.NoError(t, err)
+
+	// Callback to configure license watcher
+	cb := func(cfg *Config) {
+		cfg.LicenseConfig = &licensing.WatcherOptions{
+			ProductName:          nomadLicense.ProductName,
+			InitLicense:          signedTemp,
+			AdditionalPublicKeys: []string{pubKey},
+		}
+	}
+
+	s1, cleanupS1 := TestServer(t, cb)
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
 
-	// Create the register request
-	l := mock.StoredLicense()
+	// Create a new license to upsert
+	putLicense := &licensing.License{
+		LicenseID:       "new-temp-license",
+		CustomerID:      "temporary license customer",
+		InstallationID:  "*",
+		Product:         nomadLicense.ProductName,
+		IssueTime:       now,
+		StartTime:       now,
+		ExpirationTime:  now.Add(exp),
+		TerminationTime: now.Add(exp),
+		Flags:           nil,
+	}
+
+	putSigned, err := putLicense.SignedString(priv)
+	require.NoError(t, err)
 
 	req := &structs.LicenseUpsertRequest{
-		License:      l,
+		License:      &structs.StoredLicense{Signed: putSigned},
 		WriteRequest: structs.WriteRequest{Region: "global"},
 	}
 	var resp structs.GenericResponse
@@ -54,7 +109,7 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 	// Check we created the license
 	out, err := s1.fsm.State().License(nil)
 	require.NoError(t, err)
-	assert.Equal(out.Signed, l.Signed)
+	assert.Equal(out.Signed, putSigned)
 }
 
 func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {

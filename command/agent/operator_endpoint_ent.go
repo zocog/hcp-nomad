@@ -3,6 +3,8 @@
 package agent
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 
 	"github.com/hashicorp/nomad/api"
@@ -31,24 +33,32 @@ func (s *HTTPServer) operatorGetLicense(resp http.ResponseWriter, req *http.Requ
 
 	// TODO change to structs.LicenseResponse
 	var reply structs.LicenseGetResponse
-	if err := s.agent.RPC("Operator.GetLicense", &args, &reply); err != nil {
+	if err := s.agent.RPC("License.GetLicense", &args, &reply); err != nil {
 		return nil, err
 	}
 
-	return nil, nil
+	return reply, nil
 }
 
 func (s *HTTPServer) operatorPutLicense(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var args structs.LicensePutRequest
+	var args structs.LicenseUpsertRequest
 
 	s.parseWriteRequest(req, &args.WriteRequest)
 
-	// TODO change to structs.LicenseResponse
-	var reply api.GenericResponse
-	if err := s.agent.RPC("Operator.UpsertLicense", &args, &reply); err != nil {
+	buf := bytes.NewBuffer(nil)
+	if _, err := io.Copy(buf, req.Body); err != nil {
 		return nil, err
 	}
-	return nil, nil
+	args.License = &structs.StoredLicense{
+		Signed: buf.String(),
+	}
+
+	// TODO change to structs.LicenseResponse
+	var reply api.GenericResponse
+	if err := s.agent.RPC("License.UpsertLicense", &args, &reply); err != nil {
+		return nil, err
+	}
+	return reply, nil
 }
 
 func (s *HTTPServer) operatorResetLicense(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -58,8 +68,8 @@ func (s *HTTPServer) operatorResetLicense(resp http.ResponseWriter, req *http.Re
 
 	// TODO change to structs.LicenseResponse
 	var reply api.GenericResponse
-	if err := s.agent.RPC("Operator.ResetLicense", &args, &reply); err != nil {
+	if err := s.agent.RPC("License.ResetLicense", &args, &reply); err != nil {
 		return nil, err
 	}
-	return nil, nil
+	return reply, nil
 }

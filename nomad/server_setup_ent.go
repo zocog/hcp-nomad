@@ -53,7 +53,11 @@ func (s *Server) setupEnterprise(config *Config) error {
 	return nil
 }
 
-func watcherStartupOpts() (*licensing.WatcherOptions, error) {
+func (s *Server) watcherStartupOpts() (*licensing.WatcherOptions, error) {
+	// if s.LicenseConfig != nil {
+	// 	return s.LicenseConfig, nil
+	// }
+
 	tempLicense, pubKey, err := licensing.TemporaryLicense(nomadLicense.ProductName, nil, temporaryLicenseTimeLimit)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating temporary license: %w", err)
@@ -70,13 +74,16 @@ func (s *Server) setupWatcher(ctx context.Context) error {
 	licLogger := s.logger.Named("licensing")
 
 	// Configure the setup options for the license watcher
-	opts, err := watcherStartupOpts()
-	if err != nil {
-		return fmt.Errorf("failed setting up license watcher options: %w", err)
+	if s.config.LicenseConfig == nil {
+		opts, err := s.watcherStartupOpts()
+		if err != nil {
+			return fmt.Errorf("failed setting up license watcher options: %w", err)
+		}
+		s.config.LicenseConfig = opts
 	}
 
 	// Create the new watcher with options
-	watcher, _, err := licensing.NewWatcher(opts)
+	watcher, _, err := licensing.NewWatcher(s.config.LicenseConfig)
 	if err != nil {
 		return fmt.Errorf("failed creating license watcher: %w", err)
 	}

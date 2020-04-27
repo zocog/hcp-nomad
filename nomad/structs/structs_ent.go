@@ -198,11 +198,6 @@ type LicenseGetResponse struct {
 	QueryMeta
 }
 
-type LicensePutRequest struct {
-	License string
-	WriteRequest
-}
-
 type LicenseResetRequest struct {
 	WriteRequest
 }
