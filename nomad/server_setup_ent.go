@@ -54,10 +54,6 @@ func (s *Server) setupEnterprise(config *Config) error {
 }
 
 func (s *Server) watcherStartupOpts() (*licensing.WatcherOptions, error) {
-	// if s.LicenseConfig != nil {
-	// 	return s.LicenseConfig, nil
-	// }
-
 	tempLicense, pubKey, err := licensing.TemporaryLicense(nomadLicense.ProductName, nil, temporaryLicenseTimeLimit)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating temporary license: %w", err)

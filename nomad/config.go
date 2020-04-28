@@ -350,7 +350,8 @@ type Config struct {
 	// connections from a single IP address. nil/0 means no limit.
 	RPCMaxConnsPerClient int
 
-	// LicenseConfig configures the license watcher
+	// LicenseConfig configures the license watcher, primarily used for
+	// testing to allow control over valid temporary licenses
 	LicenseConfig *licensing.WatcherOptions
 }
 

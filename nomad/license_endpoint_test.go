@@ -1,9 +1,8 @@
+// +build ent
+
 package nomad
 
 import (
-	"crypto/ed25519"
-	"crypto/rand"
-	"encoding/base64"
 	"testing"
 	"time"
 
@@ -42,46 +41,24 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 	assert := assert.New(t)
 	t.Parallel()
 
-	// Generate key pair
-	pub, priv, err := ed25519.GenerateKey(rand.Reader)
-	require.NoError(t, err)
-
-	// Encoded public key
-	pubKey := base64.StdEncoding.EncodeToString(pub)
-
-	now := time.Now()
-	exp := 1 * time.Hour
-	// Create an initial temporary license
-	newLicense := &licensing.License{
-		LicenseID:       "temporary-license",
-		CustomerID:      "temporary license customer",
-		InstallationID:  "*",
-		Product:         nomadLicense.ProductName,
-		IssueTime:       now,
-		StartTime:       now,
-		ExpirationTime:  now.Add(exp),
-		TerminationTime: now.Add(exp),
-		Flags:           nil,
-	}
-
-	// Sign the license
-	signedTemp, err := newLicense.SignedString(priv)
-	require.NoError(t, err)
+	testLicense := licensing.NewTestLicense(nomadLicense.ProductName, nil, 1*time.Hour)
 
 	// Callback to configure license watcher
 	cb := func(cfg *Config) {
 		cfg.LicenseConfig = &licensing.WatcherOptions{
 			ProductName:          nomadLicense.ProductName,
-			InitLicense:          signedTemp,
-			AdditionalPublicKeys: []string{pubKey},
+			InitLicense:          testLicense.LicenseSigned,
+			AdditionalPublicKeys: []string{testLicense.PubKeyEncoded},
 		}
 	}
-
 	s1, cleanupS1 := TestServer(t, cb)
 	defer cleanupS1()
+
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
 
+	now := time.Now()
+	exp := 1 * time.Hour
 	// Create a new license to upsert
 	putLicense := &licensing.License{
 		LicenseID:       "new-temp-license",
@@ -95,7 +72,7 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 		Flags:           nil,
 	}
 
-	putSigned, err := putLicense.SignedString(priv)
+	putSigned, err := putLicense.SignedString(testLicense.PrivateKey)
 	require.NoError(t, err)
 
 	req := &structs.LicenseUpsertRequest{

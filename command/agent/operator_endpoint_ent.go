@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
 
@@ -17,8 +16,6 @@ func (s *HTTPServer) OperatorLicenseRequest(resp http.ResponseWriter, req *http.
 		return s.operatorGetLicense(resp, req)
 	case "PUT":
 		return s.operatorPutLicense(resp, req)
-	case "DELETE":
-		return s.operatorResetLicense(resp, req)
 	default:
 		return nil, CodedError(404, ErrInvalidMethod)
 	}
@@ -31,7 +28,6 @@ func (s *HTTPServer) operatorGetLicense(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
-	// TODO change to structs.LicenseResponse
 	var reply structs.LicenseGetResponse
 	if err := s.agent.RPC("License.GetLicense", &args, &reply); err != nil {
 		return nil, err
@@ -53,22 +49,8 @@ func (s *HTTPServer) operatorPutLicense(resp http.ResponseWriter, req *http.Requ
 		Signed: buf.String(),
 	}
 
-	// TODO change to structs.LicenseResponse
-	var reply api.GenericResponse
+	var reply structs.GenericResponse
 	if err := s.agent.RPC("License.UpsertLicense", &args, &reply); err != nil {
-		return nil, err
-	}
-	return reply, nil
-}
-
-func (s *HTTPServer) operatorResetLicense(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var args structs.LicenseResetRequest
-
-	s.parseWriteRequest(req, &args.WriteRequest)
-
-	// TODO change to structs.LicenseResponse
-	var reply api.GenericResponse
-	if err := s.agent.RPC("License.ResetLicense", &args, &reply); err != nil {
 		return nil, err
 	}
 	return reply, nil
