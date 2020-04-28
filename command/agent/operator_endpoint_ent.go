@@ -17,7 +17,7 @@ func (s *HTTPServer) OperatorLicenseRequest(resp http.ResponseWriter, req *http.
 	case "PUT":
 		return s.operatorPutLicense(resp, req)
 	default:
-		return nil, CodedError(404, ErrInvalidMethod)
+		return nil, CodedError(405, ErrInvalidMethod)
 	}
 }
 
