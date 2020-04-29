@@ -87,6 +87,6 @@ func TestOperator_License_UnknownVerb(t *testing.T) {
 
 		codedErr, ok := err.(HTTPCodedError)
 		require.True(t, ok)
-		require.Equal(t, codedErr.Code(), 404)
+		require.Equal(t, codedErr.Code(), 405)
 	})
 }
