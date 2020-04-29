@@ -2,5 +2,10 @@
 
 set -e
 
-codecgen -d 102 -t ent -rt ent -o structs_ent.generated.go structs_ent.go
-sed -i'' -e 's|"github.com/ugorji/go/codec|"github.com/hashicorp/go-msgpack/codec|g' structs_ent.generated.go
+codecgen \
+    -c github.com/hashicorp/go-msgpack/codec \
+    -d 102 \
+    -t ent \
+    -rt ent \
+    -o structs_ent.generated.go \
+    structs_ent.go
