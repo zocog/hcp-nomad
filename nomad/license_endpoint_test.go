@@ -87,7 +87,26 @@ func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
 
+	now := time.Now()
+	exp := 1 * time.Hour
+	// Create a new license to upsert
+	putLicense := &licensing.License{
+		LicenseID:       "new-temp-license",
+		CustomerID:      "temporary license customer",
+		InstallationID:  "*",
+		Product:         nomadLicense.ProductName,
+		IssueTime:       now,
+		StartTime:       now,
+		ExpirationTime:  now.Add(exp),
+		TerminationTime: now.Add(exp),
+		Flags:           nil,
+	}
+
+	putSigned, err := putLicense.SignedString(TestPrivateKey)
+	require.NoError(t, err)
 	l := mock.StoredLicense()
+	l.Signed = putSigned
+
 	state := s1.fsm.State()
 
 	// Create the token
