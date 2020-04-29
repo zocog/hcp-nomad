@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/stretchr/testify/require"
@@ -60,10 +59,7 @@ func TestOperator_PutLicense(t *testing.T) {
 
 	// Test Valid Key
 	httpTest(t, nil, func(s *TestAgent) {
-		tl := nomadLicense.NewTestLicense()
-
 		l := mock.StoredLicense()
-		l.Signed = tl.Signed
 
 		body := bytes.NewBuffer([]byte(l.Signed))
 		req, err := http.NewRequest("PUT", "/v1/operator/license", body)

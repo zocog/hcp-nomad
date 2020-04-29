@@ -5,6 +5,7 @@ package mock
 import (
 	"fmt"
 
+	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
@@ -71,8 +72,10 @@ func QuotaUsage() *structs.QuotaUsage {
 }
 
 func StoredLicense() *structs.StoredLicense {
+	license := nomadLicense.NewTestLicense()
+
 	return &structs.StoredLicense{
-		Signed:      "mock license",
+		Signed:      license.Signed,
 		CreateIndex: uint64(1000),
 	}
 }
