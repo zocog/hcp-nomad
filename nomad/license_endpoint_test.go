@@ -41,17 +41,7 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 	assert := assert.New(t)
 	t.Parallel()
 
-	testLicense := licensing.NewTestLicense(nomadLicense.ProductName, nil, 1*time.Hour)
-
-	// Callback to configure license watcher
-	cb := func(cfg *Config) {
-		cfg.LicenseConfig = &licensing.WatcherOptions{
-			ProductName:          nomadLicense.ProductName,
-			InitLicense:          testLicense.LicenseSigned,
-			AdditionalPublicKeys: []string{testLicense.PubKeyEncoded},
-		}
-	}
-	s1, cleanupS1 := TestServer(t, cb)
+	s1, cleanupS1 := TestServer(t, nil)
 	defer cleanupS1()
 
 	codec := rpcClient(t, s1)
@@ -72,7 +62,7 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 		Flags:           nil,
 	}
 
-	putSigned, err := putLicense.SignedString(testLicense.PrivateKey)
+	putSigned, err := putLicense.SignedString(TestPrivateKey)
 	require.NoError(t, err)
 
 	req := &structs.LicenseUpsertRequest{

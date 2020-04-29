@@ -14,7 +14,10 @@ import (
 )
 
 // Temporary Nomad-Enterprise licenses should operate for six hours
-var temporaryLicenseTimeLimit = time.Hour * 6
+var (
+	temporaryLicenseTimeLimit = time.Hour * 6
+	builtinPublicKeys         = []string{}
+)
 
 type EnterpriseState struct {
 	// sentinel is a shared instance of the policy engine
@@ -61,7 +64,7 @@ func (s *Server) watcherStartupOpts() (*licensing.WatcherOptions, error) {
 	return &licensing.WatcherOptions{
 		ProductName:          nomadLicense.ProductName,
 		InitLicense:          tempLicense,
-		AdditionalPublicKeys: []string{pubKey},
+		AdditionalPublicKeys: append(builtinPublicKeys, pubKey),
 	}, nil
 }
 
@@ -70,16 +73,13 @@ func (s *Server) setupWatcher(ctx context.Context) error {
 	licLogger := s.logger.Named("licensing")
 
 	// Configure the setup options for the license watcher
-	if s.config.LicenseConfig == nil {
-		opts, err := s.watcherStartupOpts()
-		if err != nil {
-			return fmt.Errorf("failed setting up license watcher options: %w", err)
-		}
-		s.config.LicenseConfig = opts
+	opts, err := s.watcherStartupOpts()
+	if err != nil {
+		return fmt.Errorf("failed setting up license watcher options: %w", err)
 	}
 
 	// Create the new watcher with options
-	watcher, _, err := licensing.NewWatcher(s.config.LicenseConfig)
+	watcher, _, err := licensing.NewWatcher(opts)
 	if err != nil {
 		return fmt.Errorf("failed creating license watcher: %w", err)
 	}

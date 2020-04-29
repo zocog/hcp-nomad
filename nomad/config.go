@@ -9,7 +9,6 @@ import (
 	"time"
 
 	log "github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-licensing"
 
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/nomad/helper/pluginutils/loader"
@@ -349,10 +348,6 @@ type Config struct {
 	// RPCMaxConnsPerClient is the maximum number of concurrent RPC
 	// connections from a single IP address. nil/0 means no limit.
 	RPCMaxConnsPerClient int
-
-	// LicenseConfig configures the license watcher, primarily used for
-	// testing to allow control over valid temporary licenses
-	LicenseConfig *licensing.WatcherOptions
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid
