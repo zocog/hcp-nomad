@@ -1,4 +1,5 @@
 // +build ent
+
 package agent
 
 import (
@@ -7,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/stretchr/testify/require"
@@ -58,8 +60,19 @@ func TestOperator_PutLicense(t *testing.T) {
 
 	// Test Valid Key
 	httpTest(t, nil, func(s *TestAgent) {
-		// TODO once validation is easier or able to be a noop
+		tl := nomadLicense.NewTestLicense()
 
+		l := mock.StoredLicense()
+		l.Signed = tl.Signed
+
+		body := bytes.NewBuffer([]byte(l.Signed))
+		req, err := http.NewRequest("PUT", "/v1/operator/license", body)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		lic, err := s.Server.OperatorLicenseRequest(resp, req)
+		require.Error(t, err)
+		require.Nil(t, lic)
 	})
 }
 

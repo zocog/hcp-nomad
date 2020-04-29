@@ -62,7 +62,7 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 		Flags:           nil,
 	}
 
-	putSigned, err := putLicense.SignedString(TestPrivateKey)
+	putSigned, err := putLicense.SignedString(nomadLicense.TestPrivateKey)
 	require.NoError(t, err)
 
 	req := &structs.LicenseUpsertRequest{
@@ -102,7 +102,7 @@ func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {
 		Flags:           nil,
 	}
 
-	putSigned, err := putLicense.SignedString(TestPrivateKey)
+	putSigned, err := putLicense.SignedString(nomadLicense.TestPrivateKey)
 	require.NoError(t, err)
 	l := mock.StoredLicense()
 	l.Signed = putSigned
