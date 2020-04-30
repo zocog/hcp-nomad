@@ -67,8 +67,11 @@ func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore, shu
 		return ErrLicenseWatcherRunning
 	}
 	w.mu.Lock()
+
+	// Create a "start"-scoped context with a cancel func that both the parent context and stop() can cancel
 	watcherCtx, watcherCancel := context.WithCancel(ctx)
 	w.cancelFunc = watcherCancel
+
 	w.isRunning = true
 	go func() {
 		defer func() { w.isRunning = false }()
@@ -78,7 +81,6 @@ func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore, shu
 		var licenseSet bool
 
 		for {
-			// Create a new watchSetCh if it's our first or the previous has emitted
 			watchSet := memdb.NewWatchSet()
 			stored, err := state.License(watchSet)
 			if err != nil {
@@ -90,12 +92,15 @@ func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore, shu
 				}
 				licenseSet = true
 			}
-			watchCtx, watchCancel := context.WithCancel(watcherCtx)
-			watchSetCh := watchSet.WatchCh(watchCtx)
+
+			// Create a context and cancelFunc scoped to the watchSet
+			watchSetCtx, watchSetCancel := context.WithCancel(context.Background())
+			watchSetCh := watchSet.WatchCh(watchSetCtx)
 
 			select {
+			// Exit if parent context done or stop is called
 			case <-watcherCtx.Done():
-				watchCancel()
+				watchSetCancel()
 				return
 			// If watchSetCh returns a nil error, there is a new license. If it returns an actual error,
 			// the context is done or canceled, and the function can exit.
@@ -110,7 +115,7 @@ func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore, shu
 				// If a permanent license has not been set, we close the server.
 				if !licenseSet {
 					w.logger.Error("temporary license expired; shutting down server")
-					watchCancel()
+					watchSetCancel()
 					shutdownFunc()
 					return
 				}
@@ -118,7 +123,7 @@ func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore, shu
 			case warnLicense := <-w.watcher.WarningCh():
 				w.logger.Warn("license expiring", "time_left", time.Until(warnLicense.ExpirationTime).Truncate(time.Second))
 			}
-			watchCancel()
+			watchSetCancel()
 		}
 	}()
 	return nil
