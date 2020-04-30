@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad-licensing/license"
@@ -49,6 +50,7 @@ func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
 	state := state.TestStateStore(t)
 	ctx := context.Background()
 	require.NoError(t, lw.start(ctx, state, testShutdownFunc))
+	require.True(t, lw.isRunning, "license watcher should be running")
 	initLicense, _ := lw.watcher.License()
 	newLicense := license.NewTestLicense()
 	stored := &structs.StoredLicense{
@@ -56,6 +58,7 @@ func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
 		CreateIndex: uint64(1000),
 	}
 	state.UpsertLicense(1000, stored)
+	time.Sleep(1 * time.Second)
 	fetchedLicense, err := lw.watcher.License()
 	require.NoError(t, err)
 	require.False(t, fetchedLicense.Equal(initLicense), "fetched license should be different from the inital")
