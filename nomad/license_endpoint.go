@@ -31,7 +31,7 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 	}
 
 	// Validate license pre-upsert
-	if _, err := l.srv.LicenseWatcher.ValidateLicense(args.License.Signed); err != nil {
+	if _, err := l.srv.EnterpriseState.licenseWatcher.ValidateLicense(args.License.Signed); err != nil {
 		return fmt.Errorf("error validating license: %w", err)
 	}
 

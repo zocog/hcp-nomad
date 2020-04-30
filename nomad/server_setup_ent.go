@@ -11,6 +11,9 @@ import (
 type EnterpriseState struct {
 	// sentinel is a shared instance of the policy engine
 	sentinel *sentinel.Sentinel
+
+	//licenseWatcher is used to manage the lifecycle for enterprise licenses
+	licenseWatcher *LicenseWatcher
 }
 
 // setupEnterprise is used for Enterprise specific setup
@@ -42,8 +45,8 @@ func (s *Server) setupEnterprise(config *Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create a new license watcher: %w", err)
 	}
-	s.LicenseWatcher = licenseWatcher
-	if err = s.LicenseWatcher.start(s.shutdownCtx, s.State(), s.Shutdown); err != nil {
+	s.EnterpriseState.licenseWatcher = licenseWatcher
+	if err = s.EnterpriseState.licenseWatcher.start(s.shutdownCtx, s.State(), s.Shutdown); err != nil {
 		return fmt.Errorf("failed to start license watcher: %w", err)
 	}
 	return nil

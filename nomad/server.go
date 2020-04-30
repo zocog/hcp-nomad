@@ -236,9 +236,6 @@ type Server struct {
 	// EnterpriseState is used to fill in state for Pro/Ent builds
 	EnterpriseState
 
-	// LicenseWatcher is used to manage an enterprise license
-	LicenseWatcher *LicenseWatcher
-
 	left         bool
 	shutdown     bool
 	shutdownLock sync.Mutex
