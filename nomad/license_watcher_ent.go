@@ -19,6 +19,10 @@ import (
 var (
 	ErrLicenseWatcherRunning    = errors.New("license watcher is already running")
 	ErrLicenseWatcherNotRunning = errors.New("license watcher is not running")
+
+	builtinPublicKeys = []string{}
+	// Temporary Nomad-Enterprise licenses should operate for six hours
+	temporaryLicenseTimeLimit = time.Hour * 6
 )
 
 type LicenseWatcher struct {
@@ -58,7 +62,7 @@ func watcherStartupOpts() (*licensing.WatcherOptions, error) {
 	return &licensing.WatcherOptions{
 		ProductName:          nomadLicense.ProductName,
 		InitLicense:          tempLicense,
-		AdditionalPublicKeys: []string{pubKey},
+		AdditionalPublicKeys: append(builtinPublicKeys, pubKey),
 	}, nil
 }
 

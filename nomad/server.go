@@ -23,7 +23,6 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	log "github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-licensing"
 	multierror "github.com/hashicorp/go-multierror"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/hashicorp/nomad/command/agent/consul"
@@ -238,7 +237,7 @@ type Server struct {
 	EnterpriseState
 
 	// Watcher is used to manage an enterprise license
-	Watcher *licensing.Watcher
+	LicenseWatcher *LicenseWatcher
 
 	left         bool
 	shutdown     bool
