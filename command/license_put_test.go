@@ -24,7 +24,7 @@ func TestCommand_LicensePut_Err(t *testing.T) {
 	}
 
 	if srv.Enterprise {
-		require.Contains(t, ui.ErrorWriter.String(), "error validating license")
+		require.Contains(t, ui.ErrorWriter.String(), "404")
 	} else {
 		require.Contains(t, ui.ErrorWriter.String(), "Nomad Enterprise only endpoint")
 	}
