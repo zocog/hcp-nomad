@@ -46,6 +46,18 @@ func TestLicenseWatcher_Running(t *testing.T) {
 	require.Error(t, lw.start(ctx, state, testShutdownFunc))
 }
 
+func TestLicenseWatcher_Cancel(t *testing.T) {
+	t.Parallel()
+	lw := newTestLicenseWatcher()
+	state := state.TestStateStore(t)
+	ctx := context.Background()
+	require.NoError(t, lw.start(ctx, state, testShutdownFunc))
+	require.True(t, lw.IsRunning(), "license watcher should be running")
+	require.NoError(t, lw.stop())
+	time.Sleep(1 * time.Second)
+	require.False(t, lw.IsRunning(), "license watcher should be stopped")
+}
+
 func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
 	t.Parallel()
 	lw := newTestLicenseWatcher()

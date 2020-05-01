@@ -26,7 +26,10 @@ var (
 )
 
 type LicenseWatcher struct {
-	mu         sync.Mutex
+	// Lock for background goroutine
+	mu sync.Mutex
+	// RWLock for the status of isRunning
+	runMu      sync.RWMutex
 	isRunning  bool
 	cancelFunc context.CancelFunc
 
@@ -67,18 +70,25 @@ func watcherStartupOpts() (*licensing.WatcherOptions, error) {
 }
 
 func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore, shutdownFunc func() error) error {
-	if w.isRunning {
+	if w.IsRunning() {
 		return ErrLicenseWatcherRunning
 	}
-	w.mu.Lock()
+
+	w.runMu.Lock()
+	defer w.runMu.Unlock()
+	w.isRunning = true
 
 	// Create a "start"-scoped context with a cancel func that both the parent context and stop() can cancel
+	w.mu.Lock()
 	watcherCtx, watcherCancel := context.WithCancel(ctx)
 	w.cancelFunc = watcherCancel
 
-	w.isRunning = true
 	go func() {
-		defer func() { w.isRunning = false }()
+		defer func() {
+			w.runMu.Lock()
+			w.isRunning = false
+			w.runMu.Unlock()
+		}()
 		defer w.mu.Unlock()
 
 		// licenseSet tracks whether or not a permanent license has been set
@@ -134,11 +144,17 @@ func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore, shu
 }
 
 func (w *LicenseWatcher) stop() error {
-	if !w.isRunning {
+	if !w.IsRunning() {
 		return ErrLicenseWatcherNotRunning
 	}
 	w.cancelFunc()
 	return nil
+}
+
+func (w *LicenseWatcher) IsRunning() bool {
+	w.runMu.RLock()
+	defer w.runMu.RUnlock()
+	return w.isRunning
 }
 
 func (w *LicenseWatcher) ValidateLicense(blob string) (*licensing.License, error) {
