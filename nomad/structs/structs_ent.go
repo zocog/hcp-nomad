@@ -10,6 +10,7 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/go-licensing"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/sentinel/lang/ast"
 	"github.com/hashicorp/sentinel/lang/parser"
@@ -192,9 +193,9 @@ type LicenseGetRequest struct {
 	QueryOptions
 }
 
-// LicenseGetResponse is used to respond to a request for a signed license text blob
+// LicenseGetResponse is used to respond to a request for a parsed License
 type LicenseGetResponse struct {
-	License *StoredLicense
+	License *licensing.License
 	QueryMeta
 }
 

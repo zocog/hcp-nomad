@@ -25,16 +25,15 @@ func TestLicenseEndpoint_GetLicense(t *testing.T) {
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
 
-	l := mock.StoredLicense()
-	require.NoError(t, s1.fsm.State().UpsertLicense(1001, l))
-
+	l := nomadLicense.NewTestLicense()
+	_, err := s1.EnterpriseState.licenseWatcher.SetLicense(l.Signed)
+	require.NoError(t, err)
 	get := &structs.LicenseGetRequest{
 		QueryOptions: structs.QueryOptions{Region: "global"},
 	}
 	var resp structs.LicenseGetResponse
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.GetLicense", get, &resp))
-	assert.EqualValues(uint64(1001), resp.Index)
-	assert.Equal(l, resp.License)
+	assert.True(l.License.License.Equal(resp.License))
 }
 
 func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
@@ -104,8 +103,8 @@ func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {
 
 	putSigned, err := putLicense.SignedString(nomadLicense.TestPrivateKey)
 	require.NoError(t, err)
-	l := mock.StoredLicense()
-	l.Signed = putSigned
+	stored, _ := mock.StoredLicense()
+	stored.Signed = putSigned
 
 	state := s1.fsm.State()
 
@@ -114,7 +113,7 @@ func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {
 
 	// Create the register request
 	req := &structs.LicenseUpsertRequest{
-		License:      l,
+		License:      stored,
 		WriteRequest: structs.WriteRequest{Region: "global"},
 	}
 

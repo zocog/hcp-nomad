@@ -8,19 +8,33 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/nomad/nomad"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
+	"github.com/hashicorp/nomad/testutil"
 	"github.com/stretchr/testify/require"
 )
 
 func TestOperator_GetLicense(t *testing.T) {
 	t.Parallel()
 
+	// call to add test license key to list of known keys
+	nomad.TestValidationHelper(t)
+
 	httpTest(t, nil, func(s *TestAgent) {
-		l := mock.StoredLicense()
+		stored, l := mock.StoredLicense()
 		state := s.server.State()
 
-		require.NoError(t, state.UpsertLicense(999, l))
+		require.NoError(t, state.UpsertLicense(999, stored))
+
+		testutil.WaitForResult(func() (bool, error) {
+			watchSet := memdb.NewWatchSet()
+			stored, err := state.License(watchSet)
+			return stored != nil, err
+		}, func(err error) {
+			require.Fail(t, "update should be received from raft")
+		})
 
 		body := bytes.NewBuffer(nil)
 		req, err := http.NewRequest("GET", "/v1/operator/license", body)
@@ -33,7 +47,7 @@ func TestOperator_GetLicense(t *testing.T) {
 
 		out, ok := lic.(structs.LicenseGetResponse)
 		require.True(t, ok)
-		require.Equal(t, out.License.Signed, l.Signed)
+		require.True(t, out.License.Equal(l), "want: %v got: %v", out.License, l)
 	})
 }
 
@@ -42,10 +56,10 @@ func TestOperator_PutLicense(t *testing.T) {
 
 	// Test Invalid key
 	httpTest(t, nil, func(s *TestAgent) {
-		l := mock.StoredLicense()
+		stored, _ := mock.StoredLicense()
 		state := s.server.State()
 
-		require.NoError(t, state.UpsertLicense(999, l))
+		require.NoError(t, state.UpsertLicense(999, stored))
 
 		body := bytes.NewBuffer([]byte("YIUASDIasdfj1238AYIadsan="))
 		req, err := http.NewRequest("PUT", "/v1/operator/license", body)
@@ -59,9 +73,9 @@ func TestOperator_PutLicense(t *testing.T) {
 
 	// Test Valid Key
 	httpTest(t, nil, func(s *TestAgent) {
-		l := mock.StoredLicense()
+		stored, _ := mock.StoredLicense()
 
-		body := bytes.NewBuffer([]byte(l.Signed))
+		body := bytes.NewBuffer([]byte(stored.Signed))
 		req, err := http.NewRequest("PUT", "/v1/operator/license", body)
 		require.NoError(t, err)
 

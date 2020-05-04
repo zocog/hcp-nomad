@@ -437,9 +437,9 @@ func TestFSM_UpsertLicense(t *testing.T) {
 	t.Parallel()
 	fsm := testFSM(t)
 
-	license := mock.StoredLicense()
+	stored, _ := mock.StoredLicense()
 	req := structs.LicenseUpsertRequest{
-		License: license,
+		License: stored,
 	}
 	buf, err := structs.Encode(structs.LicenseUpsertRequestType, req)
 	if err != nil {
@@ -465,8 +465,8 @@ func TestFSM_SnapshotRestore_License(t *testing.T) {
 	// Add some state
 	fsm := testFSM(t)
 	state := fsm.State()
-	lic := mock.StoredLicense()
-	assert.Nil(state.UpsertLicense(1000, lic))
+	stored, _ := mock.StoredLicense()
+	assert.Nil(state.UpsertLicense(1000, stored))
 
 	// Verify the contents
 	fsm2 := testSnapshotRestore(t, fsm)
@@ -474,5 +474,5 @@ func TestFSM_SnapshotRestore_License(t *testing.T) {
 	ws := memdb.NewWatchSet()
 	out1, _ := state2.License(ws)
 	assert.NotNil(t, out1)
-	assert.Equal(lic, out1)
+	assert.Equal(stored, out1)
 }

@@ -1169,12 +1169,12 @@ func TestStateStore_UpsertLicense(t *testing.T) {
 	t.Parallel()
 	state := testStateStore(t)
 
-	lic := mock.StoredLicense()
+	stored, _ := mock.StoredLicense()
 
-	assert.Nil(t, state.UpsertLicense(1000, lic))
+	assert.Nil(t, state.UpsertLicense(1000, stored))
 
 	ws := memdb.NewWatchSet()
 	out, err := state.License(ws)
 	require.Nil(t, err)
-	require.Equal(t, out, lic)
+	require.Equal(t, out, stored)
 }
