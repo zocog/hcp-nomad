@@ -26,19 +26,19 @@ type TestLicense struct {
 	Signed  string
 }
 
-func NewTestLicense(product string) *TestLicense {
+func NewTestLicense(flags map[string]interface{}) *TestLicense {
 	now := time.Now()
 	exp := 1 * time.Hour
 	l := &licensing.License{
 		LicenseID:       "new-temp-license",
 		CustomerID:      "temporary license customer",
 		InstallationID:  "*",
-		Product:         product,
+		Product:         ProductName,
 		IssueTime:       now,
 		StartTime:       now,
 		ExpirationTime:  now.Add(exp),
 		TerminationTime: now.Add(exp),
-		Flags:           nil,
+		Flags:           flags,
 	}
 	signed, _ := l.SignedString(TestPrivateKey)
 
@@ -47,5 +47,11 @@ func NewTestLicense(product string) *TestLicense {
 		TestPrivateKey: TestPrivateKey,
 		License:        &License{License: l},
 		Signed:         signed,
+	}
+}
+
+func TestGovernancePolicyFlags() map[string]interface{} {
+	return map[string]interface{}{
+		"modules": []string{ModuleGovernancePolicy.String()},
 	}
 }

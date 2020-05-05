@@ -13,7 +13,7 @@ const ModuleUnknown Module = 0
 
 const (
 	// ModuleGovernancePolicy
-	ModuleGovernancePolicy = iota + 1
+	ModuleGovernancePolicy Module = iota + 1
 
 	// Should always be last, add modules above
 	numOfModules int = iota

@@ -11,6 +11,7 @@ import (
 type License struct {
 	*licensing.License
 	Features  Features `json:"features"`
+	Modules   []Module `json:"modules,omitempty"`
 	Temporary bool     `json:"temporary"`
 }
 
@@ -27,8 +28,18 @@ func NewLicense(license *licensing.License) (*License, error) {
 		return nil, err
 	}
 
+	var modules []Module
+	for _, m := range flags.Modules {
+		mod, err := ModuleFromString(m)
+		if err != nil {
+			return nil, err
+		}
+		modules = append(modules, mod)
+	}
+
 	return &License{
 		License:   license,
+		Modules:   modules,
 		Features:  flags.features,
 		Temporary: flags.Temporary,
 	}, nil
