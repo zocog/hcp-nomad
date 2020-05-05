@@ -9,6 +9,7 @@ import (
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/structs"
+	"github.com/hashicorp/nomad/version"
 )
 
 func SentinelPolicy() *structs.SentinelPolicy {
@@ -73,7 +74,7 @@ func QuotaUsage() *structs.QuotaUsage {
 }
 
 func StoredLicense() (*structs.StoredLicense, *licensing.License) {
-	license := nomadLicense.NewTestLicense()
+	license := nomadLicense.NewTestLicense(fmt.Sprintf("%s-%s", nomadLicense.ProductName, version.VersionMetadata))
 
 	return &structs.StoredLicense{
 		Signed:      license.Signed,

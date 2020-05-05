@@ -3,8 +3,6 @@
 package agent
 
 import (
-	"bytes"
-	"io"
 	"net/http"
 
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -41,12 +39,14 @@ func (s *HTTPServer) operatorPutLicense(resp http.ResponseWriter, req *http.Requ
 
 	s.parseWriteRequest(req, &args.WriteRequest)
 
-	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, req.Body); err != nil {
+	var license string
+	err := decodeBody(req, &license)
+	if err != nil {
 		return nil, err
 	}
+
 	args.License = &structs.StoredLicense{
-		Signed: buf.String(),
+		Signed: license,
 	}
 
 	var reply structs.GenericResponse

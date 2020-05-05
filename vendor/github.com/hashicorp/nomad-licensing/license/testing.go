@@ -26,14 +26,14 @@ type TestLicense struct {
 	Signed  string
 }
 
-func NewTestLicense() *TestLicense {
+func NewTestLicense(product string) *TestLicense {
 	now := time.Now()
 	exp := 1 * time.Hour
 	l := &licensing.License{
 		LicenseID:       "new-temp-license",
 		CustomerID:      "temporary license customer",
 		InstallationID:  "*",
-		Product:         "nomad-enterprise",
+		Product:         product,
 		IssueTime:       now,
 		StartTime:       now,
 		ExpirationTime:  now.Add(exp),
