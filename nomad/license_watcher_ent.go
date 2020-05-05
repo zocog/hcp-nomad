@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/go-memdb"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/nomad/state"
-	"github.com/hashicorp/nomad/version"
 )
 
 var (
@@ -62,17 +61,17 @@ func NewLicenseWatcher(logger hclog.InterceptLogger) (*LicenseWatcher, error) {
 }
 
 func watcherStartupOpts() (*licensing.WatcherOptions, error) {
-	// Set product name based off of build tags: nomad-enterprise-ent || nomad-enterprise-pro
-	productName := fmt.Sprintf("%s-%s", nomadLicense.ProductName, version.VersionMetadata)
-	tempLicense, pubKey, err := licensing.TemporaryLicense(productName, nil, temporaryLicenseTimeLimit)
+	flags := temporaryFlags()
+	tempLicense, pubKey, err := licensing.TemporaryLicense(nomadLicense.ProductName, flags, temporaryLicenseTimeLimit)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating temporary license: %w", err)
 	}
 
 	return &licensing.WatcherOptions{
-		ProductName:          productName,
+		ProductName:          nomadLicense.ProductName,
 		InitLicense:          tempLicense,
 		AdditionalPublicKeys: append(builtinPublicKeys, pubKey),
+		CallbackFunc:         licenseValidator,
 	}, nil
 }
 

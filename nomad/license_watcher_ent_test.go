@@ -5,6 +5,7 @@ package nomad
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"testing"
 	"time"
 
@@ -66,7 +67,7 @@ func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
 	require.NoError(t, lw.start(ctx, state, testShutdownFunc))
 	require.True(t, lw.isRunning, "license watcher should be running")
 	initLicense, _ := lw.watcher.License()
-	newLicense := license.NewTestLicense()
+	newLicense := license.NewTestLicense(nomadLicense.TestGovernancePolicyFlags())
 	stored := &structs.StoredLicense{
 		Signed:      newLicense.Signed,
 		CreateIndex: uint64(1000),
@@ -76,5 +77,5 @@ func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
 	fetchedLicense, err := lw.watcher.License()
 	require.NoError(t, err)
 	require.False(t, fetchedLicense.Equal(initLicense), "fetched license should be different from the inital")
-	require.True(t, fetchedLicense.Equal(newLicense.License.License), "fetched license should match the new license")
+	require.True(t, fetchedLicense.Equal(newLicense.License.License), fmt.Sprintf("got: %s wanted: %s", fetchedLicense, newLicense.License.License))
 }

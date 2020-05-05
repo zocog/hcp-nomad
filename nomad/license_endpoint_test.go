@@ -3,6 +3,7 @@
 package nomad
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -25,7 +26,7 @@ func TestLicenseEndpoint_GetLicense(t *testing.T) {
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
 
-	l := nomadLicense.NewTestLicense()
+	l := nomadLicense.NewTestLicense(nomadLicense.TestGovernancePolicyFlags())
 	_, err := s1.EnterpriseState.licenseWatcher.SetLicense(l.Signed)
 	require.NoError(t, err)
 	get := &structs.LicenseGetRequest{
@@ -33,7 +34,7 @@ func TestLicenseEndpoint_GetLicense(t *testing.T) {
 	}
 	var resp structs.LicenseGetResponse
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.GetLicense", get, &resp))
-	assert.True(l.License.License.Equal(resp.License))
+	assert.True(l.License.License.Equal(resp.License), fmt.Sprintf("wanted %s got %s", l.License.License, resp.License))
 }
 
 func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
