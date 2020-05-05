@@ -59,7 +59,7 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 		StartTime:       now,
 		ExpirationTime:  now.Add(exp),
 		TerminationTime: now.Add(exp),
-		Flags:           nil,
+		Flags:           nomadLicense.TestGovernancePolicyFlags(),
 	}
 
 	putSigned, err := putLicense.SignedString(nomadLicense.TestPrivateKey)
@@ -99,7 +99,7 @@ func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {
 		StartTime:       now,
 		ExpirationTime:  now.Add(exp),
 		TerminationTime: now.Add(exp),
-		Flags:           nil,
+		Flags:           nomadLicense.TestGovernancePolicyFlags(),
 	}
 
 	putSigned, err := putLicense.SignedString(nomadLicense.TestPrivateKey)
