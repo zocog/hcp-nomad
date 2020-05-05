@@ -62,7 +62,7 @@ func NewLicenseWatcher(logger hclog.InterceptLogger) (*LicenseWatcher, error) {
 }
 
 func watcherStartupOpts() (*licensing.WatcherOptions, error) {
-	// nomad-ent || nomad-pro
+	// Set product name based off of build tags: nomad-enterprise-ent || nomad-enterprise-pro
 	productName := fmt.Sprintf("%s-%s", nomadLicense.ProductName, version.VersionMetadata)
 	tempLicense, pubKey, err := licensing.TemporaryLicense(productName, nil, temporaryLicenseTimeLimit)
 	if err != nil {
