@@ -52,6 +52,6 @@ func NewTestLicense(flags map[string]interface{}) *TestLicense {
 
 func TestGovernancePolicyFlags() map[string]interface{} {
 	return map[string]interface{}{
-		"modules": []string{ModuleGovernancePolicy.String()},
+		"modules": []interface{}{ModuleGovernancePolicy.String()},
 	}
 }
