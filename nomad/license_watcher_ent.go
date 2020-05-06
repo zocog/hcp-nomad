@@ -78,8 +78,8 @@ func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore, shu
 	}
 
 	w.runMu.Lock()
-	defer w.runMu.Unlock()
 	w.isRunning = true
+	w.runMu.Unlock()
 
 	// Create a "start"-scoped context with a cancel func that both the parent context and stop() can cancel
 	w.mu.Lock()
