@@ -46,9 +46,7 @@ func (s *Server) setupEnterprise(config *Config) error {
 		return fmt.Errorf("failed to create a new license watcher: %w", err)
 	}
 	s.EnterpriseState.licenseWatcher = licenseWatcher
-	if err = s.EnterpriseState.licenseWatcher.start(s.shutdownCtx, s.State(), s.Shutdown); err != nil {
-		return fmt.Errorf("failed to start license watcher: %w", err)
-	}
+	s.EnterpriseState.licenseWatcher.start(s.shutdownCtx, s.State(), s.Shutdown)
 	return nil
 }
 
