@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-licensing"
 	"github.com/hashicorp/go-memdb"
@@ -102,6 +103,7 @@ func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore, shu
 			stored, err := state.License(watchSet)
 			if err != nil {
 				w.logger.Error("failed fetching license from state store", "error", err)
+				time.Sleep(lib.RandomStagger(1 * time.Second))
 			}
 			if stored != nil && stored.Signed != "" {
 				if _, err := w.watcher.SetLicense(stored.Signed); err != nil {
