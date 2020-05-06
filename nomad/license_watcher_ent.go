@@ -4,13 +4,10 @@ package nomad
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"sync"
 	"time"
-
-	"testing"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-licensing"
@@ -169,11 +166,4 @@ func (w *LicenseWatcher) ValidateLicense(blob string) (*licensing.License, error
 
 func (w *LicenseWatcher) SetLicense(blob string) (*licensing.License, error) {
 	return w.watcher.SetLicense(blob)
-}
-
-// TestValidationHelper must be called before a server is initialized
-// It should only be used in tests where a new test license needs to be
-// created.
-func TestValidationHelper(t *testing.T) {
-	builtinPublicKeys = append(builtinPublicKeys, base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey))
 }
