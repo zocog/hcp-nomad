@@ -51,6 +51,8 @@ var (
 
 type MessageType uint8
 
+// note: new raft message types need to be added to the end of this
+// list of contents
 const (
 	NodeRegisterRequestType MessageType = iota
 	NodeDeregisterRequestType
@@ -90,8 +92,9 @@ const (
 	CSIVolumeRegisterRequestType
 	CSIVolumeDeregisterRequestType
 	CSIVolumeClaimRequestType
-	CSIVolumeClaimBatchRequestType
 	ScalingEventRegisterRequestType
+	CSIVolumeClaimBatchRequestType
+	CSIPluginDeleteRequestType
 )
 
 const (
@@ -8987,6 +8990,11 @@ const (
 	// volume claims. We periodically scan volumes to see if no allocs are
 	// claiming them. If so, we unclaim the volume.
 	CoreJobCSIVolumeClaimGC = "csi-volume-claim-gc"
+
+	// CoreJobCSIPluginGC is use for the garbage collection of CSI plugins.
+	// We periodically scan plugins to see if they have no associated volumes
+	// or allocs running them. If so, we delete the plugin.
+	CoreJobCSIPluginGC = "csi-plugin-gc"
 
 	// CoreJobForceGC is used to force garbage collection of all GCable objects.
 	CoreJobForceGC = "force-gc"

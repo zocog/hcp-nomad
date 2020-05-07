@@ -1,4 +1,10 @@
 {{title "CSI Volumes"}}
+<div class="tabs is-subnav">
+  <ul>
+    <li data-test-tab="volumes">{{#link-to "csi.volumes.index" activeClass="is-active"}}Volumes{{/link-to}}</li>
+    <li data-test-tab="plugins">{{#link-to "csi.plugins.index" activeClass="is-active"}}Plugins{{/link-to}}</li>
+  </ul>
+</div>
 <section class="section">
   {{#if isForbidden}}
     {{partial "partials/forbidden-message"}}
@@ -54,12 +60,10 @@
       {{/list-pagination}}
     {{else}}
       <div data-test-empty-volumes-list class="empty-message">
-        {{#if (eq sortedVolumes.length 0)}}
-          <h3 data-test-empty-volumes-list-headline class="empty-message-headline">No Volumes</h3>
-          <p class="empty-message-body">
-            The cluster currently has no CSI Volumes.
-          </p>
-        {{/if}}
+        <h3 data-test-empty-volumes-list-headline class="empty-message-headline">No Volumes</h3>
+        <p class="empty-message-body">
+          The cluster currently has no CSI Volumes.
+        </p>
       </div>
     {{/if}}
   {{/if}}
