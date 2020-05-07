@@ -34,7 +34,7 @@ func TestLicenseEndpoint_GetLicense(t *testing.T) {
 	}
 	var resp structs.LicenseGetResponse
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.GetLicense", get, &resp))
-	assert.True(l.License.License.Equal(resp.License), fmt.Sprintf("wanted %s got %s", l.License.License, resp.License))
+	assert.True(l.License.License.Equal(resp.NomadLicense.License), fmt.Sprintf("wanted %s got %s", l.License.License, resp.NomadLicense.License))
 }
 
 func TestLicenseEndpoint_UpsertLicense(t *testing.T) {

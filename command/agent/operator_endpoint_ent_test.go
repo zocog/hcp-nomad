@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/nomad"
 	"github.com/hashicorp/nomad/nomad/mock"
-	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -45,9 +45,15 @@ func TestOperator_GetLicense(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, resp.Code, 200)
 
-		out, ok := lic.(structs.LicenseGetResponse)
+		out, ok := lic.(api.LicenseReply)
 		require.True(t, ok)
-		require.True(t, out.License.Equal(l), "want: %v got: %v", out.License, l)
+		require.Equal(t, out.License.CustomerID, l.CustomerID)
+		require.Equal(t, out.License.InstallationID, l.InstallationID)
+		require.Equal(t, out.License.Product, l.Product)
+		require.True(t, out.License.ExpirationTime.Equal(l.ExpirationTime))
+		require.True(t, out.License.StartTime.Equal(l.StartTime))
+		require.True(t, out.License.TerminationTime.Equal(l.TerminationTime))
+		require.True(t, out.License.IssueTime.Equal(l.IssueTime))
 	})
 }
 

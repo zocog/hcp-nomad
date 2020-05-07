@@ -5,6 +5,8 @@ package agent
 import (
 	"net/http"
 
+	"github.com/hashicorp/nomad-licensing/license"
+	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
 
@@ -31,7 +33,35 @@ func (s *HTTPServer) operatorGetLicense(resp http.ResponseWriter, req *http.Requ
 		return nil, err
 	}
 
-	return reply, nil
+	return api.LicenseReply{
+		License: convertToAPILicense(reply.NomadLicense),
+		QueryMeta: api.QueryMeta{
+			LastIndex:   reply.QueryMeta.Index,
+			LastContact: reply.QueryMeta.LastContact,
+			KnownLeader: reply.QueryMeta.KnownLeader,
+		},
+	}, nil
+}
+
+func convertToAPILicense(l *license.License) *api.License {
+	var modules []string
+	for _, m := range l.Modules {
+		modules = append(modules, m.String())
+	}
+
+	return &api.License{
+		LicenseID:       l.LicenseID,
+		CustomerID:      l.CustomerID,
+		InstallationID:  l.InstallationID,
+		IssueTime:       l.IssueTime,
+		StartTime:       l.StartTime,
+		ExpirationTime:  l.ExpirationTime,
+		TerminationTime: l.TerminationTime,
+		Product:         l.Product,
+		Flags:           l.Flags,
+		Modules:         modules,
+		Features:        l.Features.StringList(),
+	}
 }
 
 func (s *HTTPServer) operatorPutLicense(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

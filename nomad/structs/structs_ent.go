@@ -10,8 +10,8 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/go-licensing"
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/sentinel/lang/ast"
 	"github.com/hashicorp/sentinel/lang/parser"
 	"github.com/hashicorp/sentinel/lang/semantic"
@@ -195,7 +195,7 @@ type LicenseGetRequest struct {
 
 // LicenseGetResponse is used to respond to a request for a parsed License
 type LicenseGetResponse struct {
-	License *licensing.License
+	NomadLicense *license.License
 	QueryMeta
 }
 

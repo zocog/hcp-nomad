@@ -128,3 +128,17 @@ func (w *LicenseWatcher) ValidateLicense(blob string) (*licensing.License, error
 func (w *LicenseWatcher) SetLicense(blob string) (*licensing.License, error) {
 	return w.watcher.SetLicense(blob)
 }
+
+func (w *LicenseWatcher) GetLicense() (*nomadLicense.License, error) {
+	l, err := w.watcher.License()
+	if err != nil {
+		return nil, err
+	}
+
+	n, err := nomadLicense.NewLicense(l)
+	if err != nil {
+		return nil, err
+	}
+
+	return n, nil
+}
