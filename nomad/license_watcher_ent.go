@@ -66,11 +66,11 @@ func watcherStartupOpts() (*licensing.WatcherOptions, error) {
 
 func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore, shutdownFunc func() error) {
 	w.once.Do(func() {
-		go w.startFunc(ctx, state, shutdownFunc)
+		go w.watch(ctx, state, shutdownFunc)
 	})
 }
 
-func (w *LicenseWatcher) startFunc(ctx context.Context, state *state.StateStore, shutdownFunc func() error) {
+func (w *LicenseWatcher) watch(ctx context.Context, state *state.StateStore, shutdownFunc func() error) {
 	// licenseSet tracks whether or not a permanent license has been set
 	var licenseSet bool
 
