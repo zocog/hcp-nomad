@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/go-licensing/flags"
 )
 
-const ProductName = "nomad-enterprise"
+const ProductName = "nomad"
 
 // NomadFlags is an empty struct used to satisfy the ProductFlags
 // interface in go-licensing
