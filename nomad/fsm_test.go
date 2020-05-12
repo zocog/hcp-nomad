@@ -2822,6 +2822,7 @@ func TestFSM_SnapshotRestore_SchedulerConfiguration(t *testing.T) {
 	fsm := testFSM(t)
 	state := fsm.State()
 	schedConfig := &structs.SchedulerConfiguration{
+		SchedulerAlgorithm: "spread",
 		PreemptionConfig: structs.PreemptionConfig{
 			SystemSchedulerEnabled: true,
 		},

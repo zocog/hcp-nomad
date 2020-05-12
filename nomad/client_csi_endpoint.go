@@ -134,12 +134,16 @@ func (a *ClientCSI) nodeForController(pluginID, nodeID string) (string, error) {
 		_, err = getNodeForRpc(snap, nodeID)
 		if err == nil {
 			return nodeID, nil
+		} else {
+			// we'll fall-through and select a node at random
+			a.logger.Trace("%s could not be used for client RPC: %v", nodeID, err)
 		}
 	}
 
 	if pluginID == "" {
 		return "", fmt.Errorf("missing plugin ID")
 	}
+
 	ws := memdb.NewWatchSet()
 
 	// note: plugin IDs are not scoped to region/DC but volumes are.
@@ -160,7 +164,7 @@ func (a *ClientCSI) nodeForController(pluginID, nodeID string) (string, error) {
 	// iterating maps is "random" but unspecified and isn't particularly
 	// random with small maps, so not well-suited for load balancing.
 	// so we shuffle the keys and iterate over them.
-	clientIDs := make([]string, count)
+	clientIDs := make([]string, 0, count)
 	for clientID := range plugin.Controllers {
 		clientIDs = append(clientIDs, clientID)
 	}
