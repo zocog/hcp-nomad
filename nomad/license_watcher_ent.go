@@ -85,8 +85,9 @@ func (w *LicenseWatcher) watch(ctx context.Context, state *state.StateStore, shu
 		if stored != nil && stored.Signed != "" {
 			if _, err := w.watcher.SetLicense(stored.Signed); err != nil {
 				w.logger.Error("failed setting license", "error", err)
+			} else {
+				licenseSet = true
 			}
-			licenseSet = true
 		}
 
 		// Create a context and cancelFunc scoped to the watchSet
