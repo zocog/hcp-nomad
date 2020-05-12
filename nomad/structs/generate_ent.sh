@@ -4,6 +4,7 @@ set -e
 
 codecgen \
     -c github.com/hashicorp/go-msgpack/codec \
+    -st codec \
     -d 102 \
     -t ent \
     -rt ent \
