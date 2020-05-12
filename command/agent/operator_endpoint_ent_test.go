@@ -33,7 +33,7 @@ func TestOperator_GetLicense(t *testing.T) {
 			stored, err := state.License(watchSet)
 			return stored != nil, err
 		}, func(err error) {
-			require.Fail(t, "update should be received from raft")
+			require.Fail(t, "update should be received from raft", err)
 		})
 
 		body := bytes.NewBuffer(nil)
