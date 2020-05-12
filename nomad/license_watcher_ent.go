@@ -18,8 +18,9 @@ import (
 
 var (
 	builtinPublicKeys = []string{}
+
 	// Temporary Nomad-Enterprise licenses should operate for six hours
-	temporaryLicenseTimeLimit = time.Hour * 6
+	temporaryLicenseTimeLimit = 6 * time.Hour
 )
 
 type LicenseWatcher struct {
