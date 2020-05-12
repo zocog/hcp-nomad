@@ -20,8 +20,7 @@ func TestCommand_LicenseGet_OSSErr(t *testing.T) {
 
 	code := cmd.Run([]string{"-address=" + url})
 	if srv.Enterprise {
-		require.Equal(t, 0, code)
-		require.Contains(t, ui.OutputWriter.String(), "License Status = valid")
+		require.Equal(t, 1, code)
 	} else {
 		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Nomad Enterprise only endpoint")
