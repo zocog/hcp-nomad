@@ -75,12 +75,21 @@ func (w *LicenseWatcher) watch(ctx context.Context, state *state.StateStore, shu
 	// licenseSet tracks whether or not a permanent license has been set
 	var licenseSet bool
 
+MAIN:
 	for {
+		// Check if we should exit
+		select {
+		case <-ctx.Done():
+			break MAIN
+		default:
+		}
+
 		watchSet := memdb.NewWatchSet()
 		stored, err := state.License(watchSet)
 		if err != nil {
 			w.logger.Error("failed fetching license from state store", "error", err)
 			time.Sleep(lib.RandomStagger(1 * time.Second))
+			continue
 		}
 		if stored != nil && stored.Signed != "" {
 			if _, err := w.watcher.SetLicense(stored.Signed); err != nil {
@@ -94,33 +103,41 @@ func (w *LicenseWatcher) watch(ctx context.Context, state *state.StateStore, shu
 		watchSetCtx, watchSetCancel := context.WithCancel(ctx)
 		watchSetCh := watchSet.WatchCh(watchSetCtx)
 
-		select {
-		// If watchSetCh returns a nil error, there is a new license. If it returns an actual error,
-		// the context is canceled, and the function can exit.
-		case err := <-watchSetCh:
-			if err == nil {
-				w.logger.Debug("retreiving new license")
-			} else {
-				watchSetCancel()
-				return
-			}
+		w.watchSet(watchSetCtx, watchSetCh, watchSetCancel, licenseSet, shutdownFunc)
+	}
+}
 
-		// This final case checks for licensing errors, primarily expirations.
-		case err := <-w.watcher.ErrorCh():
-			// If a permanent license has not been set, we close the server.
-			if !licenseSet {
-				w.logger.Error("temporary license expired; shutting down server")
-				watchSetCancel()
-				shutdownFunc()
-				return
-			}
-			w.logger.Error("received error from watcher", "error", err)
+func (w *LicenseWatcher) watchSet(
+	watchCtx context.Context,
+	watchSetCh <-chan error,
+	watchSetCancel context.CancelFunc,
+	licenseSet bool,
+	shutdownFunc func() error,
+) {
+	defer watchSetCancel()
 
-		case warnLicense := <-w.watcher.WarningCh():
-			w.logger.Warn("license expiring", "time_left", time.Until(warnLicense.ExpirationTime).Truncate(time.Second))
-
+	select {
+	// If watchSetCh returns a nil error, there is a new license. If it returns an actual error,
+	// the context is canceled, and the function can exit.
+	case err := <-watchSetCh:
+		if err == nil {
+			w.logger.Debug("retreiving new license")
+		} else {
+			w.logger.Error("received from license watchset", "error", err)
 		}
-		watchSetCancel()
+	// This final case checks for licensing errors, primarily expirations.
+	case err := <-w.watcher.ErrorCh():
+		w.logger.Error("received error from watcher", "error", err)
+
+		// If a permanent license has not been set, we close the server.
+		if !licenseSet {
+			w.logger.Error("temporary license expired; shutting down server")
+			shutdownFunc()
+		}
+		w.logger.Error("license expired") //TODO: more info
+	case warnLicense := <-w.watcher.WarningCh():
+		w.logger.Warn("license expiring", "time_left", time.Until(warnLicense.ExpirationTime).Truncate(time.Second))
+	case <-watchCtx.Done():
 	}
 }
 

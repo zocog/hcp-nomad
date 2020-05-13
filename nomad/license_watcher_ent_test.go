@@ -4,7 +4,6 @@ package nomad
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"testing"
 	"time"
@@ -18,10 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	builtinPublicKeys = append(builtinPublicKeys, base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey))
-}
-
 func newTestLicenseWatcher() *LicenseWatcher {
 	logger := hclog.NewInterceptLogger(nil)
 	lw, _ := NewLicenseWatcher(logger)
@@ -34,6 +29,8 @@ func testShutdownFunc() error {
 
 func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
 	t.Parallel()
+	TestValidationHelper(t)
+
 	ctx := context.Background()
 	lw := newTestLicenseWatcher()
 	state := state.TestStateStore(t)

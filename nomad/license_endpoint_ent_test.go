@@ -21,6 +21,8 @@ import (
 func TestLicenseEndpoint_GetLicense(t *testing.T) {
 	assert := assert.New(t)
 	t.Parallel()
+	TestValidationHelper(t)
+
 	s1, cleanupS1 := TestServer(t, nil)
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
@@ -40,6 +42,7 @@ func TestLicenseEndpoint_GetLicense(t *testing.T) {
 func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 	assert := assert.New(t)
 	t.Parallel()
+	TestValidationHelper(t)
 
 	s1, cleanupS1 := TestServer(t, nil)
 	defer cleanupS1()
@@ -82,6 +85,8 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {
 	assert := assert.New(t)
 	t.Parallel()
+	TestValidationHelper(t)
+
 	s1, root, cleanupS1 := TestACLServer(t, nil)
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
