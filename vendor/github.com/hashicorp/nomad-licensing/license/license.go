@@ -16,6 +16,8 @@ type License struct {
 }
 
 func NewLicense(license *licensing.License) (*License, error) {
+	// Marshal to JSON to use the custom Unmarshallers to populate
+	// the features
 	flagsRaw, err := json.Marshal(license.Flags)
 	if err != nil {
 		return nil, err
@@ -85,7 +87,7 @@ func (f *Flags) UnmarshalJSON(data []byte) error {
 	}
 
 	// Add Platform features to feature flags
-	f.features.AddFeature(ModulePlatform)
+	f.features.AddFeature(ModulePlatformFeatures)
 
 	// Iterate over modules
 	for _, modRaw := range f.Modules {

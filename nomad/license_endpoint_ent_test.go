@@ -19,9 +19,8 @@ import (
 )
 
 func TestLicenseEndpoint_GetLicense(t *testing.T) {
-	assert := assert.New(t)
 	t.Parallel()
-	TestValidationHelper(t)
+	TestLicenseValidationHelper(t)
 
 	s1, cleanupS1 := TestServer(t, nil)
 	defer cleanupS1()
@@ -31,18 +30,32 @@ func TestLicenseEndpoint_GetLicense(t *testing.T) {
 	l := nomadLicense.NewTestLicense(nomadLicense.TestGovernancePolicyFlags())
 	_, err := s1.EnterpriseState.licenseWatcher.SetLicense(l.Signed)
 	require.NoError(t, err)
-	get := &structs.LicenseGetRequest{
-		QueryOptions: structs.QueryOptions{Region: "global"},
-	}
-	var resp structs.LicenseGetResponse
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.GetLicense", get, &resp))
-	assert.True(l.License.License.Equal(resp.NomadLicense.License), fmt.Sprintf("wanted %s got %s", l.License.License, resp.NomadLicense.License))
+
+	// There is some time between SetLicense and the watchers updateCh
+	// receiving and applying the new license
+	testutil.WaitForResult(func() (bool, error) {
+		get := &structs.LicenseGetRequest{
+			QueryOptions: structs.QueryOptions{Region: "global"},
+		}
+
+		var resp structs.LicenseGetResponse
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.GetLicense", get, &resp))
+
+		equal := l.License.License.Equal(resp.NomadLicense.License)
+		if equal {
+			return true, nil
+		}
+		return false, fmt.Errorf("wanted: %v got: %v", l.License.License, resp.NomadLicense.License)
+	}, func(err error) {
+		require.Failf(t, "failed to find updated license", err.Error())
+	})
+
 }
 
 func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 	assert := assert.New(t)
 	t.Parallel()
-	TestValidationHelper(t)
+	TestLicenseValidationHelper(t)
 
 	s1, cleanupS1 := TestServer(t, nil)
 	defer cleanupS1()
@@ -85,7 +98,7 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {
 	assert := assert.New(t)
 	t.Parallel()
-	TestValidationHelper(t)
+	TestLicenseValidationHelper(t)
 
 	s1, root, cleanupS1 := TestACLServer(t, nil)
 	defer cleanupS1()

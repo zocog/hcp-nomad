@@ -244,7 +244,7 @@
 		{"path":"github.com/hashicorp/go-getter/helper/url","checksumSHA1":"9J+kDr29yDrwsdu2ULzewmqGjpA=","revision":"b345bfcec894fb7ff3fdf9b21baf2f56ea423d98","revisionTime":"2018-04-10T17:49:45Z"},
 		{"path":"github.com/hashicorp/go-hclog","checksumSHA1":"tNgHh706sto5/99XYD5jIuBDqa8=","revision":"0e86804c9e4bede0738cbbc370e705ef82580e7e","revisionTime":"2020-01-11T00:06:39Z","version":"v0.11.0","versionExact":"v0.11.0"},
 		{"path":"github.com/hashicorp/go-immutable-radix","checksumSHA1":"ENxIFA1rgRsS17mw7EHgecLx82M=","revision":"e47f517af50356c81b117418760ac7dfd7b7af62","revisionTime":"2020-03-18T18:06:31Z"},
-		{"path":"github.com/hashicorp/go-licensing","checksumSHA1":"BYo0ujZaeXWKrT6CBcw7dngDLXg=","revision":"6f60c0f1ecd42223884480e56b2bd191fb0e902c","revisionTime":"2020-04-28T15:16:20Z"},
+		{"path":"github.com/hashicorp/go-licensing","checksumSHA1":"E5OV8y3ens06cqRqfWgpCi5dMfE=","revision":"7d9ec85339ee93730fba3120ddf650d6d5cdf87f","revisionTime":"2020-05-11T19:14:34Z","version":"master","versionExact":"master"},
 		{"path":"github.com/hashicorp/go-licensing/flags","checksumSHA1":"0realkdorjGjpb7epAifBOPNxyM=","revision":"6264508490d5e93128fa5a460a6ca38337392dd6","revisionTime":"2020-04-23T17:43:35Z"},
 		{"path":"github.com/hashicorp/go-memdb","checksumSHA1":"XdIjWJf8DU3ZErcDrEfBcUJzKG0=","revision":"ac8c839d3bac603f96bbb715e0d267c565567d0f","revisionTime":"2020-04-22T23:39:21Z"},
 		{"path":"github.com/hashicorp/go-msgpack/codec","checksumSHA1":"CKGYNUDKre3Z2g4hHNVfp5nTcfA=","revision":"cc7dbc9ee9335986a7245d8c29e1a9e2aa0cc8c7","revisionTime":"2019-11-01T19:38:46Z","version":"v1.1.5","versionExact":"v1.1.5"},

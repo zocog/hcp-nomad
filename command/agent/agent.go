@@ -59,6 +59,8 @@ type Agent struct {
 	httpLogger log.Logger
 	logOutput  io.Writer
 
+	EnterpriseAgent *EnterpriseAgent
+
 	// consulService is Nomad's custom Consul client for managing services
 	// and checks.
 	consulService *consul.ServiceClient
@@ -121,6 +123,7 @@ func NewAgent(config *Config, logger log.InterceptLogger, logOutput io.Writer, i
 	if err := a.setupClient(); err != nil {
 		return nil, err
 	}
+
 	if err := a.setupEnterpriseAgent(logger); err != nil {
 		return nil, err
 	}

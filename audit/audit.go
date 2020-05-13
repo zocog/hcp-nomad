@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/go-eventlogger"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/helper/uuid"
 )
 
@@ -60,7 +61,8 @@ type Config struct {
 	Filters []FilterConfig
 	Sinks   []SinkConfig
 
-	Logger hclog.InterceptLogger
+	Logger         hclog.InterceptLogger
+	FeatureChecker license.FeatureChecker
 }
 
 // FilterConfig holds the options and settings to create a Filter.
@@ -124,6 +126,8 @@ type Auditor struct {
 	// l protects enabled
 	l       sync.RWMutex
 	enabled bool
+
+	f license.FeatureChecker
 }
 
 // NewAuditor creates an auditor which can be used to send events
@@ -220,10 +224,14 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 		mode = Enforced
 	}
 
+	if cfg.FeatureChecker == nil {
+		return nil, fmt.Errorf("feature checker not configured")
+	}
 	return &Auditor{
 		enabled: cfg.Enabled,
 		broker:  broker,
 		log:     cfg.Logger,
+		f:       cfg.FeatureChecker,
 		mode:    mode,
 	}, nil
 }
@@ -237,8 +245,14 @@ func (a *Auditor) Enabled() bool {
 
 // Event is used to send an audit log event.
 func (a *Auditor) Event(ctx context.Context, eventType string, payload interface{}) error {
-	// fast-path if disabled.
+	// Fast-path if disabled.
 	if !a.Enabled() {
+		return nil
+	}
+
+	// Feature check
+	if err := a.f.FeatureCheck(license.FeatureAuditLogging); err != nil {
+		// Return without error if audit logging is unlicensed
 		return nil
 	}
 

@@ -55,3 +55,9 @@ func TestGovernancePolicyFlags() map[string]interface{} {
 		"modules": []interface{}{ModuleGovernancePolicy.String()},
 	}
 }
+
+func TestPlatformFlags() map[string]interface{} {
+	return map[string]interface{}{
+		"modules": []interface{}{ModulePlatform.String()},
+	}
+}

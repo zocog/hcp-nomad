@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/nomad/nomad/structs/config"
 )
 
+type EnterpriseAgent struct{}
+
 func (a *Agent) setupEnterpriseAgent(log hclog.Logger) error {
 	// configure eventer
 	a.auditor = &noOpAuditor{}

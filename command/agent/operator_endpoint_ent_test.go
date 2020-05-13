@@ -20,7 +20,7 @@ func TestOperator_GetLicense(t *testing.T) {
 	t.Parallel()
 
 	// call to add test license key to list of known keys
-	nomad.TestValidationHelper(t)
+	nomad.TestLicenseValidationHelper(t)
 
 	httpTest(t, nil, func(s *TestAgent) {
 		stored, l := mock.StoredLicense()

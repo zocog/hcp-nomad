@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-eventlogger"
+	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/stretchr/testify/require"
@@ -22,6 +24,17 @@ type eventWrapper struct {
 	CreatedAt time.Time `json:"created_at"`
 	EventType string    `json:"event_type"`
 	Payload   Event     `json:"payload"`
+}
+
+type testChecker struct {
+	fail bool
+}
+
+func (t *testChecker) FeatureCheck(feature license.Features) error {
+	if t.fail {
+		return fmt.Errorf("Feature %q is unlicensed", feature.String())
+	}
+	return nil
 }
 
 // TestAuditor tests we can send an event all the way through the pipeline
@@ -35,6 +48,7 @@ func TestAuditor(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	auditor, err := NewAuditor(&Config{
+		Logger:  testlog.HCLogger(t),
 		Enabled: true,
 		Filters: []FilterConfig{},
 		Sinks: []SinkConfig{
@@ -47,6 +61,7 @@ func TestAuditor(t *testing.T) {
 				Path:              tmpDir,
 			},
 		},
+		FeatureChecker: &testChecker{},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, auditor)
@@ -80,8 +95,10 @@ func TestAuditor_NewDir(t *testing.T) {
 
 	auditDir := filepath.Join(tmpDir, "audit")
 	auditor, err := NewAuditor(&Config{
-		Enabled: true,
-		Filters: []FilterConfig{},
+		Logger:         testlog.HCLogger(t),
+		Enabled:        true,
+		FeatureChecker: &testChecker{},
+		Filters:        []FilterConfig{},
 		Sinks: []SinkConfig{
 			{
 				Name:              "json file",
@@ -122,8 +139,9 @@ func TestAuditor_Filter(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	auditor, err := NewAuditor(&Config{
-		Logger:  testlog.HCLogger(t),
-		Enabled: true,
+		Logger:         testlog.HCLogger(t),
+		Enabled:        true,
+		FeatureChecker: &testChecker{},
 		Filters: []FilterConfig{
 			// filter all stages for endpoints matching /v1/job
 			{
@@ -198,9 +216,10 @@ func TestAuditor_Mode_BestEffort(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	auditor, err := NewAuditor(&Config{
-		Logger:  logger,
-		Enabled: true,
-		Filters: []FilterConfig{},
+		Logger:         logger,
+		Enabled:        true,
+		Filters:        []FilterConfig{},
+		FeatureChecker: &testChecker{},
 		Sinks: []SinkConfig{
 			{
 				Name:   "json file",
@@ -220,6 +239,45 @@ func TestAuditor_Mode_BestEffort(t *testing.T) {
 	err = auditor.Event(context.Background(), "audit", []byte("not an event"))
 	require.NoError(t, err)
 
+}
+
+func TestAuditor_Unlicensed(t *testing.T) {
+	t.Parallel()
+
+	logger := testlog.HCLogger(t)
+	// Create a temp directory for the audit log file
+	tmpDir, err := ioutil.TempDir("", t.Name())
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	auditor, err := NewAuditor(&Config{
+		Logger:         logger,
+		Enabled:        true,
+		Filters:        []FilterConfig{},
+		FeatureChecker: &testChecker{fail: true},
+		Sinks: []SinkConfig{
+			{
+				Name:   "json file",
+				Type:   FileSink,
+				Format: JSONFmt,
+				// BestEffort
+				DeliveryGuarantee: BestEffort,
+				FileName:          "audit.log",
+				Path:              tmpDir,
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, auditor)
+
+	// Send event that will fail validation
+	err = auditor.Event(context.Background(), "audit", []byte("not an event"))
+	require.NoError(t, err)
+
+	// Verify the audit log does not exist
+	_, err = os.Stat(filepath.Join(tmpDir, "audit.log"))
+	require.Error(t, err)
+	require.True(t, os.IsNotExist(err))
 }
 
 func testEvent(et eventlogger.EventType, s Stage) *Event {

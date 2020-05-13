@@ -9,6 +9,10 @@ import (
 
 const ProductName = "nomad"
 
+type FeatureChecker interface {
+	FeatureCheck(feature Features) error
+}
+
 // NomadFlags is an empty struct used to satisfy the ProductFlags
 // interface in go-licensing
 type NomadFlags struct {

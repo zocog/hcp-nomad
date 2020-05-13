@@ -5,6 +5,7 @@ package nomad
 import (
 	"fmt"
 
+	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/sentinel/sentinel"
 )
 
@@ -14,6 +15,22 @@ type EnterpriseState struct {
 
 	//licenseWatcher is used to manage the lifecycle for enterprise licenses
 	licenseWatcher *LicenseWatcher
+}
+
+func (es *EnterpriseState) FeatureCheck(feature license.Features) error {
+	if es.licenseWatcher == nil {
+		// everythign is licensed for
+		return nil
+	}
+
+	return es.licenseWatcher.FeatureCheck(feature)
+}
+
+// FeatureCheckPreemption feature checks for preemption
+// It exists so it can be used  in an OSS context without requiring
+// the OSS binary to include license pkg.
+func (es *EnterpriseState) FeatureCheckPreemption() error {
+	return es.FeatureCheck(license.FeaturePreemption)
 }
 
 // setupEnterprise is used for Enterprise specific setup

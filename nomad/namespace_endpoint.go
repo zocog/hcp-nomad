@@ -9,6 +9,7 @@ import (
 	metrics "github.com/armon/go-metrics"
 	memdb "github.com/hashicorp/go-memdb"
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
@@ -21,6 +22,11 @@ type Namespace struct {
 // UpsertNamespaces is used to upsert a set of namespaces
 func (n *Namespace) UpsertNamespaces(args *structs.NamespaceUpsertRequest,
 	reply *structs.GenericResponse) error {
+	// Strict enforcement for write requests - if not licensed then requests will be denied
+	if err := n.srv.EnterpriseState.FeatureCheck(license.FeatureNamespaces); err != nil {
+		return err
+	}
+
 	args.Region = n.srv.config.AuthoritativeRegion
 	if done, err := n.srv.forward("Namespace.UpsertNamespaces", args, args, reply); done {
 		return err
@@ -66,6 +72,11 @@ func (n *Namespace) UpsertNamespaces(args *structs.NamespaceUpsertRequest,
 
 // DeleteNamespaces is used to delete a namespace
 func (n *Namespace) DeleteNamespaces(args *structs.NamespaceDeleteRequest, reply *structs.GenericResponse) error {
+	// Strict enforcement for write requests - if not licensed then requests will be denied
+	if err := n.srv.EnterpriseState.FeatureCheck(license.FeatureNamespaces); err != nil {
+		return err
+	}
+
 	args.Region = n.srv.config.AuthoritativeRegion
 	if done, err := n.srv.forward("Namespace.DeleteNamespaces", args, args, reply); done {
 		return err
@@ -215,6 +226,9 @@ func (n *Namespace) namespaceTerminalInRegion(authToken, namespace, region strin
 
 // ListNamespaces is used to list the namespaces
 func (n *Namespace) ListNamespaces(args *structs.NamespaceListRequest, reply *structs.NamespaceListResponse) error {
+	// Only warn for expiration of a read request
+	_ = n.srv.EnterpriseState.FeatureCheck(license.FeatureNamespaces)
+
 	if done, err := n.srv.forward("Namespace.ListNamespaces", args, args, reply); done {
 		return err
 	}

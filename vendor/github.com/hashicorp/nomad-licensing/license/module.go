@@ -15,6 +15,8 @@ const (
 	// ModuleGovernancePolicy
 	ModuleGovernancePolicy Module = iota + 1
 
+	ModulePlatform
+
 	// Should always be last, add modules above
 	numOfModules int = iota
 )
@@ -23,6 +25,8 @@ func (m Module) String() string {
 	switch m {
 	case ModuleGovernancePolicy:
 		return "governance-policy"
+	case ModulePlatform:
+		return "platform"
 	default:
 		return "unknown"
 	}
@@ -33,21 +37,25 @@ func ModuleFromString(module string) (Module, error) {
 	switch strings.ToLower(module) {
 	case "governance-policy":
 		return ModuleGovernancePolicy, nil
+	case "platform":
+		return ModulePlatform, nil
 	default:
 		return ModuleUnknown, fmt.Errorf("invalid module: %q", module)
 	}
 }
 
 // ModulePlatform represents the features that are delivered in all versions of Vault Enterprise
-const ModulePlatform Features = FeatureAutoUpgrades | FeatureReadScalability | FeatureRedundancyZones
+const ModulePlatformFeatures Features = FeatureAutoUpgrades | FeatureReadScalability | FeatureRedundancyZones
 
 // Features returns all the features for a module
 func (m Module) Features() Features {
 	switch m {
 	case ModuleGovernancePolicy:
-		return ModulePlatform | FeatureNamespaces | FeatureResourceQuotas | FeaturePreemption | FeatureAuditLogging | FeatureSetinelPolicies
+		return ModulePlatformFeatures | FeatureNamespaces | FeatureResourceQuotas | FeaturePreemption | FeatureAuditLogging | FeatureSetinelPolicies
 
+	case ModulePlatform:
+		fallthrough
 	default:
-		return ModulePlatform
+		return ModulePlatformFeatures
 	}
 }
