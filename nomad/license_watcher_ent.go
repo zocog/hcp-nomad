@@ -75,12 +75,11 @@ func (w *LicenseWatcher) watch(ctx context.Context, state *state.StateStore, shu
 	// licenseSet tracks whether or not a permanent license has been set
 	var licenseSet bool
 
-MAIN:
 	for {
 		// Check if we should exit
 		select {
 		case <-ctx.Done():
-			break MAIN
+			return
 		default:
 		}
 
@@ -99,21 +98,14 @@ MAIN:
 			}
 		}
 
-		// Create a context and cancelFunc scoped to the watchSet
-		watchSetCtx, watchSetCancel := context.WithCancel(ctx)
-		watchSetCh := watchSet.WatchCh(watchSetCtx)
-
-		w.watchSet(watchSetCtx, watchSetCh, watchSetCancel, licenseSet, shutdownFunc)
+		w.watchSet(ctx, watchSet, licenseSet, shutdownFunc)
 	}
 }
 
-func (w *LicenseWatcher) watchSet(
-	watchCtx context.Context,
-	watchSetCh <-chan error,
-	watchSetCancel context.CancelFunc,
-	licenseSet bool,
-	shutdownFunc func() error,
-) {
+func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, licenseSet bool, shutdownFunc func() error) {
+	// Create a context and cancelFunc scoped to the watchSet
+	watchSetCtx, watchSetCancel := context.WithCancel(ctx)
+	watchSetCh := watchSet.WatchCh(watchSetCtx)
 	defer watchSetCancel()
 
 	select {
@@ -137,7 +129,7 @@ func (w *LicenseWatcher) watchSet(
 		w.logger.Error("license expired") //TODO: more info
 	case warnLicense := <-w.watcher.WarningCh():
 		w.logger.Warn("license expiring", "time_left", time.Until(warnLicense.ExpirationTime).Truncate(time.Second))
-	case <-watchCtx.Done():
+	case <-watchSetCtx.Done():
 	}
 }
 
