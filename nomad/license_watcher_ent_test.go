@@ -34,7 +34,11 @@ func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
 	ctx := context.Background()
 	lw := newTestLicenseWatcher()
 	state := state.TestStateStore(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
 	lw.start(ctx, state, testShutdownFunc)
+	defer cancel()
+
 	initLicense, _ := lw.watcher.License()
 	newLicense := license.NewTestLicense(license.TestGovernancePolicyFlags())
 	stored := &structs.StoredLicense{
@@ -55,7 +59,11 @@ func TestLicenseWatcher_UpdateCh(t *testing.T) {
 
 	lw := newTestLicenseWatcher()
 	state := state.TestStateStore(t)
-	lw.start(context.Background(), state, testShutdownFunc)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	lw.start(ctx, state, testShutdownFunc)
+	defer cancel()
+
 	newLicense := license.NewTestLicense(license.TestGovernancePolicyFlags())
 	stored := &structs.StoredLicense{
 		Signed:      newLicense.Signed,
@@ -75,7 +83,10 @@ func TestLicenseWatcher_UpdateCh_Platform(t *testing.T) {
 
 	lw := newTestLicenseWatcher()
 	state := state.TestStateStore(t)
-	lw.start(context.Background(), state, testShutdownFunc)
+	ctx, cancel := context.WithCancel(context.Background())
+	lw.start(ctx, state, testShutdownFunc)
+	defer cancel()
+
 	newLicense := license.NewTestLicense(license.TestPlatformFlags())
 	stored := &structs.StoredLicense{
 		Signed:      newLicense.Signed,
