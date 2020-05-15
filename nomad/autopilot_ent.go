@@ -60,7 +60,7 @@ func (s *Server) ConsulFeatureCheck(feature consulLicense.Features, allowPreviou
 	if err != nil {
 		return err
 	}
-	return s.EnterpriseState.FeatureCheck(nomadFeature)
+	return s.EnterpriseState.FeatureCheck(nomadFeature, true)
 }
 
 // Set up the enterprise version of autopilot

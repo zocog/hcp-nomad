@@ -10,7 +10,7 @@ import (
 const ProductName = "nomad"
 
 type FeatureChecker interface {
-	FeatureCheck(feature Features) error
+	FeatureCheck(feature Features, emitLog bool) error
 }
 
 // NomadFlags is an empty struct used to satisfy the ProductFlags

@@ -17,20 +17,20 @@ type EnterpriseState struct {
 	licenseWatcher *LicenseWatcher
 }
 
-func (es *EnterpriseState) FeatureCheck(feature license.Features) error {
+func (es *EnterpriseState) FeatureCheck(feature license.Features, emitLog bool) error {
 	if es.licenseWatcher == nil {
 		// everythign is licensed for
 		return nil
 	}
 
-	return es.licenseWatcher.FeatureCheck(feature)
+	return es.licenseWatcher.FeatureCheck(feature, emitLog)
 }
 
 // FeatureCheckPreemption feature checks for preemption
 // It exists so it can be used  in an OSS context without requiring
 // the OSS binary to include license pkg.
 func (es *EnterpriseState) FeatureCheckPreemption() error {
-	return es.FeatureCheck(license.FeaturePreemption)
+	return es.FeatureCheck(license.FeaturePreemption, true)
 }
 
 // setupEnterprise is used for Enterprise specific setup

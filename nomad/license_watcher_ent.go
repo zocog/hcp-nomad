@@ -35,14 +35,18 @@ type LicenseWatcher struct {
 	// once ensures watch is only invoked once
 	once sync.Once
 
+	// mu protects license
+	mu sync.Mutex
 	// Expanded/parsed License
 	license *license.License
 
 	watcher *licensing.Watcher
-	logger  hclog.Logger
+
+	logMu  sync.Mutex
+	logger hclog.Logger
 
 	// logTimes tracks the last time we sent a log message for a feature
-	logTimes map[string]time.Time
+	logTimes map[license.Features]time.Time
 }
 
 func NewLicenseWatcher(logger hclog.InterceptLogger) (*LicenseWatcher, error) {
@@ -69,9 +73,10 @@ func NewLicenseWatcher(logger hclog.InterceptLogger) (*LicenseWatcher, error) {
 		features: 0,
 		license:  nomadTmpLicense,
 		logger:   logger.Named("licensing"),
-		logTimes: make(map[string]time.Time),
+		mu:       sync.Mutex{},
+		logMu:    sync.Mutex{},
+		logTimes: make(map[license.Features]time.Time),
 	}
-	atomic.StoreUint64(&lw.features, uint64(nomadTmpLicense.Features))
 
 	return lw, nil
 }
@@ -91,6 +96,8 @@ func watcherStartupOpts() (*licensing.License, *licensing.WatcherOptions, error)
 	}, nil
 }
 
+// start starts the license watching process in a goroutine. Callers are responsible
+// for ensuring it is shut down properly
 func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore, shutdownFunc func() error) {
 	w.once.Do(func() {
 		go w.watch(ctx, state, shutdownFunc)
@@ -146,13 +153,7 @@ func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, 
 	// Handle updated license from the watcher
 	case lic := <-w.watcher.UpdateCh():
 		if w.license == nil || !w.license.Equal(lic) {
-			nomadLicense, err := license.NewLicense(lic)
-			if err == nil {
-				w.license = nomadLicense
-				atomic.StoreUint64(&w.features, uint64(nomadLicense.Features))
-			} else {
-				w.logger.Error("error loading Nomad license", "error", err)
-			}
+			w.updateLicense(lic)
 		}
 	// This final case checks for licensing errors, primarily expirations.
 	case err := <-w.watcher.ErrorCh():
@@ -187,7 +188,7 @@ func (w *LicenseWatcher) HasFeature(feature license.Features) bool {
 	return w.Features().HasFeature(feature)
 }
 
-func (w *LicenseWatcher) FeatureCheck(feature license.Features) error {
+func (w *LicenseWatcher) FeatureCheck(feature license.Features, emitLog bool) error {
 	if w.HasFeature(feature) {
 		return nil
 	}
@@ -195,21 +196,43 @@ func (w *LicenseWatcher) FeatureCheck(feature license.Features) error {
 	err := fmt.Errorf("Feature %q is unlicensed", feature.String())
 
 	// Only send log messages for a missing feature every 5 minutes
-	lastTime := w.logTimes[err.Error()]
+	w.logMu.Lock()
+	defer w.logMu.Unlock()
+	lastTime := w.logTimes[feature]
 	now := time.Now()
 	if now.Sub(lastTime) > 5*time.Minute {
 		w.logger.Warn(err.Error())
-		w.logTimes[err.Error()] = now
+		w.logTimes[feature] = now
 	}
 
 	return err
 }
 
 func (w *LicenseWatcher) GetLicense() (*license.License, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	l := w.license
 	if l == nil {
 		return nil, fmt.Errorf("license not found")
 	}
 
-	return l, nil
+	lcopy, err := l.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("error cloning license")
+	}
+
+	return lcopy, nil
+}
+
+func (w *LicenseWatcher) updateLicense(lic *licensing.License) {
+	nomadLicense, err := license.NewLicense(lic)
+	if err == nil {
+		w.mu.Lock()
+		w.license = nomadLicense
+		w.mu.Unlock()
+		atomic.StoreUint64(&w.features, uint64(nomadLicense.Features))
+	} else {
+		w.logger.Error("error loading Nomad license", "error", err)
+	}
 }

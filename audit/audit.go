@@ -251,7 +251,7 @@ func (a *Auditor) Event(ctx context.Context, eventType string, payload interface
 	}
 
 	// Feature check
-	if err := a.f.FeatureCheck(license.FeatureAuditLogging); err != nil {
+	if err := a.f.FeatureCheck(license.FeatureAuditLogging, true); err != nil {
 		// Return without error if audit logging is unlicensed
 		return nil
 	}

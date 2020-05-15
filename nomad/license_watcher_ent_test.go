@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
+	"github.com/hashicorp/nomad/testutil"
 
 	"github.com/stretchr/testify/require"
 )
@@ -45,8 +45,16 @@ func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
 		Signed:      newLicense.Signed,
 		CreateIndex: uint64(1000),
 	}
+	previousID := lw.license.LicenseID
 	state.UpsertLicense(1000, stored)
-	time.Sleep(1 * time.Second)
+	testutil.WaitForResult(func() (bool, error) {
+		if lw.license.LicenseID == previousID {
+			return false, fmt.Errorf("expected updated license")
+		}
+		return true, nil
+	}, func(err error) {
+		require.FailNow(t, err.Error())
+	})
 	fetchedLicense, err := lw.watcher.License()
 	require.NoError(t, err)
 	require.False(t, fetchedLicense.Equal(initLicense), "fetched license should be different from the inital")
@@ -69,8 +77,16 @@ func TestLicenseWatcher_UpdateCh(t *testing.T) {
 		Signed:      newLicense.Signed,
 		CreateIndex: uint64(1000),
 	}
+	previousID := lw.license.LicenseID
 	state.UpsertLicense(1000, stored)
-	time.Sleep(1 * time.Second)
+	testutil.WaitForResult(func() (bool, error) {
+		if lw.license.LicenseID == previousID {
+			return false, fmt.Errorf("expected updated license")
+		}
+		return true, nil
+	}, func(err error) {
+		require.FailNow(t, err.Error())
+	})
 
 	require.NotEqual(t, lw.features, uint64(0))
 	require.Equal(t, lw.license.Features, license.Features(lw.features))
@@ -92,8 +108,17 @@ func TestLicenseWatcher_UpdateCh_Platform(t *testing.T) {
 		Signed:      newLicense.Signed,
 		CreateIndex: uint64(1000),
 	}
+	previousID := lw.license.LicenseID
+
 	state.UpsertLicense(1000, stored)
-	time.Sleep(1 * time.Second)
+	testutil.WaitForResult(func() (bool, error) {
+		if lw.license.LicenseID == previousID {
+			return false, fmt.Errorf("expected updated license")
+		}
+		return true, nil
+	}, func(err error) {
+		require.FailNow(t, err.Error())
+	})
 
 	require.NotEqual(t, lw.features, uint64(0))
 	require.Equal(t, lw.license.Features, license.Features(lw.features))
@@ -135,15 +160,15 @@ func TestLicenseWatcher_PeriodicLogging(t *testing.T) {
 	lw := newTestLicenseWatcher()
 	atomic.StoreUint64(&lw.features, uint64(0))
 
-	require.Error(t, lw.FeatureCheck(license.FeatureAuditLogging))
+	require.Error(t, lw.FeatureCheck(license.FeatureAuditLogging, true))
 	require.Len(t, lw.logTimes, 1)
-	t1 := lw.logTimes[fmt.Sprintf("Feature %q is unlicensed", license.FeatureAuditLogging)]
+	t1 := lw.logTimes[license.FeatureAuditLogging]
 	require.NotNil(t, t1)
 
 	// Fire another feature check
-	require.Error(t, lw.FeatureCheck(license.FeatureAuditLogging))
+	require.Error(t, lw.FeatureCheck(license.FeatureAuditLogging, true))
 
-	t2 := lw.logTimes[fmt.Sprintf("Feature %q is unlicensed", license.FeatureAuditLogging)]
+	t2 := lw.logTimes[license.FeatureAuditLogging]
 	require.NotNil(t, t2)
 
 	require.Equal(t, t1, t2)

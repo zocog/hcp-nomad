@@ -30,7 +30,7 @@ type testChecker struct {
 	fail bool
 }
 
-func (t *testChecker) FeatureCheck(feature license.Features) error {
+func (t *testChecker) FeatureCheck(feature license.Features, emitLog bool) error {
 	if t.fail {
 		return fmt.Errorf("Feature %q is unlicensed", feature.String())
 	}

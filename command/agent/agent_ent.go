@@ -23,13 +23,13 @@ type EnterpriseAgent struct {
 
 type NoOpChecker struct{}
 
-func (n *NoOpChecker) FeatureCheck(feature license.Features) error {
+func (n *NoOpChecker) FeatureCheck(feature license.Features, emitLog bool) error {
 	return nil
 }
 
 type AlwaysFailChecker struct{}
 
-func (a *AlwaysFailChecker) FeatureCheck(feature license.Features) error {
+func (a *AlwaysFailChecker) FeatureCheck(feature license.Features, emitLog bool) error {
 	return fmt.Errorf("Feature %q is unlicensed", feature.String())
 }
 
