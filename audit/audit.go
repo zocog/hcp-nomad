@@ -225,8 +225,9 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	}
 
 	if cfg.FeatureChecker == nil {
-		return nil, fmt.Errorf("feature checker not configured")
+		return nil, fmt.Errorf("Developer error, misconfigured server/client feature checker nil")
 	}
+
 	return &Auditor{
 		enabled: cfg.Enabled,
 		broker:  broker,

@@ -13,5 +13,12 @@ import (
 // It should only be used in tests where a new test license needs to be
 // created.
 func TestLicenseValidationHelper(t *testing.T) {
-	builtinPublicKeys = append(builtinPublicKeys, base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey))
+	key := base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)
+	for _, k := range builtinPublicKeys {
+		if k == key {
+			return
+		}
+	}
+
+	builtinPublicKeys = append(builtinPublicKeys, key)
 }

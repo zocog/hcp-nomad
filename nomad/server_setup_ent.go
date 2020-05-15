@@ -19,7 +19,7 @@ type EnterpriseState struct {
 
 func (es *EnterpriseState) FeatureCheck(feature license.Features, emitLog bool) error {
 	if es.licenseWatcher == nil {
-		// everythign is licensed for
+		// everything is licensed while the watcher starts up
 		return nil
 	}
 

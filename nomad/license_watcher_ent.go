@@ -26,10 +26,8 @@ var (
 )
 
 type LicenseWatcher struct {
-	// The current feature set
-	// feature must be kept at the top of
-	// the struct so they're 64 bit aligned which is a requirement for
-	// atomic ops on 32 bit platforms.
+	// The set of licensed features
+	// must be kept at the top of the struct for 64 bit alignment
 	features uint64
 
 	// once ensures watch is only invoked once
@@ -37,6 +35,7 @@ type LicenseWatcher struct {
 
 	// mu protects license
 	mu sync.Mutex
+
 	// Expanded/parsed License
 	license *license.License
 
@@ -70,7 +69,7 @@ func NewLicenseWatcher(logger hclog.InterceptLogger) (*LicenseWatcher, error) {
 	lw := &LicenseWatcher{
 		once:     sync.Once{},
 		watcher:  watcher,
-		features: 0,
+		features: uint64(nomadTmpLicense.Features),
 		license:  nomadTmpLicense,
 		logger:   logger.Named("licensing"),
 		mu:       sync.Mutex{},
@@ -96,7 +95,7 @@ func watcherStartupOpts() (*licensing.License, *licensing.WatcherOptions, error)
 	}, nil
 }
 
-// start starts the license watching process in a goroutine. Callers are responsible
+// start the license watching process in a goroutine. Callers are responsible
 // for ensuring it is shut down properly
 func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore, shutdownFunc func() error) {
 	w.once.Do(func() {
@@ -152,7 +151,7 @@ func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, 
 		}
 	// Handle updated license from the watcher
 	case lic := <-w.watcher.UpdateCh():
-		if w.license == nil || !w.license.Equal(lic) {
+		if !w.license.Equal(lic) {
 			w.updateLicense(lic)
 		}
 	// This final case checks for licensing errors, primarily expirations.
@@ -188,6 +187,8 @@ func (w *LicenseWatcher) HasFeature(feature license.Features) bool {
 	return w.Features().HasFeature(feature)
 }
 
+// FeatureCheck determines if the given feature is included in License
+// if emitLog is true, a log will only be sent once ever 5 minutes per feature
 func (w *LicenseWatcher) FeatureCheck(feature license.Features, emitLog bool) error {
 	if w.HasFeature(feature) {
 		return nil
@@ -195,19 +196,22 @@ func (w *LicenseWatcher) FeatureCheck(feature license.Features, emitLog bool) er
 
 	err := fmt.Errorf("Feature %q is unlicensed", feature.String())
 
-	// Only send log messages for a missing feature every 5 minutes
-	w.logMu.Lock()
-	defer w.logMu.Unlock()
-	lastTime := w.logTimes[feature]
-	now := time.Now()
-	if now.Sub(lastTime) > 5*time.Minute {
-		w.logger.Warn(err.Error())
-		w.logTimes[feature] = now
+	if emitLog {
+		// Only send log messages for a missing feature every 5 minutes
+		w.logMu.Lock()
+		defer w.logMu.Unlock()
+		lastTime := w.logTimes[feature]
+		now := time.Now()
+		if now.Sub(lastTime) > 5*time.Minute {
+			w.logger.Warn(err.Error())
+			w.logTimes[feature] = now
+		}
 	}
 
 	return err
 }
 
+// GetLicense returns a copy of the current license
 func (w *LicenseWatcher) GetLicense() (*license.License, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
