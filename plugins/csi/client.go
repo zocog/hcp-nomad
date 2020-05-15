@@ -114,8 +114,12 @@ func NewClient(addr string, logger hclog.Logger) (CSIPlugin, error) {
 }
 
 func newGrpcConn(addr string, logger hclog.Logger) (*grpc.ClientConn, error) {
-	conn, err := grpc.Dial(
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
+	defer cancel()
+	conn, err := grpc.DialContext(
+		ctx,
 		addr,
+		grpc.WithBlock(),
 		grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(logging.UnaryClientInterceptor(logger)),
 		grpc.WithStreamInterceptor(logging.StreamClientInterceptor(logger)),
@@ -294,7 +298,7 @@ func (c *client) ControllerUnpublishVolume(ctx context.Context, req *ControllerU
 	return &ControllerUnpublishVolumeResponse{}, nil
 }
 
-func (c *client) ControllerValidateCapabilities(ctx context.Context, volumeID string, capabilities *VolumeCapability, secrets structs.CSISecrets, opts ...grpc.CallOption) error {
+func (c *client) ControllerValidateCapabilities(ctx context.Context, req *ControllerValidateVolumeRequest, opts ...grpc.CallOption) error {
 	if c == nil {
 		return fmt.Errorf("Client not initialized")
 	}
@@ -302,25 +306,16 @@ func (c *client) ControllerValidateCapabilities(ctx context.Context, volumeID st
 		return fmt.Errorf("controllerClient not initialized")
 	}
 
-	if volumeID == "" {
-		return fmt.Errorf("missing VolumeID")
+	if req.ExternalID == "" {
+		return fmt.Errorf("missing volume ID")
 	}
 
-	if capabilities == nil {
+	if req.Capabilities == nil {
 		return fmt.Errorf("missing Capabilities")
 	}
 
-	req := &csipbv1.ValidateVolumeCapabilitiesRequest{
-		VolumeId: volumeID,
-		VolumeCapabilities: []*csipbv1.VolumeCapability{
-			capabilities.ToCSIRepresentation(),
-		},
-		// VolumeContext: map[string]string // TODO: https://github.com/hashicorp/nomad/issues/7771
-		// Parameters: map[string]string // TODO: https://github.com/hashicorp/nomad/issues/7670
-		Secrets: secrets,
-	}
-
-	resp, err := c.controllerClient.ValidateVolumeCapabilities(ctx, req, opts...)
+	creq := req.ToCSIRepresentation()
+	resp, err := c.controllerClient.ValidateVolumeCapabilities(ctx, creq, opts...)
 	if err != nil {
 		return err
 	}
@@ -338,7 +333,7 @@ func (c *client) ControllerValidateCapabilities(ctx context.Context, volumeID st
 	// the volume is ok.
 	confirmedCaps := resp.GetConfirmed().GetVolumeCapabilities()
 	if confirmedCaps != nil {
-		for _, requestedCap := range req.VolumeCapabilities {
+		for _, requestedCap := range creq.VolumeCapabilities {
 			err := compareCapabilities(requestedCap, confirmedCaps)
 			if err != nil {
 				return fmt.Errorf("volume capability validation failed: %v", err)
