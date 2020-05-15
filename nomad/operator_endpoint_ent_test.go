@@ -34,10 +34,7 @@ func TestOperator_SchedulerSetConfiguration_UnLicensed(t *testing.T) {
 	// Wait for new license to apply
 	testutil.WaitForResult(func() (bool, error) {
 		newL := s1.EnterpriseState.licenseWatcher.license
-		if oldLicense.LicenseID == newL.LicenseID {
-			return false, nil
-		}
-		return true, nil
+		return oldLicense.LicenseID != newL.LicenseID, nil
 	}, func(err error) {
 		require.FailNow("expected new license to be applied")
 	})
