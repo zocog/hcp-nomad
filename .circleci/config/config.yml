@@ -1,14 +1,16 @@
 version: 2.1
 
+orbs:
+  slack: circleci/slack@3.2.0
+
 references:
   # environment specific references - aim to avoid conflicts
   go-machine-image: &go_machine_image
     default
   go-machine-recent-image: &go_machine_recent_image
     default
-
-orbs:
-  slack: circleci/slack@3.2.0
+  go-windows-image: &go_windows_image
+    windows-server-2019-vs2019:stable
 
   # common references
   common_envs: &common_envs
@@ -55,3 +57,17 @@ executors:
       <<: *common_envs
       GOPATH: /Users/distiller/go
       GOLANG_VERSION: 1.14
+
+  go-windows:
+    machine:
+      image: *go_windows_image
+      resource_class: windows.medium
+      shell: bash --login -eo pipefail
+    working_directory: c:\gopath\src\github.com\hashicorp\nomad
+    environment:
+      GOPATH: c:\gopath
+      GOBIN: c:\gopath\bin
+      GOTESTSUM_PATH: c:\tmp\test-reports
+      GOLANG_VERSION: 1.14.1
+      GOTESTSUM_VERSION: 0.4.2
+      VAULT_VERSION: 1.4.1
