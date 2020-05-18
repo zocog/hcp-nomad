@@ -11,7 +11,7 @@ jobs:
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
-    - GOLANG_VERSION: 1.14.1
+    - GOLANG_VERSION: 1.14.3
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
     - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
@@ -123,7 +123,7 @@ jobs:
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
-    - GOLANG_VERSION: 1.14.1
+    - GOLANG_VERSION: 1.14.3
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
     - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
@@ -235,7 +235,7 @@ jobs:
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
-    - GOLANG_VERSION: 1.14.1
+    - GOLANG_VERSION: 1.14.3
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
     - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
@@ -347,7 +347,7 @@ jobs:
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
-    - GOLANG_VERSION: 1.14.1
+    - GOLANG_VERSION: 1.14.3
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
     - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
@@ -459,7 +459,7 @@ jobs:
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
-    - GOLANG_VERSION: 1.14.1
+    - GOLANG_VERSION: 1.14.3
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
     - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
@@ -598,7 +598,7 @@ jobs:
         path: /tmp/test-reports
   lint-go:
     docker:
-    - image: golang:1.14.1
+    - image: golang:1.14.3
     working_directory: /go/src/github.com/hashicorp/nomad
     steps:
     - checkout
@@ -658,7 +658,7 @@ jobs:
         name: Build Docker Image if Necessary
   merge-oss:
     docker:
-    - image: golang:1.14.1
+    - image: golang:1.14.3
     working_directory: /go/src/github.com/hashicorp/nomad
     steps:
     - run:
@@ -879,7 +879,7 @@ jobs:
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
-    - GOLANG_VERSION: 1.14.1
+    - GOLANG_VERSION: 1.14.3
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
     - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
@@ -987,7 +987,7 @@ jobs:
         path: /tmp/test-reports
   test-devices:
     docker:
-    - image: golang:1.14.1
+    - image: golang:1.14.3
     working_directory: /go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -1067,7 +1067,7 @@ jobs:
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
-    - GOLANG_VERSION: 1.14.1
+    - GOLANG_VERSION: 1.14.3
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
     - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
@@ -1175,7 +1175,7 @@ jobs:
         path: /tmp/test-reports
   build-binaries:
     docker:
-    - image: golang:1.14.1
+    - image: golang:1.14.3
     working_directory: /go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -1209,7 +1209,7 @@ jobs:
         path: pkg/linux_amd64.zip
   test-e2e:
     docker:
-    - image: golang:1.14.1
+    - image: golang:1.14.3
     working_directory: /go/src/github.com/hashicorp/nomad
     steps:
     - checkout
@@ -1241,7 +1241,7 @@ jobs:
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
-    - GOLANG_VERSION: 1.14.1
+    - GOLANG_VERSION: 1.14.3
     - GOMAXPROCS: 1
     - GOPATH: /home/circleci/go
     - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
