@@ -14,6 +14,10 @@ func (es *EnterpriseState) FeatureCheckPreemption() error {
 	return fmt.Errorf("Feature \"Preemption\" is unlicensed")
 }
 
+func (es *EnterpriseState) Features() uint64 {
+	return 0
+}
+
 func (s *Server) setupEnterprise(config *Config) error {
 	// Set up the OSS version of autopilot
 	apDelegate := &AutopilotDelegate{s}
@@ -21,5 +25,4 @@ func (s *Server) setupEnterprise(config *Config) error {
 
 	return nil
 }
-
 func (s *Server) startEnterpriseBackground() {}

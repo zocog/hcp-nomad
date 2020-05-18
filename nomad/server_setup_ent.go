@@ -33,6 +33,10 @@ func (es *EnterpriseState) FeatureCheckPreemption() error {
 	return es.FeatureCheck(license.FeaturePreemption, true)
 }
 
+func (es *EnterpriseState) Features() uint64 {
+	return uint64(es.licenseWatcher.Features())
+}
+
 // setupEnterprise is used for Enterprise specific setup
 func (s *Server) setupEnterprise(config *Config) error {
 	// Enable the standard lib, except the HTTP import.
