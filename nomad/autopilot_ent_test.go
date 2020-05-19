@@ -1,4 +1,4 @@
-// +build ent pro consulent
+// +build ent consulent
 
 package nomad
 

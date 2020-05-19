@@ -9,6 +9,8 @@ import (
 
 const ProductName = "nomad"
 
+// FeatureChecker is the interface that clients and servers must implement
+// in order to feature check
 type FeatureChecker interface {
 	FeatureCheck(feature Features, emitLog bool) error
 }
