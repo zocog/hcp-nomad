@@ -27,6 +27,12 @@ func testShutdownFunc() error {
 	return nil
 }
 
+func previousID(t *testing.T, lw *LicenseWatcher) string {
+	lic, err := lw.GetLicense()
+	require.NoError(t, err)
+	return lic.LicenseID
+}
+
 func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
 	t.Parallel()
 	TestLicenseValidationHelper(t)
@@ -45,17 +51,12 @@ func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
 		Signed:      newLicense.Signed,
 		CreateIndex: uint64(1000),
 	}
-	previousID := lw.license.LicenseID
+	previousID := previousID(t, lw)
 	state.UpsertLicense(1000, stored)
-	testutil.WaitForResult(func() (bool, error) {
-		if lw.license.LicenseID == previousID {
-			return false, fmt.Errorf("expected updated license")
-		}
-		return true, nil
-	}, func(err error) {
-		require.FailNow(t, err.Error())
-	})
+	waitForLicense(t, lw, previousID)
+
 	fetchedLicense, err := lw.watcher.License()
+
 	require.NoError(t, err)
 	require.False(t, fetchedLicense.Equal(initLicense), "fetched license should be different from the inital")
 	require.True(t, fetchedLicense.Equal(newLicense.License.License), fmt.Sprintf("got: %s wanted: %s", fetchedLicense, newLicense.License.License))
@@ -77,19 +78,11 @@ func TestLicenseWatcher_UpdateCh(t *testing.T) {
 		Signed:      newLicense.Signed,
 		CreateIndex: uint64(1000),
 	}
-	previousID := lw.license.LicenseID
+	previousID := previousID(t, lw)
 	state.UpsertLicense(1000, stored)
-	testutil.WaitForResult(func() (bool, error) {
-		if lw.license.LicenseID == previousID {
-			return false, fmt.Errorf("expected updated license")
-		}
-		return true, nil
-	}, func(err error) {
-		require.FailNow(t, err.Error())
-	})
+	waitForLicense(t, lw, previousID)
 
 	require.NotEqual(t, lw.features, uint64(0))
-	require.Equal(t, lw.license.Features, license.Features(lw.features))
 	require.True(t, lw.HasFeature(license.FeatureAuditLogging))
 }
 
@@ -108,22 +101,27 @@ func TestLicenseWatcher_UpdateCh_Platform(t *testing.T) {
 		Signed:      newLicense.Signed,
 		CreateIndex: uint64(1000),
 	}
-	previousID := lw.license.LicenseID
+	previousID := previousID(t, lw)
 
 	state.UpsertLicense(1000, stored)
+	waitForLicense(t, lw, previousID)
+
+	require.NotEqual(t, lw.features, uint64(0))
+	require.False(t, lw.HasFeature(license.FeatureAuditLogging))
+	require.True(t, lw.HasFeature(license.FeatureReadScalability))
+}
+
+func waitForLicense(t *testing.T, lw *LicenseWatcher, previousID string) {
 	testutil.WaitForResult(func() (bool, error) {
-		if lw.license.LicenseID == previousID {
+		l, err := lw.GetLicense()
+		require.NoError(t, err)
+		if l.LicenseID == previousID {
 			return false, fmt.Errorf("expected updated license")
 		}
 		return true, nil
 	}, func(err error) {
 		require.FailNow(t, err.Error())
 	})
-
-	require.NotEqual(t, lw.features, uint64(0))
-	require.Equal(t, lw.license.Features, license.Features(lw.features))
-	require.False(t, lw.HasFeature(license.FeatureAuditLogging))
-	require.True(t, lw.HasFeature(license.FeatureReadScalability))
 }
 
 func TestLicenseWatcher_FeatureCheck(t *testing.T) {

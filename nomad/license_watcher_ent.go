@@ -33,12 +33,6 @@ type LicenseWatcher struct {
 	// once ensures watch is only invoked once
 	once sync.Once
 
-	// mu protects license
-	mu sync.Mutex
-
-	// Expanded/parsed License
-	license *license.License
-
 	watcher *licensing.Watcher
 
 	logMu  sync.Mutex
@@ -70,9 +64,7 @@ func NewLicenseWatcher(logger hclog.InterceptLogger) (*LicenseWatcher, error) {
 		once:     sync.Once{},
 		watcher:  watcher,
 		features: uint64(nomadTmpLicense.Features),
-		license:  nomadTmpLicense,
 		logger:   logger.Named("licensing"),
-		mu:       sync.Mutex{},
 		logMu:    sync.Mutex{},
 		logTimes: make(map[license.Features]time.Time),
 	}
@@ -151,10 +143,9 @@ func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, 
 		}
 	// Handle updated license from the watcher
 	case lic := <-w.watcher.UpdateCh():
-		if !w.license.Equal(lic) {
-			w.updateLicense(lic)
-		}
-	// This final case checks for licensing errors, primarily expirations.
+		w.updateFeatures(lic)
+
+	// Check for licensing errors, primarily expirations.
 	case err := <-w.watcher.ErrorCh():
 		w.logger.Error("received error from watcher", "error", err)
 
@@ -213,28 +204,22 @@ func (w *LicenseWatcher) FeatureCheck(feature license.Features, emitLog bool) er
 
 // GetLicense returns a copy of the current license
 func (w *LicenseWatcher) GetLicense() (*license.License, error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	l := w.license
+	l, err := w.watcher.License()
 	if l == nil {
-		return nil, fmt.Errorf("license not found")
+		return nil, err
 	}
 
-	lcopy, err := l.Clone()
+	nomadLicense, err := license.NewLicense(l)
 	if err != nil {
-		return nil, fmt.Errorf("error cloning license")
+		return nil, err
 	}
 
-	return lcopy, nil
+	return nomadLicense, nil
 }
 
-func (w *LicenseWatcher) updateLicense(lic *licensing.License) {
+func (w *LicenseWatcher) updateFeatures(lic *licensing.License) {
 	nomadLicense, err := license.NewLicense(lic)
 	if err == nil {
-		w.mu.Lock()
-		w.license = nomadLicense
-		w.mu.Unlock()
 		atomic.StoreUint64(&w.features, uint64(nomadLicense.Features))
 	} else {
 		w.logger.Error("error loading Nomad license", "error", err)

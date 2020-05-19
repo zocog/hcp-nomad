@@ -152,13 +152,6 @@ type AllocRunner interface {
 	GetTaskDriverCapabilities(taskName string) (*drivers.Capabilities, error)
 }
 
-// FeatureManager is used to set, retrieve, and check enterprise features for a client
-type FeatureManager interface {
-	GetFeatures() uint64
-	HasFeature(uint64) bool
-	SetFeatures(uint64) error
-}
-
 // Client is used to implement the client interaction with Nomad. Clients
 // are expected to register as a schedulable node to the servers, and to
 // run allocations as determined by the servers.
@@ -297,8 +290,8 @@ type Client struct {
 	// with a nomad client. Currently only used for CSI.
 	dynamicRegistry dynamicplugins.Registry
 
-	// fm is used to set and check enterprise features for clients
-	fm FeatureManager
+	// EnterpriseClient is used to set and check enterprise features for clients
+	EnterpriseClient *EnterpriseClient
 }
 
 var (
@@ -351,6 +344,7 @@ func NewClient(cfg *config.Config, consulCatalog consul.CatalogAPI, consulServic
 		invalidAllocs:        make(map[string]struct{}),
 		serversContactedCh:   make(chan struct{}),
 		serversContactedOnce: sync.Once{},
+		EnterpriseClient:     newEnterpriseClient(),
 	}
 
 	c.batchNodeUpdates = newBatchNodeUpdates(
@@ -1849,7 +1843,7 @@ func (c *Client) updateNodeStatus() error {
 		c.triggerDiscovery()
 	}
 
-	c.fm.SetFeatures(resp.Features)
+	c.EnterpriseClient.SetFeatures(resp.Features)
 	return nil
 }
 

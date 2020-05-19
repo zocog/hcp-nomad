@@ -25,15 +25,18 @@ func TestOperator_SchedulerSetConfiguration_UnLicensed(t *testing.T) {
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
 
-	oldLicense := s1.EnterpriseState.licenseWatcher.license
+	oldLicense, err := s1.EnterpriseState.licenseWatcher.GetLicense()
+	require.NoError(err)
+
 	// Apply new license for platform module (no preemption)
 	l := license.NewTestLicense(license.TestPlatformFlags())
-	_, err := s1.EnterpriseState.licenseWatcher.SetLicense(l.Signed)
+	_, err = s1.EnterpriseState.licenseWatcher.SetLicense(l.Signed)
 	require.NoError(err)
 
 	// Wait for new license to apply
 	testutil.WaitForResult(func() (bool, error) {
-		newL := s1.EnterpriseState.licenseWatcher.license
+		newL, err := s1.EnterpriseState.licenseWatcher.GetLicense()
+		require.NoError(err)
 		return oldLicense.LicenseID != newL.LicenseID, nil
 	}, func(err error) {
 		require.FailNow("expected new license to be applied")

@@ -44,7 +44,7 @@ func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 	} else if a.client != nil {
 		// no-op feature checker until client is implemented
 		a.EnterpriseAgent = &EnterpriseAgent{
-			featurechecker: &NoOpChecker{},
+			featurechecker: a.client.EnterpriseClient,
 		}
 	} else {
 		a.EnterpriseAgent = &EnterpriseAgent{
