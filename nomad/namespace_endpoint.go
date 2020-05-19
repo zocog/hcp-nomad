@@ -22,11 +22,6 @@ type Namespace struct {
 // UpsertNamespaces is used to upsert a set of namespaces
 func (n *Namespace) UpsertNamespaces(args *structs.NamespaceUpsertRequest,
 	reply *structs.GenericResponse) error {
-	// Strict enforcement for write requests - if not licensed then requests will be denied
-	if err := n.srv.EnterpriseState.FeatureCheck(license.FeatureNamespaces, true); err != nil {
-		return err
-	}
-
 	args.Region = n.srv.config.AuthoritativeRegion
 	if done, err := n.srv.forward("Namespace.UpsertNamespaces", args, args, reply); done {
 		return err
@@ -38,6 +33,11 @@ func (n *Namespace) UpsertNamespaces(args *structs.NamespaceUpsertRequest,
 		return err
 	} else if aclObj != nil && !aclObj.IsManagement() {
 		return structs.ErrPermissionDenied
+	}
+
+	// Strict enforcement for write requests - if not licensed then requests will be denied
+	if err := n.srv.EnterpriseState.FeatureCheck(license.FeatureNamespaces, true); err != nil {
+		return err
 	}
 
 	// Validate there is at least one namespace
@@ -72,11 +72,6 @@ func (n *Namespace) UpsertNamespaces(args *structs.NamespaceUpsertRequest,
 
 // DeleteNamespaces is used to delete a namespace
 func (n *Namespace) DeleteNamespaces(args *structs.NamespaceDeleteRequest, reply *structs.GenericResponse) error {
-	// Strict enforcement for write requests - if not licensed then requests will be denied
-	if err := n.srv.EnterpriseState.FeatureCheck(license.FeatureNamespaces, true); err != nil {
-		return err
-	}
-
 	args.Region = n.srv.config.AuthoritativeRegion
 	if done, err := n.srv.forward("Namespace.DeleteNamespaces", args, args, reply); done {
 		return err
@@ -88,6 +83,11 @@ func (n *Namespace) DeleteNamespaces(args *structs.NamespaceDeleteRequest, reply
 		return err
 	} else if aclObj != nil && !aclObj.IsManagement() {
 		return structs.ErrPermissionDenied
+	}
+
+	// Strict enforcement for write requests - if not licensed then requests will be denied
+	if err := n.srv.EnterpriseState.FeatureCheck(license.FeatureNamespaces, true); err != nil {
+		return err
 	}
 
 	// Validate at least one namespace
@@ -226,9 +226,6 @@ func (n *Namespace) namespaceTerminalInRegion(authToken, namespace, region strin
 
 // ListNamespaces is used to list the namespaces
 func (n *Namespace) ListNamespaces(args *structs.NamespaceListRequest, reply *structs.NamespaceListResponse) error {
-	// Only warn for expiration of a read request
-	_ = n.srv.EnterpriseState.FeatureCheck(license.FeatureNamespaces, true)
-
 	if done, err := n.srv.forward("Namespace.ListNamespaces", args, args, reply); done {
 		return err
 	}
@@ -239,6 +236,9 @@ func (n *Namespace) ListNamespaces(args *structs.NamespaceListRequest, reply *st
 	if err != nil {
 		return err
 	}
+
+	// Only warn for expiration of a read request
+	_ = n.srv.EnterpriseState.FeatureCheck(license.FeatureNamespaces, true)
 
 	// Setup the blocking query
 	opts := blockingOptions{

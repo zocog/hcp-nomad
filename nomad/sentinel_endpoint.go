@@ -20,10 +20,6 @@ type Sentinel struct {
 
 // UpsertPolicies is used to create or update a set of policies
 func (s *Sentinel) UpsertPolicies(args *structs.SentinelPolicyUpsertRequest, reply *structs.GenericResponse) error {
-	// Strict enforcement for write requests - if not licensed then requests will be denied
-	if err := s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true); err != nil {
-		return err
-	}
 	// Ensure Sentinels are enabled, and always flow modification requests to the authoritative region
 	if !s.srv.config.ACLEnabled {
 		return aclDisabled
@@ -40,6 +36,11 @@ func (s *Sentinel) UpsertPolicies(args *structs.SentinelPolicyUpsertRequest, rep
 		return err
 	} else if sentinel == nil || !sentinel.IsManagement() {
 		return structs.ErrPermissionDenied
+	}
+
+	// Strict enforcement for write requests - if not licensed then requests will be denied
+	if err := s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true); err != nil {
+		return err
 	}
 
 	// Validate non-zero set of policies
@@ -68,11 +69,6 @@ func (s *Sentinel) UpsertPolicies(args *structs.SentinelPolicyUpsertRequest, rep
 
 // DeletePolicies is used to delete policies
 func (s *Sentinel) DeletePolicies(args *structs.SentinelPolicyDeleteRequest, reply *structs.GenericResponse) error {
-	// Strict enforcement for write requests - if not licensed then requests will be denied
-	if err := s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true); err != nil {
-		return err
-	}
-
 	// Ensure Sentinels are enabled, and always flow modification requests to the authoritative region
 	if !s.srv.config.ACLEnabled {
 		return aclDisabled
@@ -89,6 +85,11 @@ func (s *Sentinel) DeletePolicies(args *structs.SentinelPolicyDeleteRequest, rep
 		return err
 	} else if sentinel == nil || !sentinel.IsManagement() {
 		return structs.ErrPermissionDenied
+	}
+
+	// Strict enforcement for write requests - if not licensed then requests will be denied
+	if err := s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true); err != nil {
+		return err
 	}
 
 	// Validate non-zero set of policies
@@ -109,9 +110,6 @@ func (s *Sentinel) DeletePolicies(args *structs.SentinelPolicyDeleteRequest, rep
 
 // ListPolicies is used to list the policies
 func (s *Sentinel) ListPolicies(args *structs.SentinelPolicyListRequest, reply *structs.SentinelPolicyListResponse) error {
-	// Only warn for expiration of a read request
-	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true)
-
 	if !s.srv.config.ACLEnabled {
 		return aclDisabled
 	}
@@ -126,6 +124,9 @@ func (s *Sentinel) ListPolicies(args *structs.SentinelPolicyListRequest, reply *
 	} else if sentinel == nil || !sentinel.IsManagement() {
 		return structs.ErrPermissionDenied
 	}
+
+	// Only warn for expiration of a read request
+	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true)
 
 	// Setup the blocking query
 	opts := blockingOptions{
@@ -174,9 +175,6 @@ func (s *Sentinel) ListPolicies(args *structs.SentinelPolicyListRequest, reply *
 
 // GetPolicy is used to get a specific policy
 func (s *Sentinel) GetPolicy(args *structs.SentinelPolicySpecificRequest, reply *structs.SingleSentinelPolicyResponse) error {
-	// Only warn for expiration of a read request
-	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true)
-
 	if !s.srv.config.ACLEnabled {
 		return aclDisabled
 	}
@@ -191,6 +189,9 @@ func (s *Sentinel) GetPolicy(args *structs.SentinelPolicySpecificRequest, reply 
 	} else if sentinel == nil || !sentinel.IsManagement() {
 		return structs.ErrPermissionDenied
 	}
+
+	// Only warn for expiration of a read request
+	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true)
 
 	// Setup the blocking query
 	opts := blockingOptions{
@@ -222,9 +223,6 @@ func (s *Sentinel) GetPolicy(args *structs.SentinelPolicySpecificRequest, reply 
 
 // GetPolicies is used to get a set of policies
 func (s *Sentinel) GetPolicies(args *structs.SentinelPolicySetRequest, reply *structs.SentinelPolicySetResponse) error {
-	// Only warn for expiration of a read request
-	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true)
-
 	if !s.srv.config.ACLEnabled {
 		return aclDisabled
 	}
@@ -239,6 +237,9 @@ func (s *Sentinel) GetPolicies(args *structs.SentinelPolicySetRequest, reply *st
 	} else if sentinel == nil || !sentinel.IsManagement() {
 		return structs.ErrPermissionDenied
 	}
+
+	// Only warn for expiration of a read request
+	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true)
 
 	// Setup the blocking query
 	opts := blockingOptions{
