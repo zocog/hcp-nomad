@@ -9,6 +9,12 @@ import (
 	"github.com/hashicorp/sentinel/sentinel"
 )
 
+// LicenseConfig allows for tunable licensing config
+// primarily used for enterprise testing
+type LicenseConfig struct {
+	AdditionalPubKeys []string
+}
+
 type EnterpriseState struct {
 	// sentinel is a shared instance of the policy engine
 	sentinel *sentinel.Sentinel
@@ -62,7 +68,7 @@ func (s *Server) setupEnterprise(config *Config) error {
 
 	s.setupEnterpriseAutopilot(config)
 
-	licenseWatcher, err := NewLicenseWatcher(s.logger)
+	licenseWatcher, err := NewLicenseWatcher(s.logger, config.LicenseConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create a new license watcher: %w", err)
 	}

@@ -4,12 +4,14 @@ package nomad
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"sync/atomic"
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad-licensing/license"
+	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
@@ -19,7 +21,11 @@ import (
 
 func newTestLicenseWatcher() *LicenseWatcher {
 	logger := hclog.NewInterceptLogger(nil)
-	lw, _ := NewLicenseWatcher(logger)
+	cfg := &LicenseConfig{
+		AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+	}
+
+	lw, _ := NewLicenseWatcher(logger, cfg)
 	return lw
 }
 
@@ -35,7 +41,6 @@ func previousID(t *testing.T, lw *LicenseWatcher) string {
 
 func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
 	t.Parallel()
-	TestLicenseValidationHelper(t)
 
 	ctx := context.Background()
 	lw := newTestLicenseWatcher()
@@ -64,7 +69,6 @@ func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
 
 func TestLicenseWatcher_UpdateCh(t *testing.T) {
 	t.Parallel()
-	TestLicenseValidationHelper(t)
 
 	lw := newTestLicenseWatcher()
 	state := state.TestStateStore(t)
@@ -88,7 +92,6 @@ func TestLicenseWatcher_UpdateCh(t *testing.T) {
 
 func TestLicenseWatcher_UpdateCh_Platform(t *testing.T) {
 	t.Parallel()
-	TestLicenseValidationHelper(t)
 
 	lw := newTestLicenseWatcher()
 	state := state.TestStateStore(t)

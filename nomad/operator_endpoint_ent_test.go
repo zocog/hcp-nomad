@@ -3,10 +3,12 @@
 package nomad
 
 import (
+	"encoding/base64"
 	"testing"
 
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/nomad-licensing/license"
+	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/stretchr/testify/require"
@@ -14,11 +16,13 @@ import (
 
 func TestOperator_SchedulerSetConfiguration_UnLicensed(t *testing.T) {
 	t.Parallel()
-	TestLicenseValidationHelper(t)
 
 	require := require.New(t)
 
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
 		c.Build = "0.9.0+unittest"
 	})
 	defer cleanupS1()

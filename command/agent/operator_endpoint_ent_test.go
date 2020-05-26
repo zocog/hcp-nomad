@@ -4,11 +4,13 @@ package agent
 
 import (
 	"bytes"
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/nomad"
 	"github.com/hashicorp/nomad/nomad/mock"
@@ -19,10 +21,13 @@ import (
 func TestOperator_GetLicense(t *testing.T) {
 	t.Parallel()
 
-	// call to add test license key to list of known keys
-	nomad.TestLicenseValidationHelper(t)
+	cb := func(c *Config) {
+		c.NomadConfig.LicenseConfig = &nomad.LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(license.TestPublicKey)},
+		}
 
-	httpTest(t, nil, func(s *TestAgent) {
+	}
+	httpTest(t, cb, func(s *TestAgent) {
 		stored, l := mock.StoredLicense()
 		state := s.server.State()
 

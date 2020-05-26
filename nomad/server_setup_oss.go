@@ -8,6 +8,10 @@ import (
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 )
 
+// LicenseConfig allows for tunable licensing config
+// primarily used for enterprise testing
+type LicenseConfig struct{}
+
 type EnterpriseState struct{}
 
 func (es *EnterpriseState) FeatureCheckPreemption() error {

@@ -3,6 +3,7 @@
 package nomad
 
 import (
+	"encoding/base64"
 	"fmt"
 	"testing"
 	"time"
@@ -18,11 +19,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func licenseCallback(cfg *Config) {
+	cfg.LicenseConfig = &LicenseConfig{
+		AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+	}
+}
+
 func TestLicenseEndpoint_GetLicense(t *testing.T) {
 	t.Parallel()
-	TestLicenseValidationHelper(t)
 
-	s1, cleanupS1 := TestServer(t, nil)
+	s1, cleanupS1 := TestServer(t, licenseCallback)
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -55,9 +61,8 @@ func TestLicenseEndpoint_GetLicense(t *testing.T) {
 func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 	assert := assert.New(t)
 	t.Parallel()
-	TestLicenseValidationHelper(t)
 
-	s1, cleanupS1 := TestServer(t, nil)
+	s1, cleanupS1 := TestServer(t, licenseCallback)
 	defer cleanupS1()
 
 	codec := rpcClient(t, s1)
@@ -98,9 +103,8 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {
 	assert := assert.New(t)
 	t.Parallel()
-	TestLicenseValidationHelper(t)
 
-	s1, root, cleanupS1 := TestACLServer(t, nil)
+	s1, root, cleanupS1 := TestACLServer(t, licenseCallback)
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)

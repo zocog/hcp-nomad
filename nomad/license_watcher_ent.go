@@ -19,8 +19,6 @@ import (
 )
 
 var (
-	builtinPublicKeys = []string{}
-
 	// Temporary Nomad-Enterprise licenses should operate for six hours
 	temporaryLicenseTimeLimit = 6 * time.Hour
 )
@@ -42,9 +40,9 @@ type LicenseWatcher struct {
 	logTimes map[license.Features]time.Time
 }
 
-func NewLicenseWatcher(logger hclog.InterceptLogger) (*LicenseWatcher, error) {
+func NewLicenseWatcher(logger hclog.InterceptLogger, cfg *LicenseConfig) (*LicenseWatcher, error) {
 	// Configure the setup options for the license watcher
-	tmpLicense, opts, err := watcherStartupOpts()
+	tmpLicense, opts, err := watcherStartupOpts(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed setting up license watcher options: %w", err)
 	}
@@ -72,7 +70,7 @@ func NewLicenseWatcher(logger hclog.InterceptLogger) (*LicenseWatcher, error) {
 	return lw, nil
 }
 
-func watcherStartupOpts() (*licensing.License, *licensing.WatcherOptions, error) {
+func watcherStartupOpts(cfg *LicenseConfig) (*licensing.License, *licensing.WatcherOptions, error) {
 	flags := temporaryFlags()
 	tempLicense, signed, pubKey, err := licensing.TemporaryLicenseInfo(license.ProductName, flags, temporaryLicenseTimeLimit)
 	if err != nil {
@@ -82,7 +80,7 @@ func watcherStartupOpts() (*licensing.License, *licensing.WatcherOptions, error)
 	return tempLicense, &licensing.WatcherOptions{
 		ProductName:          license.ProductName,
 		InitLicense:          signed,
-		AdditionalPublicKeys: append(builtinPublicKeys, pubKey),
+		AdditionalPublicKeys: append(cfg.AdditionalPubKeys, pubKey),
 		CallbackFunc:         nil,
 	}, nil
 }
