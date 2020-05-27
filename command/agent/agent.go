@@ -59,6 +59,7 @@ type Agent struct {
 	httpLogger log.Logger
 	logOutput  io.Writer
 
+	// EnterpriseAgent holds information and methods for enterprise functionality
 	EnterpriseAgent *EnterpriseAgent
 
 	// consulService is Nomad's custom Consul client for managing services

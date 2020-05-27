@@ -17,6 +17,7 @@ import (
 // Ensure audit.Auditor is an Eventer
 var _ event.Auditor = &audit.Auditor{}
 
+// EnterpriseAgent allows Agents to interact with enterprise features
 type EnterpriseAgent struct {
 	featurechecker license.FeatureChecker
 }
