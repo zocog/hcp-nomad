@@ -37,5 +37,4 @@ func (ec *EnterpriseClient) FeatureCheck(feature license.Features, emitLog bool)
 // SetFeature atomically sets the unint64 for EnterpriseClient
 func (ec *EnterpriseClient) SetFeatures(u uint64) {
 	atomic.StoreUint64(&ec.features, u)
-	return
 }
