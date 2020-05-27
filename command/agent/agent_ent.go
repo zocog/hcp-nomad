@@ -16,6 +16,8 @@ import (
 // Ensure audit.Auditor is an Eventer
 var _ event.Auditor = &audit.Auditor{}
 
+type EnterpriseAgent struct{}
+
 func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 	// Ensure we have at least empty Auditor config
 	if a.config.Audit == nil {
