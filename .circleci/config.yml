@@ -260,6 +260,223 @@ jobs:
         path: /tmp/test-reports
     - store_artifacts:
         path: /tmp/test-reports
+  merge-oss-2:
+    docker:
+    - image: golang:1.14.1
+    working_directory: /go/src/github.com/hashicorp/nomad
+    steps:
+    - run:
+        command: |
+          # FAIL_REASON is used in the slack message below.
+          # We don't add a custom reason for every case, just the common ones.
+          echo "export FAIL_REASON='for an unknown reason, @mahmood please investigate: $CIRCLE_BUILD_URL'" >> $BASH_ENV
+        name: prepare initial failing reason
+    - add_ssh_keys:
+        fingerprints:
+        - c6:96:98:82:dc:04:6c:39:dd:ac:83:05:e3:15:1c:98
+    - checkout
+    - run:
+        command: apt-get update; apt-get install -y sudo
+    - run:
+        command: "CCI_VERSION=\"0.1.5879\"\nCCI_SHA256=\"f178ea62c781aec06267017404f87983c87f171fd0e66ef3737916246ae66dd6\"\n\nURL=\"https://github.com/CircleCI-Public/circleci-cli/releases/download/v${CCI_VERSION}/circleci-cli_${CCI_VERSION}_linux_amd64.tar.gz\"\n\nmkdir -p /tmp/circleci-cli/\ncurl --fail --show-error --location \\\n  -o /tmp/circleci-cli/cli.tar.gz \"${URL}\"\n\necho \"$CCI_SHA256 /tmp/circleci-cli/cli.tar.gz\" | sha256sum -c\n\ntar -xz --strip-components=1 \\\n  -C /tmp/circleci-cli \\\n  -f /tmp/circleci-cli/cli.tar.gz \\\n  \"circleci-cli_${CCI_VERSION}_linux_amd64/circleci\" \n\nsudo cp /tmp/circleci-cli/circleci /usr/bin/circleci-local-cli\n\ncircleci-local-cli version\n"
+        name: Install CircleCI CLI 0.1.5879
+    - run:
+        command: |
+          set -eux -o pipefail
+          #
+          # Configure Git
+          git config --global user.email "hashicorp-ci@users.noreply.github.com"
+          git config --global user.name "hashicorp-ci"
+
+          # fetch latest master - to support oss->ent propagation through rebuilds
+          git pull origin master
+
+          # Merge OSS master branch to Enterprise merge branch
+          git remote add oss https://github.com/hashicorp/nomad.git
+          git fetch oss
+          git_merge_branch="ci/oss-merge-release-0.11.3-$(date +%Y%m%d%H%M%S)"
+
+          git checkout -b "${git_merge_branch}"
+          latest_oss_commit="$(git rev-parse oss/release-0.11.3)"
+          message="Merge Nomad OSS branch 'release-0.11.3' at commit ${latest_oss_commit}"
+          if ! git merge -m "$message" oss/release-0.11.3; then
+            # try to merge common conflicting files
+            git status
+            git checkout --theirs CHANGELOG.md
+            git checkout --theirs version/version.go
+            git checkout --theirs command/agent/bindata_assetfs.go
+            # Regenerate enterprise Circle CI config to apply changes from OSS merge.
+            rm -f .circleci/config.yml
+            make -C .circleci CIRCLECI="circleci-local-cli --skip-update-check" config.yml
+
+            git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go .circleci/config.yml
+
+            # attempt merging again
+            if ! git commit -m "$message"; then
+              echo "export FAIL_REASON='because git was unable to auto-merge'" >> $BASH_ENV
+              exit 1
+            fi
+          else
+            # regenerate config if necessary even if it merged cleanly
+            rm -f .circleci/config.yml config.yml
+            make -C .circleci CIRCLECI="circleci-local-cli --skip-update-check" config.yml
+
+            if ! git diff --quiet .circleci/config.yml; then
+              git add .circleci/config.yml
+              git commit -m "regenerated CircleCI CI file"
+            fi
+          fi
+
+          # quick check - do basic compile build
+          if ! make pkg/linux_amd64/nomad ; then
+            echo "export FAIL_REASON='because nomad failed to compile after auto-merge'" >> $BASH_ENV
+            exit 1
+          fi
+
+          # now merge and push
+          git checkout release-0.11.3-ent
+          git merge "${git_merge_branch}"
+          git push origin release-0.11.3-ent
+        name: Merge OSS branch
+    - run:
+        command: |
+          echo 'export SLACK_BUILD_STATUS="fail"' >> $BASH_ENV
+        name: Slack - Setting Failure Condition
+        when: on_fail
+    - run:
+        command: |
+          echo 'export SLACK_BUILD_STATUS="success"' >> $BASH_ENV
+        name: Slack - Setting Success Condition
+        when: on_success
+    - run:
+        command: |
+          if [ -z "$BASH" ]; then
+            echo Bash not installed.
+            exit 1
+          fi
+        name: Provide error if non-bash shell
+    - run:
+        command: |
+          current_branch_in_filter=false
+
+          IFS="," read -ra BRANCH_FILTERS <<< ""
+
+          for i in "${BRANCH_FILTERS[@]}"; do
+            if [ "${i}" == "${CIRCLE_BRANCH}" ]; then
+              current_branch_in_filter=true
+            fi
+          done
+
+          if [ "x" == "x" ] || [ "$current_branch_in_filter" = true ]; then
+            # Provide error if no webhook is set and error. Otherwise continue
+            if [ -z "$SLACK_WEBHOOK_OSS_ENT_AUTOMERGE" ]; then
+              echo "NO SLACK WEBHOOK SET"
+              echo "Please input your SLACK_WEBHOOK value either in the settings for this project, or as a parameter for this orb."
+              exit 1
+            else
+              #Create Members string
+              if [ -n "" ]; then
+                IFS="," read -ra SLACK_MEMBERS <<< ""
+                for i in "${SLACK_MEMBERS[@]}"; do
+                  if [ $(echo ${i} | head -c 1) == "S" ]; then
+                    SLACK_MENTIONS="${SLACK_MENTIONS}<!subteam^${i}> "
+                  elif echo ${i} | grep -E "^(here|channel|everyone)$" > /dev/null; then
+                    SLACK_MENTIONS="${SLACK_MENTIONS}<!${i}> "
+                  else
+                    SLACK_MENTIONS="${SLACK_MENTIONS}<@${i}> "
+                  fi
+                done
+              fi
+              #If successful
+              if [ "$SLACK_BUILD_STATUS" = "success" ]; then
+                #Skip if fail_only
+                if [ true = true ]; then
+                  echo "The job completed successfully"
+                  echo '"fail_only" is set to "true". No Slack notification sent.'
+                else
+                  curl -X POST -H 'Content-type: application/json' \
+                    --data "{ \
+                              \"attachments\": [ \
+                                { \
+                                  \"fallback\": \":tada: The Nomad OSS -> ENT merge just happened automatically.
+          \", \
+                                  \"text\": \":tada: The Nomad OSS -> ENT merge just happened automatically.
+          \", \
+                                  \"fields\": [ \
+                                    { \
+                                      \"title\": \"Project\", \
+                                      \"value\": \"$CIRCLE_PROJECT_REPONAME\", \
+                                      \"short\": true \
+                                    }, \
+                                    { \
+                                      \"title\": \"Job Number\", \
+                                      \"value\": \"$CIRCLE_BUILD_NUM\", \
+                                      \"short\": true \
+                                    } \
+                                  ], \
+                                  \"actions\": [ \
+                                    { \
+                                      \"type\": \"button\", \
+                                      \"text\": \"Visit Job\", \
+                                      \"url\": \"$CIRCLE_BUILD_URL\" \
+                                    } \
+                                  ], \
+                                  \"color\": \"#1CBF43\" \
+                                } \
+                              ] \
+                            } " $SLACK_WEBHOOK_OSS_ENT_AUTOMERGE
+                  echo "Job completed successfully. Alert sent."
+                fi
+              else
+                #If Failed
+                curl -X POST -H 'Content-type: application/json' \
+                  --data "{ \
+                    \"attachments\": [ \
+                      { \
+                        \"fallback\": \":red_circle: The Nomad OSS -> ENT merge failed today $FAIL_REASON.
+          \", \
+                        \"text\": \":red_circle: The Nomad OSS -> ENT merge failed today $FAIL_REASON.
+          \", \
+                        \"fields\": [ \
+                          { \
+                            \"title\": \"Project\", \
+                            \"value\": \"$CIRCLE_PROJECT_REPONAME\", \
+                            \"short\": true \
+                          }, \
+                          { \
+                            \"title\": \"Job Number\", \
+                            \"value\": \"$CIRCLE_BUILD_NUM\", \
+                            \"short\": true \
+                          } \
+                        ], \
+                        \"actions\": [ \
+                          { \
+                            \"type\": \"button\", \
+                            \"text\": \"Visit Job\", \
+                            \"url\": \"$CIRCLE_BUILD_URL\" \
+                          } \
+                        ], \
+                        \"color\": \"#ed5c5c\" \
+                      } \
+                    ] \
+                  } " $SLACK_WEBHOOK_OSS_ENT_AUTOMERGE
+                echo "Job failed. Alert sent."
+              fi
+            fi
+          else
+            echo "Current branch is not included in only_for_branches filter; no status alert will be sent"
+          fi
+        name: Slack - Sending Status Alert
+        shell: /bin/bash
+        when: always
+    environment:
+    - GIT_PAGER: cat
+    - GOMAXPROCS: 1
+    - GOPATH: /go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
+    - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
+    - NOMAD_SLOW_TEST: 1
+    - PAGER: cat
   test-client:
     machine:
       image: default
@@ -430,98 +647,7 @@ jobs:
         path: /tmp/test-reports
     - store_artifacts:
         path: /tmp/test-reports
-  test-ui:
-    docker:
-    - environment:
-        JOBS: 2
-      image: circleci/node:10-browsers
-    steps:
-    - checkout
-    - restore_cache:
-        keys:
-        - v1-deps-{{ checksum "ui/yarn.lock" }}
-        - v1-deps-
-    - run:
-        command: cd ui && yarn install
-        name: yarn install
-    - save_cache:
-        key: v1-deps-{{ checksum "ui/yarn.lock" }}
-        paths:
-        - ./ui/node_modules
-    - run:
-        command: cd ui && yarn run lint:js
-        name: lint:js
-    - run:
-        command: cd ui && yarn run lint:hbs
-        name: lint:hbs
-    - run:
-        command: mkdir -p /tmp/test-reports && cd ui && yarn test
-        name: Ember tests
-    - store_test_results:
-        path: /tmp/test-reports
-    - store_artifacts:
-        path: /tmp/test-reports
-  lint-go:
-    docker:
-    - image: golang:1.14.1
-    working_directory: /go/src/github.com/hashicorp/nomad
-    steps:
-    - checkout
-    - run:
-        command: apt-get update; apt-get install -y shellcheck sudo unzip
-    - run:
-        command: |
-          sudo rm -rf /usr/bin/protoc
-          sudo ./scripts/vagrant-linux-priv-protoc.sh
-        name: install protoc
-    - run:
-        command: "CCI_VERSION=\"0.1.5879\"\nCCI_SHA256=\"f178ea62c781aec06267017404f87983c87f171fd0e66ef3737916246ae66dd6\"\n\nURL=\"https://github.com/CircleCI-Public/circleci-cli/releases/download/v${CCI_VERSION}/circleci-cli_${CCI_VERSION}_linux_amd64.tar.gz\"\n\nmkdir -p /tmp/circleci-cli/\ncurl --fail --show-error --location \\\n  -o /tmp/circleci-cli/cli.tar.gz \"${URL}\"\n\necho \"$CCI_SHA256 /tmp/circleci-cli/cli.tar.gz\" | sha256sum -c\n\ntar -xz --strip-components=1 \\\n  -C /tmp/circleci-cli \\\n  -f /tmp/circleci-cli/cli.tar.gz \\\n  \"circleci-cli_${CCI_VERSION}_linux_amd64/circleci\" \n\nsudo cp /tmp/circleci-cli/circleci /usr/bin/circleci-local-cli\n\ncircleci-local-cli version\n"
-        name: Install CircleCI CLI 0.1.5879
-    - run:
-        command: make deps lint-deps
-    - run:
-        command: make check
-    - run:
-        command: make checkscripts
-    - run:
-        command: make -C .circleci CIRCLECI="circleci-local-cli --skip-update-check" ci-verify
-        name: check .circleci/config.yml is up-to-date
-    environment:
-    - GIT_PAGER: cat
-    - GOMAXPROCS: 1
-    - GOPATH: /go
-    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
-    - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
-    - NOMAD_SLOW_TEST: 1
-    - PAGER: cat
-  website-docker-image:
-    docker:
-    - image: circleci/buildpack-deps
-    shell: /usr/bin/env bash -euo pipefail -c
-    steps:
-    - checkout
-    - setup_remote_docker
-    - run:
-        command: |
-          # There is an edge case that would cause an issue here - if dependencies are updated to an exact copy
-          # of a previous version, for example if packge-lock.json is reverted, we need to manually push the new
-          # image to the "latest" tag
-          # Ignore job if running an enterprise build
-          IMAGE_TAG=$(cat website/Dockerfile website/package-lock.json | sha256sum | awk '{print $1;}')
-          echo "Using $IMAGE_TAG"
-          if  [ "$CIRCLE_REPOSITORY_URL" != "git@github.com:hashicorp/nomad.git" ]; then
-            echo "Not Nomad OSS Repo, not building website docker image"
-          elif curl https://hub.docker.com/v2/repositories/hashicorp/nomad-website/tags/$IMAGE_TAG -fsL > /dev/null; then
-              echo "Dependencies have not changed, not building a new website docker image."
-          else
-              cd website/
-              docker build -t hashicorp/nomad-website:$IMAGE_TAG .
-              docker tag hashicorp/nomad-website:$IMAGE_TAG hashicorp/nomad-website:latest
-              docker login -u $WEBSITE_DOCKER_USER -p $WEBSITE_DOCKER_PASS
-              docker push hashicorp/nomad-website
-          fi
-        name: Build Docker Image if Necessary
-  merge-oss:
+  merge-oss-1:
     docker:
     - image: golang:1.14.1
     working_directory: /go/src/github.com/hashicorp/nomad
@@ -555,7 +681,7 @@ jobs:
           # Merge OSS master branch to Enterprise merge branch
           git remote add oss https://github.com/hashicorp/nomad.git
           git fetch oss
-          git_merge_branch="ci/oss-merge-$(date +%Y%m%d%H%M%S)"
+          git_merge_branch="ci/oss-merge-master-$(date +%Y%m%d%H%M%S)"
 
           git checkout -b "${git_merge_branch}"
           latest_oss_commit="$(git rev-parse oss/master)"
@@ -598,7 +724,7 @@ jobs:
           git checkout master
           git merge "${git_merge_branch}"
           git push origin master
-        name: Merge Merge OSS master branch
+        name: Merge OSS branch
     - run:
         command: |
           echo 'export SLACK_BUILD_STATUS="fail"' >> $BASH_ENV
@@ -738,6 +864,97 @@ jobs:
     - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
     - NOMAD_SLOW_TEST: 1
     - PAGER: cat
+  test-ui:
+    docker:
+    - environment:
+        JOBS: 2
+      image: circleci/node:10-browsers
+    steps:
+    - checkout
+    - restore_cache:
+        keys:
+        - v1-deps-{{ checksum "ui/yarn.lock" }}
+        - v1-deps-
+    - run:
+        command: cd ui && yarn install
+        name: yarn install
+    - save_cache:
+        key: v1-deps-{{ checksum "ui/yarn.lock" }}
+        paths:
+        - ./ui/node_modules
+    - run:
+        command: cd ui && yarn run lint:js
+        name: lint:js
+    - run:
+        command: cd ui && yarn run lint:hbs
+        name: lint:hbs
+    - run:
+        command: mkdir -p /tmp/test-reports && cd ui && yarn test
+        name: Ember tests
+    - store_test_results:
+        path: /tmp/test-reports
+    - store_artifacts:
+        path: /tmp/test-reports
+  lint-go:
+    docker:
+    - image: golang:1.14.1
+    working_directory: /go/src/github.com/hashicorp/nomad
+    steps:
+    - checkout
+    - run:
+        command: apt-get update; apt-get install -y shellcheck sudo unzip
+    - run:
+        command: |
+          sudo rm -rf /usr/bin/protoc
+          sudo ./scripts/vagrant-linux-priv-protoc.sh
+        name: install protoc
+    - run:
+        command: "CCI_VERSION=\"0.1.5879\"\nCCI_SHA256=\"f178ea62c781aec06267017404f87983c87f171fd0e66ef3737916246ae66dd6\"\n\nURL=\"https://github.com/CircleCI-Public/circleci-cli/releases/download/v${CCI_VERSION}/circleci-cli_${CCI_VERSION}_linux_amd64.tar.gz\"\n\nmkdir -p /tmp/circleci-cli/\ncurl --fail --show-error --location \\\n  -o /tmp/circleci-cli/cli.tar.gz \"${URL}\"\n\necho \"$CCI_SHA256 /tmp/circleci-cli/cli.tar.gz\" | sha256sum -c\n\ntar -xz --strip-components=1 \\\n  -C /tmp/circleci-cli \\\n  -f /tmp/circleci-cli/cli.tar.gz \\\n  \"circleci-cli_${CCI_VERSION}_linux_amd64/circleci\" \n\nsudo cp /tmp/circleci-cli/circleci /usr/bin/circleci-local-cli\n\ncircleci-local-cli version\n"
+        name: Install CircleCI CLI 0.1.5879
+    - run:
+        command: make deps lint-deps
+    - run:
+        command: make check
+    - run:
+        command: make checkscripts
+    - run:
+        command: make -C .circleci CIRCLECI="circleci-local-cli --skip-update-check" ci-verify
+        name: check .circleci/config.yml is up-to-date
+    environment:
+    - GIT_PAGER: cat
+    - GOMAXPROCS: 1
+    - GOPATH: /go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
+    - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
+    - NOMAD_SLOW_TEST: 1
+    - PAGER: cat
+  website-docker-image:
+    docker:
+    - image: circleci/buildpack-deps
+    shell: /usr/bin/env bash -euo pipefail -c
+    steps:
+    - checkout
+    - setup_remote_docker
+    - run:
+        command: |
+          # There is an edge case that would cause an issue here - if dependencies are updated to an exact copy
+          # of a previous version, for example if packge-lock.json is reverted, we need to manually push the new
+          # image to the "latest" tag
+          # Ignore job if running an enterprise build
+          IMAGE_TAG=$(cat website/Dockerfile website/package-lock.json | sha256sum | awk '{print $1;}')
+          echo "Using $IMAGE_TAG"
+          if  [ "$CIRCLE_REPOSITORY_URL" != "git@github.com:hashicorp/nomad.git" ]; then
+            echo "Not Nomad OSS Repo, not building website docker image"
+          elif curl https://hub.docker.com/v2/repositories/hashicorp/nomad-website/tags/$IMAGE_TAG -fsL > /dev/null; then
+              echo "Dependencies have not changed, not building a new website docker image."
+          else
+              cd website/
+              docker build -t hashicorp/nomad-website:$IMAGE_TAG .
+              docker tag hashicorp/nomad-website:$IMAGE_TAG hashicorp/nomad-website:latest
+              docker login -u $WEBSITE_DOCKER_USER -p $WEBSITE_DOCKER_PASS
+              docker push hashicorp/nomad-website
+          fi
+        name: Build Docker Image if Necessary
   test-other:
     machine:
       image: default
@@ -1209,7 +1426,7 @@ workflows:
             - /^docs-.*/
   merge-oss:
     jobs:
-    - merge-oss:
+    - merge-oss-1:
         filters:
           branches:
             only: master
@@ -1219,6 +1436,18 @@ workflows:
         filters:
           branches:
             only: master
+  merge-release:
+    jobs:
+    - merge-oss-2:
+        filters:
+          branches:
+            only: release-0.11.3-ent
+    triggers:
+    - schedule:
+        cron: 30 13 * * 1-5
+        filters:
+          branches:
+            only: release-0.11.3-ent
   website:
     jobs:
     - website-docker-image:

@@ -1,0 +1,16 @@
+triggers:
+- schedule:
+    # Run at 1:30 UTC on weekdays
+    cron: 30 13 * * 1-5
+    filters:
+      branches:
+        only: release-0.11.3-ent
+
+jobs:
+- merge-oss:
+    origin_branch: release-0.11.3
+    dest_branch: release-0.11.3-ent
+    filters:
+      branches:
+        only: release-0.11.3-ent
+

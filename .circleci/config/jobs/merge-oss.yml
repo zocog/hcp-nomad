@@ -1,5 +1,12 @@
 ---
 executor: go
+parameters:
+  origin_branch:
+    type: string
+    default: master
+  dest_branch:
+    type: string
+    default: master
 steps:
   - run:
       name: prepare initial failing reason
@@ -16,7 +23,7 @@ steps:
   - run: apt-get update; apt-get install -y sudo
   - install-circleci-local-cli
   - run:
-      name: Merge Merge OSS master branch
+      name: Merge OSS branch
       command: |
         set -eux -o pipefail
         #
@@ -30,12 +37,12 @@ steps:
         # Merge OSS master branch to Enterprise merge branch
         git remote add oss https://github.com/hashicorp/nomad.git
         git fetch oss
-        git_merge_branch="ci/oss-merge-$(date +%Y%m%d%H%M%S)"
+        git_merge_branch="ci/oss-merge-<< parameters.origin_branch >>-$(date +%Y%m%d%H%M%S)"
 
         git checkout -b "${git_merge_branch}"
-        latest_oss_commit="$(git rev-parse oss/master)"
-        message="Merge Nomad OSS branch 'master' at commit ${latest_oss_commit}"
-        if ! git merge -m "$message" oss/master; then
+        latest_oss_commit="$(git rev-parse oss/<< parameters.origin_branch >>)"
+        message="Merge Nomad OSS branch '<< parameters.origin_branch >>' at commit ${latest_oss_commit}"
+        if ! git merge -m "$message" oss/<< parameters.origin_branch >>; then
           # try to merge common conflicting files
           git status
           git checkout --theirs CHANGELOG.md
@@ -70,9 +77,9 @@ steps:
         fi
 
         # now merge and push
-        git checkout master
+        git checkout << parameters.dest_branch >>
         git merge "${git_merge_branch}"
-        git push origin master
+        git push origin << parameters.dest_branch >>
 
   - slack/status:
       webhook: $SLACK_WEBHOOK_OSS_ENT_AUTOMERGE
