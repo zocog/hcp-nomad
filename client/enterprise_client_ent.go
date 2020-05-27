@@ -11,6 +11,7 @@ import (
 
 // EnterpriseClient is used to keep feature state and check features
 type EnterpriseClient struct {
+	// features should be accessed atomically
 	features uint64
 }
 
@@ -20,15 +21,13 @@ func newEnterpriseClient() *EnterpriseClient {
 
 // GetFeatures fetches the unint64 and casts it into the appropriate type
 func (ec *EnterpriseClient) GetFeatures() license.Features {
-	uf := atomic.LoadUint64(&ec.features)
-	return license.Features(uf)
+	return license.Features(atomic.LoadUint64(&ec.features))
 }
 
 // FeatureCheck checks whether or not a feature is licensed. Callers must only compare one
 // feature at a time and not combine them in the check.
 func (ec *EnterpriseClient) FeatureCheck(feature license.Features, emitLog bool) error {
-	setFeatures := ec.GetFeatures()
-	if !setFeatures.HasFeature(feature) {
+	if !ec.GetFeatures().HasFeature(feature) {
 		return fmt.Errorf("feature %q is unlicensed", feature)
 	}
 	return nil
