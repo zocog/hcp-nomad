@@ -309,16 +309,6 @@ func (op *Operator) SchedulerSetConfiguration(args *structs.SchedulerSetConfigRe
 		return fmt.Errorf("All servers should be running version %v to update scheduler config", minSchedulerConfigVersion)
 	}
 
-	// Check that enterprise features are licensed
-	// still allow operator to disable any potentially enabled preemption
-	// SystemScheduler is an OSS feature so it is not checked
-	if c := args.Config.PreemptionConfig; c.BatchSchedulerEnabled || c.ServiceSchedulerEnabled {
-		// If Preemption is not licensed and operator is trying to enable
-		if err := op.srv.EnterpriseState.FeatureCheckPreemption(); err != nil {
-			return err
-		}
-	}
-
 	// Apply the update
 	resp, index, err := op.srv.raftApply(structs.SchedulerConfigRequestType, args)
 	if err != nil {

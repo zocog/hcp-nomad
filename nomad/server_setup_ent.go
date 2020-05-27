@@ -32,13 +32,6 @@ func (es *EnterpriseState) FeatureCheck(feature license.Features, emitLog bool) 
 	return es.licenseWatcher.FeatureCheck(feature, emitLog)
 }
 
-// FeatureCheckPreemption feature checks for preemption
-// It exists so it can be used  in an OSS context without requiring
-// the OSS binary to include license pkg.
-func (es *EnterpriseState) FeatureCheckPreemption() error {
-	return es.FeatureCheck(license.FeaturePreemption, true)
-}
-
 func (es *EnterpriseState) Features() uint64 {
 	return uint64(es.licenseWatcher.Features())
 }
