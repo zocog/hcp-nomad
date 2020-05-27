@@ -6,6 +6,12 @@ import (
 	"github.com/hashicorp/sentinel/sentinel"
 )
 
+// LicenseConfig allows for tunable licensing config
+// primarily used for enterprise testing
+type LicenseConfig struct {
+	AdditionalPubKeys []string
+}
+
 type EnterpriseState struct {
 	// sentinel is a shared instance of the policy engine
 	sentinel *sentinel.Sentinel
@@ -45,4 +51,8 @@ func (s *Server) startEnterpriseBackground() {
 	if s.config.ACLEnabled {
 		go s.gcSentinelPolicies(s.shutdownCh)
 	}
+}
+
+func (es *EnterpriseState) Features() uint64 {
+	return 0
 }
