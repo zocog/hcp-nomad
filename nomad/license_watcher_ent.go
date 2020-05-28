@@ -150,7 +150,9 @@ func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, 
 		// If a permanent license has not been set, we close the server.
 		if !licenseSet {
 			w.logger.Error("temporary license expired; shutting down server")
-			shutdownFunc()
+			// Call agent shutdown func asyncronously
+			go shutdownFunc()
+			return
 		}
 		w.logger.Error("license expired") //TODO: more info
 	case warnLicense := <-w.watcher.WarningCh():

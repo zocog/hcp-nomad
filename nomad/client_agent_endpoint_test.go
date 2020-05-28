@@ -524,6 +524,7 @@ func TestMonitor_Monitor_ACL(t *testing.T) {
 }
 
 func TestAgentProfile_RemoteClient(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
 
 	// start server and client
