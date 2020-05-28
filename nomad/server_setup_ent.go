@@ -77,7 +77,3 @@ func (s *Server) startEnterpriseBackground() {
 		go s.gcSentinelPolicies(s.shutdownCh)
 	}
 }
-
-func (es *EnterpriseState) Features() uint64 {
-	return 0
-}
