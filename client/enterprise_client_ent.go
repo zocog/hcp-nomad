@@ -26,7 +26,7 @@ type EnterpriseClient struct {
 
 func newEnterpriseClient(logger hclog.Logger) *EnterpriseClient {
 	return &EnterpriseClient{
-		features: 0,
+		features: uint64(license.AllFeatures()),
 		logMu:    sync.Mutex{},
 		logTimes: make(map[license.Features]time.Time),
 		logger:   logger,
