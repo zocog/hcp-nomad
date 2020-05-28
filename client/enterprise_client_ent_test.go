@@ -10,9 +10,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestEnterpriseClient_InitialFeatures(t *testing.T) {
+	log := testlog.HCLogger(t)
+	c := newEnterpriseClient(log)
+
+	require.NoError(t, c.FeatureCheck(license.FeatureAuditLogging, true))
+	require.NoError(t, c.FeatureCheck(license.AllFeatures(), true))
+}
+
 func TestEnterpriseClient_FeatureCheck(t *testing.T) {
 	log := testlog.HCLogger(t)
 	c := newEnterpriseClient(log)
+
+	// Empty out features
+	c.SetFeatures(0)
 
 	require.Error(t, c.FeatureCheck(license.FeatureAuditLogging, true))
 	t1 := c.logTimes[license.FeatureAuditLogging]
