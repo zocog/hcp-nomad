@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad-licensing/license"
 )
 
@@ -13,10 +14,12 @@ import (
 type EnterpriseClient struct {
 	// features should be accessed atomically
 	features uint64
+
+	logger hclog.Logger
 }
 
-func newEnterpriseClient() *EnterpriseClient {
-	return &EnterpriseClient{0}
+func newEnterpriseClient(logger hclog.Logger) *EnterpriseClient {
+	return &EnterpriseClient{0, logger}
 }
 
 // GetFeatures fetches the unint64 and casts it into the appropriate type
