@@ -334,9 +334,9 @@ jobs:
           fi
 
           # now merge and push
-          git checkout release-0.11.3-ent
+          git checkout release-0.11.3+ent
           git merge "${git_merge_branch}"
-          git push origin release-0.11.3-ent
+          git push origin release-0.11.3+ent
         name: Merge OSS branch
     - run:
         command: |
@@ -1441,13 +1441,13 @@ workflows:
     - merge-oss-2:
         filters:
           branches:
-            only: release-0.11.3-ent
+            only: release-0.11.3+ent
     triggers:
     - schedule:
-        cron: 30 13 * * 1-5
+        cron: 45 13 * * 1-5
         filters:
           branches:
-            only: release-0.11.3-ent
+            only: release-0.11.3+ent
   website:
     jobs:
     - website-docker-image:
