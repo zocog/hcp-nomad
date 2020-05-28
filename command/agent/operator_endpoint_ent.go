@@ -44,6 +44,11 @@ func (s *HTTPServer) operatorGetLicense(resp http.ResponseWriter, req *http.Requ
 }
 
 func convertToAPILicense(l *license.License) *api.License {
+	// If the license has expired it can be nil
+	if l == nil {
+		return &api.License{}
+	}
+
 	var modules []string
 	for _, m := range l.Modules {
 		modules = append(modules, m.String())
