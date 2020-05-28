@@ -8,6 +8,7 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
@@ -35,6 +36,11 @@ func (s *Sentinel) UpsertPolicies(args *structs.SentinelPolicyUpsertRequest, rep
 		return err
 	} else if sentinel == nil || !sentinel.IsManagement() {
 		return structs.ErrPermissionDenied
+	}
+
+	// Strict enforcement for write requests - if not licensed then requests will be denied
+	if err := s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true); err != nil {
+		return err
 	}
 
 	// Validate non-zero set of policies
@@ -81,6 +87,11 @@ func (s *Sentinel) DeletePolicies(args *structs.SentinelPolicyDeleteRequest, rep
 		return structs.ErrPermissionDenied
 	}
 
+	// Strict enforcement for write requests - if not licensed then requests will be denied
+	if err := s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true); err != nil {
+		return err
+	}
+
 	// Validate non-zero set of policies
 	if len(args.Names) == 0 {
 		return fmt.Errorf("must specify as least one policy")
@@ -113,6 +124,9 @@ func (s *Sentinel) ListPolicies(args *structs.SentinelPolicyListRequest, reply *
 	} else if sentinel == nil || !sentinel.IsManagement() {
 		return structs.ErrPermissionDenied
 	}
+
+	// Only warn for expiration of a read request
+	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true)
 
 	// Setup the blocking query
 	opts := blockingOptions{
@@ -176,6 +190,9 @@ func (s *Sentinel) GetPolicy(args *structs.SentinelPolicySpecificRequest, reply 
 		return structs.ErrPermissionDenied
 	}
 
+	// Only warn for expiration of a read request
+	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true)
+
 	// Setup the blocking query
 	opts := blockingOptions{
 		queryOpts: &args.QueryOptions,
@@ -220,6 +237,9 @@ func (s *Sentinel) GetPolicies(args *structs.SentinelPolicySetRequest, reply *st
 	} else if sentinel == nil || !sentinel.IsManagement() {
 		return structs.ErrPermissionDenied
 	}
+
+	// Only warn for expiration of a read request
+	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true)
 
 	// Setup the blocking query
 	opts := blockingOptions{

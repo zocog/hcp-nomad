@@ -10,6 +10,20 @@ import (
 var (
 	// ErrLicenseEmpty is returned when trying to set an empty license
 	ErrLicenseEmpty = errors.New("empty license")
+
+	// ErrNilManager is returned when methods on Watcher are called when
+	// its manager field is nil
+	ErrNilManager = errors.New("license manager is nil")
+
+	// ErrProductRequired is returned with a license has no product name
+	ErrProductRequired = errors.New("product required in license")
+
+	// ErrInstallationIDRequired is returned when a license has no installation ID
+	ErrInstallationIDRequired = errors.New("installation ID required in license")
+
+	// ErrProductNameMismatch is returned when the Watcher product name does
+	// not match the license's product name
+	ErrProductNameMismatch = errors.New("product name mismatch")
 )
 
 // WatcherOptions contains options for configuring the license
@@ -215,14 +229,13 @@ func (w *Watcher) License() (*License, error) {
 	return w.manager.License()
 }
 
-// SetLicense registers the license with the manager if the license manager
-// is available.  The parsed license is returned if all validation passes.
-func (w *Watcher) SetLicense(licenseStr string) (*License, error) {
+// ValidateLicense parses and checks that the license signature is valid and performs
+// additional checks without inserting the license
+func (w *Watcher) ValidateLicense(licenseStr string) (*License, error) {
 	w.l.RLock()
 	defer w.l.RUnlock()
-
 	if w.manager == nil {
-		return nil, errors.New("license manager is nil")
+		return nil, ErrNilManager
 	}
 
 	// If there is no license, move on with existing license. We still pass it
@@ -231,21 +244,26 @@ func (w *Watcher) SetLicense(licenseStr string) (*License, error) {
 		return nil, ErrLicenseEmpty
 	}
 
-	// Validate the license to get a parsed license back to validate product
-	// name and installation id
+	// Validate the license signature to get a parsed license back
+	// to validate license fields
 	license, err := w.manager.Validate(licenseStr)
 	if err != nil {
 		return nil, err
 	}
 
-	// Product and InstallationID are required on the license
-	if license.Product == "" || license.InstallationID == "" {
-		return nil, errors.New("product and installation id are required")
+	// Product is required on the license
+	if license.Product == "" {
+		return nil, ErrProductRequired
+	}
+
+	// InstallationID is required
+	if license.InstallationID == "" {
+		return nil, ErrInstallationIDRequired
 	}
 
 	// Verify product name
 	if license.Product != "*" && license.Product != w.productName {
-		return nil, errors.New("product name mismatch")
+		return nil, ErrProductNameMismatch
 	}
 
 	// Verify that the installation ID provided in the license matches the
@@ -262,6 +280,20 @@ func (w *Watcher) SetLicense(licenseStr string) (*License, error) {
 		}
 	}
 
+	return license, nil
+}
+
+// SetLicense registers the license with the manager if the license manager
+// is available.  The parsed license is returned if all validation passes.
+func (w *Watcher) SetLicense(licenseStr string) (*License, error) {
+
+	// Perform the signature check and additional validations
+	license, err := w.ValidateLicense(licenseStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Actually store the license in the manager
 	if err := w.manager.registerLicense(license); err != nil {
 		return nil, err
 	}

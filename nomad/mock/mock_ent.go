@@ -5,9 +5,22 @@ package mock
 import (
 	"fmt"
 
+	"github.com/hashicorp/go-licensing"
+	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
+
+func Namespace() *structs.Namespace {
+	ns := &structs.Namespace{
+		Name:        fmt.Sprintf("team-%s", uuid.Generate()),
+		Description: "test namespace",
+		CreateIndex: 100,
+		ModifyIndex: 200,
+	}
+	ns.SetHash()
+	return ns
+}
 
 func SentinelPolicy() *structs.SentinelPolicy {
 	sp := &structs.SentinelPolicy{
@@ -68,4 +81,13 @@ func QuotaUsage() *structs.QuotaUsage {
 	}
 
 	return qu
+}
+
+func StoredLicense() (*structs.StoredLicense, *licensing.License) {
+	license := nomadLicense.NewTestLicense(nomadLicense.TestGovernancePolicyFlags())
+
+	return &structs.StoredLicense{
+		Signed:      license.Signed,
+		CreateIndex: uint64(1000),
+	}, license.License.License
 }

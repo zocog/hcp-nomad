@@ -7,7 +7,6 @@ GIT_DIRTY := $(if $(shell git status --porcelain),+CHANGES)
 
 GO_LDFLAGS := "-X github.com/hashicorp/nomad/version.GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
 GO_TAGS ?= ent consulent codegen_generated
-PRO_GO_TAGS ?= pro consulent codegen_generated
 
 GO_TEST_CMD = $(if $(shell command -v gotestsum 2>/dev/null),gotestsum --,go test)
 
@@ -230,11 +229,6 @@ generate-structs: ## Update generated code
 	@echo "--> Running go generate..."
 	@go generate -tags="$(GO_TAGS)" $(LOCAL_PACKAGES)
 
-.PHONY: progenerate-structs
-progenerate-structs: LOCAL_PACKAGES = $(shell go list ./... | grep -v '/vendor/')
-progenerate-structs: ## Update generated code
-	@go generate -tags="$(PRO_GO_TAGS)" $(LOCAL_PACKAGES)
-
 .PHONY: proto
 proto:
 	@echo "--> Generating proto bindings..."
@@ -284,25 +278,6 @@ dev: vendorfmt changelogfmt hclfmt ## Build for the current development platform
 	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(PROJECT_ROOT)/bin/
 	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(GOPATH)/bin
 
-.PHONY: prodev
-prodev: GOOS=$(shell go env GOOS)
-prodev: GOARCH=$(shell go env GOARCH)
-prodev: GOPATH=$(shell go env GOPATH)
-prodev: DEV_TARGET=pkg/$(GOOS)_$(GOARCH)/nomad
-prodev: vendorfmt changelogfmt ## Build for the current development platform
-	@echo "==> Removing old development build..."
-	@rm -f $(PROJECT_ROOT)/$(DEV_TARGET)
-	@rm -f $(PROJECT_ROOT)/bin/nomad
-	@rm -f $(GOPATH)/bin/nomad
-	@$(MAKE) --no-print-directory \
-		$(DEV_TARGET) \
-		GO_TAGS="$(PRO_GO_TAGS) $(NOMAD_UI_TAG)"
-
-	@mkdir -p $(PROJECT_ROOT)/bin
-	@mkdir -p $(GOPATH)/bin
-	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(PROJECT_ROOT)/bin/
-	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(GOPATH)/bin
-
 .PHONY: prerelease
 prerelease: GO_TAGS=ui codegen_generated release ent consulent
 prerelease: generate-all ember-dist static-assets ## Generate all the static assets for a Nomad release
@@ -310,12 +285,6 @@ prerelease: generate-all ember-dist static-assets ## Generate all the static ass
 .PHONY: release
 release: GO_TAGS=ui codegen_generated release ent consulent
 release: clean $(foreach t,$(ALL_TARGETS),pkg/$(t).zip) ## Build all release packages which can be built on this platform.
-	@echo "==> Results:"
-	@tree --dirsfirst $(PROJECT_ROOT)/pkg
-
-.PHONY: prorelease
-prorelease: GO_TAGS=ui codegen_generated release pro consulent
-prorelease: clean $(foreach t,$(ALL_TARGETS),pkg/$(t).zip) ## Build all release packages which can be built on this platform.
 	@echo "==> Results:"
 	@tree --dirsfirst $(PROJECT_ROOT)/pkg
 
@@ -342,18 +311,6 @@ test-nomad: dev ## Run Nomad test suites
 		-cover \
 		-timeout=15m \
 		-tags="$(GO_TAGS)" $(GOTEST_PKGS) $(if $(VERBOSE), >test.log ; echo $$? > exit-code)
-	@if [ $(VERBOSE) ] ; then \
-		bash -C "$(PROJECT_ROOT)/scripts/test_check.sh" ; \
-	fi
-
-.PHONY: protest-nomad
-protest-nomad: prodev ## Run Nomad test suites
-	@echo "==> Running Nomad test suites:"
-	$(if $(ENABLE_RACE),GORACE="strip_path_prefix=$(GOPATH)/src") $(GO_TEST_CMD) \
-		$(if $(ENABLE_RACE),-race) $(if $(VERBOSE),-v) \
-		-cover \
-		-timeout=15m \
-		-tags="$(PRO_GO_TAGS)" $(GOTEST_PKGS) $(if $(VERBOSE), >test.log ; echo $$? > exit-code)
 	@if [ $(VERBOSE) ] ; then \
 		bash -C "$(PROJECT_ROOT)/scripts/test_check.sh" ; \
 	fi

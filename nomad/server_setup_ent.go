@@ -3,6 +3,9 @@
 package nomad
 
 import (
+	"fmt"
+
+	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/sentinel/sentinel"
 )
 
@@ -15,6 +18,22 @@ type LicenseConfig struct {
 type EnterpriseState struct {
 	// sentinel is a shared instance of the policy engine
 	sentinel *sentinel.Sentinel
+
+	//licenseWatcher is used to manage the lifecycle for enterprise licenses
+	licenseWatcher *LicenseWatcher
+}
+
+func (es *EnterpriseState) FeatureCheck(feature license.Features, emitLog bool) error {
+	if es.licenseWatcher == nil {
+		// everything is licensed while the watcher starts up
+		return nil
+	}
+
+	return es.licenseWatcher.FeatureCheck(feature, emitLog)
+}
+
+func (es *EnterpriseState) Features() uint64 {
+	return uint64(es.licenseWatcher.Features())
 }
 
 // setupEnterprise is used for Enterprise specific setup
@@ -42,6 +61,12 @@ func (s *Server) setupEnterprise(config *Config) error {
 
 	s.setupEnterpriseAutopilot(config)
 
+	licenseWatcher, err := NewLicenseWatcher(s.logger, config.LicenseConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create a new license watcher: %w", err)
+	}
+	s.EnterpriseState.licenseWatcher = licenseWatcher
+	s.EnterpriseState.licenseWatcher.start(s.shutdownCtx, s.State(), config.AgentShutdown)
 	return nil
 }
 
@@ -51,8 +76,4 @@ func (s *Server) startEnterpriseBackground() {
 	if s.config.ACLEnabled {
 		go s.gcSentinelPolicies(s.shutdownCh)
 	}
-}
-
-func (es *EnterpriseState) Features() uint64 {
-	return 0
 }

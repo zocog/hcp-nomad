@@ -432,3 +432,47 @@ func TestFSM_UpsertNamespaces_ModifyQuota(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	})
 }
+
+func TestFSM_UpsertLicense(t *testing.T) {
+	t.Parallel()
+	fsm := testFSM(t)
+
+	stored, _ := mock.StoredLicense()
+	req := structs.LicenseUpsertRequest{
+		License: stored,
+	}
+	buf, err := structs.Encode(structs.LicenseUpsertRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify we are registered
+	ws := memdb.NewWatchSet()
+	out, err := fsm.State().License(ws)
+	assert.Nil(t, err)
+	assert.NotNil(t, out)
+}
+
+func TestFSM_SnapshotRestore_License(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	// Add some state
+	fsm := testFSM(t)
+	state := fsm.State()
+	stored, _ := mock.StoredLicense()
+	assert.Nil(state.UpsertLicense(1000, stored))
+
+	// Verify the contents
+	fsm2 := testSnapshotRestore(t, fsm)
+	state2 := fsm2.State()
+	ws := memdb.NewWatchSet()
+	out1, _ := state2.License(ws)
+	assert.NotNil(t, out1)
+	assert.Equal(stored, out1)
+}

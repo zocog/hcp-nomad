@@ -9,6 +9,7 @@ import (
 	metrics "github.com/armon/go-metrics"
 	memdb "github.com/hashicorp/go-memdb"
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
@@ -32,6 +33,11 @@ func (n *Namespace) UpsertNamespaces(args *structs.NamespaceUpsertRequest,
 		return err
 	} else if aclObj != nil && !aclObj.IsManagement() {
 		return structs.ErrPermissionDenied
+	}
+
+	// Strict enforcement for write requests - if not licensed then requests will be denied
+	if err := n.srv.EnterpriseState.FeatureCheck(license.FeatureNamespaces, true); err != nil {
+		return err
 	}
 
 	// Validate there is at least one namespace
@@ -77,6 +83,11 @@ func (n *Namespace) DeleteNamespaces(args *structs.NamespaceDeleteRequest, reply
 		return err
 	} else if aclObj != nil && !aclObj.IsManagement() {
 		return structs.ErrPermissionDenied
+	}
+
+	// Strict enforcement for write requests - if not licensed then requests will be denied
+	if err := n.srv.EnterpriseState.FeatureCheck(license.FeatureNamespaces, true); err != nil {
+		return err
 	}
 
 	// Validate at least one namespace
@@ -225,6 +236,9 @@ func (n *Namespace) ListNamespaces(args *structs.NamespaceListRequest, reply *st
 	if err != nil {
 		return err
 	}
+
+	// Only warn for expiration of a read request
+	_ = n.srv.EnterpriseState.FeatureCheck(license.FeatureNamespaces, true)
 
 	// Setup the blocking query
 	opts := blockingOptions{

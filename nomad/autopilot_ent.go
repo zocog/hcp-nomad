@@ -1,4 +1,4 @@
-// +build pro ent
+// +build ent
 
 package nomad
 
@@ -7,7 +7,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/autopilot_ent"
-	"github.com/hashicorp/consul/agent/license"
+	consulLicense "github.com/hashicorp/consul/agent/license"
+	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/raft"
 )
 
@@ -51,9 +52,15 @@ func (s *Server) getNodeMeta(serverID raft.ServerID) (map[string]string, error) 
 	return meta, nil
 }
 
-// FeatureCheck no-ops consul enterprise license feature checking functionality
-func (s *Server) FeatureCheck(feature license.Features, allowPrevious, emitLog bool) error {
-	return nil
+// ConsulFeatureCheck no-ops consul enterprise license feature checking functionality
+// TODO remove private consul dependencies
+func (s *Server) ConsulFeatureCheck(feature consulLicense.Features, allowPrevious, emitLog bool) error {
+	// Hack to convert consul license feature to nomad license feature
+	nomadFeature, err := license.FeatureFromString(feature.String())
+	if err != nil {
+		return err
+	}
+	return s.EnterpriseState.FeatureCheck(nomadFeature, true)
 }
 
 // Set up the enterprise version of autopilot
@@ -61,6 +68,8 @@ func (s *Server) setupEnterpriseAutopilot(config *Config) {
 	apDelegate := &AdvancedAutopilotDelegate{
 		AutopilotDelegate: AutopilotDelegate{server: s},
 	}
-	apDelegate.promoter = autopilot_ent.NewAdvancedPromoter(s.logger, apDelegate, s.getNodeMeta, s.FeatureCheck)
+	// TODO:(Consul) Consul's autopilot package is a private package. Work
+	// with consul to create a module for it.
+	apDelegate.promoter = autopilot_ent.NewAdvancedPromoter(s.logger, apDelegate, s.getNodeMeta, s.ConsulFeatureCheck)
 	s.autopilot = autopilot.NewAutopilot(s.logger, apDelegate, config.AutopilotInterval, config.ServerHealthInterval)
 }

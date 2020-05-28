@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	hclog "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/audit"
 	"github.com/hashicorp/nomad/command/agent/event"
 	"github.com/hashicorp/nomad/nomad/structs/config"
@@ -16,9 +17,42 @@ import (
 // Ensure audit.Auditor is an Eventer
 var _ event.Auditor = &audit.Auditor{}
 
-type EnterpriseAgent struct{}
+// EnterpriseAgent allows Agents to interact with enterprise features
+type EnterpriseAgent struct {
+	featurechecker license.FeatureChecker
+}
+
+type NoOpChecker struct{}
+
+func (n *NoOpChecker) FeatureCheck(feature license.Features, emitLog bool) error {
+	return nil
+}
+
+type AlwaysFailChecker struct{}
+
+func (a *AlwaysFailChecker) FeatureCheck(feature license.Features, emitLog bool) error {
+	return fmt.Errorf("Feature %q is unlicensed", feature.String())
+}
 
 func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
+
+	// Determine if we are setting up a server or client
+	// and use the respective feature checker
+	if a.server != nil {
+		a.EnterpriseAgent = &EnterpriseAgent{
+			featurechecker: &a.server.EnterpriseState,
+		}
+	} else if a.client != nil {
+		// no-op feature checker until client is implemented
+		a.EnterpriseAgent = &EnterpriseAgent{
+			featurechecker: a.client.EnterpriseClient,
+		}
+	} else {
+		a.EnterpriseAgent = &EnterpriseAgent{
+			featurechecker: &AlwaysFailChecker{},
+		}
+	}
+
 	// Ensure we have at least empty Auditor config
 	if a.config.Audit == nil {
 		a.config.Audit = DefaultConfig().Audit
@@ -117,10 +151,11 @@ func (a *Agent) setupAuditor(cfg *config.AuditConfig, logger hclog.InterceptLogg
 	}
 
 	auditCfg := &audit.Config{
-		Enabled: enabled,
-		Filters: filters,
-		Sinks:   sinks,
-		Logger:  logger.ResetNamedIntercept("audit"),
+		Enabled:        enabled,
+		Filters:        filters,
+		Sinks:          sinks,
+		Logger:         logger.ResetNamedIntercept("audit"),
+		FeatureChecker: a.EnterpriseAgent.featurechecker,
 	}
 
 	auditor, err := audit.NewAuditor(auditCfg)

@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/errwrap"
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/sentinel/lang/ast"
 	"github.com/hashicorp/sentinel/lang/parser"
 	"github.com/hashicorp/sentinel/lang/semantic"
@@ -27,6 +28,8 @@ const (
 	SentinelPolicyDeleteRequestType
 	QuotaSpecUpsertRequestType
 	QuotaSpecDeleteRequestType
+	LicenseUpsertRequestType
+	LicenseDeleteRequestType
 )
 
 const (
@@ -167,6 +170,33 @@ type NamespaceDeleteRequest struct {
 type NamespaceUpsertRequest struct {
 	Namespaces []*Namespace
 	WriteRequest
+}
+
+// StoredLicense is used to store and retrieve the signed license blob
+// used for checking enterprise features
+type StoredLicense struct {
+	Signed string
+
+	// Raft Indexes
+	CreateIndex uint64
+	ModifyIndex uint64
+}
+
+// LicenseUpsertRequest is used to store a signed license text blob
+type LicenseUpsertRequest struct {
+	License *StoredLicense
+	WriteRequest
+}
+
+// LicenseGetRequest is used to request a signed license text blob
+type LicenseGetRequest struct {
+	QueryOptions
+}
+
+// LicenseGetResponse is used to respond to a request for a parsed License
+type LicenseGetResponse struct {
+	NomadLicense *license.License
+	QueryMeta
 }
 
 // SentinelPolicy is used to represent a Sentinel policy

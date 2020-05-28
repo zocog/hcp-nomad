@@ -2,6 +2,7 @@ package licensing
 
 import (
 	"crypto"
+	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/base32"
 	"encoding/base64"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/hashicorp/errwrap"
 	"github.com/mitchellh/copystructure"
-	"golang.org/x/crypto/ed25519"
 )
 
 const (

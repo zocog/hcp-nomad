@@ -85,6 +85,7 @@ func TestAuditWrapHTTPHandler(t *testing.T) {
 						FileName:          "audit.log",
 					},
 				},
+				FeatureChecker: &s.server.EnterpriseState,
 			})
 			require.NoError(t, err)
 
@@ -203,6 +204,7 @@ func TestAuditNonJSONHandler(t *testing.T) {
 						FileName:          "audit.log",
 					},
 				},
+				FeatureChecker: &s.server.EnterpriseState,
 			})
 			require.NoError(t, err)
 

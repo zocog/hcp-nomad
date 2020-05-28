@@ -8,6 +8,7 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/acl"
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -32,6 +33,11 @@ func (q *Quota) UpsertQuotaSpecs(args *structs.QuotaSpecUpsertRequest,
 		return err
 	} else if aclObj != nil && !aclObj.AllowQuotaWrite() {
 		return structs.ErrPermissionDenied
+	}
+
+	// Strict enforcement for write requests - if not licensed then requests will be denied
+	if err := q.srv.EnterpriseState.FeatureCheck(license.FeatureResourceQuotas, true); err != nil {
+		return err
 	}
 
 	// Validate there is at least one quota
@@ -79,6 +85,11 @@ func (q *Quota) DeleteQuotaSpecs(args *structs.QuotaSpecDeleteRequest, reply *st
 		return structs.ErrPermissionDenied
 	}
 
+	// Strict enforcement for write requests - if not licensed then requests will be denied
+	if err := q.srv.EnterpriseState.FeatureCheck(license.FeatureResourceQuotas, true); err != nil {
+		return err
+	}
+
 	// Validate at least one quota
 	if len(args.Names) == 0 {
 		return fmt.Errorf("must specify at least one quota specification to delete")
@@ -112,6 +123,9 @@ func (q *Quota) ListQuotaSpecs(args *structs.QuotaSpecListRequest, reply *struct
 	if err != nil {
 		return err
 	}
+
+	// Only warn for expiration of a read request
+	_ = q.srv.EnterpriseState.FeatureCheck(license.FeatureResourceQuotas, true)
 
 	// Setup the blocking query
 	opts := blockingOptions{
@@ -176,6 +190,9 @@ func (q *Quota) GetQuotaSpec(args *structs.QuotaSpecSpecificRequest, reply *stru
 		return err
 	}
 
+	// Only warn for expiration of a read request
+	_ = q.srv.EnterpriseState.FeatureCheck(license.FeatureResourceQuotas, true)
+
 	// Setup the blocking query
 	opts := blockingOptions{
 		queryOpts: &args.QueryOptions,
@@ -231,6 +248,9 @@ func (q *Quota) GetQuotaSpecs(args *structs.QuotaSpecSetRequest, reply *structs.
 		return structs.ErrPermissionDenied
 	}
 
+	// Only warn for expiration of a read request
+	_ = q.srv.EnterpriseState.FeatureCheck(license.FeatureResourceQuotas, true)
+
 	// Setup the blocking query
 	opts := blockingOptions{
 		queryOpts: &args.QueryOptions,
@@ -279,6 +299,9 @@ func (q *Quota) ListQuotaUsages(args *structs.QuotaUsageListRequest, reply *stru
 	if err != nil {
 		return err
 	}
+
+	// Only warn for expiration of a read request
+	_ = q.srv.EnterpriseState.FeatureCheck(license.FeatureResourceQuotas, true)
 
 	// Setup the blocking query
 	opts := blockingOptions{
@@ -343,6 +366,9 @@ func (q *Quota) GetQuotaUsage(args *structs.QuotaUsageSpecificRequest, reply *st
 	if err != nil {
 		return err
 	}
+
+	// Only warn for expiration of a read request
+	_ = q.srv.EnterpriseState.FeatureCheck(license.FeatureResourceQuotas, true)
 
 	// Setup the blocking query
 	opts := blockingOptions{
