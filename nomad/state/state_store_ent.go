@@ -161,6 +161,25 @@ func (s *StateStore) Namespaces(ws memdb.WatchSet) (memdb.ResultIterator, error)
 	return iter, nil
 }
 
+func (s *StateStore) NamespaceNames() ([]string, error) {
+	it, err := s.Namespaces(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	nses := []string{}
+	for {
+		next := it.Next()
+		if next == nil {
+			break
+		}
+		ns := next.(*structs.Namespace)
+		nses = append(nses, ns.Name)
+	}
+
+	return nses, nil
+}
+
 // NamespacesByQuota is used to lookup namespaces by quota
 func (s *StateStore) NamespacesByQuota(ws memdb.WatchSet, quota string) (memdb.ResultIterator, error) {
 	txn := s.db.Txn(false)

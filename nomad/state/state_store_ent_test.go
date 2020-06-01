@@ -154,6 +154,29 @@ func TestStateStore_Namespaces(t *testing.T) {
 	assert.False(watchFired(ws))
 }
 
+func TestStateStore_NamespaceNames(t *testing.T) {
+	state := testStateStore(t)
+	var namespaces []*structs.Namespace
+	expectedNames := []string{structs.DefaultNamespace}
+
+	for i := 0; i < 10; i++ {
+		ns := mock.Namespace()
+		namespaces = append(namespaces, ns)
+		expectedNames = append(expectedNames, ns.Name)
+	}
+
+	err := state.UpsertNamespaces(1000, namespaces)
+	require.NoError(t, err)
+
+	found, err := state.NamespaceNames()
+	require.NoError(t, err)
+
+	sort.Strings(expectedNames)
+	sort.Strings(found)
+
+	require.Equal(t, expectedNames, found)
+}
+
 func TestStateStore_NamespaceByNamePrefix(t *testing.T) {
 	assert := assert.New(t)
 	state := testStateStore(t)
