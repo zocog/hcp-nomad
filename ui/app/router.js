@@ -39,12 +39,17 @@ Router.map(function() {
     });
 
     this.route('plugins', function() {
-      this.route('plugin', { path: '/:plugin_name' });
+      this.route('plugin', { path: '/:plugin_name' }, function() {
+        this.route('allocations');
+      });
     });
   });
 
   this.route('allocations', function() {
     this.route('allocation', { path: '/:allocation_id' }, function() {
+      this.route('fs-root', { path: '/fs' });
+      this.route('fs', { path: '/fs/*path' });
+
       this.route('task', { path: '/:name' }, function() {
         this.route('logs');
         this.route('fs-root', { path: '/fs' });
