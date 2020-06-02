@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -123,7 +124,7 @@ var (
 	// plugin catalog.
 	PluginConfig = &loader.InternalPluginConfig{
 		Config:  map[string]interface{}{},
-		Factory: func(l hclog.Logger) interface{} { return NewDockerDriver(l) },
+		Factory: func(ctx context.Context, l hclog.Logger) interface{} { return NewDockerDriver(ctx, l) },
 	}
 
 	// pluginInfo is the response returned for the PluginInfo RPC
@@ -318,7 +319,8 @@ var (
 			"driver": hclspec.NewAttr("driver", "string", false),
 			"config": hclspec.NewAttr("config", "list(map(string))", false),
 		})),
-		"mac_address": hclspec.NewAttr("mac_address", "string", false),
+		"mac_address":       hclspec.NewAttr("mac_address", "string", false),
+		"memory_hard_limit": hclspec.NewAttr("memory_hard_limit", "number", false),
 		"mounts": hclspec.NewBlockList("mounts", hclspec.NewObject(map[string]*hclspec.Spec{
 			"type": hclspec.NewDefault(
 				hclspec.NewAttr("type", "string", false),
@@ -407,6 +409,7 @@ type TaskConfig struct {
 	LoadImage         string             `codec:"load"`
 	Logging           DockerLogging      `codec:"logging"`
 	MacAddress        string             `codec:"mac_address"`
+	MemoryHardLimit   int64              `codec:"memory_hard_limit"`
 	Mounts            []DockerMount      `codec:"mounts"`
 	NetworkAliases    []string           `codec:"network_aliases"`
 	NetworkMode       string             `codec:"network_mode"`
@@ -681,6 +684,7 @@ func (d *Driver) SetConfig(c *base.Config) error {
 		return fmt.Errorf("failed to get docker client: %v", err)
 	}
 	coordinatorConfig := &dockerCoordinatorConfig{
+		ctx:         d.ctx,
 		client:      dockerClient,
 		cleanup:     d.config.GC.Image,
 		logger:      d.logger,

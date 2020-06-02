@@ -6,6 +6,7 @@ IMPROVEMENTS:
  * csi: Return better error messages [[GH-7984](https://github.com/hashicorp/nomad/issues/7984)] [[GH-8030](https://github.com/hashicorp/nomad/issues/8030)]
  * csi: Move volume claim releases out of evaluation workers [[GH-8021](https://github.com/hashicorp/nomad/issues/8021)]
  * csi: Added support for `VolumeContext` and `VolumeParameters` [[GH-7957](https://github.com/hashicorp/nomad/issues/7957)]
+ * driver/docker: Added support for `memory_hard_limit` configuration in docker task driver [[GH-2093](https://github.com/hashicorp/nomad/issues/2093)]
  * logging: Remove spurious error log on task shutdown [[GH-8028](https://github.com/hashicorp/nomad/issues/8028)]
  * ui: Added filesystem browsing for allocations [[GH-5871](https://github.com/hashicorp/nomad/pull/7951)]
 
@@ -14,6 +15,7 @@ BUG FIXES:
  * core: Fixed a bug where new leader may take a long time until it can process requests [[GH-8036](https://github.com/hashicorp/nomad/issues/8036)]
  * core: Fixed a bug where an internal metadata, ClusterID, may not be initialized properly upon a slow server upgrade [[GH-8078](https://github.com/hashicorp/nomad/issues/8078)].
  * api: Fixed a bug where setting connect sidecar task resources could fail [[GH-7993](https://github.com/hashicorp/nomad/issues/7993)]
+ * client: Fixed a bug where artifact downloads failed on redirects [[GH-7854](https://github.com/hashicorp/nomad/issues/7854)]
  * csi: Validate empty volume arguments in API. [[GH-8027](https://github.com/hashicorp/nomad/issues/8027)]
 
 ## 0.11.2 (May 14, 2020)
