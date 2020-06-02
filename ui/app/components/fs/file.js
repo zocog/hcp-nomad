@@ -15,7 +15,7 @@ export default Component.extend({
   'data-test-file-viewer': true,
 
   allocation: null,
-  task: null,
+  taskState: null,
   file: null,
   stat: null, // { Name, IsDir, Size, FileMode, ModTime, ContentType }
 
@@ -48,8 +48,9 @@ export default Component.extend({
   isStreamable: equal('fileComponent', 'stream'),
   isStreaming: false,
 
-  catUrl: computed('allocation.id', 'task.name', 'file', function() {
-    const encodedPath = encodeURIComponent(`${this.task.name}/${this.file}`);
+  catUrl: computed('allocation.id', 'taskState.name', 'file', function() {
+    const taskUrlPrefix = this.taskState ? `${this.taskState.name}/` : '';
+    const encodedPath = encodeURIComponent(`${taskUrlPrefix}${this.file}`);
     return `/v1/client/fs/cat/${this.allocation.id}?path=${encodedPath}`;
   }),
 
@@ -77,9 +78,10 @@ export default Component.extend({
     }
   ),
 
-  fileParams: computed('task.name', 'file', 'mode', function() {
+  fileParams: computed('taskState.name', 'file', 'mode', function() {
     // The Log class handles encoding query params
-    const path = `${this.task.name}/${this.file}`;
+    const taskUrlPrefix = this.taskState ? `${this.taskState.name}/` : '';
+    const path = `${taskUrlPrefix}${this.file}`;
 
     switch (this.mode) {
       case 'head':
