@@ -204,6 +204,7 @@ func Import(packages map[string]*types.Package, path, srcDir string, lookup func
 		// Or, define a new standard go/types/gcexportdata package.
 		fset := token.NewFileSet()
 
+<<<<<<< HEAD
 		// The indexed export format starts with an 'i'; the older
 		// binary export format starts with a 'c', 'd', or 'v'
 		// (from "version"). Select appropriate importer.
@@ -212,6 +213,13 @@ func Import(packages map[string]*types.Package, path, srcDir string, lookup func
 		} else {
 			_, pkg, err = BImportData(fset, packages, data, id)
 		}
+=======
+		// The indexed export format starts with an 'i'.
+		if len(data) == 0 || data[0] != 'i' {
+			return nil, fmt.Errorf("unknown export data format")
+		}
+		_, pkg, err = IImportData(fset, packages, data[1:], id)
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 
 	default:
 		err = fmt.Errorf("unknown export data header: %q", hdr)

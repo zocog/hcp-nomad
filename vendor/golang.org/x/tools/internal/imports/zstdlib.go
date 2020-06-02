@@ -415,6 +415,12 @@ var stdlib = map[string][]string{
 	"crypto/tls": []string{
 		"Certificate",
 		"CertificateRequestInfo",
+<<<<<<< HEAD
+=======
+		"CipherSuite",
+		"CipherSuiteName",
+		"CipherSuites",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"Client",
 		"ClientAuthType",
 		"ClientHelloInfo",
@@ -434,6 +440,10 @@ var stdlib = map[string][]string{
 		"ECDSAWithP521AndSHA512",
 		"ECDSAWithSHA1",
 		"Ed25519",
+<<<<<<< HEAD
+=======
+		"InsecureCipherSuites",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"Listen",
 		"LoadX509KeyPair",
 		"NewLRUClientSessionCache",
@@ -465,6 +475,10 @@ var stdlib = map[string][]string{
 		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
 		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
 		"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305",
+<<<<<<< HEAD
+=======
+		"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",
 		"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
 		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
@@ -473,6 +487,10 @@ var stdlib = map[string][]string{
 		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
 		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
 		"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305",
+<<<<<<< HEAD
+=======
+		"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"TLS_ECDHE_RSA_WITH_RC4_128_SHA",
 		"TLS_FALLBACK_SCSV",
 		"TLS_RSA_WITH_3DES_EDE_CBC_SHA",
@@ -698,11 +716,18 @@ var stdlib = map[string][]string{
 		"Attr",
 		"AttrAbstractOrigin",
 		"AttrAccessibility",
+<<<<<<< HEAD
 		"AttrAddrClass",
+=======
+		"AttrAddrBase",
+		"AttrAddrClass",
+		"AttrAlignment",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"AttrAllocated",
 		"AttrArtificial",
 		"AttrAssociated",
 		"AttrBaseTypes",
+<<<<<<< HEAD
 		"AttrBitOffset",
 		"AttrBitSize",
 		"AttrByteSize",
@@ -717,17 +742,69 @@ var stdlib = map[string][]string{
 		"AttrCount",
 		"AttrDataLocation",
 		"AttrDataMemberLoc",
+=======
+		"AttrBinaryScale",
+		"AttrBitOffset",
+		"AttrBitSize",
+		"AttrByteSize",
+		"AttrCallAllCalls",
+		"AttrCallAllSourceCalls",
+		"AttrCallAllTailCalls",
+		"AttrCallColumn",
+		"AttrCallDataLocation",
+		"AttrCallDataValue",
+		"AttrCallFile",
+		"AttrCallLine",
+		"AttrCallOrigin",
+		"AttrCallPC",
+		"AttrCallParameter",
+		"AttrCallReturnPC",
+		"AttrCallTailCall",
+		"AttrCallTarget",
+		"AttrCallTargetClobbered",
+		"AttrCallValue",
+		"AttrCalling",
+		"AttrCommonRef",
+		"AttrCompDir",
+		"AttrConstExpr",
+		"AttrConstValue",
+		"AttrContainingType",
+		"AttrCount",
+		"AttrDataBitOffset",
+		"AttrDataLocation",
+		"AttrDataMemberLoc",
+		"AttrDecimalScale",
+		"AttrDecimalSign",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"AttrDeclColumn",
 		"AttrDeclFile",
 		"AttrDeclLine",
 		"AttrDeclaration",
 		"AttrDefaultValue",
+<<<<<<< HEAD
 		"AttrDescription",
 		"AttrDiscr",
 		"AttrDiscrList",
 		"AttrDiscrValue",
 		"AttrEncoding",
 		"AttrEntrypc",
+=======
+		"AttrDefaulted",
+		"AttrDeleted",
+		"AttrDescription",
+		"AttrDigitCount",
+		"AttrDiscr",
+		"AttrDiscrList",
+		"AttrDiscrValue",
+		"AttrDwoName",
+		"AttrElemental",
+		"AttrEncoding",
+		"AttrEndianity",
+		"AttrEntrypc",
+		"AttrEnumClass",
+		"AttrExplicit",
+		"AttrExportSymbols",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"AttrExtension",
 		"AttrExternal",
 		"AttrFrameBase",
@@ -738,6 +815,7 @@ var stdlib = map[string][]string{
 		"AttrInline",
 		"AttrIsOptional",
 		"AttrLanguage",
+<<<<<<< HEAD
 		"AttrLocation",
 		"AttrLowerBound",
 		"AttrLowpc",
@@ -752,13 +830,55 @@ var stdlib = map[string][]string{
 		"AttrReturnAddr",
 		"AttrSegment",
 		"AttrSibling",
+=======
+		"AttrLinkageName",
+		"AttrLocation",
+		"AttrLoclistsBase",
+		"AttrLowerBound",
+		"AttrLowpc",
+		"AttrMacroInfo",
+		"AttrMacros",
+		"AttrMainSubprogram",
+		"AttrMutable",
+		"AttrName",
+		"AttrNamelistItem",
+		"AttrNoreturn",
+		"AttrObjectPointer",
+		"AttrOrdering",
+		"AttrPictureString",
+		"AttrPriority",
+		"AttrProducer",
+		"AttrPrototyped",
+		"AttrPure",
+		"AttrRanges",
+		"AttrRank",
+		"AttrRecursive",
+		"AttrReference",
+		"AttrReturnAddr",
+		"AttrRnglistsBase",
+		"AttrRvalueReference",
+		"AttrSegment",
+		"AttrSibling",
+		"AttrSignature",
+		"AttrSmall",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"AttrSpecification",
 		"AttrStartScope",
 		"AttrStaticLink",
 		"AttrStmtList",
+<<<<<<< HEAD
 		"AttrStride",
 		"AttrStrideSize",
 		"AttrStringLength",
+=======
+		"AttrStrOffsetsBase",
+		"AttrStride",
+		"AttrStrideSize",
+		"AttrStringLength",
+		"AttrStringLengthBitSize",
+		"AttrStringLengthByteSize",
+		"AttrThreadsScaled",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"AttrTrampoline",
 		"AttrType",
 		"AttrUpperBound",
@@ -772,18 +892,32 @@ var stdlib = map[string][]string{
 		"BoolType",
 		"CharType",
 		"Class",
+<<<<<<< HEAD
+=======
+		"ClassAddrPtr",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"ClassAddress",
 		"ClassBlock",
 		"ClassConstant",
 		"ClassExprLoc",
 		"ClassFlag",
 		"ClassLinePtr",
+<<<<<<< HEAD
+=======
+		"ClassLocList",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"ClassLocListPtr",
 		"ClassMacPtr",
 		"ClassRangeListPtr",
 		"ClassReference",
 		"ClassReferenceAlt",
 		"ClassReferenceSig",
+<<<<<<< HEAD
+=======
+		"ClassRngList",
+		"ClassRngListsPtr",
+		"ClassStrOffsetsPtr",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"ClassString",
 		"ClassStringAlt",
 		"ClassUnknown",
@@ -814,9 +948,19 @@ var stdlib = map[string][]string{
 		"Tag",
 		"TagAccessDeclaration",
 		"TagArrayType",
+<<<<<<< HEAD
 		"TagBaseType",
 		"TagCatchDwarfBlock",
 		"TagClassType",
+=======
+		"TagAtomicType",
+		"TagBaseType",
+		"TagCallSite",
+		"TagCallSiteParameter",
+		"TagCatchDwarfBlock",
+		"TagClassType",
+		"TagCoarrayType",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"TagCommonDwarfBlock",
 		"TagCommonInclusion",
 		"TagCompileUnit",
@@ -824,12 +968,21 @@ var stdlib = map[string][]string{
 		"TagConstType",
 		"TagConstant",
 		"TagDwarfProcedure",
+<<<<<<< HEAD
+=======
+		"TagDynamicType",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"TagEntryPoint",
 		"TagEnumerationType",
 		"TagEnumerator",
 		"TagFileType",
 		"TagFormalParameter",
 		"TagFriend",
+<<<<<<< HEAD
+=======
+		"TagGenericSubrange",
+		"TagImmutableType",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"TagImportedDeclaration",
 		"TagImportedModule",
 		"TagImportedUnit",
@@ -853,6 +1006,10 @@ var stdlib = map[string][]string{
 		"TagRvalueReferenceType",
 		"TagSetType",
 		"TagSharedType",
+<<<<<<< HEAD
+=======
+		"TagSkeletonUnit",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"TagStringType",
 		"TagStructType",
 		"TagSubprogram",
@@ -2359,6 +2516,10 @@ var stdlib = map[string][]string{
 		"RawValue",
 		"StructuralError",
 		"SyntaxError",
+<<<<<<< HEAD
+=======
+		"TagBMPString",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"TagBitString",
 		"TagBoolean",
 		"TagEnum",
@@ -2787,6 +2948,10 @@ var stdlib = map[string][]string{
 		"IsPredeclared",
 		"Mode",
 		"New",
+<<<<<<< HEAD
+=======
+		"NewFromFiles",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"Note",
 		"Package",
 		"PreserveAST",
@@ -3115,6 +3280,14 @@ var stdlib = map[string][]string{
 		"New64",
 		"New64a",
 	},
+<<<<<<< HEAD
+=======
+	"hash/maphash": []string{
+		"Hash",
+		"MakeSeed",
+		"Seed",
+	},
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 	"html": []string{
 		"EscapeString",
 		"UnescapeString",
@@ -3367,6 +3540,10 @@ var stdlib = map[string][]string{
 		"Ldate",
 		"Llongfile",
 		"Lmicroseconds",
+<<<<<<< HEAD
+=======
+		"Lmsgprefix",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"Logger",
 		"Lshortfile",
 		"LstdFlags",
@@ -3443,6 +3620,10 @@ var stdlib = map[string][]string{
 		"Exp",
 		"Exp2",
 		"Expm1",
+<<<<<<< HEAD
+=======
+		"FMA",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"Float32bits",
 		"Float32frombits",
 		"Float64bits",
@@ -3567,6 +3748,12 @@ var stdlib = map[string][]string{
 		"OnesCount32",
 		"OnesCount64",
 		"OnesCount8",
+<<<<<<< HEAD
+=======
+		"Rem",
+		"Rem32",
+		"Rem64",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"Reverse",
 		"Reverse16",
 		"Reverse32",
@@ -5140,7 +5327,14 @@ var stdlib = map[string][]string{
 		"CTL_NET",
 		"CTL_QUERY",
 		"CTRL_BREAK_EVENT",
+<<<<<<< HEAD
 		"CTRL_C_EVENT",
+=======
+		"CTRL_CLOSE_EVENT",
+		"CTRL_C_EVENT",
+		"CTRL_LOGOFF_EVENT",
+		"CTRL_SHUTDOWN_EVENT",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"CancelIo",
 		"CancelIoEx",
 		"CertAddCertificateContextToStore",
@@ -10112,6 +10306,10 @@ var stdlib = map[string][]string{
 		"Duployan",
 		"Egyptian_Hieroglyphs",
 		"Elbasan",
+<<<<<<< HEAD
+=======
+		"Elymaic",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"Ethiopic",
 		"Extender",
 		"FoldCategory",
@@ -10215,6 +10413,10 @@ var stdlib = map[string][]string{
 		"Myanmar",
 		"N",
 		"Nabataean",
+<<<<<<< HEAD
+=======
+		"Nandinagari",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"Nd",
 		"New_Tai_Lue",
 		"Newa",
@@ -10224,6 +10426,10 @@ var stdlib = map[string][]string{
 		"Noncharacter_Code_Point",
 		"Number",
 		"Nushu",
+<<<<<<< HEAD
+=======
+		"Nyiakeng_Puachue_Hmong",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"Ogham",
 		"Ol_Chiki",
 		"Old_Hungarian",
@@ -10331,6 +10537,10 @@ var stdlib = map[string][]string{
 		"Vai",
 		"Variation_Selector",
 		"Version",
+<<<<<<< HEAD
+=======
+		"Wancho",
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		"Warang_Citi",
 		"White_Space",
 		"Yi",

@@ -19,8 +19,15 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+<<<<<<< HEAD
 	"strings"
 	"sync"
+=======
+	"reflect"
+	"strings"
+	"sync"
+	"time"
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 
 	"golang.org/x/tools/go/gcexportdata"
 	"golang.org/x/tools/internal/gocommand"
@@ -70,6 +77,16 @@ const (
 
 	// NeedTypesSizes adds TypesSizes.
 	NeedTypesSizes
+<<<<<<< HEAD
+=======
+
+	// TypecheckCgo enables full support for type checking cgo. Requires Go 1.15+.
+	// Modifies CompiledGoFiles and Types, and has no effect on its own.
+	TypecheckCgo
+
+	// NeedModule adds Module.
+	NeedModule
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 )
 
 const (
@@ -257,7 +274,11 @@ type Package struct {
 	GoFiles []string
 
 	// CompiledGoFiles lists the absolute file paths of the package's source
+<<<<<<< HEAD
 	// files that were presented to the compiler.
+=======
+	// files that are suitable for type checking.
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 	// This may differ from GoFiles if files are processed before compilation.
 	CompiledGoFiles []string
 
@@ -305,16 +326,42 @@ type Package struct {
 	forTest string
 
 	// module is the module information for the package if it exists.
+<<<<<<< HEAD
 	module *packagesinternal.Module
+=======
+	Module *Module
+}
+
+// Module provides module information for a package.
+type Module struct {
+	Path      string       // module path
+	Version   string       // module version
+	Replace   *Module      // replaced by this module
+	Time      *time.Time   // time version was created
+	Main      bool         // is this the main module?
+	Indirect  bool         // is this module only an indirect dependency of main module?
+	Dir       string       // directory holding files for this module, if any
+	GoMod     string       // path to go.mod file used when loading this module, if any
+	GoVersion string       // go version used in module
+	Error     *ModuleError // error loading module
+}
+
+// ModuleError holds errors loading a module.
+type ModuleError struct {
+	Err string // the error itself
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 }
 
 func init() {
 	packagesinternal.GetForTest = func(p interface{}) string {
 		return p.(*Package).forTest
 	}
+<<<<<<< HEAD
 	packagesinternal.GetModule = func(p interface{}) *packagesinternal.Module {
 		return p.(*Package).module
 	}
+=======
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 	packagesinternal.GetGoCmdRunner = func(config interface{}) *gocommand.Runner {
 		return config.(*Config).gocmdRunner
 	}
@@ -703,6 +750,12 @@ func (ld *loader) refine(roots []string, list ...*Package) ([]*Package, error) {
 		if ld.requestedMode&NeedTypesSizes == 0 {
 			ld.pkgs[i].TypesSizes = nil
 		}
+<<<<<<< HEAD
+=======
+		if ld.requestedMode&NeedModule == 0 {
+			ld.pkgs[i].Module = nil
+		}
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 	}
 
 	return result, nil
@@ -878,6 +931,22 @@ func (ld *loader) loadPackage(lpkg *loaderPackage) {
 		Error: appendError,
 		Sizes: ld.sizes,
 	}
+<<<<<<< HEAD
+=======
+	if (ld.Mode & TypecheckCgo) != 0 {
+		// TODO: remove this when we stop supporting 1.14.
+		rtc := reflect.ValueOf(tc).Elem()
+		usesCgo := rtc.FieldByName("UsesCgo")
+		if !usesCgo.IsValid() {
+			appendError(Error{
+				Msg:  "TypecheckCgo requires Go 1.15+",
+				Kind: ListError,
+			})
+			return
+		}
+		usesCgo.SetBool(true)
+	}
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 	types.NewChecker(tc, ld.Fset, lpkg.Types, lpkg.TypesInfo).Files(lpkg.Syntax)
 
 	lpkg.importErrors = nil // no longer needed

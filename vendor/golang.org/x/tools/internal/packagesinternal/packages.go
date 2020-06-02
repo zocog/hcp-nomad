@@ -2,6 +2,7 @@
 package packagesinternal
 
 import (
+<<<<<<< HEAD
 	"time"
 
 	"golang.org/x/tools/internal/gocommand"
@@ -30,6 +31,13 @@ var GetForTest = func(p interface{}) string { return "" }
 
 var GetModule = func(p interface{}) *Module { return nil }
 
+=======
+	"golang.org/x/tools/internal/gocommand"
+)
+
+var GetForTest = func(p interface{}) string { return "" }
+
+>>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 var GetGoCmdRunner = func(config interface{}) *gocommand.Runner { return nil }
 
 var SetGoCmdRunner = func(config interface{}, runner *gocommand.Runner) {}
