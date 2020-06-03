@@ -49,11 +49,7 @@ func main() {
 }
 
 func setupFlags(name string) (*pflag.FlagSet, *options) {
-	opts := &options{
-		noSummary:                    newNoSummaryValue(),
-		junitTestCaseClassnameFormat: &junitFieldFormatValue{},
-		junitTestSuiteNameFormat:     &junitFieldFormatValue{},
-	}
+	opts := &options{noSummary: newNoSummaryValue()}
 	flags := pflag.NewFlagSet(name, pflag.ContinueOnError)
 	flags.SetInterspersed(false)
 	flags.Usage = func() {
@@ -86,11 +82,7 @@ Formats:
 		"write a JUnit XML file")
 	flags.BoolVar(&opts.noColor, "no-color", false, "disable color output")
 	flags.Var(opts.noSummary, "no-summary",
-		"do not print summary of: "+testjson.SummarizeAll.String())
-	flags.Var(opts.junitTestSuiteNameFormat, "junitfile-testsuite-name",
-		"format the testsuite name field as: "+junitFieldFormatValues)
-	flags.Var(opts.junitTestCaseClassnameFormat, "junitfile-testcase-classname",
-		"format the testcase classname field as: "+junitFieldFormatValues)
+		fmt.Sprintf("do not print summary of: %s", testjson.SummarizeAll.String()))
 	flags.BoolVar(&opts.version, "version", false, "show version and exit")
 	return flags, opts
 }
@@ -103,24 +95,24 @@ func lookEnvWithDefault(key, defValue string) string {
 }
 
 type options struct {
-	args                         []string
-	format                       string
-	debug                        bool
-	rawCommand                   bool
-	jsonFile                     string
-	junitFile                    string
-	noColor                      bool
-	noSummary                    *noSummaryValue
-	junitTestSuiteNameFormat     *junitFieldFormatValue
-	junitTestCaseClassnameFormat *junitFieldFormatValue
-	version                      bool
+	args       []string
+	format     string
+	debug      bool
+	rawCommand bool
+	jsonFile   string
+	junitFile  string
+	noColor    bool
+	noSummary  *noSummaryValue
+	version    bool
 }
 
 func setupLogging(opts *options) {
 	if opts.debug {
 		log.SetLevel(log.DebugLevel)
 	}
-	color.NoColor = opts.noColor
+	if opts.noColor {
+		color.NoColor = true
+	}
 }
 
 // TODO: add flag --max-failures
@@ -151,7 +143,7 @@ func run(opts *options) error {
 	if err := testjson.PrintSummary(out, exec, opts.noSummary.value); err != nil {
 		return err
 	}
-	if err := writeJUnitFile(opts, exec); err != nil {
+	if err := writeJUnitFile(opts.junitFile, exec); err != nil {
 		return err
 	}
 	return goTestProc.cmd.Wait()

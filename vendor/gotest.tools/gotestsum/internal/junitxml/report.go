@@ -62,51 +62,27 @@ type JUnitFailure struct {
 	Contents string `xml:",chardata"`
 }
 
-// Config used to write a junit XML document.
-type Config struct {
-	FormatTestSuiteName     FormatFunc
-	FormatTestCaseClassname FormatFunc
-}
-
-// FormatFunc converts a string from one format into another.
-type FormatFunc func(string) string
-
 // Write creates an XML document and writes it to out.
-func Write(out io.Writer, exec *testjson.Execution, cfg Config) error {
-	return errors.Wrap(write(out, generate(exec, cfg)), "failed to write JUnit XML")
+func Write(out io.Writer, exec *testjson.Execution) error {
+	return errors.Wrap(write(out, generate(exec)), "failed to write JUnit XML")
 }
 
-func generate(exec *testjson.Execution, cfg Config) JUnitTestSuites {
-	cfg = configWithDefaults(cfg)
+func generate(exec *testjson.Execution) JUnitTestSuites {
 	version := goVersion()
 	suites := JUnitTestSuites{}
-
 	for _, pkgname := range exec.Packages() {
 		pkg := exec.Package(pkgname)
 		junitpkg := JUnitTestSuite{
-			Name:       cfg.FormatTestSuiteName(pkgname),
+			Name:       pkgname,
 			Tests:      pkg.Total,
 			Time:       formatDurationAsSeconds(pkg.Elapsed()),
 			Properties: packageProperties(version),
-			TestCases:  packageTestCases(pkg, cfg.FormatTestCaseClassname),
+			TestCases:  packageTestCases(pkg),
 			Failures:   len(pkg.Failed),
 		}
 		suites.Suites = append(suites.Suites, junitpkg)
 	}
 	return suites
-}
-
-func configWithDefaults(cfg Config) Config {
-	noop := func(v string) string {
-		return v
-	}
-	if cfg.FormatTestSuiteName == nil {
-		cfg.FormatTestSuiteName = noop
-	}
-	if cfg.FormatTestCaseClassname == nil {
-		cfg.FormatTestCaseClassname = noop
-	}
-	return cfg
 }
 
 func formatDurationAsSeconds(d time.Duration) string {
@@ -139,11 +115,13 @@ func goVersion() string {
 	return strings.TrimPrefix(strings.TrimSpace(string(out)), "go version ")
 }
 
-func packageTestCases(pkg *testjson.Package, formatClassname FormatFunc) []JUnitTestCase {
+func packageTestCases(pkg *testjson.Package) []JUnitTestCase {
 	cases := []JUnitTestCase{}
 
 	if pkg.TestMainFailed() {
-		jtc := newJUnitTestCase(testjson.TestCase{Test: "TestMain"}, formatClassname)
+		jtc := newJUnitTestCase(testjson.TestCase{
+			Test: "TestMain",
+		})
 		jtc.Failure = &JUnitFailure{
 			Message:  "Failed",
 			Contents: pkg.Output(""),
@@ -152,7 +130,7 @@ func packageTestCases(pkg *testjson.Package, formatClassname FormatFunc) []JUnit
 	}
 
 	for _, tc := range pkg.Failed {
-		jtc := newJUnitTestCase(tc, formatClassname)
+		jtc := newJUnitTestCase(tc)
 		jtc.Failure = &JUnitFailure{
 			Message:  "Failed",
 			Contents: pkg.Output(tc.Test),
@@ -161,21 +139,21 @@ func packageTestCases(pkg *testjson.Package, formatClassname FormatFunc) []JUnit
 	}
 
 	for _, tc := range pkg.Skipped {
-		jtc := newJUnitTestCase(tc, formatClassname)
+		jtc := newJUnitTestCase(tc)
 		jtc.SkipMessage = &JUnitSkipMessage{Message: pkg.Output(tc.Test)}
 		cases = append(cases, jtc)
 	}
 
 	for _, tc := range pkg.Passed {
-		jtc := newJUnitTestCase(tc, formatClassname)
+		jtc := newJUnitTestCase(tc)
 		cases = append(cases, jtc)
 	}
 	return cases
 }
 
-func newJUnitTestCase(tc testjson.TestCase, formatClassname FormatFunc) JUnitTestCase {
+func newJUnitTestCase(tc testjson.TestCase) JUnitTestCase {
 	return JUnitTestCase{
-		Classname: formatClassname(tc.Package),
+		Classname: tc.Package,
 		Name:      tc.Test,
 		Time:      formatDurationAsSeconds(tc.Elapsed),
 	}

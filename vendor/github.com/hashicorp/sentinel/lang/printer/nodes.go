@@ -16,6 +16,9 @@ func (p *printer) file(n *ast.File) {
 	if len(n.Imports) > 0 {
 		p.importList(n.Imports)
 	}
+	if len(n.Params) > 0 {
+		p.paramList(n.Params)
+	}
 
 	p.stmtList(n.Stmts, 0)
 }
@@ -41,6 +44,36 @@ func (p *printer) importSpec(impt *ast.ImportSpec) {
 	p.setComment(impt.Doc)
 	p.print(impt.Pos(), token.IMPORT, blank)
 	p.expr(impt.Path)
+	if impt.Name != nil {
+		p.print(blank, token.AS, blank, impt.Name)
+	}
+}
+
+//-------------------------------------------------------------------
+// Imports
+
+func (p *printer) paramList(params []*ast.ParamSpec) {
+	var line int
+	for i, param := range params {
+		if len(p.output) > 0 {
+			// only print line break if we are not at the beginning of the output
+			// (i.e., we are not printing only a partial program)
+			p.linebreak(p.lineFor(param.Pos()), 1, ignore, i == 0 || p.linesFrom(line) > 0)
+		}
+
+		p.recordLine(&line)
+		p.paramSpec(param)
+	}
+}
+
+func (p *printer) paramSpec(param *ast.ParamSpec) {
+	p.setComment(param.Doc)
+	p.print(param.Pos(), token.PARAM, blank)
+	p.expr(param.Name)
+	if param.Default != nil {
+		p.print(param.Default.Pos(), blank, token.DEFAULT, blank)
+		p.expr(param.Default)
+	}
 }
 
 //-------------------------------------------------------------------
@@ -99,6 +132,10 @@ func (p *printer) expr1(expr ast.Expr, prec, depth int) {
 		p.expr(x.X)
 
 	case *ast.BinaryExpr:
+		if depth < 1 {
+			panic(fmt.Sprintf("depth < 1: %d", depth))
+		}
+
 		p.binaryExpr(x, prec, depth)
 
 	case *ast.ParenExpr:
@@ -415,6 +452,9 @@ func (p *printer) binaryExpr(x *ast.BinaryExpr, prec, depth int) {
 
 	// Finally, RHS
 	p.expr1(x.Y, prec, depth)
+	if ws == ignore && depth == 1 {
+		p.print(unindent)
+	}
 }
 
 func (p *printer) possibleSelector(expr ast.Expr) bool {
@@ -669,7 +709,7 @@ func (p *printer) nodeSize(n ast.Node, maxSize int) (size int) {
 	p.nodeSizes[n] = size
 
 	var buf bytes.Buffer
-	if err := Fprint(&buf, p.fset, n); err != nil {
+	if err := fprint(&buf, p.fset, n, p.nodeSizes); err != nil {
 		return
 	}
 	if buf.Len() <= maxSize {

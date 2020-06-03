@@ -36,6 +36,7 @@ const (
 	EXTERNAL
 	RUNTIME
 	MODULE
+	IMPORT
 	MEMOIZED_REMOTE_OBJECT_MISS
 )
 
@@ -61,6 +62,7 @@ var types = [...]string{
 	EXTERNAL:                    "external",
 	RUNTIME:                     "runtime",
 	MODULE:                      "module",
+	IMPORT:                      "import",
 	MEMOIZED_REMOTE_OBJECT_MISS: "memoized_remote_object_miss",
 }
 

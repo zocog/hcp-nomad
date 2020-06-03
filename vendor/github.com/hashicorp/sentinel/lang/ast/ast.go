@@ -506,7 +506,7 @@ func (*CaseStmt) StmtNode()       {}
 // constant, type, or variable declaration.
 //
 type (
-	// The Spec type stands for any of *ImportSpec, *ValueSpec
+	// The Spec type stands for any of *ImportSpec, *ParamSpec, etc.
 	Spec interface {
 		Node
 		specNode()
@@ -519,6 +519,14 @@ type (
 		Path    *BasicLit     // import path
 		Comment *CommentGroup // line comments; or nil
 		EndPos  token.Pos     // end of spec (overrides Path.Pos if nonzero)
+	}
+
+	// A ParamSpec node represents a policy parameter.
+	ParamSpec struct {
+		Doc     *CommentGroup // associated documentation; or nil
+		Name    *Ident        // parameter name
+		Default Expr          // default value, or nil
+		Comment *CommentGroup // line comments; or nil
 	}
 )
 
@@ -538,10 +546,14 @@ func (s *ImportSpec) End() token.Pos {
 	return s.Path.End()
 }
 
+func (s *ParamSpec) Pos() token.Pos { return s.Name.Pos() }
+func (s *ParamSpec) End() token.Pos { return s.Default.End() }
+
 // specNode() ensures that only spec nodes can be
 // assigned to a Spec.
 //
 func (*ImportSpec) specNode() {}
+func (*ParamSpec) specNode()  {}
 
 // ----------------------------------------------------------------------------
 // Files and packages
@@ -555,6 +567,7 @@ type File struct {
 	Doc        *CommentGroup   // Policy description
 	Scope      *Scope          // package scope (this file only)
 	Imports    []*ImportSpec   // imports in this file
+	Params     []*ParamSpec    // parameters in this file
 	Stmts      []Stmt          // top-level statements, or nil if empty
 	Unresolved []*Ident        // unresolved identifiers in this file
 	Comments   []*CommentGroup // list of all comments in the source file

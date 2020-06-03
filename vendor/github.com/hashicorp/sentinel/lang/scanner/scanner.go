@@ -44,6 +44,15 @@ type Scanner struct {
 
 	// public state - ok to modify
 	ErrorCount int // number of errors encountered
+
+	// Force-flags insertSemi when parsing the next word token. Reset
+	// after parse. This is generally used to ensure proper semicolon
+	// insertion on selectors.
+	//
+	// Use this option with care as the flag is only reset after an
+	// word scan - non-word tokens will not reset state and it will
+	// carry to the next word token.
+	ForceSemi bool
 }
 
 const bom = 0xFEFF // byte order mark, only permitted as very first character
@@ -523,13 +532,20 @@ scanAgain:
 		if len(lit) > 1 {
 			// keywords are longer than one letter - avoid lookup otherwise
 			tok = token.Lookup(lit)
+		} else {
+			tok = token.IDENT
+		}
+
+		if s.ForceSemi {
+			// If ForceSemi is set, force the semicolon and reset state.
+			insertSemi = true
+			s.ForceSemi = false
+		} else {
+			// Semicolon state is token-dependent
 			switch tok {
 			case token.IDENT, token.BREAK, token.CONTINUE:
 				insertSemi = true
 			}
-		} else {
-			insertSemi = true
-			tok = token.IDENT
 		}
 	case '0' <= ch && ch <= '9':
 		insertSemi = true

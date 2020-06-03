@@ -5,6 +5,7 @@ import (
 	sdk "github.com/hashicorp/sentinel-sdk"
 
 	i_decimal "github.com/hashicorp/sentinel/imports/decimal"
+	i_http "github.com/hashicorp/sentinel/imports/http"
 	i_json "github.com/hashicorp/sentinel/imports/json"
 	i_runtime "github.com/hashicorp/sentinel/imports/runtime"
 	i_sockaddr "github.com/hashicorp/sentinel/imports/sockaddr"
@@ -25,6 +26,7 @@ import (
 // whether it should enable an import by default.
 var Imports = map[string]func() sdk.Import{
 	"decimal":  i_decimal.New,
+	"http":     i_http.New,
 	"json":     i_json.New,
 	"runtime":  i_runtime.New,
 	"sockaddr": i_sockaddr.New,

@@ -106,6 +106,10 @@ func parseDurationInput(in interface{}) (time.Duration, error) {
 		dur = time.Duration(in.(int32)) * time.Nanosecond
 	case int64:
 		dur = time.Duration(in.(int64)) * time.Nanosecond
+	case float32:
+		dur = time.Duration(in.(float32)) * time.Nanosecond
+	case float64:
+		dur = time.Duration(in.(float64)) * time.Nanosecond
 	case uint:
 		dur = time.Duration(in.(uint)) * time.Nanosecond
 	case uint32:

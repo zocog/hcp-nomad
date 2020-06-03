@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/sentinel/lang/ast"
 	"github.com/hashicorp/sentinel/lang/token"
-	"github.com/hashicorp/sentinel/runtime/eval"
+	"github.com/hashicorp/sentinel/runtime/localast"
 	"github.com/mitchellh/hashstructure"
 )
 
@@ -34,7 +34,7 @@ type Policy struct {
 	rwmutex sync.RWMutex
 
 	ready    uint32                   // atomic set, 0 == not ready, 1 == pending, 2 == ready
-	compiled *eval.Compiled           // compiled policy to execute
+	compiled *localast.Compiled       // compiled policy to execute
 	imports  map[string]*policyImport // available imports
 	name     string                   // human-friendly name
 	level    EnforcementLevel         // enforcement level
@@ -136,7 +136,7 @@ func (p *Policy) SetReady() error {
 	if p.file == nil {
 		return errors.New("policy file must be set to set policy ready")
 	}
-	cf, err := eval.Compile(&eval.CompileOpts{
+	cf, err := localast.Compile(&localast.CompileOpts{
 		File:    p.file,
 		FileSet: p.fileSet,
 	})

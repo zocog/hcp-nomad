@@ -30,6 +30,11 @@ func objectToGo(raw object.Object, t reflect.Type) (interface{}, error) {
 		return sdk.Null, nil
 	}
 
+	// Same for undefined
+	if raw.Type() == object.UNDEFINED {
+		return sdk.Undefined, nil
+	}
+
 	// t == nil if you call reflect.TypeOf(interface{}{}) or
 	// if the user explicitly send in nil which we make to mean
 	// the same thing.

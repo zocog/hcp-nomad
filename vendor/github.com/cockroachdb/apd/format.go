@@ -23,8 +23,7 @@ import (
 // If format is a different character, Text returns a "%" followed by the
 // unrecognized.Format character. The 'f' format has the possibility of
 // displaying precision that is not present in the Decimal when it appends
-// zeros (the 'g' format avoids the use of 'f' in this case). All other
-// formats always show the exact precision of the Decimal.
+// zeros. All other formats always show the exact precision of the Decimal.
 func (d *Decimal) Text(format byte) string {
 	cap := 10 // TODO(gri) determine a good/better value here
 	return string(d.Append(make([]byte, 0, cap), format))

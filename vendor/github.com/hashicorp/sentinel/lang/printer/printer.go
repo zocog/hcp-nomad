@@ -215,6 +215,9 @@ func (p *printer) printNode(node interface{}) error {
 		p.impliedSemi = false // EOF doesn't imply semicolon
 		p.flush(token.Position{Offset: infinity, Line: infinity}, token.EOF)
 
+		// ensure newline at end of file
+		p.writeByte('\n', 1)
+
 	default:
 		return fmt.Errorf("sentinel/lang/printer: unsupported node type %T", node)
 	}
@@ -534,7 +537,7 @@ func (p *printer) writeComment(comment *ast.Comment) {
 	}
 
 	// shortcut common case of //-style comments
-	if text[1] == '/' {
+	if len(text) > 1 && text[1] == '/' {
 		p.writeString(pos, trimRight(text), true)
 		return
 	}

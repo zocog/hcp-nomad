@@ -1,6 +1,6 @@
 // The runtime import contains various information about the Sentinel runtime.
 // It can be used to get information about the runtime as it's embedded in the
-// simulator or a specific integration, such as validating a specific runtime
+// CLI or a specific integration, such as validating a specific runtime
 // version.
 import "runtime"
 

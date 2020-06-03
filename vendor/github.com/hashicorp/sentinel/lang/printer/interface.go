@@ -4,13 +4,22 @@ import (
 	"io"
 	"text/tabwriter"
 
+	"github.com/hashicorp/sentinel/lang/ast"
 	"github.com/hashicorp/sentinel/lang/token"
 )
 
 // Fprint prints the given value using the printer to the specified output.
 // This uses the default configuration.
 func Fprint(output io.Writer, fset *token.FileSet, node interface{}) error {
+	return fprint(output, fset, node, make(map[ast.Node]int))
+}
+
+// fprint is the internal version of Fprint that takes an already-initialized
+// nodeSizes cache, which can potentially save quite a lot of time and recursion
+// while printing a large AST.
+func fprint(output io.Writer, fset *token.FileSet, node interface{}, nodeSizes map[ast.Node]int) error {
 	p := newPrinter()
+	p.nodeSizes = nodeSizes
 	p.fset = fset
 	if err := p.printNode(node); err != nil {
 		return err

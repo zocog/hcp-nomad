@@ -17,18 +17,21 @@ import (
 	"github.com/hashicorp/sentinel/lang/token"
 	"github.com/hashicorp/sentinel/runtime/encoding"
 	"github.com/hashicorp/sentinel/runtime/importer"
+	"github.com/hashicorp/sentinel/runtime/localast"
+	"github.com/hashicorp/sentinel/runtime/parameterizer"
 	"github.com/hashicorp/sentinel/runtime/trace"
 )
 
 var mapStringInterfaceTyp = reflect.TypeOf(map[string]interface{}{})
 
 type EvalOpts struct {
-	Compiled *Compiled          // Compiled policy to evaluate
-	Scope    *object.Scope      // Global scope, the parent of this should be Universe
-	Importer importer.Importer  // Importer for imports
-	Modules  map[string]*Module // Available modules
-	Timeout  time.Duration      // Max execution time
-	Trace    *trace.Trace       // Set to non-nil to recording tracing information
+	Compiled *localast.Compiled          // Compiled policy to evaluate
+	Scope    *object.Scope               // Global scope, the parent of this should be Universe
+	Importer importer.Importer           // Importer for imports
+	Modules  map[string]*Module          // Available modules
+	Params   parameterizer.Parameterizer // Policy parameters
+	Timeout  time.Duration               // Max execution time
+	Trace    *trace.Trace                // Set to non-nil to recording tracing information
 }
 
 // Eval evaluates the compiled policy and returns the result.
@@ -43,11 +46,12 @@ func Eval(opts *EvalOpts) (bool, error) {
 	// Build the evaluation state
 	state := &evalState{
 		ExecId:   atomic.AddUint64(&globalExecId, 1),
-		File:     opts.Compiled.file,
-		FileSet:  opts.Compiled.fileSet,
+		File:     opts.Compiled.File(),
+		FileSet:  opts.Compiled.FileSet(),
 		Scope:    opts.Scope,
 		Importer: opts.Importer,
 		Modules:  opts.Modules,
+		Params:   opts.Params,
 		Timeout:  opts.Timeout,
 		Trace:    opts.Trace,
 	}
@@ -56,7 +60,7 @@ func Eval(opts *EvalOpts) (bool, error) {
 
 	// If we're tracing, record the final results
 	if state.Trace != nil {
-		state.Trace.Desc = opts.Compiled.file.Doc.Text()
+		state.Trace.Desc = opts.Compiled.File().Doc.Text()
 		state.Trace.Result = result
 		state.Trace.Err = err
 
@@ -87,22 +91,23 @@ var (
 // AST walk. After calling any methods of Interpreter, the exported fields
 // should not be modified.
 type evalState struct {
-	ExecId   uint64             // Execution ID, unique per evaluation
-	File     *ast.File          // File to execute
-	FileSet  *token.FileSet     // FileSet for positional information
-	MaxDepth int                // Maximum stack depth
-	Scope    *object.Scope      // Global scope, the parent of this should be Universe
-	Importer importer.Importer  // Importer for imports
-	Modules  map[string]*Module // Available modules
-	Timeout  time.Duration      // Timeout for execution
-	Trace    *trace.Trace       // If non-nil, sets trace data here
+	ExecId   uint64                      // Execution ID, unique per evaluation
+	File     *ast.File                   // File to execute
+	FileSet  *token.FileSet              // FileSet for positional information
+	MaxDepth int                         // Maximum stack depth
+	Scope    *object.Scope               // Global scope, the parent of this should be Universe
+	Importer importer.Importer           // Importer for imports
+	Modules  map[string]*Module          // Available modules
+	Params   parameterizer.Parameterizer // Policy parameters
+	Timeout  time.Duration               // Timeout for execution
+	Trace    *trace.Trace                // If non-nil, sets trace data here
 
-	deadline    time.Time             // deadline of this execution
-	depth       int                   // current stack depth
-	imports     map[string]sdk.Import // imports are loaded imports
-	moduleStack moduleStack           // module stack for tracking import loops
-	returnObj   object.Object         // object set by last `return` statement
-	timeoutCh   <-chan time.Time      // closed after a timeout is reached
+	deadline    time.Time                    // deadline of this execution
+	depth       int                          // current stack depth
+	moduleStack moduleStack                  // module stack for tracking import loops
+	moduleObjs  map[string]*object.ModuleObj // Module scope registry, indexed by path
+	returnObj   object.Object                // object set by last `return` statement
+	timeoutCh   <-chan time.Time             // closed after a timeout is reached
 
 	// Trace data
 
@@ -136,6 +141,9 @@ func (e *evalState) Eval() (result bool, err error) {
 		*e.Trace = trace.Trace{}
 		e.ruleMap = make(map[token.Pos]token.Pos)
 	}
+
+	// Initialize module object registry
+	e.moduleObjs = make(map[string]*object.ModuleObj)
 
 	// Evaluate. We do this in an inline closure so that we can catch
 	// the bailout but continue to setup trace information.
@@ -407,7 +415,7 @@ func (e *evalState) eval(raw ast.Node, s *object.Scope) object.Object {
 
 	// Custom AST nodes
 
-	case *astImportExpr:
+	case *localast.ImportExpr:
 		return e.evalImportExpr(n, s)
 
 	default:
@@ -431,31 +439,28 @@ func (e *evalState) evalIdent(n *ast.Ident, s *object.Scope, moduleOk bool) obje
 			return object.ExternalFunc(e.funcPrint)
 
 		default:
-			if _, ok := e.imports[n.Name]; ok {
-				e.err(fmt.Sprintf(
-					"import %q cannot be accessed without a selector expression",
-					n.Name), n, s)
-			}
-
 			e.err(fmt.Sprintf("unknown identifier accessed: %s", n.Name), n, s)
 		}
 	}
 
-	switch o := obj.(type) {
-	case *object.ModuleObj:
+	switch obj.Type() {
+	case object.MODULE:
 		if moduleOk {
 			// moduleOk is generally set when looking up an ident in a
 			// selector expression. Return the module in this case.
-			return o
+			return obj
 		}
 
 		// Otherwise, we block modules like we block imports.
+		fallthrough
+
+	case object.IMPORT:
 		e.err(fmt.Sprintf(
-			"module %q cannot be accessed without a selector expression",
+			"import %q cannot be accessed without a selector expression",
 			n.Name), n, s)
 
-	case *object.RuleObj:
-		return e.evalRuleObj(n.Name, o)
+	case object.RULE:
+		return e.evalRuleObj(n.Name, obj.(*object.RuleObj))
 	}
 
 	return obj
@@ -606,7 +611,7 @@ func (e *evalState) evalForStmt(n *ast.ForStmt, s *object.Scope) object.Object {
 
 	// Loop over the elements
 	var result object.Object
-	e.eltLoop(n.Expr, s, n.Name, n.Name2, func(s *object.Scope) bool {
+	e.eltLoop(n.Expr, s, n.Name, n.Name2, func(s *object.Scope, _, _ object.Object) bool {
 		result = e.eval(n.Body, s)
 
 		// If a break statement was reached, then exit the for loop.
@@ -668,8 +673,6 @@ func (e *evalState) evalBasicLit(n *ast.BasicLit, s *object.Scope) object.Object
 }
 
 func (e *evalState) evalFile(n *ast.File, s *object.Scope) object.Object {
-	e.imports = make(map[string]sdk.Import)
-
 	// Find implicit imports in our scope
 	for k, obj := range s.Objects {
 		if r, ok := obj.(*object.RuntimeObj); ok {
@@ -684,7 +687,7 @@ func (e *evalState) evalFile(n *ast.File, s *object.Scope) object.Object {
 					k, obj), n, s)
 			}
 
-			e.imports[k] = impt
+			s.Objects[k] = &object.ImportObj{Import: impt}
 		}
 	}
 
@@ -708,7 +711,17 @@ func (e *evalState) evalFile(n *ast.File, s *object.Scope) object.Object {
 				name = impt.Name.Name
 			}
 
-			s.Objects[name] = e.evalModule(mod, impt, s)
+			// If we've already loaded the module previously, return that scope for
+			// this import. This ensures singleton scope for a module across aliases
+			// and imports in different "packages".
+			if mo, ok := e.moduleObjs[path]; ok {
+				s.Objects[name] = mo
+			} else {
+				// New module, eval and set scope.
+				mo := e.evalModule(mod, impt, s)
+				e.moduleObjs[path] = mo
+				s.Objects[name] = mo
+			}
 
 			// The rest of the loop is for imports using the plugin API, so short
 			// circuit here.
@@ -729,7 +742,36 @@ func (e *evalState) evalFile(n *ast.File, s *object.Scope) object.Object {
 			name = impt.Name.Name
 		}
 
-		e.imports[name] = obj
+		s.Objects[name] = &object.ImportObj{Import: obj}
+	}
+
+	// Load parameters
+	for _, param := range n.Params {
+		if e.moduleStack.Path() != "" {
+			e.err(fmt.Sprintf("parameter %q not allowed in module", param.Name.Name), param, s)
+		}
+
+		if v := s.Lookup(param.Name.Name); v != nil {
+			e.err(fmt.Sprintf("parameter name %q already exists as a global value, builtin, or import", param.Name.Name), param, s)
+		}
+
+		// Check for a supplied value
+		obj, err := e.Params.Lookup(param.Name.Name)
+		if err != nil {
+			e.err(fmt.Sprintf("error with value for parameter %q: %s", param.Name.Name, err), param, s)
+		}
+
+		if obj == nil {
+			// No supplied default - eval default if it exists.
+			if param.Default == nil {
+				e.err(fmt.Sprintf("parameter %q required but no value provided", param.Name.Name), param, s)
+			}
+
+			obj = e.eval(param.Default, s)
+		}
+
+		// Done
+		s.Objects[param.Name.Name] = obj
 	}
 
 	// Execute the statements
@@ -753,10 +795,23 @@ func (e *evalState) evalFile(n *ast.File, s *object.Scope) object.Object {
 
 func (e *evalState) evalModule(m *Module, impt *ast.ImportSpec, s *object.Scope) *object.ModuleObj {
 	ms := e.enterModule(impt, s)
-	defer e.exitModule()
 
 	// Eval the module
-	e.eval(m.Compiled.file, ms)
+	e.eval(m.Compiled.File(), ms)
+
+	// Exit the module. We don't defer this to help properly track
+	// import state in deep module errors. All that exitModule does is
+	// remove the loaded import table for the module and update the
+	// cycle detection stack, so this is largely inconsequential.
+	//
+	// Incidentally, it's not necessarily correct for us to be
+	// defer-exiting in things like modules and frames anyway, as
+	// errors should stop the eval in its tracks, whereas currently the
+	// panic pattern for triggering runtime errors is allowing defers
+	// to to be run before returning an error from the outer eval. This
+	// may be something we have to unfurl more to accommodate other
+	// error testing/tracing cases in the future.
+	e.exitModule()
 
 	return &object.ModuleObj{
 		Scope: ms,
@@ -1006,14 +1061,65 @@ func (e *evalState) evalSliceExpr(n *ast.SliceExpr, s *object.Scope) object.Obje
 	}
 }
 
-func (e *evalState) evalQuantExpr(n *ast.QuantExpr, s *object.Scope) object.Object {
-	// Create a new scope
-	s = e.enterFrame(n, s)
-	defer e.exitFrame(n, s)
+func (e *evalState) evalFilterExpr(n *ast.QuantExpr, s *object.Scope) object.Object {
+	var result object.Object
+	var listResult *object.ListObj
+	var mapResult *object.MapObj
+
+	raw := e.eval(n.Expr, s)
+	if x, ok := raw.(*object.ListObj); ok {
+		listResult = &object.ListObj{
+			Elts: make([]object.Object, 0, len(x.Elts)),
+		}
+	} else if x, ok := raw.(*object.MapObj); ok {
+		mapResult = &object.MapObj{
+			Elts: make([]object.KeyedObj, 0, len(x.Elts)),
+		}
+	}
 
 	// Loop over the elements
+	e.eltLoopRaw(raw, n.Expr, s, n.Name, n.Name2, func(s *object.Scope, key, value object.Object) bool {
+		// Evaluate the body
+		x := e.eval(n.Body, s)
+
+		b, ok := x.(*object.BoolObj)
+		if !ok {
+			// If it is undefined, it is undefined
+			if _, ok := x.(*object.UndefinedObj); ok {
+				result = x
+				return false
+			}
+
+			e.err(fmt.Sprintf("body of quantifier expression must result in bool"), n.Body, s)
+		}
+
+		if b.Value {
+			if listResult != nil {
+				listResult.Elts = append(listResult.Elts, value)
+			} else {
+				mapResult.Elts = append(mapResult.Elts, object.KeyedObj{Key: key, Value: value})
+			}
+		}
+
+		return true
+	})
+
+	if result == nil {
+		if listResult != nil {
+			result = listResult
+		} else {
+			result = mapResult
+		}
+	}
+
+	return result
+}
+
+func (e *evalState) evalAnyAllExpr(n *ast.QuantExpr, s *object.Scope) object.Object {
 	var result object.Object
-	e.eltLoop(n.Expr, s, n.Name, n.Name2, func(s *object.Scope) bool {
+
+	// Loop over the elements
+	e.eltLoop(n.Expr, s, n.Name, n.Name2, func(s *object.Scope, _, _ object.Object) bool {
 		// Evaluate the body
 		x := e.eval(n.Body, s)
 
@@ -1048,8 +1154,19 @@ func (e *evalState) evalQuantExpr(n *ast.QuantExpr, s *object.Scope) object.Obje
 	return result
 }
 
-func (e *evalState) eltLoop(n ast.Expr, s *object.Scope, n1, n2 *ast.Ident, f func(*object.Scope) bool) {
-	raw := e.eval(n, s)
+func (e *evalState) evalQuantExpr(n *ast.QuantExpr, s *object.Scope) object.Object {
+	// Create a new scope
+	s = e.enterFrame(n, s)
+	defer e.exitFrame(n, s)
+
+	if n.Op == token.FILTER {
+		return e.evalFilterExpr(n, s)
+	}
+
+	return e.evalAnyAllExpr(n, s)
+}
+
+func (e *evalState) eltLoopRaw(raw object.Object, n ast.Expr, s *object.Scope, n1, n2 *ast.Ident, f func(*object.Scope, object.Object, object.Object) bool) {
 	switch x := raw.(type) {
 	case *object.ListObj:
 		idx := n1
@@ -1060,14 +1177,15 @@ func (e *evalState) eltLoop(n ast.Expr, s *object.Scope, n1, n2 *ast.Ident, f fu
 		}
 
 		for i, elt := range x.Elts {
+			key := &object.IntObj{Value: int64(i)}
 			if idx != nil {
-				s.Objects[idx.Name] = &object.IntObj{Value: int64(i)}
+				s.Objects[idx.Name] = key
 			}
 			if value != nil {
 				s.Objects[value.Name] = elt
 			}
 
-			cont := f(s)
+			cont := f(s, key, elt)
 			if !cont {
 				break
 			}
@@ -1089,7 +1207,7 @@ func (e *evalState) eltLoop(n ast.Expr, s *object.Scope, n1, n2 *ast.Ident, f fu
 				s.Objects[value.Name] = elt.Value
 			}
 
-			cont := f(s)
+			cont := f(s, elt.Key, elt.Value)
 			if !cont {
 				break
 			}
@@ -1098,6 +1216,11 @@ func (e *evalState) eltLoop(n ast.Expr, s *object.Scope, n1, n2 *ast.Ident, f fu
 	default:
 		e.err(fmt.Sprintf("unsupported type for looping: %s", raw.Type()), n, s)
 	}
+}
+
+func (e *evalState) eltLoop(n ast.Expr, s *object.Scope, n1, n2 *ast.Ident, f func(*object.Scope, object.Object, object.Object) bool) {
+	raw := e.eval(n, s)
+	e.eltLoopRaw(raw, n, s, n1, n2, f)
 }
 
 func (e *evalState) evalUnaryExpr(n *ast.UnaryExpr, s *object.Scope) object.Object {
@@ -1847,6 +1970,17 @@ func (e *evalState) evalCallExpr(n *ast.CallExpr, s *object.Scope) object.Object
 		if e.returnObj != nil {
 			result := e.returnObj
 			e.returnObj = nil
+
+			if resultC, ok := result.(object.Copyable); ok {
+				// Check to see if the function call was within a module by
+				// walking back its scope. If it was, we need to return a
+				// copy of the data to ensure that we have integrity parity
+				// with binary imports.
+				if e.evalCallExpr_scopeInModule(f.Scope) {
+					return resultC.Copy()
+				}
+			}
+
 			return result
 		}
 	}
@@ -1854,6 +1988,20 @@ func (e *evalState) evalCallExpr(n *ast.CallExpr, s *object.Scope) object.Object
 	// This shouldn't happen because semantic checks should catch this.
 	e.err(errNoReturn, n, s)
 	return nil
+}
+
+func (e *evalState) evalCallExpr_scopeInModule(s *object.Scope) bool {
+	for _, m := range e.moduleObjs {
+		for s != nil {
+			if s == m.Scope {
+				return true
+			}
+
+			s = s.Outer
+		}
+	}
+
+	return false
 }
 
 func (e *evalState) evalSelectorExpr(n *ast.SelectorExpr, s *object.Scope) object.Object {
@@ -1918,12 +2066,21 @@ func (e *evalState) evalSelectorExpr(n *ast.SelectorExpr, s *object.Scope) objec
 
 	case *object.ModuleObj:
 		if v := x.Scope.Lookup(n.Sel.Name); v != nil {
-			// FIXME: Maybe? I think there might be a better way to do this, but I
-			// can't think of one at this point in time. If we have a rule object in
-			// a module, it has already gone through the rule literal eval stage and
-			// this should technically be an eval on the rule.
-			if r, ok := v.(*object.RuleObj); ok {
-				return e.evalRuleObj(n.Sel.Name, r)
+			switch x := v.(type) {
+			case *object.RuleObj:
+				// If we have a rule object in a module, it has already gone
+				// through the rule literal eval stage and this should
+				// technically be an eval on the rule.
+				return e.evalRuleObj(n.Sel.Name, x)
+
+			case object.Copyable:
+				// Copy all Copyable objects from a module (ie: maps and
+				// lists). This is to ensure that someone cannot break the
+				// assignment rule, i.e., you cannot assign to an import via
+				// selectors, which can be worked around via indexes. This
+				// also puts it on parity with binary imports where this data
+				// would be copied anyway.
+				return x.Copy()
 			}
 
 			return v
@@ -1942,29 +2099,40 @@ func (e *evalState) evalSelectorExpr(n *ast.SelectorExpr, s *object.Scope) objec
 	}
 }
 
-func (e *evalState) evalImportExpr(n *astImportExpr, s *object.Scope) object.Object {
-	// Lookup the import. If it is shadowed, then fall back.
-	//
-	// If the fallback results in a missed lookup on memoization, then
-	// we populate that into the request Context so that it can be
-	// sent along with the request.
+func (e *evalState) evalImportExpr(n *localast.ImportExpr, s *object.Scope) object.Object {
 	imptName := n.Import
 	var reqCtx *object.MemoizedRemoteObj
-	if v := s.Lookup(imptName); v != nil {
+	x := s.Lookup(imptName)
+	if x == nil {
+		e.err(fmt.Sprintf("import not found: %s", imptName), n, s)
+	}
+
+	imptObj, imptOk := x.(*object.ImportObj)
+	if !imptOk {
+		// Could be a module or other object. Try to eval initial
+		// expression.
 		result := e.eval(n.Original, s)
 		if o, ok := result.(*object.MemoizedRemoteObjMiss); ok {
+			// We ultimately had a miss on the callable result of a
+			// previous import call. Record the information and try to look
+			// up the original import so that we can send a call with
+			// receiver data.
 			imptName = o.Tag
 			reqCtx = o.MemoizedRemoteObj
+			imptObj, imptOk = s.Lookup(imptName).(*object.ImportObj)
 		} else {
 			return result
 		}
 	}
 
-	// Not an import, find the import in our map and call it
-	impt, ok := e.imports[imptName]
-	if !ok {
+	if !imptOk {
+		// This should almost never happen, it's a bug if it does. Usually it means
+		// there's a problem the way imports are being tracked in
+		// MemoizedRemoteObj.
 		e.err(fmt.Sprintf("import not found: %s", imptName), n, s)
 	}
+
+	impt := imptObj.Import
 
 	// Start building the request
 	req := &sdk.GetReq{
@@ -2051,7 +2219,7 @@ func (e *evalState) evalImportExpr(n *astImportExpr, s *object.Scope) object.Obj
 	// Check for a returned context. If we have one, overwrite the
 	// current context that we are working with.
 	if result.Context != nil && reqCtx != nil {
-		resCtxM, err := encoding.GoToObject(result.Context)
+		resCtxM, err := encoding.GoToObjectWithPos(result.Context, n.Pos())
 		if err != nil {
 			e.err(fmt.Sprintf("error converting object context from response: %s", err), n, s)
 		}
@@ -2061,11 +2229,7 @@ func (e *evalState) evalImportExpr(n *astImportExpr, s *object.Scope) object.Obj
 		reqCtx.Context = resCtxM.(*object.MapObj)
 	}
 
-	if result.Value == sdk.Undefined {
-		return &object.UndefinedObj{Pos: []token.Pos{n.Pos()}}
-	}
-
-	obj, err := encoding.GoToObject(result.Value)
+	obj, err := encoding.GoToObjectWithPos(result.Value, n.Pos())
 	if err != nil {
 		e.err(err.Error(), n, s)
 	}

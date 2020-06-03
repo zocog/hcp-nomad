@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/hashicorp/sentinel-sdk"
+	sdk "github.com/hashicorp/sentinel-sdk"
 	"github.com/hashicorp/sentinel/lang/object"
+	"github.com/hashicorp/sentinel/lang/token"
 )
 
 var (
-	sdkNullValue = reflect.ValueOf(sdk.Null)
+	sdkNullValue      = reflect.ValueOf(sdk.Null)
+	sdkUndefinedValue = reflect.ValueOf(sdk.Undefined)
 )
 
 // GoToObject converts the Go value to an Object.
@@ -22,6 +24,36 @@ var (
 // The primitive types byte and rune are aliases to integer types (as
 // defined by the Go spec) and are treated as integers in conversion.
 func GoToObject(raw interface{}) (object.Object, error) {
+	d := &objectDecoder{}
+	return d.goToObject(raw)
+}
+
+// GoToObjectWithPos converts the Go value to an Object, identical to
+// GoToObject, but takes a position to allow for the encoding of
+// undefined values.
+//
+// Use when the data could contain sdk.Undefined (ie: return data
+// from a plugin call).
+func GoToObjectWithPos(raw interface{}, pos token.Pos) (object.Object, error) {
+	d := &objectDecoder{pos: pos}
+	return d.goToObject(raw)
+}
+
+// objectTyp is a reflect.Type for Object
+var objectTyp = reflect.TypeOf((*object.Object)(nil)).Elem()
+
+// objectDecoder is the deep object decoder. It holds state that may
+// be required during decoding (namely an optional source position).
+//
+// If pos is defined, any sdk.Undefined values encountered will be
+// properly decoded as undefined with the relevant position info.
+// Otherwise, the behavior for sdk.Undefined is undefined in the
+// sense that it's unhandled. :P
+type objectDecoder struct {
+	pos token.Pos
+}
+
+func (d *objectDecoder) goToObject(raw interface{}) (object.Object, error) {
 	// First try the cheaper and more common cases with primitive types.
 	// Using a type switch like this instead of reflect is about twice
 	// as fast (half the number of allocations).
@@ -77,14 +109,16 @@ func GoToObject(raw interface{}) (object.Object, error) {
 		return object.Null, nil
 	}
 
+	// Undefined
+	if raw == sdk.Undefined && d.pos > 0 {
+		return &object.UndefinedObj{Pos: []token.Pos{d.pos}}, nil
+	}
+
 	// Otherwise, we have a more complex type and must use reflection.
-	return toObject_reflect(reflect.ValueOf(raw))
+	return d.toObject_reflect(reflect.ValueOf(raw))
 }
 
-// objectTyp is a reflect.Type for Object
-var objectTyp = reflect.TypeOf((*object.Object)(nil)).Elem()
-
-func toObject_reflect(v reflect.Value) (object.Object, error) {
+func (d *objectDecoder) toObject_reflect(v reflect.Value) (object.Object, error) {
 	// Null pointer
 	if !v.IsValid() {
 		return object.Null, nil
@@ -100,15 +134,21 @@ func toObject_reflect(v reflect.Value) (object.Object, error) {
 		return object.Null, nil
 	}
 
+	// If the value is the special SDK undefined value, and we have a
+	// non-zero position, return undefined.
+	if v == sdkUndefinedValue && d.pos > 0 {
+		return &object.UndefinedObj{Pos: []token.Pos{d.pos}}, nil
+	}
+
 	// Decode depending on the type. We need to redo all of the primitives
 	// above unfortunately since they may fall to this point if they're
 	// wrapped in an interface type.
 	switch v.Kind() {
 	case reflect.Interface:
-		return toObject_reflect(v.Elem())
+		return d.toObject_reflect(v.Elem())
 
 	case reflect.Ptr:
-		return toObject_reflect(v.Elem())
+		return d.toObject_reflect(v.Elem())
 
 	case reflect.Bool:
 		return object.Bool(v.Bool()), nil
@@ -129,13 +169,13 @@ func toObject_reflect(v reflect.Value) (object.Object, error) {
 		return &object.StringObj{Value: v.String()}, nil
 
 	case reflect.Array, reflect.Slice:
-		return toObject_array(v)
+		return d.toObject_array(v)
 
 	case reflect.Map:
-		return toObject_map(v)
+		return d.toObject_map(v)
 
 	case reflect.Struct:
-		return toObject_struct(v)
+		return d.toObject_struct(v)
 
 	case reflect.Chan:
 		return nil, errors.New("cannot convert channel to Sentinel value")
@@ -147,10 +187,10 @@ func toObject_reflect(v reflect.Value) (object.Object, error) {
 	return nil, fmt.Errorf("cannot convert type %s to Sentinel value", v.Kind())
 }
 
-func toObject_array(v reflect.Value) (object.Object, error) {
+func (d *objectDecoder) toObject_array(v reflect.Value) (object.Object, error) {
 	result := &object.ListObj{Elts: make([]object.Object, v.Len())}
-	for i, _ := range result.Elts {
-		elem, err := toObject_reflect(v.Index(i))
+	for i := range result.Elts {
+		elem, err := d.toObject_reflect(v.Index(i))
 		if err != nil {
 			return nil, err
 		}
@@ -161,15 +201,15 @@ func toObject_array(v reflect.Value) (object.Object, error) {
 	return result, nil
 }
 
-func toObject_map(v reflect.Value) (object.Object, error) {
+func (d *objectDecoder) toObject_map(v reflect.Value) (object.Object, error) {
 	result := &object.MapObj{Elts: make([]object.KeyedObj, v.Len())}
 	for i, keyV := range v.MapKeys() {
-		key, err := toObject_reflect(keyV)
+		key, err := d.toObject_reflect(keyV)
 		if err != nil {
 			return nil, err
 		}
 
-		value, err := toObject_reflect(v.MapIndex(keyV))
+		value, err := d.toObject_reflect(v.MapIndex(keyV))
 		if err != nil {
 			return nil, err
 		}
@@ -180,7 +220,7 @@ func toObject_map(v reflect.Value) (object.Object, error) {
 	return result, nil
 }
 
-func toObject_struct(v reflect.Value) (object.Object, error) {
+func (d *objectDecoder) toObject_struct(v reflect.Value) (object.Object, error) {
 	// Get the type since we need this to determine what is exported,
 	// field tags, etc.
 	t := v.Type()
@@ -206,7 +246,7 @@ func toObject_struct(v reflect.Value) (object.Object, error) {
 		}
 
 		// Convert the value
-		value, err := toObject_reflect(v.Field(i))
+		value, err := d.toObject_reflect(v.Field(i))
 		if err != nil {
 			return nil, err
 		}

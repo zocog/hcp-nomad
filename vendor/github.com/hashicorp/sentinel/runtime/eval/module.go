@@ -1,6 +1,11 @@
 package eval
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/hashicorp/sentinel/runtime/localast"
+)
 
 // Module represents a module, an AST that is executed within its own scope in
 // the interpreter and loaded into a ModuleObj.
@@ -9,7 +14,7 @@ import "fmt"
 // unless an "import" statement calls them into action. If a module and import
 // exist for the same name, the module takes priority.
 type Module struct {
-	*Compiled
+	*localast.Compiled
 }
 
 // moduleStack is a helper structure that stores a singular, in-flight module
@@ -64,9 +69,9 @@ func (b *moduleStack) ExitModule() {
 	b.paths = b.paths[:len(b.paths)-1]
 }
 
-// CycleString returns a string representation of the stack as per String, but
-// only up to the path supplied. This is used to print only the module cycle
-// during an error output.
+// CycleString returns a string representation of the stack, up to the path
+// supplied. This is used to print only the module cycle during an error
+// output.
 func (b *moduleStack) CycleString(path string) string {
 	if b.paths == nil {
 		return ""
@@ -82,3 +87,8 @@ func (b *moduleStack) CycleString(path string) string {
 
 	return s
 }
+
+// Path returns a string representation of the path, period-delimited. An empty
+// string denotes the "root" module, more than likely the main policy being
+// executed.
+func (b *moduleStack) Path() string { return strings.Join(b.paths, ".") }

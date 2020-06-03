@@ -47,18 +47,19 @@ decimal.nan
 // Evaluates to true if the decimal is infinite.
 //
 // ```python
-// decimal.isinfinite(100)          // false
-// decimal.isinfinite("Infinity")   // true
+// decimal.is_infinite(100)          // false
+// decimal.is_infinite("Infinity")   // true
 // ```
-// Also available as `decimal.isinf`.
-decimal.isinfinite(d)
+// Also available as `decimal.is_inf`, `decimal.isinf` and `decimal.isinfinite`.
+decimal.is_infinite(d)
 
 // Evaluates to true if the decimal is not-a-number.
 //
 // ```python
-// decimal.isnan("NaN") // true
+// decimal.is_nan("NaN") // true
 // ```
-decimal.isnan(d)
+// Also available as `decimal.isnan`.
+decimal.is_nan(d)
 
 // Constructs a decimal from another value.
 //

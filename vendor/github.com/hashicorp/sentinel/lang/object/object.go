@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"sort"
 
+	sdk "github.com/hashicorp/sentinel-sdk"
 	"github.com/hashicorp/sentinel/lang/ast"
 	"github.com/hashicorp/sentinel/lang/token"
 )
@@ -35,7 +36,7 @@ type (
 	// singleton that should be referenced with Null
 	nullObj struct{}
 
-	// boolObj represents a boolean value. This value should NOT be
+	// BoolObj represents a boolean value. This value should NOT be
 	// created directly. Instead, the singleton value should be created
 	// with the Bool function.
 	BoolObj struct {
@@ -118,6 +119,12 @@ type (
 		Scope *Scope
 	}
 
+	// ImportObj represents a reference to a loaded import. Multiple
+	// references may point to the same import as a singleton.
+	ImportObj struct {
+		Import sdk.Import
+	}
+
 	// MemoizedRemoteObjMiss represents a missed lookup on a
 	// MemoizedRemoteObj. This is used to signal a lookup or call back
 	// to the source for ultimate confirmation if the data is present
@@ -141,6 +148,7 @@ func (o *FuncObj) Type() Type               { return FUNC }
 func (o *ExternalObj) Type() Type           { return EXTERNAL }
 func (o *RuntimeObj) Type() Type            { return RUNTIME }
 func (o *ModuleObj) Type() Type             { return MODULE }
+func (o *ImportObj) Type() Type             { return IMPORT }
 func (o *MemoizedRemoteObjMiss) Type() Type { return MEMOIZED_REMOTE_OBJECT_MISS }
 
 func (o *UndefinedObj) String() string { return "undefined" }
@@ -193,6 +201,7 @@ func (o *FuncObj) String() string           { return "func" }
 func (o *ExternalObj) String() string       { return "external" }
 func (o *RuntimeObj) String() string        { return "runtime" }
 func (o *ModuleObj) String() string         { return "module" }
+func (o *ImportObj) String() string         { return "import" }
 func (o *MemoizedRemoteObjMiss) String() string {
 	return fmt.Sprintf("missed lookup on memoized remote object. tag: %q", o.Tag)
 }
@@ -211,4 +220,78 @@ func (o *FuncObj) object()               {}
 func (o *ExternalObj) object()           {}
 func (o *RuntimeObj) object()            {}
 func (o *ModuleObj) object()             {}
+func (o *ImportObj) object()             {}
 func (o *MemoizedRemoteObjMiss) object() {}
+
+// Copyable is an interface for objects that need to support special
+// duplication logic. This mainly applies to collections; in this
+// particular application, the runtime uses this interface to create
+// copies of collections that may be freely modified with index
+// assignments without affecting the original.
+type Copyable interface {
+	Copy() Object
+}
+
+// Copy implements Copyable for ListObj.
+func (o *ListObj) Copy() Object {
+	l := &ListObj{
+		Elts: make([]Object, len(o.Elts)),
+	}
+
+	for i, elt := range o.Elts {
+		if c, ok := elt.(Copyable); ok {
+			l.Elts[i] = c.Copy()
+		} else {
+			l.Elts[i] = elt
+		}
+	}
+
+	return l
+}
+
+// Copy implements Copyable for MapObj.
+func (o *MapObj) Copy() Object {
+	m := &MapObj{
+		Elts: make([]KeyedObj, len(o.Elts)),
+	}
+
+	for i, elt := range o.Elts {
+		if c, ok := elt.Value.(Copyable); ok {
+			m.Elts[i] = KeyedObj{
+				Key:   elt.Key,
+				Value: c.Copy(),
+			}
+		} else {
+			m.Elts[i] = elt
+		}
+	}
+
+	return m
+}
+
+// Copy implements Copyable for MemoizedRemoteObj.
+func (o *MemoizedRemoteObj) Copy() Object {
+	return &MemoizedRemoteObj{
+		Tag:     o.Tag,
+		Depth:   o.Depth,
+		Context: o.Context.Copy().(*MapObj),
+	}
+}
+
+// Copy implements Copyable for MemoizedRemoteObjMiss.
+//
+// This is mostly included for completeness and safety. It
+// technically should not be needed - when updating receivers over
+// the import bridge in the interpreter, the receiver context
+// (map) is usually assigned a new copy of the map from the import
+// return data.
+//
+// Conversely, this function call should be a small cost over the RPC
+// call and data conversion that may happen as a result of the import
+// call itself, so singling it out for elimination in the spirit of
+// optimization should be a last resort.
+func (o *MemoizedRemoteObjMiss) Copy() Object {
+	return &MemoizedRemoteObjMiss{
+		MemoizedRemoteObj: o.MemoizedRemoteObj.Copy().(*MemoizedRemoteObj),
+	}
+}

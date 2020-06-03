@@ -10,7 +10,9 @@ import (
 	"github.com/hashicorp/sentinel/imports/static"
 	"github.com/hashicorp/sentinel/lang/object"
 	"github.com/hashicorp/sentinel/runtime/eval"
+	"github.com/hashicorp/sentinel/runtime/parameterizer/scoped"
 	"github.com/hashicorp/sentinel/runtime/trace"
+	"github.com/mitchellh/go-wordwrap"
 )
 
 // IsUndefined returns true if the resulting error value from Eval is
@@ -34,6 +36,44 @@ type EvalOpts struct {
 	// Data is the set of data to inject into the global scope of
 	// the policies. This map must not be modified during execution.
 	Data map[string]interface{}
+
+	// Params is the set of parameter values to be supplied to the
+	// policy evaluation.
+	//
+	// The key should be either one of two values, in order of
+	// precedence:
+	//
+	// * POLICY_NAME/KEY - This format scopes a parameter value to a
+	// single policy and a single policy only. POLICY_NAME is the
+	// friendly name of the policy. This will be the name that was
+	// passed to Sentinel.Policy during policy creation in the VM, or
+	// another friendly name set with Poliyc.SetName after the fact.
+	// KEY is the name of the variable to supply a value for.
+	//
+	// * KEY - This is the default if no policy-scoped value is
+	// provided.
+	//
+	// If the policy name contains slashes, parameter lookup will
+	// continue in a "path" based fashion until it hits the "parent",
+	// or an empty name. So if you are using an aggregate policy set
+	// pattern and your policy name is "set/foo", and your key is
+	// "bar", "set/foo/bar" will be tried first, then "set/foo", then
+	// just "foo".
+	//
+	// For the most part, one will want to supply a parameter value
+	// globally, unscoped to a single policy. However, the scoped form
+	// allows the ability to define specific values for a single policy
+	// in the event two policies in a set share a parameter name with
+	// different purposes, and also allows for scoping when sending an
+	// aggregate of policy sets for evaluation at once.
+	//
+	// The data supplied must be a Go value that has a valid Sentinel
+	// equivalent. For more details, see the encoding package.
+	Params map[string]interface{}
+
+	// Modules is a slice of modules that will be available to the Eval run. All
+	// other modules will not be available.
+	Modules []*Module
 
 	// Override for soft mandatory policies. The host system may decide
 	// the mechanism for how overrides are set.
@@ -131,9 +171,11 @@ func (s *Sentinel) Eval(ps []*Policy, opts *EvalOpts) *EvalResult {
 
 	// Build the modules list
 	modules := make(map[string]*eval.Module)
-	for mk, mv := range s.modules {
-		modules[mk] = &eval.Module{
-			Compiled: mv.compiled,
+	if opts != nil {
+		for _, m := range opts.Modules {
+			modules[m.Name()] = &eval.Module{
+				Compiled: m.compiled,
+			}
 		}
 	}
 
@@ -170,14 +212,23 @@ func (s *Sentinel) Eval(ps []*Policy, opts *EvalOpts) *EvalResult {
 			traceOut = &trace.Trace{}
 		}
 
+		var params map[string]interface{}
+		if opts != nil {
+			params = opts.Params
+		}
+
 		// Evaluate
 		evalResult, err := eval.Eval(&eval.EvalOpts{
 			Compiled: p.compiled,
 			Scope:    scope,
 			Importer: impt,
 			Modules:  modules,
-			Timeout:  s.evalTimeout,
-			Trace:    traceOut,
+			Params: &scoped.ScopedParameterizer{
+				Path: p.Name(),
+				Data: params,
+			},
+			Timeout: s.evalTimeout,
+			Trace:   traceOut,
 		})
 
 		// Clean up our imports
@@ -352,7 +403,12 @@ func (r *EvalPolicyResult) stringBuf(buf *bytes.Buffer) {
 
 	// Write description
 	if d := r.Policy.Doc(); d != "" {
-		buf.WriteString(fmt.Sprintf("Description: %s\n\n", d))
+		buf.WriteString("Description:\n")
+		wrappedDesc := wordwrap.WrapString(d, 78)
+		for _, line := range strings.Split(wrappedDesc, "\n") {
+			buf.WriteString(fmt.Sprintf("  %s", line))
+		}
+		buf.WriteString("\n\n")
 	}
 
 	if r.Error != nil {

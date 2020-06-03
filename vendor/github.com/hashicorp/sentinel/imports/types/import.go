@@ -4,8 +4,13 @@ package types
 import (
 	"github.com/hashicorp/sentinel-sdk"
 	"github.com/hashicorp/sentinel-sdk/framework"
+	"github.com/hashicorp/sentinel/lang/object"
 	"github.com/hashicorp/sentinel/runtime/encoding"
 )
+
+// undefinedObjVal is only used for printing the canonical undefined type
+// string.
+var undefinedObjVal = &object.UndefinedObj{}
 
 // New creates a new Import.
 func New() sdk.Import {
@@ -37,6 +42,13 @@ func (m *root) Func(key string) interface{} {
 }
 
 func (m *root) type_of(input interface{}) (string, error) {
+	// Check for undefined manually. This normally requires position data in
+	// order to work properly (see GoToObjectWithPos), and we don't have
+	// visibility for this at the import level.
+	if input == sdk.Undefined {
+		return undefinedObjVal.Type().String(), nil
+	}
+
 	obj, err := encoding.GoToObject(input)
 	if err != nil {
 		return "", err

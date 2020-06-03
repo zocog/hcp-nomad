@@ -131,7 +131,7 @@ func (r *rootNamespace) Func(key string) interface{} {
 				fixed: val,
 			}, nil
 		}
-	case "isnan":
+	case "is_nan", "isnan":
 		return func(in interface{}) (interface{}, error) {
 			val, err := parseDecimalInput(r.ctx, in)
 			if err != nil {
@@ -139,7 +139,7 @@ func (r *rootNamespace) Func(key string) interface{} {
 			}
 			return val.Form&(apd.NaNSignaling|apd.NaN) != 0, nil
 		}
-	case "isinf", "isinfinite":
+	case "is_inf", "is_infinite", "isinf", "isinfinite":
 		return func(in interface{}, sign int) (interface{}, error) {
 			val, err := parseDecimalInput(r.ctx, in)
 			if err != nil {
@@ -380,7 +380,12 @@ func (f *fixedDecimal) Map() (map[string]interface{}, error) {
 
 	switch f.fixed.Form {
 	case apd.Finite:
-		_, err := f.ctx.RoundToIntegralValue(d, f.fixed)
+		// Integer processing first. We need a new context here with
+		// rounding set to down as an integer representation is a
+		// truncation.
+		intCtx := f.ctx
+		intCtx.Rounding = apd.RoundDown
+		_, err := intCtx.RoundToIntegralValue(d, f.fixed)
 		if err != nil {
 			// This will error if any rounding traps have been set. Inexact and
 			// Rounded flags are ignored.

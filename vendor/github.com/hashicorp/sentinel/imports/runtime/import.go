@@ -1,6 +1,6 @@
 // Package runtime contains various information about the Sentinel runtime. It
 // can be used to get information about the runtime as it's embedded in the
-// Simulator or a specific integration.
+// CLI or a specific integration.
 package runtime
 
 import (

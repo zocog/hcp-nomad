@@ -6,7 +6,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/hashicorp/go-eventlogger"
+	"github.com/hashicorp/eventlogger"
 )
 
 // Stage is the stage of the audit request.

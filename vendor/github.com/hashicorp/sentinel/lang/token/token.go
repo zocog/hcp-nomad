@@ -83,9 +83,11 @@ const (
 
 	operator_end
 
-	IMPORT // import
-	AS     // as
-	WHEN   // when
+	IMPORT  // import
+	PARAM   // param
+	AS      // as
+	DEFAULT // default
+	WHEN    // when
 
 	FUNC     // func
 	RULE     // rule
@@ -93,10 +95,11 @@ const (
 	BREAK    // break
 	CONTINUE // continue
 
-	IF  // if
-	ANY // any
-	ALL // all
-	FOR // for
+	IF     // if
+	ANY    // any
+	ALL    // all
+	FOR    // for
+	FILTER // filter
 
 	CASE // case
 
@@ -160,9 +163,11 @@ var tokens = [...]string{
 	IS:       "is",
 	ISNOT:    "is not",
 
-	IMPORT: "import",
-	AS:     "as",
-	WHEN:   "when",
+	IMPORT:  "import",
+	PARAM:   "param",
+	AS:      "as",
+	DEFAULT: "default",
+	WHEN:    "when",
 
 	FUNC:     "func",
 	RULE:     "rule",
@@ -170,11 +175,12 @@ var tokens = [...]string{
 	BREAK:    "break",
 	CONTINUE: "continue",
 
-	IF:   "if",
-	ELSE: "else",
-	ANY:  "any",
-	ALL:  "all",
-	FOR:  "for",
+	IF:     "if",
+	ELSE:   "else",
+	ANY:    "any",
+	ALL:    "all",
+	FOR:    "for",
+	FILTER: "filter",
 
 	CASE: "case",
 }

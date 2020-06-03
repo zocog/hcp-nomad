@@ -37,6 +37,9 @@ var defaultChecks = []Checker{
 	&CheckImportAssignment{},
 	&CheckBreak{},
 	&CheckAppend{},
+	&CheckParamDefault{},
+	&CheckParamImportConflicts{},
+	&CheckParamPredeclared{},
 }
 
 func matchCheck(checkers []Checker, match Checker) bool {

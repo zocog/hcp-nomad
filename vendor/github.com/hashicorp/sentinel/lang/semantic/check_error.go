@@ -21,13 +21,17 @@ type CheckError struct {
 type CheckType string
 
 const (
-	CheckTypeNoMain                 CheckType = "no-main"
-	CheckTypeBreak                            = "break"
-	CheckTypeImportBadPath                    = "import-bad-path"
-	CheckTypeImportIdentRequired              = "import-ident-required"
-	CheckTypeImportSelectorRequired           = "import-selector-required"
-	CheckTypeImportAssignProhibited           = "import-assign-prohibited"
-	CheckTypeAppendAssign                     = "append-assign"
+	CheckTypeNoMain                      CheckType = "no-main"
+	CheckTypeBreak                                 = "break"
+	CheckTypeImportBadPath                         = "import-bad-path"
+	CheckTypeImportIdentRequired                   = "import-ident-required"
+	CheckTypeImportSelectorRequired                = "import-selector-required"
+	CheckTypeImportAssignProhibited                = "import-assign-prohibited"
+	CheckTypeAppendAssign                          = "append-assign"
+	CheckTypeParamDefaultIdentProhibited           = "param-default-ident-prohibited"
+	CheckTypeParamDefaultTypeProhibited            = "param-default-type-prohibited"
+	CheckTypeParamImportConflict                   = "param-import-conflict"
+	CheckTypeParamPredeclaredConflict              = "param-predeclared-conflict"
 )
 
 func (e *CheckError) Error() string {

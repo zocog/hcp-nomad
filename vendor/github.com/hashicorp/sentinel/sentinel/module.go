@@ -3,15 +3,13 @@ package sentinel
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"sync"
 	"sync/atomic"
 
 	"github.com/hashicorp/sentinel/lang/ast"
 	"github.com/hashicorp/sentinel/lang/semantic"
 	"github.com/hashicorp/sentinel/lang/token"
-	"github.com/hashicorp/sentinel/runtime/eval"
-	"github.com/mitchellh/hashstructure"
+	"github.com/hashicorp/sentinel/runtime/localast"
 )
 
 // Module represents a single module.
@@ -38,10 +36,9 @@ type Module struct {
 	// completely handled by the Sentinel structure.
 	rwmutex sync.RWMutex
 
-	ready    uint32                   // atomic set, 0 == not ready, 1 == pending, 2 == ready
-	compiled *eval.Compiled           // compiled module to execute
-	imports  map[string]*policyImport // available imports
-	name     string                   // human-friendly name
+	ready    uint32             // atomic set, 0 == not ready, 1 == pending, 2 == ready
+	compiled *localast.Compiled // compiled module to execute
+	name     string             // human-friendly name
 
 	// Ready state. This is only used/set if the policy is not ready.
 	readyLock sync.Mutex
@@ -68,7 +65,7 @@ func (m *Module) FileSet() *token.FileSet {
 }
 
 // Name returns the name of this module that was set with SetName.
-// This will default to the ID given to Sentinel.Policy but can be
+// This will default to the ID given to Sentinel.Module but can be
 // overwritten.
 func (m *Module) Name() string {
 	return m.name
@@ -103,7 +100,7 @@ func (m *Module) SetReady() error {
 	if m.file == nil {
 		return errors.New("module file must be set to set module ready")
 	}
-	cf, err := eval.Compile(&eval.CompileOpts{
+	cf, err := localast.Compile(&localast.CompileOpts{
 		File:         m.file,
 		FileSet:      m.fileSet,
 		SkipCheckers: []semantic.Checker{&semantic.CheckMain{}},
@@ -112,21 +109,6 @@ func (m *Module) SetReady() error {
 		return err
 	}
 	m.compiled = cf
-
-	// Hash all the imports
-	for k, v := range m.imports {
-		if v.Hash == 0 {
-			// New import configuration, set it up
-			hash, err := hashstructure.Hash(v.Config, nil)
-			if err != nil {
-				return fmt.Errorf(
-					"error setting module configuration for import %q: %v",
-					k, v)
-			}
-
-			v.Hash = hash
-		}
-	}
 
 	// Mark as ready
 	if !atomic.CompareAndSwapUint32(&m.ready, readyNotReady, readyReady) {

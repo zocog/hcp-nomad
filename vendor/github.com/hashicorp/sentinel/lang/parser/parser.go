@@ -585,10 +585,6 @@ func (p *parser) parseStmt() (s ast.Stmt) {
 		// (handle correctly anyway)
 		s = &ast.EmptyStmt{Semicolon: p.pos, Implicit: p.lit == "\n"}
 		p.next()
-	case token.RBRACE:
-		// a semicolon may be omitted before a closing "}"
-		s = &ast.EmptyStmt{Semicolon: p.pos, Implicit: true}
-		p.next()
 	default:
 		// no statement found
 		pos := p.pos
@@ -889,7 +885,7 @@ func (p *parser) parseQuantExpr() *ast.QuantExpr {
 		defer un(trace(p, "QuantExpr"))
 	}
 
-	// "any" or "all"
+	// "any", "all" or "filter"
 	var pos token.Pos
 	op := p.tok
 	switch op {
@@ -897,8 +893,10 @@ func (p *parser) parseQuantExpr() *ast.QuantExpr {
 		pos = p.expect(token.ANY)
 	case token.ALL:
 		pos = p.expect(token.ALL)
+	case token.FILTER:
+		pos = p.expect(token.FILTER)
 	default:
-		p.errorExpected(p.pos, "'any' or 'all'")
+		p.errorExpected(p.pos, "'any', 'all' or 'filter'")
 	}
 
 	// An expression to loop over
@@ -1030,6 +1028,7 @@ L:
 	for {
 		switch p.tok {
 		case token.PERIOD:
+			p.scanner.ForceSemi = true
 			p.next()
 			if lhs {
 				p.resolve(x)
@@ -1108,7 +1107,7 @@ func (p *parser) parseOperand(lhs bool) ast.Expr {
 	case token.RULE:
 		return p.parseRule()
 
-	case token.ANY, token.ALL:
+	case token.ANY, token.ALL, token.FILTER:
 		return p.parseQuantExpr()
 	}
 
@@ -1323,13 +1322,43 @@ func (p *parser) parseImportSpec() *ast.ImportSpec {
 		ident = p.parseIdent(false)
 	}
 
-	p.expectSemi() // call before accessing p.linecomment
+	p.expectSemi() // call before accessing p.lineComment
 
 	// collect imports
 	spec := &ast.ImportSpec{
 		Doc:     doc,
 		Name:    ident,
 		Path:    &ast.BasicLit{ValuePos: pos, Kind: token.STRING, Value: path},
+		Comment: p.lineComment,
+	}
+
+	return spec
+}
+
+func (p *parser) parseParamSpec() *ast.ParamSpec {
+	if p.trace {
+		defer un(trace(p, "ParamSpec"))
+	}
+
+	doc := p.leadComment
+
+	// Expect param
+	p.expect(token.PARAM)
+
+	ident := p.parseIdent(false)
+
+	var def ast.Expr
+	if p.tok == token.DEFAULT {
+		p.next()
+		def = p.parseExpr(false)
+	}
+
+	p.expectSemi() // call before accessing p.lineComment
+
+	spec := &ast.ParamSpec{
+		Doc:     doc,
+		Name:    ident,
+		Default: def,
 		Comment: p.lineComment,
 	}
 
@@ -1374,6 +1403,12 @@ func (p *parser) parseFile() *ast.File {
 		imports = append(imports, p.parseImportSpec())
 	}
 
+	// parameter decls (must appear immediately after imports)
+	var params []*ast.ParamSpec
+	for p.tok == token.PARAM {
+		params = append(params, p.parseParamSpec())
+	}
+
 	// rest of the source file which is a statement list
 	for p.tok != token.EOF {
 		stmts = append(stmts, p.parseStmt())
@@ -1398,6 +1433,7 @@ func (p *parser) parseFile() *ast.File {
 		Doc:        doc,
 		Scope:      p.pkgScope,
 		Imports:    imports,
+		Params:     params,
 		Stmts:      stmts,
 		Unresolved: p.unresolved[0:i],
 		Comments:   p.comments,

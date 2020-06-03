@@ -6,7 +6,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/hashicorp/go-eventlogger"
+	"github.com/hashicorp/eventlogger"
 )
 
 // HealthCheckFilter filters out agent health check requests
