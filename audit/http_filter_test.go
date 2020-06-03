@@ -6,7 +6,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hashicorp/go-eventlogger"
+	"github.com/hashicorp/eventlogger"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/stretchr/testify/require"
 )

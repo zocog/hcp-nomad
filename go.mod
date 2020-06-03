@@ -7,6 +7,8 @@ replace (
 	github.com/NYTimes/gziphandler => github.com/NYTimes/gziphandler v1.0.0
 	github.com/apparentlymart/go-textseg/v12 => github.com/apparentlymart/go-textseg/v12 v12.0.0
 	github.com/godbus/dbus => github.com/godbus/dbus v5.0.1+incompatible
+	github.com/hashicorp/consul => github.com/hashicorp/consul-enterprise v1.7.4-0.20200505230128-e3f399513dce
+	github.com/hashicorp/go-getter => github.com/hashicorp/go-getter v1.3.1-0.20190822194507-f5101da01173
 	github.com/hashicorp/nomad/api => ./api
 	github.com/kr/pty => github.com/kr/pty v1.1.5
 )
@@ -27,7 +29,6 @@ require (
 	github.com/boltdb/bolt v1.3.1
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b // indirect
 	github.com/container-storage-interface/spec v1.2.0-rc1.0.20191021210849-a33ece0a8a9f
-	github.com/containerd/console v1.0.0 // indirect
 	github.com/containerd/go-cni v0.0.0-20190904155053-d20b7eebc7ee
 	github.com/containernetworking/cni v0.7.2-0.20190612152420-dc953e2fd91f // indirect
 	github.com/containernetworking/plugins v0.7.3-0.20190501191748-2d6d46d308b2
@@ -56,17 +57,20 @@ require (
 	github.com/hashicorp/consul/api v1.4.0
 	github.com/hashicorp/consul/sdk v0.4.0
 	github.com/hashicorp/cronexpr v1.1.0
+	github.com/hashicorp/errwrap v1.0.0
+	github.com/hashicorp/eventlogger v0.0.0-20200503125528-e0cd2ba137df
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-connlimit v0.2.0
 	github.com/hashicorp/go-discover v0.0.0-20200108194735-7698de1390a1
 	github.com/hashicorp/go-envparse v0.0.0-20180119215841-310ca1881b22
-	github.com/hashicorp/go-getter v1.3.1-0.20190822194507-f5101da01173
+	github.com/hashicorp/go-getter v1.4.1
 	github.com/hashicorp/go-hclog v0.12.0
 	github.com/hashicorp/go-immutable-radix v1.2.0
+	github.com/hashicorp/go-licensing v1.3.4-0.20200511191434-7d9ec85339ee
 	github.com/hashicorp/go-memdb v1.2.1
 	github.com/hashicorp/go-msgpack v1.1.5
-	github.com/hashicorp/go-multierror v1.0.1-0.20191120192120-72917a1559e1
+	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-plugin v1.0.2-0.20191004171845-809113480b55
 	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/hashicorp/go-syslog v1.0.0
@@ -76,12 +80,14 @@ require (
 	github.com/hashicorp/hcl v1.0.1-0.20191016231534-914dc3f8dd7c
 	github.com/hashicorp/hcl/v2 v2.5.1
 	github.com/hashicorp/logutils v1.0.0
-	github.com/hashicorp/memberlist v0.1.6
+	github.com/hashicorp/memberlist v0.2.2
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
+	github.com/hashicorp/nomad-licensing v0.0.0-20200520154856-5fe6ad57332f
 	github.com/hashicorp/nomad/api v0.0.0-20200529203653-c4416b26d3eb
 	github.com/hashicorp/raft v1.1.3-0.20200211192230-365023de17e6
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
-	github.com/hashicorp/serf v0.8.5
+	github.com/hashicorp/sentinel v0.15.5
+	github.com/hashicorp/serf v0.9.2
 	github.com/hashicorp/vault/api v1.0.5-0.20190730042357-746c0b111519
 	github.com/hashicorp/vault/sdk v0.1.14-0.20190730042320-0dc007d98cc8
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
@@ -91,11 +97,11 @@ require (
 	github.com/kr/pty v1.1.5
 	github.com/kr/text v0.2.0
 	github.com/mattn/go-colorable v0.1.6
-	github.com/mitchellh/cli v1.0.0
+	github.com/mitchellh/cli v1.1.0
 	github.com/mitchellh/colorstring v0.0.0-20150917214807-8631ce90f286
 	github.com/mitchellh/copystructure v1.0.0
 	github.com/mitchellh/go-ps v0.0.0-20190716172923-621e5597135b
-	github.com/mitchellh/go-testing-interface v1.0.0
+	github.com/mitchellh/go-testing-interface v1.0.3
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/mitchellh/mapstructure v1.3.1
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618 // indirect
@@ -107,7 +113,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.0.2-0.20200307132014-f49fed0d6290 // indirect
 	github.com/opencontainers/selinux v1.4.1-0.20200311111634-a2f0d9c2aafc // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/posener/complete v1.2.1
+	github.com/posener/complete v1.2.3
 	github.com/prometheus/client_golang v1.4.0
 	github.com/prometheus/common v0.9.1
 	github.com/rs/cors v0.0.0-20170801073201-eabcc6af4bbe

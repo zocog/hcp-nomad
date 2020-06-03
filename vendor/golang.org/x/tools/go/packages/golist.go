@@ -24,10 +24,6 @@ import (
 
 	"golang.org/x/tools/go/internal/packagesdriver"
 	"golang.org/x/tools/internal/gocommand"
-<<<<<<< HEAD
-	"golang.org/x/tools/internal/packagesinternal"
-=======
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 	"golang.org/x/xerrors"
 )
 
@@ -385,11 +381,7 @@ type jsonPackage struct {
 	Imports         []string
 	ImportMap       map[string]string
 	Deps            []string
-<<<<<<< HEAD
-	Module          *packagesinternal.Module
-=======
 	Module          *Module
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 	TestGoFiles     []string
 	TestImports     []string
 	XTestGoFiles    []string
@@ -548,9 +540,6 @@ func (state *golistState) createDriverResponse(words ...string) (*driverResponse
 			CompiledGoFiles: absJoin(p.Dir, p.CompiledGoFiles),
 			OtherFiles:      absJoin(p.Dir, otherFiles(p)...),
 			forTest:         p.ForTest,
-<<<<<<< HEAD
-			module:          p.Module,
-=======
 			Module:          p.Module,
 		}
 
@@ -571,7 +560,6 @@ func (state *golistState) createDriverResponse(words ...string) (*driverResponse
 					Kind: ListError,
 				})
 			}
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		}
 
 		// Work around https://golang.org/issue/28749:

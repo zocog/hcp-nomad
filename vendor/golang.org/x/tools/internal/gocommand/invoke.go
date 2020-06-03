@@ -17,11 +17,7 @@ import (
 	"sync"
 	"time"
 
-<<<<<<< HEAD
-	"golang.org/x/tools/internal/telemetry/event"
-=======
 	"golang.org/x/tools/internal/event"
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 )
 
 // An Runner will run go command invocations and serialize
@@ -43,11 +39,7 @@ func (runner *Runner) Run(ctx context.Context, inv Invocation) (*bytes.Buffer, e
 	return stdout, friendly
 }
 
-<<<<<<< HEAD
-// Run calls Innvocation.RunRaw, serializing requests if they fight over
-=======
 // RunRaw calls Invocation.runRaw, serializing requests if they fight over
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 // go.mod changes.
 func (runner *Runner) RunRaw(ctx context.Context, inv Invocation) (*bytes.Buffer, *bytes.Buffer, error, error) {
 	// We want to run invocations concurrently as much as possible. However,
@@ -101,10 +93,7 @@ func (i *Invocation) runRaw(ctx context.Context) (stdout *bytes.Buffer, stderr *
 	stderr = &bytes.Buffer{}
 	rawError = i.RunPiped(ctx, stdout, stderr)
 	if rawError != nil {
-<<<<<<< HEAD
-=======
 		friendlyError = rawError
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 		// Check for 'go' executable not being found.
 		if ee, ok := rawError.(*exec.Error); ok && ee.Err == exec.ErrNotFound {
 			friendlyError = fmt.Errorf("go command required, not found: %v", ee)
@@ -112,11 +101,7 @@ func (i *Invocation) runRaw(ctx context.Context) (stdout *bytes.Buffer, stderr *
 		if ctx.Err() != nil {
 			friendlyError = ctx.Err()
 		}
-<<<<<<< HEAD
-		friendlyError = fmt.Errorf("err: %v: stderr: %s", rawError, stderr)
-=======
 		friendlyError = fmt.Errorf("err: %v: stderr: %s", friendlyError, stderr)
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 	}
 	return
 }

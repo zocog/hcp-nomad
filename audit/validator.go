@@ -7,7 +7,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/hashicorp/go-eventlogger"
+	"github.com/hashicorp/eventlogger"
 	"github.com/hashicorp/go-hclog"
 )
 

@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
-<<<<<<< HEAD
-=======
 	"log"
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 	"os"
 	"path/filepath"
 	"sort"
@@ -26,21 +23,15 @@ func (state *golistState) processGolistOverlay(response *responseDeduper) (modif
 	needPkgsSet := make(map[string]bool)
 	modifiedPkgsSet := make(map[string]bool)
 
-<<<<<<< HEAD
-=======
 	pkgOfDir := make(map[string][]*Package)
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 	for _, pkg := range response.dr.Packages {
 		// This is an approximation of import path to id. This can be
 		// wrong for tests, vendored packages, and a number of other cases.
 		havePkgs[pkg.PkgPath] = pkg.ID
-<<<<<<< HEAD
-=======
 		x := commonDir(pkg.GoFiles)
 		if x != "" {
 			pkgOfDir[x] = append(pkgOfDir[x], pkg)
 		}
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 	}
 
 	// If no new imports are added, it is safe to avoid loading any needPkgs.
@@ -79,12 +70,9 @@ func (state *golistState) processGolistOverlay(response *responseDeduper) (modif
 			// to the overlay.
 			continue
 		}
-<<<<<<< HEAD
-=======
 		// if all the overlay files belong to a different package, change the package
 		// name to that package. Otherwise leave it alone; there will be an error message.
 		maybeFixPackageName(pkgName, pkgOfDir, dir)
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 	nextPackage:
 		for _, p := range response.dr.Packages {
 			if pkgName != p.Name && p.ID != "command-line-arguments" {
@@ -405,8 +393,6 @@ func extractPackageName(filename string, contents []byte) (string, bool) {
 	}
 	return f.Name.Name, true
 }
-<<<<<<< HEAD
-=======
 
 func commonDir(a []string) string {
 	seen := make(map[string]bool)
@@ -450,4 +436,3 @@ func maybeFixPackageName(newName string, pkgOfDir map[string][]*Package, dir str
 	}
 	return true
 }
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod

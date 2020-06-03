@@ -11,10 +11,7 @@ package gcimporter
 import (
 	"bytes"
 	"encoding/binary"
-<<<<<<< HEAD
-=======
 	"fmt"
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 	"go/ast"
 	"go/constant"
 	"go/token"
@@ -29,8 +26,6 @@ import (
 // 0: Go1.11 encoding
 const iexportVersion = 0
 
-<<<<<<< HEAD
-=======
 // internalError represents an error generated inside this package.
 type internalError string
 
@@ -40,7 +35,6 @@ func internalErrorf(format string, args ...interface{}) error {
 	return internalError(fmt.Sprintf(format, args...))
 }
 
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 // IExportData returns the binary export data for pkg.
 //
 // If no file set is provided, position info will be missing.
@@ -544,8 +538,6 @@ func constantToFloat(x constant.Value) *big.Float {
 	return &f
 }
 
-<<<<<<< HEAD
-=======
 func valueToRat(x constant.Value) *big.Rat {
 	// Convert little-endian to big-endian.
 	// I can't believe this is necessary.
@@ -556,7 +548,6 @@ func valueToRat(x constant.Value) *big.Rat {
 	return new(big.Rat).SetInt(new(big.Int).SetBytes(bytes))
 }
 
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 // mpint exports a multi-precision integer.
 //
 // For unsigned types, small values are written out as a single

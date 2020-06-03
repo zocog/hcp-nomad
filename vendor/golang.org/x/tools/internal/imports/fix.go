@@ -50,12 +50,8 @@ var importToGroup = []func(env *ProcessEnv, importPath string) (num int, ok bool
 		return
 	},
 	func(_ *ProcessEnv, importPath string) (num int, ok bool) {
-<<<<<<< HEAD
-		if strings.Contains(importPath, ".") {
-=======
 		firstComponent := strings.Split(importPath, "/")[0]
 		if strings.Contains(firstComponent, ".") {
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 			return 1, true
 		}
 		return

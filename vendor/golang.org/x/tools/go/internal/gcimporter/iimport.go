@@ -18,12 +18,9 @@ import (
 	"go/types"
 	"io"
 	"sort"
-<<<<<<< HEAD
-=======
 	"sync"
 	"unicode"
 	"unicode/utf8"
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 )
 
 type intReader struct {
@@ -31,13 +28,10 @@ type intReader struct {
 	path string
 }
 
-<<<<<<< HEAD
-=======
 func errorf(format string, args ...interface{}) {
 	panic(fmt.Sprintf(format, args...))
 }
 
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 func (r *intReader) int64() int64 {
 	i, err := binary.ReadVarint(r.Reader)
 	if err != nil {
@@ -641,8 +635,6 @@ func (r *importReader) byte() byte {
 	}
 	return x
 }
-<<<<<<< HEAD
-=======
 
 const deltaNewFile = -64 // see cmd/compile/internal/gc/bexport.go
 
@@ -806,4 +798,3 @@ type anyType struct{}
 
 func (t anyType) Underlying() types.Type { return t }
 func (t anyType) String() string         { return "any" }
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod

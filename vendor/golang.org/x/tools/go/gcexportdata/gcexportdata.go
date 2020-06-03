@@ -85,23 +85,11 @@ func Read(in io.Reader, fset *token.FileSet, imports map[string]*types.Package, 
 		return gcimporter.ImportData(imports, path, path, bytes.NewReader(data))
 	}
 
-<<<<<<< HEAD
-	// The indexed export format starts with an 'i'; the older
-	// binary export format starts with a 'c', 'd', or 'v'
-	// (from "version"). Select appropriate importer.
-	if len(data) > 0 && data[0] == 'i' {
-		_, pkg, err := gcimporter.IImportData(fset, imports, data[1:], path)
-		return pkg, err
-	}
-
-	_, pkg, err := gcimporter.BImportData(fset, imports, data, path)
-=======
 	// The indexed export format starts with an 'i'.
 	if len(data) == 0 || data[0] != 'i' {
 		return nil, fmt.Errorf("unknown export data format")
 	}
 	_, pkg, err := gcimporter.IImportData(fset, imports, data[1:], path)
->>>>>>> 045995bff... Merge pull request #8041 from hashicorp/x-gomod
 	return pkg, err
 }
 
