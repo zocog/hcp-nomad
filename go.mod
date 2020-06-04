@@ -11,6 +11,7 @@ replace (
 	github.com/hashicorp/go-getter => github.com/hashicorp/go-getter v1.3.1-0.20190822194507-f5101da01173
 	github.com/hashicorp/nomad/api => ./api
 	github.com/kr/pty => github.com/kr/pty v1.1.5
+	github.com/shirou/gopsutil => github.com/hashicorp/gopsutil v2.18.13-0.20200531184148-5aca383d4f9d+incompatible
 )
 
 require (
@@ -29,6 +30,7 @@ require (
 	github.com/boltdb/bolt v1.3.1
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b // indirect
 	github.com/container-storage-interface/spec v1.2.0-rc1.0.20191021210849-a33ece0a8a9f
+	github.com/containerd/console v1.0.0 // indirect
 	github.com/containerd/go-cni v0.0.0-20190904155053-d20b7eebc7ee
 	github.com/containernetworking/cni v0.7.2-0.20190612152420-dc953e2fd91f // indirect
 	github.com/containernetworking/plugins v0.7.3-0.20190501191748-2d6d46d308b2

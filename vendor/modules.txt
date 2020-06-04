@@ -142,7 +142,8 @@ github.com/cockroachdb/apd
 # github.com/container-storage-interface/spec v1.2.0-rc1.0.20191021210849-a33ece0a8a9f
 ## explicit
 github.com/container-storage-interface/spec/lib/go/csi
-# github.com/containerd/console v0.0.0-20180822173158-c12b1e7919c1
+# github.com/containerd/console v1.0.0
+## explicit
 github.com/containerd/console
 # github.com/containerd/containerd v1.3.2
 github.com/containerd/containerd/errdefs
@@ -753,7 +754,7 @@ github.com/sean-/seed
 # github.com/seccomp/libseccomp-golang v0.9.2-0.20200314001724-bdab42bd5128
 ## explicit
 github.com/seccomp/libseccomp-golang
-# github.com/shirou/gopsutil v2.20.2+incompatible
+# github.com/shirou/gopsutil v2.20.2+incompatible => github.com/hashicorp/gopsutil v2.18.13-0.20200531184148-5aca383d4f9d+incompatible
 ## explicit
 github.com/shirou/gopsutil/cpu
 github.com/shirou/gopsutil/disk
@@ -1124,3 +1125,4 @@ honnef.co/go/tools/version
 # github.com/hashicorp/go-getter => github.com/hashicorp/go-getter v1.3.1-0.20190822194507-f5101da01173
 # github.com/hashicorp/nomad/api => ./api
 # github.com/kr/pty => github.com/kr/pty v1.1.5
+# github.com/shirou/gopsutil => github.com/hashicorp/gopsutil v2.18.13-0.20200531184148-5aca383d4f9d+incompatible
