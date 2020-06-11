@@ -39,7 +39,7 @@ func (s *Sentinel) UpsertPolicies(args *structs.SentinelPolicyUpsertRequest, rep
 	}
 
 	// Strict enforcement for write requests - if not licensed then requests will be denied
-	if err := s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true); err != nil {
+	if err := s.srv.EnterpriseState.FeatureCheck(license.FeatureSentinelPolicies, true); err != nil {
 		return err
 	}
 
@@ -88,7 +88,7 @@ func (s *Sentinel) DeletePolicies(args *structs.SentinelPolicyDeleteRequest, rep
 	}
 
 	// Strict enforcement for write requests - if not licensed then requests will be denied
-	if err := s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true); err != nil {
+	if err := s.srv.EnterpriseState.FeatureCheck(license.FeatureSentinelPolicies, true); err != nil {
 		return err
 	}
 
@@ -126,7 +126,7 @@ func (s *Sentinel) ListPolicies(args *structs.SentinelPolicyListRequest, reply *
 	}
 
 	// Only warn for expiration of a read request
-	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true)
+	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSentinelPolicies, true)
 
 	// Setup the blocking query
 	opts := blockingOptions{
@@ -191,7 +191,7 @@ func (s *Sentinel) GetPolicy(args *structs.SentinelPolicySpecificRequest, reply 
 	}
 
 	// Only warn for expiration of a read request
-	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true)
+	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSentinelPolicies, true)
 
 	// Setup the blocking query
 	opts := blockingOptions{
@@ -239,7 +239,7 @@ func (s *Sentinel) GetPolicies(args *structs.SentinelPolicySetRequest, reply *st
 	}
 
 	// Only warn for expiration of a read request
-	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSetinelPolicies, true)
+	_ = s.srv.EnterpriseState.FeatureCheck(license.FeatureSentinelPolicies, true)
 
 	// Setup the blocking query
 	opts := blockingOptions{

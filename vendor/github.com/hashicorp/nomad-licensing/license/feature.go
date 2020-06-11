@@ -34,8 +34,11 @@ const (
 	// audit logging
 	FeatureAuditLogging
 
-	// setinel policies
-	FeatureSetinelPolicies
+	// sentinel policies
+	FeatureSentinelPolicies
+
+	// multi-region deployments
+	FeatureMultiregionDeployments
 
 	// Should always be last, add features above.
 	numOfFeatures uint = iota
@@ -57,8 +60,10 @@ func (f Features) String() string {
 		return "Preemption"
 	case FeatureAuditLogging:
 		return "Audit Logging"
-	case FeatureSetinelPolicies:
-		return "Setinel Policies"
+	case FeatureSentinelPolicies:
+		return "Sentinel Policies"
+	case FeatureMultiregionDeployments:
+		return "Multiregion Deployments"
 	default:
 		return "Unknown"
 	}

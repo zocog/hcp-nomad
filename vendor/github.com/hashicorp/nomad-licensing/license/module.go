@@ -45,13 +45,13 @@ func ModuleFromString(module string) (Module, error) {
 }
 
 // ModulePlatform represents the features that are delivered in all versions of Vault Enterprise
-const ModulePlatformFeatures Features = FeatureAutoUpgrades | FeatureReadScalability | FeatureRedundancyZones
+const ModulePlatformFeatures Features = FeatureAutoUpgrades | FeatureReadScalability | FeatureRedundancyZones | FeatureMultiregionDeployments
 
 // Features returns all the features for a module
 func (m Module) Features() Features {
 	switch m {
 	case ModuleGovernancePolicy:
-		return ModulePlatformFeatures | FeatureNamespaces | FeatureResourceQuotas | FeaturePreemption | FeatureAuditLogging | FeatureSetinelPolicies
+		return ModulePlatformFeatures | FeatureNamespaces | FeatureResourceQuotas | FeaturePreemption | FeatureAuditLogging | FeatureSentinelPolicies
 
 	case ModulePlatform:
 		fallthrough
