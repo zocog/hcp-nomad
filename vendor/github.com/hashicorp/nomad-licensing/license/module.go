@@ -51,7 +51,7 @@ const ModulePlatformFeatures Features = FeatureAutoUpgrades | FeatureReadScalabi
 func (m Module) Features() Features {
 	switch m {
 	case ModuleGovernancePolicy:
-		return ModulePlatformFeatures | FeatureNamespaces | FeatureResourceQuotas | FeaturePreemption | FeatureAuditLogging | FeatureSentinelPolicies
+		return ModulePlatformFeatures | FeatureNamespaces | FeatureResourceQuotas | FeatureAuditLogging | FeatureSentinelPolicies
 
 	case ModulePlatform:
 		fallthrough
