@@ -28,9 +28,6 @@ const (
 	// resource quotas
 	FeatureResourceQuotas
 
-	// preemption
-	FeaturePreemption
-
 	// audit logging
 	FeatureAuditLogging
 
@@ -56,8 +53,6 @@ func (f Features) String() string {
 		return "Namespaces"
 	case FeatureResourceQuotas:
 		return "Resource Quotas"
-	case FeaturePreemption:
-		return "Preemption"
 	case FeatureAuditLogging:
 		return "Audit Logging"
 	case FeatureSentinelPolicies:
