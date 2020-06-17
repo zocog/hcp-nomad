@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/go-memdb"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
@@ -14,6 +15,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestJobEndpoint_Register_Sentinel(t *testing.T) {
@@ -266,4 +268,105 @@ func TestJobEndpoint_Register_ACL_Namespace(t *testing.T) {
 	out, err := state.JobByID(ws, job.Namespace, job.ID)
 	assert.Nil(err)
 	assert.NotNil(out, "expected job")
+}
+
+func TestJobEndpoint_Register_Multiregion(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	west, root, cleanupWest := TestACLServer(t, func(c *Config) {
+		c.Region = "west"
+		c.AuthoritativeRegion = "west"
+		c.ACLEnabled = true
+		c.NumSchedulers = 0 // Prevent automatic dequeue
+	})
+	defer cleanupWest()
+
+	east, _, cleanupEast := TestACLServer(t, func(c *Config) {
+		c.Region = "east"
+		c.AuthoritativeRegion = "west"
+		c.ACLEnabled = true
+		c.ReplicationBackoff = 20 * time.Millisecond
+		c.ReplicationToken = root.SecretID
+		c.NumSchedulers = 0 // Prevent automatic dequeue
+	})
+	defer cleanupEast()
+
+	TestJoin(t, west, east)
+	testutil.WaitForLeader(t, west.RPC)
+	testutil.WaitForLeader(t, east.RPC)
+
+	codecEast := rpcClient(t, east)
+	codecWest := rpcClient(t, west)
+
+	// can't use Server.numPeers here b/c these are different regions
+	testutil.WaitForResult(func() (bool, error) {
+		return west.serf.NumNodes() == 2, nil
+	}, func(err error) {
+		t.Fatalf("should have 2 peers")
+	})
+
+	job := mock.MultiregionJob()
+	req := &structs.JobRegisterRequest{
+		Job: job,
+		WriteRequest: structs.WriteRequest{
+			Region:    "east",
+			AuthToken: root.SecretID,
+		},
+	}
+
+	var resp structs.JobRegisterResponse
+	err := msgpackrpc.CallWithCodec(codecEast, "Job.Register", req, &resp)
+	require.NoError(err)
+
+	getReq := &structs.JobSpecificRequest{
+		JobID: job.ID,
+		QueryOptions: structs.QueryOptions{
+			Region:    "east",
+			AuthToken: root.SecretID,
+		},
+	}
+	var getResp structs.SingleJobResponse
+	err = msgpackrpc.CallWithCodec(codecEast, "Job.GetJob", getReq, &getResp)
+	require.NoError(err)
+
+	eastJob := getResp.Job
+	require.NotNil(eastJob, fmt.Sprintf("getResp: %#v", getResp))
+	require.Equal("east", eastJob.Region)
+	require.Equal([]string{"east-1"}, eastJob.Datacenters)
+	require.Equal("E", eastJob.Meta["region_code"])
+	require.Equal(10, eastJob.TaskGroups[0].Count)
+
+	getReq.Region = "west"
+	err = msgpackrpc.CallWithCodec(codecWest, "Job.GetJob", getReq, &getResp)
+	require.NoError(err)
+	westJob := getResp.Job
+
+	require.NotNil(westJob, fmt.Sprintf("getResp: %#v", getResp))
+	require.Equal("west", westJob.Region)
+	require.Equal([]string{"west-1", "west-2"}, westJob.Datacenters)
+	require.Equal("W", westJob.Meta["region_code"])
+	require.Equal(10, westJob.TaskGroups[0].Count)
+
+	// Update the job
+	job.TaskGroups[0].Count = 0
+	req.Job = job
+	err = msgpackrpc.CallWithCodec(codecEast, "Job.Register", req, &resp)
+	require.NoError(err)
+
+	getReq.Region = "east"
+	err = msgpackrpc.CallWithCodec(codecEast, "Job.GetJob", getReq, &getResp)
+	require.NoError(err)
+
+	eastJob = getResp.Job
+	require.NotNil(eastJob, fmt.Sprintf("getResp: %#v", getResp))
+	require.Equal(1, eastJob.TaskGroups[0].Count)
+
+	getReq.Region = "west"
+	err = msgpackrpc.CallWithCodec(codecWest, "Job.GetJob", getReq, &getResp)
+	require.NoError(err)
+	westJob = getResp.Job
+	require.Equal(2, westJob.TaskGroups[0].Count)
+
+	require.Equal(westJob.Version, eastJob.Version)
 }
