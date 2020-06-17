@@ -4,6 +4,17 @@ FEATURES:
  * **Preemption**: Preemption is now an open source feature
  * **Licensing (Enterprise)**: Nomad Enterprise now requires a license [[GH-8076](https://github.com/hashicorp/nomad/issues/8076)]
 
+IMPROVEMENTS:
+
+* api: Persist previous count with scaling events [[GH-8167](https://github.com/hashicorp/nomad/issues/8167)]
+* build: Updated to Go 1.14.4 [[GH-8172](https://github.com/hashicorp/nomad/issues/9172)]
+
+BUG FIXES:
+
+ * cli: Fixed malformed alloc status address list when listing more than 1 address [[GH-8161](https://github.com/hashicorp/nomad/issues/8161)]
+ * client: Fixed a bug where stdout/stderr were not properly reopened for community task drivers. [[GH-8155](https://github.com/hashicorp/nomad/issues/8155)]
+ * driver/docker: Fixed a bug to set correct value for `memory-swap` when using `memory_hard_limit` [[GH-8153](https://github.com/hashicorp/nomad/issues/8153)]
+
 ## 0.11.3 (June 5, 2020)
 
 IMPROVEMENTS:
@@ -25,8 +36,6 @@ BUG FIXES:
  * api: Fixed a bug where setting connect sidecar task resources could fail [[GH-7993](https://github.com/hashicorp/nomad/issues/7993)]
  * client: Fixed a bug where artifact downloads failed on redirects [[GH-7854](https://github.com/hashicorp/nomad/issues/7854)]
  * csi: Validate empty volume arguments in API. [[GH-8027](https://github.com/hashicorp/nomad/issues/8027)]
- * client: Fixed a bug where stdout/stderr were not properly reopened for
-   community task drivers. [[GH-8155](https://github.com/hashicorp/nomad/issues/8155)]
 
 ## 0.11.2 (May 14, 2020)
 
