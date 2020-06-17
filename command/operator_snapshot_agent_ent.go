@@ -32,7 +32,7 @@ Usage: nomad operator snapshot agent [options] [CONFIG_FILE]
   from a batch job. As a long-running daemon, the agent will perform a leader
   election so multiple processes can be run in a highly available fashion with
   automatic failover. In daemon mode, the agent will also register itself with
-  Consul as a service, along with health checks that show the agent is alive
+  Nomad as a service, along with health checks that show the agent is alive
   and able to take snapshots.
 
   If ACLs are enabled, a management token must be supplied in order to perform
@@ -138,12 +138,12 @@ func (c *OperatorSnapshotAgentCommand) Run(args []string) int {
 
 	_, err := config.Canonicalize("nomad")
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error validating consul config: %v", err))
+		c.Ui.Error(fmt.Sprintf("Error validating Nomad config: %v", err))
 		return 1
 	}
 	client, err := c.Meta.Client()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error creating a nomad API: %v", err))
+		c.Ui.Error(fmt.Sprintf("Error creating a Nomad API: %v", err))
 		return 1
 	}
 
