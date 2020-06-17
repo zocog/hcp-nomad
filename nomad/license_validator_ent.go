@@ -8,6 +8,9 @@ import (
 
 func temporaryFlags() map[string]interface{} {
 	return map[string]interface{}{
-		"modules": []string{nomadLicense.ModuleGovernancePolicy.String()},
+		"modules": []string{
+			nomadLicense.ModuleGovernancePolicy.String(),
+			nomadLicense.ModuleMulticlusterAndEfficiency.String(),
+		},
 	}
 }

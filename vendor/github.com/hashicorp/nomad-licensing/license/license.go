@@ -87,7 +87,7 @@ func (f *Flags) UnmarshalJSON(data []byte) error {
 	}
 
 	// Add Platform features to feature flags
-	f.features.AddFeature(ModulePlatformFeatures)
+	f.features.AddFeature(PlatformFeatures)
 
 	// Iterate over modules
 	for _, modRaw := range f.Modules {

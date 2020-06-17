@@ -58,6 +58,6 @@ func TestGovernancePolicyFlags() map[string]interface{} {
 
 func TestPlatformFlags() map[string]interface{} {
 	return map[string]interface{}{
-		"modules": []interface{}{ModulePlatform.String()},
+		"modules": []interface{}{},
 	}
 }

@@ -77,7 +77,7 @@ func TestLicenseWatcher_UpdateCh(t *testing.T) {
 	lw.start(ctx, state, testShutdownFunc)
 	defer cancel()
 
-	newLicense := license.NewTestLicense(license.TestGovernancePolicyFlags())
+	newLicense := license.NewTestLicense(temporaryFlags())
 	stored := &structs.StoredLicense{
 		Signed:      newLicense.Signed,
 		CreateIndex: uint64(1000),
@@ -88,6 +88,7 @@ func TestLicenseWatcher_UpdateCh(t *testing.T) {
 
 	require.NotEqual(t, lw.features, uint64(0))
 	require.True(t, lw.HasFeature(license.FeatureAuditLogging))
+	require.True(t, lw.HasFeature(license.FeatureMultiregionDeployments))
 }
 
 func TestLicenseWatcher_UpdateCh_Platform(t *testing.T) {

@@ -15,7 +15,7 @@ const (
 	// ModuleGovernancePolicy
 	ModuleGovernancePolicy Module = iota + 1
 
-	ModulePlatform
+	ModuleMulticlusterAndEfficiency
 
 	// Should always be last, add modules above
 	numOfModules int = iota
@@ -25,8 +25,8 @@ func (m Module) String() string {
 	switch m {
 	case ModuleGovernancePolicy:
 		return "governance-policy"
-	case ModulePlatform:
-		return "platform"
+	case ModuleMulticlusterAndEfficiency:
+		return "multicluster-and-efficiency"
 	default:
 		return "unknown"
 	}
@@ -37,25 +37,26 @@ func ModuleFromString(module string) (Module, error) {
 	switch strings.ToLower(module) {
 	case "governance-policy":
 		return ModuleGovernancePolicy, nil
-	case "platform":
-		return ModulePlatform, nil
+	case "multicluster-and-efficiency":
+		return ModuleMulticlusterAndEfficiency, nil
 	default:
 		return ModuleUnknown, fmt.Errorf("invalid module: %q", module)
 	}
 }
 
 // ModulePlatform represents the features that are delivered in all versions of Vault Enterprise
-const ModulePlatformFeatures Features = FeatureAutoUpgrades | FeatureReadScalability | FeatureRedundancyZones | FeatureMultiregionDeployments
+const (
+	PlatformFeatures Features = FeatureAutoUpgrades | FeatureReadScalability | FeatureRedundancyZones
+)
 
 // Features returns all the features for a module
 func (m Module) Features() Features {
 	switch m {
 	case ModuleGovernancePolicy:
-		return ModulePlatformFeatures | FeatureNamespaces | FeatureResourceQuotas | FeatureAuditLogging | FeatureSentinelPolicies
-
-	case ModulePlatform:
-		fallthrough
+		return PlatformFeatures | FeatureNamespaces | FeatureResourceQuotas | FeatureAuditLogging | FeatureSentinelPolicies
+	case ModuleMulticlusterAndEfficiency:
+		return PlatformFeatures | FeatureMultiregionDeployments
 	default:
-		return ModulePlatformFeatures
+		return PlatformFeatures
 	}
 }
