@@ -3,10 +3,12 @@
 FEATURES:
  * **Preemption**: Preemption is now an open source feature
  * **Licensing (Enterprise)**: Nomad Enterprise now requires a license [[GH-8076](https://github.com/hashicorp/nomad/issues/8076)]
+ * **Multiregion Deployments (Enterprise)**: Nomad Enterprise now allows running deployments to multiple regions. [[GH-8184](https://github.com/hashicorp/nomad/issues/8184)]
 
 IMPROVEMENTS:
 
 * core: support for persisting previous task group counts when updating a job [[GH-8168](https://github.com/hashicorp/nomad/issues/8168)]
+* core: block Job.Scale actions when the job is under active deployment [[GH-8187](https://github.com/hashicorp/nomad/issues/8187)]
 * api: Persist previous count with scaling events [[GH-8167](https://github.com/hashicorp/nomad/issues/8167)]
 * build: Updated to Go 1.14.4 [[GH-8172](https://github.com/hashicorp/nomad/issues/9172)]
 
