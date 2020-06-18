@@ -294,7 +294,7 @@ func checkLicense(ctx context.Context, client *api.Client, logger hclog.Logger) 
 
 			if !licensed && hasLicenedEver {
 				logger.Warn("automatic snapshot is no longer licensed")
-				timer.Reset(1 * time.Minute)
+				timer.Reset(1 * time.Hour)
 				continue
 			}
 
