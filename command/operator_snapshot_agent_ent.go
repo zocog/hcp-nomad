@@ -8,8 +8,10 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/command/agent"
 	"github.com/hashicorp/nomad/helper/logging"
@@ -209,6 +211,13 @@ func (c *OperatorSnapshotAgentCommand) Run(args []string) int {
 		cancel()
 	}()
 
+	if err := checkLicense(ctx, client, logger); err != nil {
+		if ctx.Err() != nil {
+			logger.Error("failed to check license", "error", err)
+		}
+		return 1
+	}
+
 	// Run the agent!
 	if err := sagent.Run(ctx); err != nil {
 		logger.Error("Snapshot agent error", "error", err)
@@ -237,5 +246,74 @@ type NomadConfig struct {
 func setDefault(v *string, def string) {
 	if def != "" {
 		*v = def
+	}
+}
+
+func checkLicense(ctx context.Context, client *api.Client, logger hclog.Logger) error {
+	logger = logger.Named("license")
+	autoBackupFeature := license.FeatureAutoUpgrades.String()
+
+	checkLisense := func(index uint64) (bool, uint64, error) {
+		q := &api.QueryOptions{WaitIndex: index}
+		if q.WaitIndex == 0 {
+			q.WaitIndex = 1
+		}
+		li, qm, err := client.Operator().LicenseGet(q)
+		if err != nil {
+			return false, 0, err
+		}
+
+		for _, f := range li.License.Features {
+			if f == autoBackupFeature {
+				return true, qm.LastIndex, nil
+			}
+		}
+		return false, qm.LastIndex, nil
+	}
+
+	licensedCh := make(chan struct{})
+
+	go func() {
+		timer := time.NewTimer(0)
+		var lastIndex uint64
+		var hasLicenedEver bool
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-timer.C:
+			}
+
+			licensed, nextIndex, err := checkLisense(lastIndex)
+			if err != nil {
+				logger.Warn("failed to fetch license", "error", err)
+				timer.Reset(1 * time.Minute)
+				continue
+			}
+
+			if !licensed && hasLicenedEver {
+				logger.Warn("automatic snapshot is no longer licensed")
+				timer.Reset(1 * time.Minute)
+				continue
+			}
+
+			if licensed && !hasLicenedEver {
+				logger.Info("automatic snapshot is licensed")
+				hasLicenedEver = true
+				close(licensedCh)
+			}
+
+			lastIndex = nextIndex
+			timer.Reset(1 * time.Hour)
+		}
+
+	}()
+
+	select {
+	case <-licensedCh:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
