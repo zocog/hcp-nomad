@@ -30,7 +30,7 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 
 	// Validate license pre-upsert
 	if _, err := l.srv.EnterpriseState.licenseWatcher.ValidateLicense(args.License.Signed); err != nil {
-		return fmt.Errorf("error validating license: %w", err)
+		return structs.NewErrRPCCoded(400, fmt.Sprintf("error validating license: %s", err.Error()))
 	}
 
 	defer metrics.MeasureSince([]string{"nomad", "license", "upsert_license"}, time.Now())

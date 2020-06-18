@@ -58,6 +58,49 @@ func TestLicenseEndpoint_GetLicense(t *testing.T) {
 
 }
 
+func TestLicenseEndpoint_UpsertLicense_Invalid(t *testing.T) {
+	t.Parallel()
+
+	s1, cleanupS1 := TestServer(t, licenseCallback)
+	defer cleanupS1()
+
+	codec := rpcClient(t, s1)
+	testutil.WaitForLeader(t, s1.RPC)
+
+	now := time.Now()
+	exp := 1 * time.Hour
+	flags := map[string]interface{}{
+		"modules": []interface{}{"asdf ", "some-unknown-or-future-module"},
+	}
+
+	// Create a new license to upsert
+	putLicense := &licensing.License{
+		LicenseID:       "new-temp-license",
+		CustomerID:      "temporary license customer",
+		InstallationID:  "*",
+		Product:         nomadLicense.ProductName,
+		IssueTime:       now,
+		StartTime:       now,
+		ExpirationTime:  now.Add(exp),
+		TerminationTime: now.Add(exp),
+		Flags:           flags,
+	}
+
+	putSigned, err := putLicense.SignedString(nomadLicense.TestPrivateKey)
+	require.NoError(t, err)
+
+	req := &structs.LicenseUpsertRequest{
+		License:      &structs.StoredLicense{Signed: putSigned},
+		WriteRequest: structs.WriteRequest{Region: "global"},
+	}
+	var resp structs.GenericResponse
+	err = msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", req, &resp)
+	require.Error(t, err)
+	code, _, ok := structs.CodeFromRPCCodedErr(err)
+	require.True(t, ok)
+	require.Equal(t, 400, code)
+}
+
 func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 	assert := assert.New(t)
 	t.Parallel()

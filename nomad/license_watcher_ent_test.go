@@ -91,6 +91,32 @@ func TestLicenseWatcher_UpdateCh(t *testing.T) {
 	require.True(t, lw.HasFeature(license.FeatureMultiregionDeployments))
 }
 
+func TestLicenseWatcher_Validate(t *testing.T) {
+	t.Parallel()
+
+	lw := newTestLicenseWatcher()
+
+	state := state.TestStateStore(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	lw.start(ctx, state, testShutdownFunc)
+	defer cancel()
+
+	invalidFlags := map[string]interface{}{
+		"modules": []interface{}{"invalid"},
+	}
+	newLicense := license.NewTestLicense(invalidFlags)
+
+	// It can be a valid go-licensing license
+	_, err := lw.watcher.ValidateLicense(newLicense.Signed)
+	require.NoError(t, err)
+
+	// Ensure it is not a valid nomad license
+	lic, err := lw.ValidateLicense(newLicense.Signed)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid module")
+	require.Nil(t, lic)
+}
+
 func TestLicenseWatcher_UpdateCh_Platform(t *testing.T) {
 	t.Parallel()
 

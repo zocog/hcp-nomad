@@ -162,8 +162,18 @@ func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, 
 	}
 }
 
-func (w *LicenseWatcher) ValidateLicense(blob string) (*licensing.License, error) {
-	return w.watcher.ValidateLicense(blob)
+// ValidateLicense validates that the given blob is a valid go-licensing
+// license as well as a valid nomad license
+func (w *LicenseWatcher) ValidateLicense(blob string) (*license.License, error) {
+	lic, err := w.watcher.ValidateLicense(blob)
+	if err != nil {
+		return nil, err
+	}
+	nLic, err := license.NewLicense(lic)
+	if err != nil {
+		return nil, err
+	}
+	return nLic, nil
 }
 
 func (w *LicenseWatcher) SetLicense(blob string) (*licensing.License, error) {
