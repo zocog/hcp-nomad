@@ -37,6 +37,9 @@ const (
 	// multi-region deployments
 	FeatureMultiregionDeployments
 
+	// snapshot agent
+	FeatureAutoBackups
+
 	// Should always be last, add features above.
 	numOfFeatures uint = iota
 )
@@ -59,6 +62,8 @@ func (f Features) String() string {
 		return "Sentinel Policies"
 	case FeatureMultiregionDeployments:
 		return "Multiregion Deployments"
+	case FeatureAutoBackups:
+		return "Automated Backups"
 	default:
 		return "Unknown"
 	}

@@ -87,7 +87,7 @@ require (
 	github.com/hashicorp/logutils v1.0.0
 	github.com/hashicorp/memberlist v0.2.2
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
-	github.com/hashicorp/nomad-licensing v0.0.4
+	github.com/hashicorp/nomad-licensing v0.0.5
 	github.com/hashicorp/nomad/api v0.0.0-20200529203653-c4416b26d3eb
 	github.com/hashicorp/raft v1.1.3-0.20200211192230-365023de17e6
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea

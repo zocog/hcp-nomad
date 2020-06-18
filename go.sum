@@ -475,6 +475,8 @@ github.com/hashicorp/nomad-licensing v0.0.2 h1:yRc3cwUhso4JKB/vmzhEmSGKyCYdbkSig
 github.com/hashicorp/nomad-licensing v0.0.2/go.mod h1:FffKZAlqfvc716dmlqI3lE4NYdxm9dUqjSrVJ7BzSrQ=
 github.com/hashicorp/nomad-licensing v0.0.4 h1:9MWVHumqa+KnUhJlZhkXCMjavyMT6adc0NTQNoDGv6g=
 github.com/hashicorp/nomad-licensing v0.0.4/go.mod h1:FffKZAlqfvc716dmlqI3lE4NYdxm9dUqjSrVJ7BzSrQ=
+github.com/hashicorp/nomad-licensing v0.0.5 h1:+W/0y4xYoLaBxiyN9NOZhr5Q09IP7Ww0tojo02SPllc=
+github.com/hashicorp/nomad-licensing v0.0.5/go.mod h1:FffKZAlqfvc716dmlqI3lE4NYdxm9dUqjSrVJ7BzSrQ=
 github.com/hashicorp/raft v1.0.1/go.mod h1:DVSAWItjLjTOkVbSpWQ0j0kUADIvDaCtBxIcbNAQLkI=
 github.com/hashicorp/raft v1.1.1/go.mod h1:vPAJM8Asw6u8LxC3eJCUZmRP/E4QmUGE1R7g7k8sG/8=
 github.com/hashicorp/raft v1.1.2/go.mod h1:vPAJM8Asw6u8LxC3eJCUZmRP/E4QmUGE1R7g7k8sG/8=

@@ -44,9 +44,9 @@ func ModuleFromString(module string) (Module, error) {
 	}
 }
 
-// ModulePlatform represents the features that are delivered in all versions of Vault Enterprise
+// ModulePlatform represents the features that are delivered in all versions of Nomad Enterprise
 const (
-	PlatformFeatures Features = FeatureAutoUpgrades | FeatureReadScalability | FeatureRedundancyZones
+	PlatformFeatures Features = FeatureAutoUpgrades | FeatureReadScalability | FeatureRedundancyZones | FeatureAutoBackups
 )
 
 // Features returns all the features for a module
