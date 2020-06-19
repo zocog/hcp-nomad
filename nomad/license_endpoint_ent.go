@@ -68,10 +68,7 @@ func (l *License) GetLicense(args *structs.LicenseGetRequest, reply *structs.Lic
 	defer metrics.MeasureSince([]string{"nomad", "license", "get_license"}, time.Now())
 
 	// Fetch license existing in Watcher
-	out, err := l.srv.EnterpriseState.licenseWatcher.GetLicense()
-	if err != nil {
-		return err
-	}
+	out := l.srv.EnterpriseState.licenseWatcher.License()
 	reply.NomadLicense = out
 	return nil
 }

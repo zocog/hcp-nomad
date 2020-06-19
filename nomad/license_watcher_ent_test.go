@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"sync/atomic"
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
@@ -34,9 +33,7 @@ func testShutdownFunc() error {
 }
 
 func previousID(t *testing.T, lw *LicenseWatcher) string {
-	lic, err := lw.GetLicense()
-	require.NoError(t, err)
-	return lic.LicenseID
+	return lw.License().LicenseID
 }
 
 func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
@@ -86,7 +83,7 @@ func TestLicenseWatcher_UpdateCh(t *testing.T) {
 	state.UpsertLicense(1000, stored)
 	waitForLicense(t, lw, previousID)
 
-	require.NotEqual(t, lw.features, uint64(0))
+	require.NotEqual(t, uint64(lw.License().Features), uint64(0))
 	require.True(t, lw.HasFeature(license.FeatureAuditLogging))
 	require.True(t, lw.HasFeature(license.FeatureMultiregionDeployments))
 }
@@ -136,15 +133,14 @@ func TestLicenseWatcher_UpdateCh_Platform(t *testing.T) {
 	state.UpsertLicense(1000, stored)
 	waitForLicense(t, lw, previousID)
 
-	require.NotEqual(t, lw.features, uint64(0))
+	require.NotEqual(t, uint64(lw.License().Features), uint64(0))
 	require.False(t, lw.HasFeature(license.FeatureAuditLogging))
 	require.True(t, lw.HasFeature(license.FeatureReadScalability))
 }
 
 func waitForLicense(t *testing.T, lw *LicenseWatcher, previousID string) {
 	testutil.WaitForResult(func() (bool, error) {
-		l, err := lw.GetLicense()
-		require.NoError(t, err)
+		l := lw.License()
 		if l.LicenseID == previousID {
 			return false, fmt.Errorf("expected updated license")
 		}
@@ -157,28 +153,50 @@ func waitForLicense(t *testing.T, lw *LicenseWatcher, previousID string) {
 func TestLicenseWatcher_FeatureCheck(t *testing.T) {
 	cases := []struct {
 		desc            string
-		licenseFeatures license.Features
+		licenseFeatures []string
 		f               license.Features
 		has             bool
 	}{
 		{
 			desc:            "contains feature",
-			licenseFeatures: license.FeatureAuditLogging | license.FeatureNamespaces,
+			licenseFeatures: []string{license.FeatureAuditLogging.String(), license.FeatureNamespaces.String()},
 			f:               license.FeatureAuditLogging,
 			has:             true,
 		},
 		{
 			desc:            "missing feature",
-			licenseFeatures: license.FeatureAuditLogging | license.FeatureNamespaces,
-			f:               license.FeatureAutoUpgrades,
+			licenseFeatures: []string{license.FeatureAuditLogging.String(), license.FeatureNamespaces.String()},
+			f:               license.FeatureMultiregionDeployments,
 			has:             false,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
+			// start watcher
 			lw := newTestLicenseWatcher()
-			atomic.StoreUint64(&lw.features, uint64(tc.licenseFeatures))
+			state := state.TestStateStore(t)
+
+			ctx, cancel := context.WithCancel(context.Background())
+			lw.start(ctx, state, testShutdownFunc)
+			defer cancel()
+
+			flags := map[string]interface{}{
+				"features": map[string]interface{}{
+					"add": tc.licenseFeatures,
+				},
+			}
+
+			previousID := previousID(t, lw)
+			newLicense := license.NewTestLicense(flags)
+
+			stored := &structs.StoredLicense{
+				Signed:      newLicense.Signed,
+				CreateIndex: uint64(1000),
+			}
+			state.UpsertLicense(1000, stored)
+			waitForLicense(t, lw, previousID)
+
 			require.Equal(t, tc.has, lw.HasFeature(tc.f))
 		})
 	}
@@ -186,17 +204,34 @@ func TestLicenseWatcher_FeatureCheck(t *testing.T) {
 
 func TestLicenseWatcher_PeriodicLogging(t *testing.T) {
 	lw := newTestLicenseWatcher()
-	atomic.StoreUint64(&lw.features, uint64(0))
+	state := state.TestStateStore(t)
 
-	require.Error(t, lw.FeatureCheck(license.FeatureAuditLogging, true))
+	ctx, cancel := context.WithCancel(context.Background())
+	lw.start(ctx, state, testShutdownFunc)
+	defer cancel()
+
+	// Create license without any added features
+	flags := map[string]interface{}{}
+
+	previousID := previousID(t, lw)
+	newLicense := license.NewTestLicense(flags)
+
+	stored := &structs.StoredLicense{
+		Signed:      newLicense.Signed,
+		CreateIndex: uint64(1000),
+	}
+	state.UpsertLicense(1000, stored)
+	waitForLicense(t, lw, previousID)
+
+	require.Error(t, lw.FeatureCheck(license.FeatureMultiregionDeployments, true))
 	require.Len(t, lw.logTimes, 1)
-	t1 := lw.logTimes[license.FeatureAuditLogging]
+	t1 := lw.logTimes[license.FeatureMultiregionDeployments]
 	require.NotNil(t, t1)
 
 	// Fire another feature check
-	require.Error(t, lw.FeatureCheck(license.FeatureAuditLogging, true))
+	require.Error(t, lw.FeatureCheck(license.FeatureMultiregionDeployments, true))
 
-	t2 := lw.logTimes[license.FeatureAuditLogging]
+	t2 := lw.logTimes[license.FeatureMultiregionDeployments]
 	require.NotNil(t, t2)
 
 	require.Equal(t, t1, t2)

@@ -24,12 +24,11 @@ var (
 )
 
 type LicenseWatcher struct {
-	// The set of licensed features
-	// must be kept at the top of the struct for 64 bit alignment
-	features uint64
-
 	// once ensures watch is only invoked once
 	once sync.Once
+
+	// license is the watchers atomically stored license
+	license atomic.Value
 
 	watcher *licensing.Watcher
 
@@ -61,11 +60,12 @@ func NewLicenseWatcher(logger hclog.InterceptLogger, cfg *LicenseConfig) (*Licen
 	lw := &LicenseWatcher{
 		once:     sync.Once{},
 		watcher:  watcher,
-		features: uint64(nomadTmpLicense.Features),
 		logger:   logger.Named("licensing"),
 		logMu:    sync.Mutex{},
 		logTimes: make(map[license.Features]time.Time),
 	}
+
+	lw.license.Store(nomadTmpLicense)
 
 	return lw, nil
 }
@@ -96,6 +96,8 @@ func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore, shu
 func (w *LicenseWatcher) watch(ctx context.Context, state *state.StateStore, shutdownFunc func() error) {
 	// licenseSet tracks whether or not a permanent license has been set
 	var licenseSet bool
+	// signed tracks the latest known license watcher signed license blob
+	var signed string
 
 	for {
 		// Check if we should exit
@@ -112,10 +114,11 @@ func (w *LicenseWatcher) watch(ctx context.Context, state *state.StateStore, shu
 			time.Sleep(lib.RandomStagger(1 * time.Second))
 			continue
 		}
-		if stored != nil && stored.Signed != "" {
+		if stored != nil && stored.Signed != "" && stored.Signed != signed {
 			if _, err := w.watcher.SetLicense(stored.Signed); err != nil {
 				w.logger.Error("failed setting license", "error", err)
 			} else {
+				signed = stored.Signed
 				licenseSet = true
 			}
 		}
@@ -139,9 +142,22 @@ func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, 
 		} else {
 			w.logger.Error("received from license watchset", "error", err)
 		}
+
 	// Handle updated license from the watcher
 	case lic := <-w.watcher.UpdateCh():
-		w.updateFeatures(lic)
+		w.logger.Debug("received update from license manager")
+
+		// Check if watcher has a license and if it needs to be upated
+		watcherLicense := w.License()
+		if watcherLicense == nil || !watcherLicense.Equal(lic) {
+			// Update license
+			nomadLicense, err := license.NewLicense(lic)
+			if err == nil {
+				w.license.Store(nomadLicense)
+			} else {
+				w.logger.Error("error loading Nomad license", "error", err)
+			}
+		}
 
 	// Check for licensing errors, primarily expirations.
 	case err := <-w.watcher.ErrorCh():
@@ -155,6 +171,7 @@ func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, 
 			return
 		}
 		w.logger.Error("license expired") //TODO: more info
+
 	case warnLicense := <-w.watcher.WarningCh():
 		w.logger.Warn("license expiring", "time_left", time.Until(warnLicense.ExpirationTime).Truncate(time.Second))
 	case <-watchSetCtx.Done():
@@ -181,7 +198,8 @@ func (w *LicenseWatcher) SetLicense(blob string) (*licensing.License, error) {
 }
 
 func (w *LicenseWatcher) Features() license.Features {
-	return license.Features(atomic.LoadUint64(&w.features))
+	lic := w.license.Load().(*license.License)
+	return lic.Features
 }
 
 func (w *LicenseWatcher) HasFeature(feature license.Features) bool {
@@ -212,26 +230,7 @@ func (w *LicenseWatcher) FeatureCheck(feature license.Features, emitLog bool) er
 	return err
 }
 
-// GetLicense returns a copy of the current license
-func (w *LicenseWatcher) GetLicense() (*license.License, error) {
-	l, err := w.watcher.License()
-	if l == nil {
-		return nil, err
-	}
-
-	nomadLicense, err := license.NewLicense(l)
-	if err != nil {
-		return nil, err
-	}
-
-	return nomadLicense, nil
-}
-
-func (w *LicenseWatcher) updateFeatures(lic *licensing.License) {
-	nomadLicense, err := license.NewLicense(lic)
-	if err == nil {
-		atomic.StoreUint64(&w.features, uint64(nomadLicense.Features))
-	} else {
-		w.logger.Error("error loading Nomad license", "error", err)
-	}
+// License atomically returns the license watchers stored license
+func (w *LicenseWatcher) License() *license.License {
+	return w.license.Load().(*license.License)
 }
