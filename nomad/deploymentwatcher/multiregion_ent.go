@@ -39,6 +39,7 @@ import (
 	"fmt"
 	"time"
 
+	memdb "github.com/hashicorp/go-memdb"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
@@ -231,7 +232,12 @@ func (w *deploymentWatcher) nextRegion(status string) error {
 func (w *deploymentWatcher) runDeployment(otherID string, region string) error {
 	args := &structs.DeploymentRunRequest{DeploymentID: otherID}
 	args.Region = region
-	err := w.Run(args, &structs.DeploymentUpdateResponse{})
+	token, err := w.tokenForJob()
+	if err != nil {
+		return fmt.Errorf("failed to run deploy in peer region: %v", err)
+	}
+	args.AuthToken = token
+	err = w.Run(args, &structs.DeploymentUpdateResponse{})
 
 	if err != nil {
 		var result multierror.Error
@@ -265,6 +271,21 @@ func (w *deploymentWatcher) runDeployment(otherID string, region string) error {
 	return nil
 }
 
+func (w *deploymentWatcher) tokenForJob() (string, error) {
+	if w.j.NomadTokenID == "" {
+		return "", nil
+	}
+	ws := memdb.NewWatchSet()
+	aclToken, err := w.state.ACLTokenByAccessorID(ws, w.j.NomadTokenID)
+	if err != nil {
+		return "", err
+	}
+	if aclToken == nil {
+		return "", fmt.Errorf("token not found: %q", w.j.NomadTokenID)
+	}
+	return aclToken.SecretID, nil
+}
+
 // unblockDeployment unblocks a peer deployment in another region.
 // If the deployment is somehow already successful, we'll ignore it
 // and continue in the caller. But if the deployment is failed, cancelled,
@@ -273,7 +294,12 @@ func (w *deploymentWatcher) runDeployment(otherID string, region string) error {
 func (w *deploymentWatcher) unblockDeployment(otherID, region string) error {
 	args := &structs.DeploymentUnblockRequest{DeploymentID: otherID}
 	args.Region = region
-	err := w.Unblock(args, &structs.DeploymentUpdateResponse{})
+	token, err := w.tokenForJob()
+	if err != nil {
+		return fmt.Errorf("failed to unblock deploy in peer region: %v", err)
+	}
+	args.AuthToken = token
+	err = w.Unblock(args, &structs.DeploymentUpdateResponse{})
 	if err != nil {
 		switch err {
 		case structs.ErrDeploymentTerminalNoUnblock:
@@ -369,12 +395,22 @@ type abortFunc func(string, string) error
 func (w *deploymentWatcher) cancelImpl(id string, region string) error {
 	args := &structs.DeploymentCancelRequest{DeploymentID: id}
 	args.Region = region
+	token, err := w.tokenForJob()
+	if err != nil {
+		return fmt.Errorf("failed to cancel deploy in peer region: %v", err)
+	}
+	args.AuthToken = token
 	return w.Cancel(args, &structs.DeploymentUpdateResponse{})
 }
 
 func (w *deploymentWatcher) failImpl(id string, region string) error {
 	args := &structs.DeploymentFailRequest{DeploymentID: id}
 	args.Region = region
+	token, err := w.tokenForJob()
+	if err != nil {
+		return fmt.Errorf("failed to fail deploy in peer region: %v", err)
+	}
+	args.AuthToken = token
 	return w.Fail(args, &structs.DeploymentUpdateResponse{})
 }
 
@@ -385,6 +421,11 @@ func isLastRegion(regions []string, region string) bool {
 func (w *deploymentWatcher) deploymentForJobVersion(jobID string, version uint64, region string) (*structs.Deployment, error) {
 	args := &structs.JobSpecificRequest{JobID: jobID}
 	args.Region = region
+	token, err := w.tokenForJob()
+	if err != nil {
+		return nil, err
+	}
+	args.AuthToken = token
 	reply := &structs.DeploymentListResponse{}
 
 	// Query the remote region, with retries and backoff
