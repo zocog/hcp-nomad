@@ -3,6 +3,8 @@
 package agent
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 
 	"github.com/hashicorp/nomad-licensing/license"
@@ -71,17 +73,15 @@ func convertToAPILicense(l *license.License) *api.License {
 
 func (s *HTTPServer) operatorPutLicense(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.LicenseUpsertRequest
-
 	s.parseWriteRequest(req, &args.WriteRequest)
 
-	var license string
-	err := decodeBody(req, &license)
-	if err != nil {
+	buf := bytes.NewBuffer(nil)
+	if _, err := io.Copy(buf, req.Body); err != nil {
 		return nil, err
 	}
 
 	args.License = &structs.StoredLicense{
-		Signed: license,
+		Signed: buf.String(),
 	}
 
 	var reply structs.GenericResponse
