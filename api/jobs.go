@@ -142,13 +142,6 @@ func (j *Jobs) PrefixList(prefix string) ([]*JobListStub, *QueryMeta, error) {
 	return j.List(&QueryOptions{Prefix: prefix})
 }
 
-// ListAll is used to list all of the existing jobs in all namespaces.
-func (j *Jobs) ListAll() ([]*JobListStub, *QueryMeta, error) {
-	return j.List(&QueryOptions{
-		Params: map[string]string{"all_namespaces": "true"},
-	})
-}
-
 // Info is used to retrieve information about a particular
 // job given its unique ID.
 func (j *Jobs) Info(jobID string, q *QueryOptions) (*Job, *QueryMeta, error) {
@@ -794,6 +787,7 @@ type Job struct {
 	Meta              map[string]string
 	ConsulToken       *string `mapstructure:"consul_token"`
 	VaultToken        *string `mapstructure:"vault_token"`
+	NomadTokenID      *string `mapstructure:"nomad_token_id"`
 	Status            *string
 	StatusDescription *string
 	Stable            *bool
@@ -855,6 +849,9 @@ func (j *Job) Canonicalize() {
 	}
 	if j.VaultToken == nil {
 		j.VaultToken = stringToPtr("")
+	}
+	if j.NomadTokenID == nil {
+		j.NomadTokenID = stringToPtr("")
 	}
 	if j.Status == nil {
 		j.Status = stringToPtr("")

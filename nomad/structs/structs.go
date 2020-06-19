@@ -138,6 +138,10 @@ const (
 	DefaultNamespace            = "default"
 	DefaultNamespaceDescription = "Default shared namespace"
 
+	// AllNamespacesSentinel is the value used as a namespace RPC value
+	// to indicate that endpoints must search in all namespaces
+	AllNamespacesSentinel = "*"
+
 	// JitterFraction is a the limit to the amount of jitter we apply
 	// to a user specified MaxQueryTime. We divide the specified time by
 	// the fraction. So 16 == 6.25% limit of jitter. This jitter is also
@@ -615,7 +619,6 @@ type JobSpecificRequest struct {
 
 // JobListRequest is used to parameterize a list request
 type JobListRequest struct {
-	AllNamespaces bool
 	QueryOptions
 }
 
@@ -3627,6 +3630,10 @@ type Job struct {
 	// access to the specified Vault policies. This field is only used to
 	// transfer the token and is not stored after Job submission.
 	VaultToken string
+
+	// NomadTokenID is the Accessor ID of the ACL token (if any)
+	// used to register this version of the job. Used by deploymentwatcher.
+	NomadTokenID string
 
 	// Job status
 	Status string

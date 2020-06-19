@@ -96,6 +96,16 @@ func (j *Job) Register(args *structs.JobRegisterRequest, reply *structs.JobRegis
 	}
 	args.Job = job
 
+	// Attach the Nomad token's accessor ID so that deploymentwatcher
+	// can reference the token later
+	tokenID, err := j.srv.ResolveSecretToken(args.AuthToken)
+	if err != nil {
+		return err
+	}
+	if tokenID != nil {
+		args.Job.NomadTokenID = tokenID.AccessorID
+	}
+
 	// Set the warning message
 	reply.Warnings = structs.MergeMultierrorWarnings(warnings...)
 
@@ -1183,7 +1193,7 @@ func (j *Job) GetJobVersions(args *structs.JobVersionsRequest,
 // allowedNSes returns a set (as map of ns->true) of the namespaces a token has access to.
 // Returns `nil` set if the token has access to all namespaces
 // and ErrPermissionDenied if the token has no capabilities on any namespace.
-func (j *Job) allowedNSes(aclObj *acl.ACL, state *state.StateStore) (map[string]bool, error) {
+func allowedNSes(aclObj *acl.ACL, state *state.StateStore) (map[string]bool, error) {
 	if aclObj == nil || aclObj.IsManagement() {
 		return nil, nil
 	}
@@ -1216,7 +1226,7 @@ func (j *Job) List(args *structs.JobListRequest, reply *structs.JobListResponse)
 	}
 	defer metrics.MeasureSince([]string{"nomad", "job", "list"}, time.Now())
 
-	if args.AllNamespaces {
+	if args.RequestNamespace() == structs.AllNamespacesSentinel {
 		return j.listAllNamespaces(args, reply)
 	}
 
@@ -1292,7 +1302,7 @@ func (j *Job) listAllNamespaces(args *structs.JobListRequest, reply *structs.Job
 		queryMeta: &reply.QueryMeta,
 		run: func(ws memdb.WatchSet, state *state.StateStore) error {
 			// check if user has permission to all namespaces
-			allowedNSes, err := j.allowedNSes(aclObj, state)
+			allowedNSes, err := allowedNSes(aclObj, state)
 			if err == structs.ErrPermissionDenied {
 				// return empty jobs if token isn't authorized for any
 				// namespace, matching other endpoints
