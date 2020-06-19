@@ -492,6 +492,8 @@ github.com/hashicorp/raft-snapshot v1.0.2 h1:65VRIDa08Q3zGpSzLZBpLbyeCTlX8Lo4yKp
 github.com/hashicorp/raft-snapshot v1.0.2/go.mod h1:5sL9eUn72lH5DzsFIJ9jaysITbHksSSszImWSOTC8Ic=
 github.com/hashicorp/raft-snapshotagent v0.0.0-20200616195835-46837a5a4fb5 h1:ClEXvBxo8DKnhE8Ej74n0WKnzGDByALtTR6HEUHPEwg=
 github.com/hashicorp/raft-snapshotagent v0.0.0-20200616195835-46837a5a4fb5/go.mod h1:AmjbEZt/c4oOFvrHEFdVOkqtXniV3DYtQPfQ6HS9jC8=
+github.com/hashicorp/raft-snapshotagent v0.0.0-20200619173010-bf0b429f9ade h1:8Uklf9rsmwyAuD2aRuAi41m1VwbZmlL8MOT4s97+jVs=
+github.com/hashicorp/raft-snapshotagent v0.0.0-20200619173010-bf0b429f9ade/go.mod h1:AmjbEZt/c4oOFvrHEFdVOkqtXniV3DYtQPfQ6HS9jC8=
 github.com/hashicorp/release-party v0.3.4/go.mod h1:Jkp9dTXVO8Znb4eyeL7Dg/Y2HQGPHnRoz6ZtNDnE7hU=
 github.com/hashicorp/release-party v0.5.0/go.mod h1:Jkp9dTXVO8Znb4eyeL7Dg/Y2HQGPHnRoz6ZtNDnE7hU=
 github.com/hashicorp/sentinel v0.13.0/go.mod h1:Yia4Le54UYa2hGwokNOUIXV5dMaRf+Ebb/8/li3+Cos=

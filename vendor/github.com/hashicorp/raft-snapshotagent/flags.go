@@ -2,6 +2,7 @@ package snapshotagent
 
 import (
 	"flag"
+	"strings"
 
 	"github.com/hashicorp/raft-snapshotagent/internal/flags"
 )
@@ -195,8 +196,8 @@ func (c *Config) populateWithFlags() {
 	}
 }
 
-func FlagsHelp() string {
-	return `Snapshot Options:
+func FlagsHelp(product string) string {
+	text := `Snapshot Options:
   -interval               Interval at which to perform snapshots as a time with
                           a unit suffix, which can be "s", "m", "h" for seconds,
                           minutes, or hours. If 0 is provided, the agent will
@@ -208,7 +209,7 @@ func FlagsHelp() string {
                           highly available operation of the snapshot agent,
                           simply run multiple instances. All instances must be
                           configured with the same lock key in order to properly
-                          coordinate. Defaults to "consul-snapshot/lock".
+                          coordinate. Defaults to "__PRODUCT__-snapshot/lock".
   -max-failures           Number of snapshot failures after which the snapshot
                           agent will give up leadership. In a highly available
                           operation with multiple snapshot agents available, this
@@ -234,7 +235,7 @@ Agent Options:
                           with Consul. Registering helps monitor running agents
                           and the leader registers an additional health check to
                           monitor that snapshots are taking place. Defaults to
-                          "consul-snapshot".
+                          "__PRODUCT__-snapshot".
   -syslog                 This enables forwarding logs to syslog. Defaults to
                           false.
   -syslog-facility        Sets the facility to use for forwarding logs to syslog.
@@ -261,7 +262,7 @@ Note that despite the AWS references, any S3-compatible endpoint can be specifie
   -aws-s3-bucket          S3 bucket to use. Required for S3 storage, and setting
                           this disables local storage.
   -aws-s3-key-prefix      Prefix to use for snapshot files in S3. Defaults to
-                          "consul-snapshot".
+                          "__PRODUCT__-snapshot".
   -aws-s3-region          S3 region to use. Required for S3 storage.
   -aws-s3-endpoint        Optional S3 endpoint to use. Can also be specified using the
                           AWS_S3_ENDPOINT environment variable.
@@ -280,4 +281,5 @@ Azure Blob Storage Options: (Note: Non-Solaris platforms only)
   -azure-blob-environment        Environment to use. Defaults to AZUREPUBLICCLOUD. Other valid environments are 
                                         AZURECHINACLOUD, AZUREGERMANCLOUD and AZUREUSGOVERNMENTCLOUD.
 `
+	return strings.ReplaceAll(text, "__PRODUCT__", product)
 }
