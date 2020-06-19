@@ -176,6 +176,8 @@ func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, 
 		w.logger.Warn("license expiring", "time_left", time.Until(warnLicense.ExpirationTime).Truncate(time.Second))
 	case <-watchSetCtx.Done():
 	case <-ctx.Done():
+		// stop the watcher
+		w.watcher.Stop()
 	}
 }
 
@@ -199,6 +201,15 @@ func (w *LicenseWatcher) SetLicense(blob string) (*licensing.License, error) {
 
 func (w *LicenseWatcher) Features() license.Features {
 	lic := w.license.Load().(*license.License)
+	if lic == nil {
+		return license.FeatureNone
+	}
+
+	// check if our local license has expired
+	if time.Now().After(lic.TerminationTime) {
+		return license.FeatureNone
+	}
+
 	return lic.Features
 }
 

@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad-licensing/license"
@@ -235,4 +236,43 @@ func TestLicenseWatcher_PeriodicLogging(t *testing.T) {
 	require.NotNil(t, t2)
 
 	require.Equal(t, t1, t2)
+}
+
+func TestLicenseWatcher_ExpiredLicense(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	lw := newTestLicenseWatcher()
+	state := state.TestStateStore(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	lw.start(ctx, state, testShutdownFunc)
+	defer cancel()
+
+	// Set expiration time
+	newLicense := license.NewTestLicense(license.TestGovernancePolicyFlags())
+	newLicense.License.ExpirationTime = time.Now().Add(3 * time.Second)
+	newLicense.License.TerminationTime = time.Now().Add(3 * time.Second)
+	signed, err := newLicense.License.License.SignedString(newLicense.TestPrivateKey)
+
+	require.NoError(t, err)
+	newLicense.Signed = signed
+
+	stored := &structs.StoredLicense{
+		Signed:      newLicense.Signed,
+		CreateIndex: uint64(1000),
+	}
+	previousID := previousID(t, lw)
+	state.UpsertLicense(1000, stored)
+	waitForLicense(t, lw, previousID)
+
+	testutil.WaitForResult(func() (bool, error) {
+		if lw.Features() == license.FeatureNone {
+			return true, nil
+		}
+		return false, fmt.Errorf("expected no features on expired license")
+	}, func(err error) {
+		require.FailNow(t, err.Error())
+	})
+
 }
