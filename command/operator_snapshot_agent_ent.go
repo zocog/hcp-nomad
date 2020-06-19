@@ -25,7 +25,7 @@ type OperatorSnapshotAgentCommand struct {
 
 func (c *OperatorSnapshotAgentCommand) Help() string {
 	helpText := `
-Usage: nomad operator snapshot agent [options] [CONFIG_FILE]
+Usage: nomad operator snapshot agent [options] <config_file>
 
   The snapshot agent takes snapshots of the state of the nomad servers and
   saves them locally, or pushes them to an optional remote storage service.
@@ -57,7 +57,7 @@ nomad {
 
 ` + snapshotagent.SampleConfig("nomad") + `
 
-` + snapshotagent.FlagsHelp() + `
+` + snapshotagent.FlagsHelp("nomad") + `
 General Options:
 	` + generalOptionsUsage()
 
