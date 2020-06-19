@@ -15,10 +15,7 @@ replace (
 )
 
 require (
-	cloud.google.com/go/storage v1.0.0 // indirect
-	contrib.go.opencensus.io/exporter/ocagent v0.4.12 // indirect
 	github.com/Azure/azure-sdk-for-go v29.0.0+incompatible // indirect
-	github.com/Azure/go-autorest v11.7.1+incompatible // indirect
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
@@ -57,7 +54,6 @@ require (
 	github.com/google/go-cmp v0.4.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.1-0.20200228141219-3ce3d519df39
-	github.com/grpc-ecosystem/grpc-gateway v1.9.0 // indirect
 	github.com/hashicorp/consul v1.7.1-0.20200213195527-b137060630b4
 	github.com/hashicorp/consul-template v0.24.1
 	github.com/hashicorp/consul/api v1.4.0
@@ -149,7 +145,6 @@ require (
 	golang.org/x/text v0.3.3-0.20200306154105-06d492aade88 // indirect
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 	golang.org/x/tools v0.0.0-20200522201501-cb1345f3a375 // indirect
-	google.golang.org/api v0.13.0 // indirect
 	google.golang.org/genproto v0.0.0-20200302123026-7795fca6ccb1 // indirect
 	google.golang.org/grpc v1.27.1
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
