@@ -19,6 +19,31 @@ func (j *Job) enforceSubmitJob(override bool, job *structs.Job) (error, error) {
 	return j.srv.enforceScope(override, structs.SentinelScopeSubmitJob, dataCB)
 }
 
+// interpolateMultiregionFields interpolates a job for a specific region
+func (j *Job) interpolateMultiregionFields(args *structs.JobPlanRequest) error {
+
+	// a multiregion job that's been interpolated for fan-out will never
+	// have the "global" region.
+	if args.Job.Region != "global" || args.Job.Multiregion == nil {
+		return nil
+	}
+
+	// enterprise license enforcement - if not licensed then users can't
+	// plan multiregion jobs.
+	err := j.srv.EnterpriseState.FeatureCheck(license.FeatureMultiregionDeployments, true)
+	if err != nil {
+		return err
+	}
+
+	for _, region := range args.Job.Multiregion.Regions {
+		if region.Name == j.srv.Region() {
+			args.Job = regionalJob(args.Job, region)
+			break
+		}
+	}
+	return nil
+}
+
 // multiregionRegister is used to send a job across multiple regions
 func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *structs.JobRegisterResponse) error {
 
