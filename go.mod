@@ -70,7 +70,7 @@ require (
 	github.com/hashicorp/go-getter v1.4.1
 	github.com/hashicorp/go-hclog v0.12.0
 	github.com/hashicorp/go-immutable-radix v1.2.0
-	github.com/hashicorp/go-licensing v1.3.4-0.20200511191434-7d9ec85339ee
+	github.com/hashicorp/go-licensing v1.3.4
 	github.com/hashicorp/go-memdb v1.2.1
 	github.com/hashicorp/go-msgpack v1.1.5
 	github.com/hashicorp/go-multierror v1.1.0

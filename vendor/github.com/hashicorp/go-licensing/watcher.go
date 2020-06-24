@@ -207,6 +207,7 @@ func (w *Watcher) start() (retErr error) {
 			}
 
 		case <-w.stopCh:
+			w.manager.Stop()
 			return nil
 		}
 	}
