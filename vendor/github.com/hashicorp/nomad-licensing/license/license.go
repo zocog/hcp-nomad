@@ -76,8 +76,7 @@ type flagsRaw struct {
 
 type Flags struct {
 	flagsRaw
-	features  Features
-	Temporary bool
+	features Features
 }
 
 // UnmarshalJSON is a custom unmarshaller for LicenseFlags
