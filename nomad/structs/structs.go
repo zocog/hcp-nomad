@@ -5775,7 +5775,7 @@ func (tg *TaskGroup) Validate(j *Job) error {
 	}
 
 	// Validate the scaling policy
-	if err := tg.validateScalingPolicy(); err != nil {
+	if err := tg.validateScalingPolicy(j); err != nil {
 		outer := fmt.Errorf("Task group scaling policy validation failed: %v", err)
 		mErr.Errors = append(mErr.Errors, outer)
 	}
@@ -5916,7 +5916,7 @@ func (tg *TaskGroup) validateServices() error {
 
 // validateScalingPolicy ensures that the scaling policy has consistent
 // min and max, not in conflict with the task group count
-func (tg *TaskGroup) validateScalingPolicy() error {
+func (tg *TaskGroup) validateScalingPolicy(j *Job) error {
 	if tg.Scaling == nil {
 		return nil
 	}
@@ -5928,7 +5928,7 @@ func (tg *TaskGroup) validateScalingPolicy() error {
 			fmt.Errorf("Scaling policy invalid: maximum count must not be less than minimum count"))
 	}
 
-	if int64(tg.Count) < tg.Scaling.Min {
+	if int64(tg.Count) < tg.Scaling.Min && !(j.IsMultiregion() && tg.Count == 0) {
 		mErr.Errors = append(mErr.Errors,
 			fmt.Errorf("Scaling policy invalid: task group count must not be less than minimum count in scaling policy"))
 	}
@@ -5949,7 +5949,7 @@ func (tg *TaskGroup) Warnings(j *Job) error {
 	// Validate the update strategy
 	if u := tg.Update; u != nil {
 		// Check the counts are appropriate
-		if u.MaxParallel > tg.Count {
+		if u.MaxParallel > tg.Count && !(j.IsMultiregion() && tg.Count == 0) {
 			mErr.Errors = append(mErr.Errors,
 				fmt.Errorf("Update max parallel count is greater than task group count (%d > %d). "+
 					"A destructive change would result in the simultaneous replacement of all allocations.", u.MaxParallel, tg.Count))
@@ -5979,7 +5979,7 @@ func (tg *TaskGroup) LookupTask(name string) *Task {
 func (tg *TaskGroup) UsesConnect() bool {
 	for _, service := range tg.Services {
 		if service.Connect != nil {
-			if service.Connect.Native || service.Connect.SidecarService != nil {
+			if service.Connect.IsNative() || service.Connect.HasSidecar() {
 				return true
 			}
 		}
@@ -6179,18 +6179,10 @@ type Task struct {
 
 // UsesConnect is for conveniently detecting if the Task is able to make use
 // of Consul Connect features. This will be indicated in the TaskKind of the
-// Task, which exports known types of Tasks.
-//
-// Currently only Consul Connect Proxy tasks are known.
-// (Consul Connect Native tasks will be supported soon).
+// Task, which exports known types of Tasks. UsesConnect will be true if the
+// task is a connect proxy, or if the task is connect native.
 func (t *Task) UsesConnect() bool {
-	// todo(shoenig): native tasks
-	switch {
-	case t.Kind.IsConnectProxy():
-		return true
-	default:
-		return false
-	}
+	return t.Kind.IsConnectProxy() || t.Kind.IsConnectNative()
 }
 
 func (t *Task) Copy() *Task {

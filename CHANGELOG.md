@@ -3,13 +3,19 @@
 FEATURES:
  * **Preemption**: Preemption is now an open source feature
  * **Licensing (Enterprise)**: Nomad Enterprise now requires a license [[GH-8076](https://github.com/hashicorp/nomad/issues/8076)]
- * **Multiregion Deployments (Enterprise)**: Nomad Enterprise now allows running deployments to multiple regions. [[GH-8184](https://github.com/hashicorp/nomad/issues/8184)]
+ * **Multiregion Deployments (Enterprise)**: Nomad Enterprise now enables orchestrating deployments across multiple regions. [[GH-8184](https://github.com/hashicorp/nomad/issues/8184)]
  * **Snapshot Backup and Restore**: Nomad eases disaster recovery with new endpoints and commands for point-in-time snapshots.
  * **Container Network Interface (CNI)**: Support for third-party vendors using the CNI plugin system. [[GH-7518](https://github.com/hashicorp/nomad/issues/7518)]
  * **Multi-interface Networking**: Support for scheduling on specific network interfaces. [[GH-8208](https://github.com/hashicorp/nomad/issues/8208)]
+ * **Consul Connect Native**: Support for running Consul Connect Native tasks. [[GH-6083](https://github.com/hashicorp/nomad/issues/6083)]
  * **Global Search**: Access jobs and clients from anywhere in the UI using the always available global search bar. [[GH-8175](https://github.com/hashicorp/nomad/issues/8175)]
  * **Monitor UI**: Stream client and agent logs from the UI just like you would with the nomad monitor CLI command. [[GH-8177](https://github.com/hashicorp/nomad/issues/8177)]
  * **Scaling UI**: Quickly adjust the count of a task group from the UI for task groups with a scaling declaration. [[GH-8207](https://github.com/hashicorp/nomad/issues/8207)]
+
+__BACKWARDS INCOMPATIBILITIES:__
+ * driver/docker: The Docker driver no longer allows binding host volumes by default.
+   Operators can set `volume` `enabled` plugin configuration to restore previous permissive behavior. [[GH-8261](https://github.com/hashicorp/nomad/issues/8261)]
+ * driver/qemu: The Qemu driver requires images to reside in a operator-defined paths allowed for task access. [[GH-8261](https://github.com/hashicorp/nomad/issues/8261)]
 
 IMPROVEMENTS:
 
