@@ -40,7 +40,6 @@ func previousID(t *testing.T, lw *LicenseWatcher) string {
 func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
 	lw := newTestLicenseWatcher()
 	state := state.TestStateStore(t)
 
@@ -241,7 +240,6 @@ func TestLicenseWatcher_PeriodicLogging(t *testing.T) {
 func TestLicenseWatcher_ExpiredLicense(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
 	lw := newTestLicenseWatcher()
 	state := state.TestStateStore(t)
 

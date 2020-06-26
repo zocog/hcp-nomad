@@ -103,6 +103,7 @@ func (w *LicenseWatcher) watch(ctx context.Context, state *state.StateStore, shu
 		// Check if we should exit
 		select {
 		case <-ctx.Done():
+			w.watcher.Stop()
 			return
 		default:
 		}
@@ -167,6 +168,7 @@ func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, 
 		if !licenseSet {
 			w.logger.Error("temporary license expired; shutting down server")
 			// Call agent shutdown func asyncronously
+			w.watcher.Stop()
 			go shutdownFunc()
 			return
 		}
@@ -176,8 +178,6 @@ func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, 
 		w.logger.Warn("license expiring", "time_left", time.Until(warnLicense.ExpirationTime).Truncate(time.Second))
 	case <-watchSetCtx.Done():
 	case <-ctx.Done():
-		// stop the watcher
-		w.watcher.Stop()
 	}
 }
 
