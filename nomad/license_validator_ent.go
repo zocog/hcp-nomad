@@ -12,5 +12,6 @@ func temporaryFlags() map[string]interface{} {
 			nomadLicense.ModuleGovernancePolicy.String(),
 			nomadLicense.ModuleMulticlusterAndEfficiency.String(),
 		},
+		"temporary": true,
 	}
 }
