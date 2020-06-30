@@ -3,6 +3,7 @@
 package nomad
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/nomad-licensing/license"
@@ -63,11 +64,12 @@ func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *struc
 	requests := []*structs.JobRegisterRequest{}
 	maxVersion := args.Job.Version
 
+	var job *structs.Job
 	for _, region := range args.Job.Multiregion.Regions {
 		if region.Name == j.srv.Region() {
-			args.Job = regionalJob(args.Job, region)
+			job = regionalJob(args.Job.Copy(), region)
 		} else {
-			version, err := j.getJobVersion(args, region.Name)
+			version, jobModifyIndex, err := j.getJobVersion(args, region.Name)
 			if err != nil {
 				return err
 			}
@@ -78,10 +80,13 @@ func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *struc
 			req := *args // copies everything except the job
 			req.Job = regionalJob(args.Job.Copy(), region)
 			req.Region = region.Name
+			req.EnforceIndex = true
+			req.JobModifyIndex = jobModifyIndex
 			requests = append(requests, &req)
 		}
 	}
 
+	args.Job = job
 	args.Job.Version = maxVersion
 	warnings := []string{}
 
@@ -92,15 +97,16 @@ func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *struc
 		warnings = append(warnings, resp.Warnings)
 		if err != nil {
 			reply.Warnings = strings.Join(warnings, "\n")
-			return err
+			return fmt.Errorf("could not register job %q in region %q: %w",
+				req.Job.ID, req.Region, err)
 		}
 	}
 	reply.Warnings = strings.Join(warnings, "\n")
 	return nil
 }
 
-// getJobVersion gets the job version for the job from a specific region
-func (j *Job) getJobVersion(args *structs.JobRegisterRequest, region string) (uint64, error) {
+// getJobVersion gets the job version and modify index for the job from a specific region
+func (j *Job) getJobVersion(args *structs.JobRegisterRequest, region string) (uint64, uint64, error) {
 	req := &structs.JobSpecificRequest{
 		JobID: args.Job.ID,
 		QueryOptions: structs.QueryOptions{
@@ -112,12 +118,12 @@ func (j *Job) getJobVersion(args *structs.JobRegisterRequest, region string) (ui
 	resp := &structs.SingleJobResponse{}
 	err := j.GetJob(req, resp)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	if resp.Job == nil {
-		return 0, nil
+		return 0, 0, nil
 	}
-	return resp.Job.Version, nil
+	return resp.Job.Version, resp.Job.JobModifyIndex, nil
 }
 
 // regionalJob interpolates a multiregion job for a specific region
