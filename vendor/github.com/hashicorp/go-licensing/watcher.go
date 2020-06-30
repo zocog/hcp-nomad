@@ -70,12 +70,26 @@ type Watcher struct {
 	warningCh chan *License
 	errorCh   chan error
 
-	watchCh chan struct{}
-	stopCh  chan struct{}
+	watchCh  chan struct{}
+	stopCh   chan struct{}
+	stopOnce sync.Once
 }
 
 // NewWatcher creates a new license watcher
 func NewWatcher(options *WatcherOptions) (*Watcher, *License, error) {
+	return newWatcher(options, nil)
+}
+
+// NewWatcherErrorCh creates a new license watcher with a provided
+// error channel
+func NewWatcherErrorCh(options *WatcherOptions, errCh chan error) (*Watcher, *License, error) {
+	if errCh == nil {
+		return nil, nil, errors.New("provided error chan cannot be nil")
+	}
+	return newWatcher(options, errCh)
+}
+
+func newWatcher(options *WatcherOptions, errCh chan error) (*Watcher, *License, error) {
 	if options.ProductName == "" {
 		return nil, nil, errors.New("product name required")
 	}
@@ -97,6 +111,10 @@ func NewWatcher(options *WatcherOptions) (*Watcher, *License, error) {
 	}
 	// Sort in ascending order
 	sort.Sort(warningThresholds)
+
+	if errCh == nil {
+		errCh = make(chan error)
+	}
 
 	watcher := &Watcher{
 		manager:           licenseManager,
@@ -213,9 +231,12 @@ func (w *Watcher) start() (retErr error) {
 	}
 }
 
-// Stop stops the license manager
+// Stop stops the license manager and should be called on when stopping
+// its caller to avoid leaking goroutines.
 func (w *Watcher) Stop() {
-	close(w.stopCh)
+	w.stopOnce.Do(func() {
+		close(w.stopCh)
+	})
 }
 
 // License returns the currently installed license

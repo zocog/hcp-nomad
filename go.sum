@@ -387,6 +387,8 @@ github.com/hashicorp/go-immutable-radix v1.2.0/go.mod h1:0y9vanUI8NX6FsYoO3zeMjh
 github.com/hashicorp/go-licensing v1.1.1/go.mod h1:7IHhvDF3Z2ZwrksqKcLWrBqTNxA8Zuk0zk3ncWQaA9A=
 github.com/hashicorp/go-licensing v1.3.4 h1:aachShKdP9a0sNbX+Yls8oZLrH/ZmFtmoFI74RTsMF0=
 github.com/hashicorp/go-licensing v1.3.4/go.mod h1:KJU2nSsVwQb4oWc0dkL7cFd1u6LybrFRUYPf3AKl6WY=
+github.com/hashicorp/go-licensing v1.3.6 h1:ay+rF8YyC1wNBmZIOUw84IOLA9N+GMsmGBRNtxh7Y80=
+github.com/hashicorp/go-licensing v1.3.6/go.mod h1:KJU2nSsVwQb4oWc0dkL7cFd1u6LybrFRUYPf3AKl6WY=
 github.com/hashicorp/go-memdb v1.0.3/go.mod h1:LWQ8R70vPrS4OEY9k28D2z8/Zzyu34NVzeRibGAzHO0=
 github.com/hashicorp/go-memdb v1.2.1 h1:wI9btDjYUOJJHTCnRlAG/TkRyD/ij7meJMrLK9X31Cc=
 github.com/hashicorp/go-memdb v1.2.1/go.mod h1:OSvLJ662Jim8hMM+gWGyhktyWk2xPCnWMc7DWIqtkGA=

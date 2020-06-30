@@ -420,7 +420,7 @@ github.com/hashicorp/go-hclog
 # github.com/hashicorp/go-immutable-radix v1.2.0
 ## explicit
 github.com/hashicorp/go-immutable-radix
-# github.com/hashicorp/go-licensing v1.3.4
+# github.com/hashicorp/go-licensing v1.3.6
 ## explicit
 github.com/hashicorp/go-licensing
 github.com/hashicorp/go-licensing/flags
