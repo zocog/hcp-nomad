@@ -46,7 +46,8 @@ func (j *Job) interpolateMultiregionFields(args *structs.JobPlanRequest) error {
 }
 
 // multiregionRegister is used to send a job across multiple regions
-func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *structs.JobRegisterResponse) error {
+func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *structs.JobRegisterResponse,
+	existingVersion uint64) error {
 
 	// a multiregion job that's been interpolated for fan-out will never
 	// have the "global" region.
@@ -62,19 +63,22 @@ func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *struc
 	}
 
 	requests := []*structs.JobRegisterRequest{}
-	maxVersion := args.Job.Version
+	// we can treat existingVersion == 0 if the job doesn't exist, this will result in newVersion == 1
+	// it's okay to set this too high if this is the initial creation for all jobs; FSM will force it to zero
+	newVersion := existingVersion + 1
 
 	var job *structs.Job
 	for _, region := range args.Job.Multiregion.Regions {
 		if region.Name == j.srv.Region() {
 			job = regionalJob(args.Job.Copy(), region)
 		} else {
-			version, jobModifyIndex, err := j.getJobVersion(args, region.Name)
+			remoteVersion, jobModifyIndex, err := j.getJobVersion(args, region.Name)
 			if err != nil {
 				return err
 			}
-			if version > maxVersion {
-				maxVersion = version
+			// versions must increase
+			if newVersion <= remoteVersion {
+				newVersion = remoteVersion + 1
 			}
 
 			req := *args // copies everything except the job
@@ -95,11 +99,11 @@ func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *struc
 	}
 
 	args.Job = job
-	args.Job.Version = maxVersion
+	args.Job.Version = newVersion
 	warnings := []string{}
 
 	for _, req := range requests {
-		req.Job.Version = maxVersion
+		req.Job.Version = newVersion
 		resp := &structs.JobRegisterResponse{}
 		err := j.Register(req, resp)
 		warnings = append(warnings, resp.Warnings)
