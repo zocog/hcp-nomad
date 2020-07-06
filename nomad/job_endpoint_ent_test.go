@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -349,6 +350,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	require.Equal([]string{"east-1"}, eastJob.Datacenters)
 	require.Equal("E", eastJob.Meta["region_code"])
 	require.Equal(10, eastJob.TaskGroups[0].Count)
+	require.EqualValues(0, eastJob.Version)
 
 	getReq.Region = "west"
 	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
@@ -360,6 +362,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	require.Equal([]string{"west-1", "west-2"}, westJob.Datacenters)
 	require.Equal("W", westJob.Meta["region_code"])
 	require.Equal(10, westJob.TaskGroups[0].Count)
+	require.EqualValues(0, westJob.Version)
 
 	getReq.Region = "north"
 	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
@@ -386,5 +389,106 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	westJob = getResp.Job
 	require.Equal(2, westJob.TaskGroups[0].Count)
 
-	require.Equal(westJob.Version, eastJob.Version)
+	require.EqualValues(1, westJob.Version)
+	require.EqualValues(1, eastJob.Version)
+}
+
+func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	west, root, cleanupWest := TestACLServer(t, func(c *Config) {
+		c.Region = "west"
+		c.AuthoritativeRegion = "west"
+		c.ACLEnabled = true
+		c.NumSchedulers = 0 // Prevent automatic dequeue
+	})
+	defer cleanupWest()
+
+	east, _, cleanupEast := TestACLServer(t, func(c *Config) {
+		c.Region = "east"
+		c.AuthoritativeRegion = "west"
+		c.ACLEnabled = true
+		c.ReplicationBackoff = 20 * time.Millisecond
+		c.ReplicationToken = root.SecretID
+		c.NumSchedulers = 0 // Prevent automatic dequeue
+	})
+	defer cleanupEast()
+
+	TestJoin(t, west, east)
+	testutil.WaitForLeader(t, west.RPC)
+	testutil.WaitForLeader(t, east.RPC)
+
+	codecEast := rpcClient(t, east)
+
+	// can't use Server.numPeers here b/c these are different regions
+	testutil.WaitForResult(func() (bool, error) {
+		return west.serf.NumNodes() == 2, nil
+	}, func(err error) {
+		t.Fatalf("error waiting peering, have %v peers: %s", west.serf.NumNodes(), err.Error())
+	})
+
+	job := mock.MultiregionJob()
+
+	// register into east, update until version 2
+	initJob := job.Copy()
+	initJob.Multiregion = nil
+	eastRegReq := &structs.JobRegisterRequest{
+		Job: initJob,
+		WriteRequest: structs.WriteRequest{
+			Region:    "east",
+			AuthToken: root.SecretID,
+		},
+	}
+	require.NoError(msgpackrpc.CallWithCodec(codecEast, "Job.Register", eastRegReq, &structs.JobRegisterResponse{}))
+	initJob.Meta["take"] = "two"
+	require.NoError(msgpackrpc.CallWithCodec(codecEast, "Job.Register", eastRegReq, &structs.JobRegisterResponse{}))
+	initJob.Meta["take"] = "three"
+	require.NoError(msgpackrpc.CallWithCodec(codecEast, "Job.Register", eastRegReq, &structs.JobRegisterResponse{}))
+	eastJob, err := east.State().JobByID(nil, job.Namespace, job.ID)
+	require.NoError(err)
+	require.NotNil(eastJob)
+	require.EqualValues(2, eastJob.Version)
+	eastJobModifyIndex := eastJob.JobModifyIndex
+
+	// register into west with version 0
+	initJob = job.Copy()
+	initJob.Multiregion = nil
+	westRegReq := &structs.JobRegisterRequest{
+		Job: initJob,
+		WriteRequest: structs.WriteRequest{
+			Region:    "west",
+			AuthToken: root.SecretID,
+		},
+	}
+	require.NoError(msgpackrpc.CallWithCodec(codecEast, "Job.Register", westRegReq, &structs.JobRegisterResponse{}))
+	westJob, err := west.State().JobByID(nil, job.Namespace, job.ID)
+	require.NoError(err)
+	require.NotNil(westJob)
+	require.EqualValues(0, westJob.Version)
+	westJobModifyIndex := westJob.JobModifyIndex
+
+	// Register the multiregion job; this should result in a job with synchronized versions
+	multiRegReq := &structs.JobRegisterRequest{
+		Job: job,
+		WriteRequest: structs.WriteRequest{
+			Region:    "east",
+			AuthToken: root.SecretID,
+		},
+	}
+	err = msgpackrpc.CallWithCodec(codecEast, "Job.Register", multiRegReq, &api.JobRegisterResponse{})
+	require.NoError(err)
+
+	// check that job versions are synchronized at 3
+	eastJob, err = east.State().JobByID(nil, job.Namespace, job.ID)
+	require.NoError(err)
+	require.NotNil(eastJob)
+	require.EqualValues(3, eastJob.Version)
+	require.Greater(eastJob.JobModifyIndex, eastJobModifyIndex)
+
+	westJob, err = west.State().JobByID(nil, job.Namespace, job.ID)
+	require.NoError(err)
+	require.NotNil(westJob)
+	require.EqualValues(3, westJob.Version)
+	require.Greater(westJob.JobModifyIndex, westJobModifyIndex)
 }
