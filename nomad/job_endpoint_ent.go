@@ -86,6 +86,14 @@ func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *struc
 		}
 	}
 
+	// in a multiregion deployment, the RPC-receiving region must be one of the
+	// regions in the deployment, so this case violates our invariants.
+	if job == nil {
+		return fmt.Errorf(
+			"could not register job %q: rpc forwarded to region %q where the job was not submitted",
+			args.Job.ID, j.srv.Region())
+	}
+
 	args.Job = job
 	args.Job.Version = maxVersion
 	warnings := []string{}

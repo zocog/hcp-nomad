@@ -292,18 +292,31 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	})
 	defer cleanupEast()
 
-	TestJoin(t, west, east)
+	// this server will never receive workloads
+	north, _, cleanupNorth := TestACLServer(t, func(c *Config) {
+		c.Region = "north"
+		c.AuthoritativeRegion = "west"
+		c.ACLEnabled = true
+		c.ReplicationBackoff = 20 * time.Millisecond
+		c.ReplicationToken = root.SecretID
+		c.NumSchedulers = 1
+	})
+	defer cleanupNorth()
+
+	TestJoin(t, west, east, north)
 	testutil.WaitForLeader(t, west.RPC)
 	testutil.WaitForLeader(t, east.RPC)
+	testutil.WaitForLeader(t, north.RPC)
 
-	codecEast := rpcClient(t, east)
-	codecWest := rpcClient(t, west)
+	// we'll pass all RPCs through the inactive region to ensure forwarding
+	// is working as expected
+	codec := rpcClient(t, north)
 
 	// can't use Server.numPeers here b/c these are different regions
 	testutil.WaitForResult(func() (bool, error) {
-		return west.serf.NumNodes() == 2, nil
+		return west.serf.NumNodes() == 3, nil
 	}, func(err error) {
-		t.Fatalf("should have 2 peers")
+		t.Fatalf("should have 3 peers")
 	})
 
 	job := mock.MultiregionJob()
@@ -316,7 +329,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	}
 
 	var resp structs.JobRegisterResponse
-	err := msgpackrpc.CallWithCodec(codecEast, "Job.Register", req, &resp)
+	err := msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp)
 	require.NoError(err)
 
 	getReq := &structs.JobSpecificRequest{
@@ -327,7 +340,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 		},
 	}
 	var getResp structs.SingleJobResponse
-	err = msgpackrpc.CallWithCodec(codecEast, "Job.GetJob", getReq, &getResp)
+	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
 	require.NoError(err)
 
 	eastJob := getResp.Job
@@ -338,7 +351,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	require.Equal(10, eastJob.TaskGroups[0].Count)
 
 	getReq.Region = "west"
-	err = msgpackrpc.CallWithCodec(codecWest, "Job.GetJob", getReq, &getResp)
+	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
 	require.NoError(err)
 	westJob := getResp.Job
 
@@ -348,14 +361,19 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	require.Equal("W", westJob.Meta["region_code"])
 	require.Equal(10, westJob.TaskGroups[0].Count)
 
+	getReq.Region = "north"
+	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
+	require.NoError(err)
+	require.Nil(getResp.Job, fmt.Sprintf("getResp: %#v", getResp))
+
 	// Update the job
 	job.TaskGroups[0].Count = 0
 	req.Job = job
-	err = msgpackrpc.CallWithCodec(codecEast, "Job.Register", req, &resp)
+	err = msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp)
 	require.NoError(err)
 
 	getReq.Region = "east"
-	err = msgpackrpc.CallWithCodec(codecEast, "Job.GetJob", getReq, &getResp)
+	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
 	require.NoError(err)
 
 	eastJob = getResp.Job
@@ -363,7 +381,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	require.Equal(1, eastJob.TaskGroups[0].Count)
 
 	getReq.Region = "west"
-	err = msgpackrpc.CallWithCodec(codecWest, "Job.GetJob", getReq, &getResp)
+	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
 	require.NoError(err)
 	westJob = getResp.Job
 	require.Equal(2, westJob.TaskGroups[0].Count)
