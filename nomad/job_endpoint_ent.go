@@ -141,7 +141,9 @@ func (j *Job) getJobVersion(args *structs.JobRegisterRequest, region string) (ui
 // regionalJob interpolates a multiregion job for a specific region
 func regionalJob(j *structs.Job, region *structs.MultiregionRegion) *structs.Job {
 	j.Region = region.Name
-	j.Datacenters = region.Datacenters
+	if len(region.Datacenters) != 0 {
+		j.Datacenters = region.Datacenters
+	}
 
 	for _, tg := range j.TaskGroups {
 		if tg.Count == 0 {
