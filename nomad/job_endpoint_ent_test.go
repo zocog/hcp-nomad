@@ -279,7 +279,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 		c.Region = "west"
 		c.AuthoritativeRegion = "west"
 		c.ACLEnabled = true
-		c.NumSchedulers = 0 // Prevent automatic dequeue
+		c.NumSchedulers = 1
 	})
 	defer cleanupWest()
 
@@ -289,7 +289,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 		c.ACLEnabled = true
 		c.ReplicationBackoff = 20 * time.Millisecond
 		c.ReplicationToken = root.SecretID
-		c.NumSchedulers = 0 // Prevent automatic dequeue
+		c.NumSchedulers = 1
 	})
 	defer cleanupEast()
 
@@ -371,6 +371,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 
 	// Update the job
 	job.TaskGroups[0].Count = 0
+	job.Version = 1
 	req.Job = job
 	err = msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp)
 	require.NoError(err)
@@ -401,7 +402,7 @@ func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {
 		c.Region = "west"
 		c.AuthoritativeRegion = "west"
 		c.ACLEnabled = true
-		c.NumSchedulers = 0 // Prevent automatic dequeue
+		c.NumSchedulers = 1
 	})
 	defer cleanupWest()
 
@@ -411,7 +412,7 @@ func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {
 		c.ACLEnabled = true
 		c.ReplicationBackoff = 20 * time.Millisecond
 		c.ReplicationToken = root.SecretID
-		c.NumSchedulers = 0 // Prevent automatic dequeue
+		c.NumSchedulers = 1
 	})
 	defer cleanupEast()
 
@@ -491,4 +492,47 @@ func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {
 	require.NotNil(westJob)
 	require.EqualValues(3, westJob.Version)
 	require.Greater(westJob.JobModifyIndex, westJobModifyIndex)
+}
+
+func TestJobEndpoint_MultiregionStarter(t *testing.T) {
+	require := require.New(t)
+
+	j := &structs.Job{}
+	j.Type = "service"
+	require.True(jobIsMultiregionStarter(j, "north"))
+
+	tc := &structs.Multiregion{
+		Strategy: &structs.MultiregionStrategy{},
+		Regions: []*structs.MultiregionRegion{
+			{Name: "north"},
+			{Name: "south"},
+			{Name: "east"},
+			{Name: "west"},
+		},
+	}
+
+	b := &structs.Job{}
+	b.Type = "batch"
+	b.Multiregion = tc
+	require.True(jobIsMultiregionStarter(b, "west"))
+
+	j.Multiregion = tc
+	require.True(jobIsMultiregionStarter(j, "north"))
+	require.True(jobIsMultiregionStarter(j, "south"))
+	require.True(jobIsMultiregionStarter(j, "east"))
+	require.True(jobIsMultiregionStarter(j, "west"))
+
+	tc.Strategy = &structs.MultiregionStrategy{MaxParallel: 1}
+	j.Multiregion = tc
+	require.True(jobIsMultiregionStarter(j, "north"))
+	require.False(jobIsMultiregionStarter(j, "south"))
+	require.False(jobIsMultiregionStarter(j, "east"))
+	require.False(jobIsMultiregionStarter(j, "west"))
+
+	tc.Strategy = &structs.MultiregionStrategy{MaxParallel: 2}
+	j.Multiregion = tc
+	require.True(jobIsMultiregionStarter(j, "north"))
+	require.True(jobIsMultiregionStarter(j, "south"))
+	require.False(jobIsMultiregionStarter(j, "east"))
+	require.False(jobIsMultiregionStarter(j, "west"))
 }
