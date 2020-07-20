@@ -336,6 +336,16 @@ func (w *deploymentWatcher) unblockDeployment(otherID, region string) error {
 // checkpoint upserts the updated status to the state store
 func (w *deploymentWatcher) checkpoint(status, desc string) error {
 	update := w.getDeploymentStatusUpdate(status, desc)
+
+	// don't emit a new eval from checkpointing if no changes should
+	// be made to the allocations
+	if status == structs.DeploymentStatusSuccessful ||
+		status == structs.DeploymentStatusBlocked ||
+		status == structs.DeploymentStatusUnblocking {
+		_, err := w.upsertDeploymentStatusUpdate(update, nil, nil)
+		return err
+	}
+
 	eval := w.getEval()
 
 	// we don't need to worry about the rollback here, as the caller
