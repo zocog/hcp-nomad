@@ -2,19 +2,26 @@
 
 SECURITY:
 
- * build: Updated to Go 1.14.6. Go 1.14.4 contained 2 CVEs which are low severity for Nomad. [[GH-8467](https://github.com/hashicorp/nomad/issues/8467)]
+ * build: Updated to Go 1.14.6. Go 1.14.5 contained 2 CVEs which are low severity for Nomad [[GH-8467](https://github.com/hashicorp/nomad/issues/8467)]
+
+IMPROVEMENTS:
+
+ * device/nvidia: Added a plugin config option to disable the plugin [[GH-8353](https://github.com/hashicorp/nomad/issues/8353)]
 
 BUG FIXES:
 
- * jobspec: Fixed validation of multi-region datacenters to allow empty region `datacenters` to default to job-level `datacenters`. [[GH-8426](https://github.com/hashicorp/nomad/issues/8426)]
- * networking: Fixed a bug where a default network interface was not set for group networks if both `network_interface` and `host_network` were omitted. [[GH-8407](https://github.com/hashicorp/nomad/pull/8407)]
- * scheduler: Fixed a bug in Nomad Enterprise where canaries were not being created during multi-region deployments. [[GH-8456](https://github.com/hashicorp/nomad/pull/8456)]
- * ui: Fixed order of column headers in client allocations table. [[GH-8409](https://github.com/hashicorp/nomad/pull/8409)]
- * ui: Fixed stale namespaces after changing acl tokens. [[GH-8413](https://github.com/hashicorp/nomad/issues/8413)]
- * ui: Fixed inclusion of allocation when opening exec window. [[GH-8460](https://github.com/hashicorp/nomad/pull/8460)]
+ * core: Fixed an atomicity bug where a job may fail to start if leadership transition occured while processing the job [[GH-8435](https://github.com/hashicorp/nomad/issues/8435)]
+ * core: Fixed a regression bug where jobs with group level networking stanza fail to be scheduled with "missing network" constraint error [[GH-8407](https://github.com/hashicorp/nomad/pull/8407)]
+ * core (Enterprise): Fixed a bug where users were not given full 6 hours to apply initial license when upgrading from unlicensed versions of Nomad. [[GH-8457](https://github.com/hashicorp/nomad/issues/8457)]
+ * jobspec: Fixed validation of multi-region datacenters to allow empty region `datacenters` to default to job-level `datacenters` [[GH-8426](https://github.com/hashicorp/nomad/issues/8426)]
+ * scheduler: Fixed a bug in Nomad Enterprise where canaries were not being created during multi-region deployments [[GH-8456](https://github.com/hashicorp/nomad/pull/8456)]
+ * ui: Fixed stale namespaces after changing acl tokens [[GH-8413](https://github.com/hashicorp/nomad/issues/8413)]
+ * ui: Fixed inclusion of allocation when opening exec window [[GH-8460](https://github.com/hashicorp/nomad/pull/8460)]
+ * ui: Fixed order of column headers in client allocations table [[GH-8409](https://github.com/hashicorp/nomad/pull/8409)]
  * ui: Fixed missing namespace query param after changing acl tokens [[GH-8413](https://github.com/hashicorp/nomad/issues/8413)]
- * ui: Fixed exec to derive group and task when possible from allocation. [[GH-8463](https://github.com/hashicorp/nomad/pull/8463)]
+ * ui: Fixed exec to derive group and task when possible from allocation [[GH-8463](https://github.com/hashicorp/nomad/pull/8463)]
  * ui: Fixed runtime error when clicking "Run Job" while a prefix filter is set [[GH-8412](https://github.com/hashicorp/nomad/issues/8412)]
+ * ui: Fixed the absence of the region query parameter on various actions, such as job stop, allocation restart, node drain. [[GH-8477](https://github.com/hashicorp/nomad/issues/8477)]
  * vault: Fixed a bug where vault identity policies not considered in permissions check [[GH-7732](https://github.com/hashicorp/nomad/issues/7732)]
 
 ## 0.12.0 (July 9, 2020)
