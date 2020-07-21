@@ -224,3 +224,30 @@ func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {
 		assert.NotNil(out)
 	}
 }
+
+func TestLicenseEndpoint_UpsertLicense_MinVersion(t *testing.T) {
+	t.Parallel()
+
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.Build = "0.12.1+unittest"
+	})
+	defer cleanupS1()
+
+	s2, cleanupS2 := TestServer(t, func(c *Config) {
+		c.Build = "0.12.0+unittest"
+	})
+	defer cleanupS2()
+
+	TestJoin(t, s1, s2)
+	codec := rpcClient(t, s1)
+	testutil.WaitForLeader(t, s1.RPC)
+
+	arg := structs.LicenseUpsertRequest{}
+	arg.Region = s1.config.Region
+	resp := structs.GenericRequest{}
+
+	err := msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", &arg, &resp)
+	require.Error(t, err)
+
+	require.Contains(t, err, "servers do not meet minimum version")
+}

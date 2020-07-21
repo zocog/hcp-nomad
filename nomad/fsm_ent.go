@@ -22,6 +22,7 @@ const (
 	QuotaSpecSnapshot
 	QuotaUsageSnapshot
 	LicenseSnapshot
+	TmpLicenseMetaSnapshot
 )
 
 // registerEntLogAppliers registers all the Nomad Enterprise Raft log appliers
@@ -33,6 +34,7 @@ func (n *nomadFSM) registerEntLogAppliers() {
 	n.enterpriseAppliers[structs.QuotaSpecUpsertRequestType] = n.applyQuotaSpecUpsert
 	n.enterpriseAppliers[structs.QuotaSpecDeleteRequestType] = n.applyQuotaSpecDelete
 	n.enterpriseAppliers[structs.LicenseUpsertRequestType] = n.applyLicenseUpsert
+	n.enterpriseAppliers[structs.TmpLicenseUpsertRequestType] = n.applyTmpLicenseMetaUpsert
 }
 
 // registerEntSnapshotRestorers registers all the Nomad Enterprise snapshot restorers
@@ -42,6 +44,7 @@ func (n *nomadFSM) registerEntSnapshotRestorers() {
 	n.enterpriseRestorers[QuotaUsageSnapshot] = restoreQuotaUsage
 	n.enterpriseRestorers[NamespaceSnapshot] = restoreNamespace
 	n.enterpriseRestorers[LicenseSnapshot] = restoreLicense
+	n.enterpriseRestorers[TmpLicenseMetaSnapshot] = restoreTmpLicenseMeta
 }
 
 // applyNamespaceUpsert is used to upsert a set of namespaces
@@ -112,6 +115,14 @@ func restoreLicense(restore *state.StateRestore, dec *codec.Decoder) error {
 		return err
 	}
 	return restore.LicenseRestore(license)
+}
+
+func restoreTmpLicenseMeta(restore *state.StateRestore, dec *codec.Decoder) error {
+	meta := new(structs.TmpLicenseMeta)
+	if err := dec.Decode(meta); err != nil {
+		return err
+	}
+	return restore.TmpLicenseMetaRestore(meta)
 }
 
 // applySentinelPolicyUpsert is used to upsert a set of policies
@@ -219,6 +230,20 @@ func (n *nomadFSM) applyLicenseUpsert(buf []byte, index uint64) interface{} {
 	return nil
 }
 
+func (n *nomadFSM) applyTmpLicenseMetaUpsert(buf []byte, index uint64) interface{} {
+	defer metrics.MeasureSince([]string{"nomad", "fsm", "apply_tmp_license_meta_upsert"}, time.Now())
+	var req structs.TmpLicenseMeta
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+
+	if err := n.state.TmpLicenseSetMeta(index, &req); err != nil {
+		n.logger.Error("UpsertLicense failed", "error", err)
+		return err
+	}
+	return nil
+}
+
 // restoreSentinelPolicy is used to restore a sentinel policy
 func restoreSentinelPolicy(restore *state.StateRestore, dec *codec.Decoder) error {
 	policy := new(structs.SentinelPolicy)
@@ -264,6 +289,9 @@ func (s *nomadSnapshot) persistEntTables(sink raft.SnapshotSink, encoder *codec.
 		return err
 	}
 	if err := s.persistLicense(sink, encoder); err != nil {
+		return err
+	}
+	if err := s.persistTmpLicenseMeta(sink, encoder); err != nil {
 		return err
 	}
 	return nil
@@ -394,6 +422,24 @@ func (s *nomadSnapshot) persistLicense(sink raft.SnapshotSink, enc *codec.Encode
 
 	sink.Write([]byte{byte(LicenseSnapshot)})
 	if err := enc.Encode(license); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *nomadSnapshot) persistTmpLicenseMeta(sink raft.SnapshotSink, enc *codec.Encoder) error {
+	ws := memdb.NewWatchSet()
+	meta, err := s.snap.TmpLicenseMeta(ws)
+	if err != nil {
+		return err
+	}
+	if meta == nil {
+		return nil
+	}
+
+	sink.Write([]byte{byte(TmpLicenseMetaSnapshot)})
+	if err := enc.Encode(meta); err != nil {
 		return err
 	}
 

@@ -3,9 +3,13 @@
 package nomad
 
 import (
+	"errors"
 	"fmt"
+	"time"
 
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/nomad-licensing/license"
+	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/sentinel/sentinel"
 )
 
@@ -13,6 +17,9 @@ import (
 // primarily used for enterprise testing
 type LicenseConfig struct {
 	AdditionalPubKeys []string
+
+	// preventStart is used for testing to control when to start watcher
+	preventStart bool
 }
 
 type EnterpriseState struct {
@@ -61,12 +68,14 @@ func (s *Server) setupEnterprise(config *Config) error {
 
 	s.setupEnterpriseAutopilot(config)
 
-	licenseWatcher, err := NewLicenseWatcher(s.logger, config.LicenseConfig, config.AgentShutdown)
+	licenseWatcher, err := NewLicenseWatcher(s.logger, config.LicenseConfig, config.AgentShutdown, s.establishTemporaryLicenseMetadata)
 	if err != nil {
 		return fmt.Errorf("failed to create a new license watcher: %w", err)
 	}
 	s.EnterpriseState.licenseWatcher = licenseWatcher
-	s.EnterpriseState.licenseWatcher.start(s.shutdownCtx, s.State())
+	if !config.LicenseConfig.preventStart {
+		s.EnterpriseState.licenseWatcher.start(s.shutdownCtx, s.State())
+	}
 	return nil
 }
 
@@ -76,4 +85,38 @@ func (s *Server) startEnterpriseBackground() {
 	if s.config.ACLEnabled {
 		go s.gcSentinelPolicies(s.shutdownCh)
 	}
+}
+
+var minLicenseVersion = version.Must(version.NewVersion("0.12.1"))
+
+func (s *Server) establishTemporaryLicenseMetadata() (int64, error) {
+	if !ServersMeetMinimumVersion(s.Members(), minLicenseVersion, false) {
+		s.logger.Named("core").Debug("cannot initialize temporary license until all servers are above minimum version", "min_version", minLicenseVersion)
+		return 0, fmt.Errorf("temporary license metadata cannot be created until all servers are above minimum version %s", minLicenseVersion)
+	}
+
+	fsmState := s.fsm.State()
+	existingMeta, err := fsmState.TmpLicenseMeta(nil)
+	if err != nil {
+		s.logger.Named("core").Error("failed to get temporary license metadata", "error", err)
+		return 0, err
+	}
+
+	// If tmp license meta already exists nothing to do
+	if existingMeta != nil {
+		return existingMeta.CreateTime, nil
+	}
+
+	if !s.IsLeader() {
+		return 0, errors.New("server is not current leader, cannot create temporary license metadata")
+	}
+
+	// Apply temporary license timestamp
+	timestamp := time.Now().UnixNano()
+	req := structs.TmpLicenseMeta{CreateTime: timestamp}
+	if _, _, err := s.raftApply(structs.TmpLicenseUpsertRequestType, req); err != nil {
+		s.logger.Error("failed to initialize temporary license metadata", "error", err)
+		return 0, err
+	}
+	return timestamp, nil
 }

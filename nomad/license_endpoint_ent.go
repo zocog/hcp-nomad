@@ -28,6 +28,12 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 		return structs.ErrPermissionDenied
 	}
 
+	// Ensure all servers meet minimum requirements
+	if !ServersMeetMinimumVersion(l.srv.Members(), minLicenseVersion, false) {
+		l.srv.logger.Warn("cannot set license until all servers are above minimum version", "min_version", minLicenseVersion)
+		return fmt.Errorf("all servers do not meet minimum version requirement: %s", minLicenseVersion)
+	}
+
 	// Validate license pre-upsert
 	if _, err := l.srv.EnterpriseState.licenseWatcher.ValidateLicense(args.License.Signed); err != nil {
 		return structs.NewErrRPCCoded(400, fmt.Sprintf("error validating license: %s", err.Error()))

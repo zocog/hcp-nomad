@@ -7,6 +7,7 @@ import (
 
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/nomad/nomad/structs"
+	"github.com/pkg/errors"
 )
 
 // enterpriseInit is used to initialize the state store with enterprise
@@ -1004,5 +1005,63 @@ func (s *StateStore) upsertLicenseImpl(index uint64, license *structs.StoredLice
 	if err := txn.Insert("license", license); err != nil {
 		return fmt.Errorf("failed updating license: %s", err)
 	}
+	return nil
+}
+
+func (s *StateStore) TmpLicenseMeta(ws memdb.WatchSet) (*structs.TmpLicenseMeta, error) {
+	txn := s.db.Txn(false)
+	defer txn.Abort()
+
+	watchCh, m, err := txn.FirstWatch(TableTmpLicenseMeta, "id")
+	if err != nil {
+		return nil, errors.Wrap(err, "failed tmp license metadata lookup")
+	}
+	ws.Add(watchCh)
+
+	if m != nil {
+		return m.(*structs.TmpLicenseMeta), nil
+	}
+	return nil, nil
+}
+
+func (r *StateRestore) TmpLicenseMetaRestore(meta *structs.TmpLicenseMeta) error {
+	if err := r.txn.Insert(TableTmpLicenseMeta, meta); err != nil {
+		return fmt.Errorf("inserting tmp license meta failed: %s", err)
+	}
+
+	return nil
+}
+
+func (s *StateStore) TmpLicenseSetMeta(index uint64, meta *structs.TmpLicenseMeta) error {
+	txn := s.db.Txn(true)
+	defer txn.Abort()
+
+	if err := s.setTmpLicenseMeta(txn, meta); err != nil {
+		return errors.Wrap(err, "set tmp license metadata failed")
+	}
+
+	txn.Commit()
+	return nil
+}
+
+func (s *StateStore) setTmpLicenseMeta(txn *memdb.Txn, meta *structs.TmpLicenseMeta) error {
+	// Check for an existing config, if it exists, sanity check the cluster ID matches
+	existing, err := txn.First(TableTmpLicenseMeta, "id")
+	if err != nil {
+		return fmt.Errorf("failed tmp license meta lookup: %v", err)
+	}
+
+	// License watcher doesn't gate this write with a leader check
+	// so multiple servers will try to persist this value, any of them
+	// work so long as that its no longer updated after initially set
+	if existing != nil {
+		s.logger.Debug("previous temporary license metadata found, not setting")
+		return nil
+	}
+
+	if err := txn.Insert("tmp_license", meta); err != nil {
+		return fmt.Errorf("set tmp license metadata failed: %v", err)
+	}
+
 	return nil
 }

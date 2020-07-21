@@ -5,6 +5,7 @@ package state
 import (
 	"sort"
 	"testing"
+	"time"
 
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/nomad/nomad/mock"
@@ -1952,4 +1953,37 @@ func TestStateStore_UpsertLicense(t *testing.T) {
 	out, err := state.License(ws)
 	require.Nil(t, err)
 	require.Equal(t, out, stored)
+}
+
+func TestStateStore_UpsertTmpLicenseMeta(t *testing.T) {
+	t.Parallel()
+	state := testStateStore(t)
+
+	stored := &structs.TmpLicenseMeta{CreateTime: time.Now().UnixNano()}
+
+	assert.Nil(t, state.TmpLicenseSetMeta(1000, stored))
+
+	ws := memdb.NewWatchSet()
+	out, err := state.TmpLicenseMeta(ws)
+	require.Nil(t, err)
+	require.Equal(t, out, stored)
+}
+
+func TestStateStore_RestoreTmpLicenseMeta(t *testing.T) {
+	assert := assert.New(t)
+	state := testStateStore(t)
+
+	meta := &structs.TmpLicenseMeta{CreateTime: time.Now().UnixNano()}
+
+	restore, err := state.Restore()
+	assert.Nil(err)
+
+	err = restore.TmpLicenseMetaRestore(meta)
+	assert.Nil(err)
+	restore.Commit()
+
+	ws := memdb.NewWatchSet()
+	out, err := state.TmpLicenseMeta(ws)
+	assert.Nil(err)
+	assert.Equal(meta, out)
 }

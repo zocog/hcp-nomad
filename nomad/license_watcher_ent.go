@@ -22,8 +22,12 @@ var (
 	// Temporary Nomad-Enterprise licenses should operate for six hours
 	temporaryLicenseTimeLimit = 6 * time.Hour
 
-	// expiredTmpGrace is the amount of time we'll allow for a valid license to
-	// be applied after a cluster starts up with an expired temporary license
+	// expiredTmpGrace is the grace period after a server is restarted with an expired
+	// license to allow for a new valid license to be applied.
+	// The value should be short enough to inconvenience unlicensed users,
+	// but long enough to allow legitimate users to apply the new license
+	// manually, e.g. upon upgrades from non-licensed versions.
+	// This value gets evaluated twice to be extra cautious
 	defaultExpiredTmpGrace = 1 * time.Minute
 )
 
@@ -54,9 +58,16 @@ type LicenseWatcher struct {
 
 	// logTimes tracks the last time we sent a log message for a feature
 	logTimes map[license.Features]time.Time
+
+	establishTmpLicenseMetaFn func() (int64, error)
 }
 
-func NewLicenseWatcher(logger hclog.InterceptLogger, cfg *LicenseConfig, shutdownCallback func() error) (*LicenseWatcher, error) {
+func NewLicenseWatcher(
+	logger hclog.InterceptLogger,
+	cfg *LicenseConfig,
+	shutdownCallback func() error,
+	tmpLicenseMetaFn func() (int64, error),
+) (*LicenseWatcher, error) {
 	// Configure the setup options for the license watcher
 	tmpLicense, opts, err := watcherStartupOpts(cfg)
 	if err != nil {
@@ -77,13 +88,14 @@ func NewLicenseWatcher(logger hclog.InterceptLogger, cfg *LicenseConfig, shutdow
 	ctx, cancel := context.WithCancel(context.Background())
 
 	lw := &LicenseWatcher{
-		watcher:             watcher,
-		shutdownCallback:    shutdownCallback,
-		expiredTmpGrace:     defaultExpiredTmpGrace,
-		monitorExpTmpCtx:    ctx,
-		monitorExpTmpCancel: cancel,
-		logger:              logger.Named("licensing"),
-		logTimes:            make(map[license.Features]time.Time),
+		watcher:                   watcher,
+		shutdownCallback:          shutdownCallback,
+		expiredTmpGrace:           defaultExpiredTmpGrace,
+		monitorExpTmpCtx:          ctx,
+		monitorExpTmpCancel:       cancel,
+		logger:                    logger.Named("licensing"),
+		logTimes:                  make(map[license.Features]time.Time),
+		establishTmpLicenseMetaFn: tmpLicenseMetaFn,
 	}
 
 	lw.license.Store(nomadTmpLicense)
@@ -180,10 +192,11 @@ func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore) {
 }
 
 func (w *LicenseWatcher) watch(ctx context.Context, state *state.StateStore) {
-	// Block for cluster metadata to be populated to raft
-	// Then set the watchers clusterCreateTime to check if
-	// the temporary license should be allowed or not
-	clusterCreateTime := w.clusterStartTime(ctx, state)
+	// Block for the temporary license metadata to be populated to raft
+	// This value is used to check if a temporary license is within
+	// the initial 6 hour evaluation period
+	tmpLicenseInitTime := w.getOrSetTmpLicenseMeta(ctx, state)
+	w.logger.Debug("received temporary license metadata", "init time", tmpLicenseInitTime)
 
 	// paidLicense indicates if a valid, non-temporary license has been set.
 	// If true, agent should not be shutdown.
@@ -215,7 +228,7 @@ func (w *LicenseWatcher) watch(ctx context.Context, state *state.StateStore) {
 				w.logger.Error("failed setting license", "error", err)
 			}
 		}
-		if !paidLicense && clusterTooOldForTmp(clusterCreateTime) {
+		if !paidLicense && tempLicenseTooOld(tmpLicenseInitTime) {
 			// The server is not brand new, the cluster age is too old
 			// for a temporary license, track that it is replaced soon
 			w.monitorExpiredTmpLicense(ctx)
@@ -279,50 +292,37 @@ func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, 
 	}
 }
 
-func (w *LicenseWatcher) clusterStartTime(ctx context.Context, state *state.StateStore) time.Time {
-	ws := memdb.NewWatchSet()
-	meta, err := state.ClusterMetadata(ws)
-	if err != nil {
-		w.logger.Warn("failed to check cluster metadata", "error", err)
-	}
-	if meta != nil {
-		return time.Unix(0, meta.CreateTime).UTC()
-	}
-
-	wsCtx, wsCancel := context.WithCancel(ctx)
-	defer wsCancel()
-	wsCh := ws.WatchCh(wsCtx)
+func (w *LicenseWatcher) getOrSetTmpLicenseMeta(ctx context.Context, state *state.StateStore) time.Time {
+	interval := time.After(0 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
-			w.logger.Debug("context cancelled while waiting for cluster metadata")
+			w.logger.Debug("context cancelled while waiting for temporary license metadata")
 			return time.Now()
 		case err := <-w.watcher.ErrorCh():
-			// Catch error even if we aren't ready for watcher yet
-			// if errorch has no receiver it will panic.
-			w.logger.Warn("received error from watcher", "err", err)
-		case err := <-wsCh:
-			if err == nil {
-				clustermeta, err := state.ClusterMetadata(nil)
-				if err != nil {
-					w.logger.Warn("failed to check cluster metadata", "error", err)
-					time.Sleep(lib.RandomStagger(1 * time.Second))
-					continue
-				}
-				return time.Unix(0, clustermeta.CreateTime).UTC()
+			w.logger.Warn("received error from license watcher", "err", err)
+			return time.Now()
+		case <-interval:
+			tmpCreateTime, err := w.establishTmpLicenseMetaFn()
+			if err != nil {
+				w.logger.Debug("failed to get or set temporary license metadata, retrying...", "error", err)
+				interval = time.After(2 * time.Second)
+				continue
 			}
+			return time.Unix(0, tmpCreateTime)
 		}
 	}
 }
 
 func (w *LicenseWatcher) monitorExpiredTmpLicense(ctx context.Context) {
 	go func() {
+		w.logger.Warn("temporary license too old for evaluation period, beginning expired enterprise evaluation monitor")
 		// Grace period for server and raft to initialize
 		select {
 		case <-ctx.Done():
 			return
 		case <-w.monitorExpTmpCtx.Done():
-			w.logger.Debug("received license update, stopping temporary license monitor")
+			w.logger.Info("received license update, stopping temporary license monitor")
 			return
 		case <-time.After(w.expiredTmpGrace):
 			// A license was never applied
@@ -339,17 +339,17 @@ func (w *LicenseWatcher) monitorExpiredTmpLicense(ctx context.Context) {
 		// Wait once more for valid license to be applied before shutting down
 		select {
 		case <-w.monitorExpTmpCtx.Done():
-			w.logger.Debug("license applied, cancelling expired temporary license shutdown")
+			w.logger.Info("license applied, cancelling expired temporary license shutdown")
 		case <-time.After(w.expiredTmpGrace):
-			w.logger.Debug("temporary license grace period expired. shutting down")
+			w.logger.Error("temporary license grace period expired. shutting down")
 			go w.shutdownCallback()
 			return
 		}
 	}()
 }
 
-// clusterTooOldForTmp checks if the cluster age is older than the temporary
+// tempLicenseTooOld checks if the cluster age is older than the temporary
 // license time limit
-func clusterTooOldForTmp(clusterCreateTime time.Time) bool {
-	return time.Now().After(clusterCreateTime.Add(temporaryLicenseTimeLimit))
+func tempLicenseTooOld(originalTmpCreate time.Time) bool {
+	return time.Now().After(originalTmpCreate.Add(temporaryLicenseTimeLimit))
 }

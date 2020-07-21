@@ -10,6 +10,7 @@ const (
 	TableQuotaSpec        = "quota_spec"
 	TableQuotaUsage       = "quota_usage"
 	TableLicense          = "license"
+	TableTmpLicenseMeta   = "tmp_license"
 )
 
 func init() {
@@ -20,6 +21,7 @@ func init() {
 		quotaUsageTableSchema,
 		namespaceTableSchema,
 		licenseTableSchema,
+		tmpLicenseMetaSchema,
 	}...)
 }
 
@@ -123,6 +125,20 @@ func licenseTableSchema() *memdb.TableSchema {
 				Indexer: &memdb.ConditionalIndex{
 					Conditional: func(obj interface{}) (bool, error) { return true, nil },
 				},
+			},
+		},
+	}
+}
+
+func tmpLicenseMetaSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: TableTmpLicenseMeta,
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer:      singletonRecord,
 			},
 		},
 	}

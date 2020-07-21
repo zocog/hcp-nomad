@@ -30,6 +30,7 @@ func (s *Server) establishEnterpriseLeadership(stopCh chan struct{}) error {
 		// Start replciating quota specifications.
 		go s.replicateQuotaSpecs(stopCh)
 	}
+
 	return nil
 }
 

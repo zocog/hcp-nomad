@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/nomad/nomad/mock"
@@ -473,6 +474,24 @@ func TestFSM_SnapshotRestore_License(t *testing.T) {
 	state2 := fsm2.State()
 	ws := memdb.NewWatchSet()
 	out1, _ := state2.License(ws)
+	assert.NotNil(t, out1)
+	assert.Equal(stored, out1)
+}
+
+func TestFSM_SnapshotRestore_TmpLicenseMeta(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	// Add some state
+	fsm := testFSM(t)
+	state := fsm.State()
+	stored := &structs.TmpLicenseMeta{CreateTime: time.Now().UnixNano()}
+	assert.Nil(state.TmpLicenseSetMeta(1000, stored))
+
+	// Verify the contents
+	fsm2 := testSnapshotRestore(t, fsm)
+	state2 := fsm2.State()
+	out1, _ := state2.TmpLicenseMeta(nil)
 	assert.NotNil(t, out1)
 	assert.Equal(stored, out1)
 }

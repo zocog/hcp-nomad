@@ -30,6 +30,7 @@ const (
 	QuotaSpecDeleteRequestType
 	LicenseUpsertRequestType
 	LicenseDeleteRequestType
+	TmpLicenseUpsertRequestType
 )
 
 const (
@@ -170,6 +171,11 @@ type NamespaceDeleteRequest struct {
 type NamespaceUpsertRequest struct {
 	Namespaces []*Namespace
 	WriteRequest
+}
+
+// TmpLicenseMeta tracks the create time for the first temporary license
+type TmpLicenseMeta struct {
+	CreateTime int64
 }
 
 // StoredLicense is used to store and retrieve the signed license blob
