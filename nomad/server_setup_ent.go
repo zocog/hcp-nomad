@@ -87,12 +87,12 @@ func (s *Server) startEnterpriseBackground() {
 	}
 }
 
-var minLicenseVersion = version.Must(version.NewVersion("0.12.1"))
+var minLicenseMetaVersion = version.Must(version.NewVersion("0.12.1"))
 
 func (s *Server) establishTemporaryLicenseMetadata() (int64, error) {
-	if !ServersMeetMinimumVersion(s.Members(), minLicenseVersion, false) {
-		s.logger.Named("core").Debug("cannot initialize temporary license until all servers are above minimum version", "min_version", minLicenseVersion)
-		return 0, fmt.Errorf("temporary license metadata cannot be created until all servers are above minimum version %s", minLicenseVersion)
+	if !ServersMeetMinimumVersion(s.Members(), minLicenseMetaVersion, false) {
+		s.logger.Named("core").Debug("cannot initialize temporary license until all servers are above minimum version", "min_version", minLicenseMetaVersion)
+		return 0, fmt.Errorf("temporary license metadata cannot be created until all servers are above minimum version %s", minLicenseMetaVersion)
 	}
 
 	fsmState := s.fsm.State()

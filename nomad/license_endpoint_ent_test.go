@@ -229,12 +229,12 @@ func TestLicenseEndpoint_UpsertLicense_MinVersion(t *testing.T) {
 	t.Parallel()
 
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.Build = "0.12.1+unittest"
+		c.Build = "0.12.0+unittest"
 	})
 	defer cleanupS1()
 
 	s2, cleanupS2 := TestServer(t, func(c *Config) {
-		c.Build = "0.12.0+unittest"
+		c.Build = "0.11.3+unittest"
 	})
 	defer cleanupS2()
 
