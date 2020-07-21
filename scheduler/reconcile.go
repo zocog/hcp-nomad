@@ -428,12 +428,12 @@ func (a *allocReconciler) computeGroup(group string, all allocSet) bool {
 	strategy := tg.Update
 	canariesPromoted := dstate != nil && dstate.Promoted
 	requireCanary := numDestructive != 0 && strategy != nil && len(canaries) < strategy.Canary && !canariesPromoted
+	if requireCanary {
+		dstate.DesiredCanaries = strategy.Canary
+	}
 	if requireCanary && !a.deploymentPaused && !a.deploymentFailed {
 		number := strategy.Canary - len(canaries)
 		desiredChanges.Canary += uint64(number)
-		if !existingDeployment {
-			dstate.DesiredCanaries = strategy.Canary
-		}
 
 		for _, name := range nameIndex.NextCanaries(uint(number), canaries, destructive) {
 			a.result.place = append(a.result.place, allocPlaceResult{
@@ -617,18 +617,18 @@ func (a *allocReconciler) handleGroupCanaries(all allocSet, desiredChanges *stru
 
 	// Cancel any non-promoted canaries from the older deployment
 	if a.oldDeployment != nil {
-		for _, s := range a.oldDeployment.TaskGroups {
-			if !s.Promoted {
-				stop = append(stop, s.PlacedCanaries...)
+		for _, dstate := range a.oldDeployment.TaskGroups {
+			if !dstate.Promoted {
+				stop = append(stop, dstate.PlacedCanaries...)
 			}
 		}
 	}
 
 	// Cancel any non-promoted canaries from a failed deployment
 	if a.deployment != nil && a.deployment.Status == structs.DeploymentStatusFailed {
-		for _, s := range a.deployment.TaskGroups {
-			if !s.Promoted {
-				stop = append(stop, s.PlacedCanaries...)
+		for _, dstate := range a.deployment.TaskGroups {
+			if !dstate.Promoted {
+				stop = append(stop, dstate.PlacedCanaries...)
 			}
 		}
 	}
@@ -644,8 +644,8 @@ func (a *allocReconciler) handleGroupCanaries(all allocSet, desiredChanges *stru
 	// needed by just stopping them.
 	if a.deployment != nil {
 		var canaryIDs []string
-		for _, s := range a.deployment.TaskGroups {
-			canaryIDs = append(canaryIDs, s.PlacedCanaries...)
+		for _, dstate := range a.deployment.TaskGroups {
+			canaryIDs = append(canaryIDs, dstate.PlacedCanaries...)
 		}
 
 		canaries = all.fromKeys(canaryIDs)

@@ -2,14 +2,18 @@
 
 SECURITY:
 
- * build: Updated to Go 1.14.5. Go 1.14.4 contained 2 CVEs which are low severity for Nomad. [[GH-8441](https://github.com/hashicorp/nomad/issues/8441)]
+ * build: Updated to Go 1.14.6. Go 1.14.4 contained 2 CVEs which are low severity for Nomad. [[GH-8467](https://github.com/hashicorp/nomad/issues/8467)]
 
 BUG FIXES:
 
  * jobspec: Fixed validation of multi-region datacenters to allow empty region `datacenters` to default to job-level `datacenters`. [[GH-8426](https://github.com/hashicorp/nomad/issues/8426)]
+ * networking: Fixed a bug where a default network interface was not set for group networks if both `network_interface` and `host_network` were omitted. [[GH-8407](https://github.com/hashicorp/nomad/pull/8407)]
+ * scheduler: Fixed a bug in Nomad Enterprise where canaries were not being created during multi-region deployments. [[GH-8456](https://github.com/hashicorp/nomad/pull/8456)]
  * ui: Fixed order of column headers in client allocations table. [[GH-8409](https://github.com/hashicorp/nomad/pull/8409)]
  * ui: Fixed stale namespaces after changing acl tokens. [[GH-8413](https://github.com/hashicorp/nomad/issues/8413)]
+ * ui: Fixed inclusion of allocation when opening exec window. [[GH-8460](https://github.com/hashicorp/nomad/pull/8460)]
  * ui: Fixed missing namespace query param after changing acl tokens [[GH-8413](https://github.com/hashicorp/nomad/issues/8413)]
+ * ui: Fixed exec to derive group and task when possible from allocation. [[GH-8463](https://github.com/hashicorp/nomad/pull/8463)]
  * ui: Fixed runtime error when clicking "Run Job" while a prefix filter is set [[GH-8412](https://github.com/hashicorp/nomad/issues/8412)]
  * vault: Fixed a bug where vault identity policies not considered in permissions check [[GH-7732](https://github.com/hashicorp/nomad/issues/7732)]
 
