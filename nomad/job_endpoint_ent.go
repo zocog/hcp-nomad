@@ -114,7 +114,9 @@ func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *struc
 		req.Job.Version = newVersion
 		resp := &structs.JobRegisterResponse{}
 		err := j.Register(req, resp)
-		warnings = append(warnings, resp.Warnings)
+		if resp.Warnings != "" {
+			warnings = append(warnings, resp.Warnings)
+		}
 		if err != nil {
 			reply.Warnings = strings.Join(warnings, "\n")
 			return false, fmt.Errorf("could not register job %q in region %q: %w",
