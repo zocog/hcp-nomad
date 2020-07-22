@@ -91,6 +91,8 @@ func (c *Config) InstallFlags(flags *flag.FlagSet) {
 	flags.Var(&c.cmdConfig.AzureBlobEnvironment, "azure-blob-environment", "Environment to use. Defaults to AZUREPUBLICCLOUD. Other valid environments are AZURECHINACLOUD, AZUREGERMANCLOUD and AZUREUSGOVERNMENTCLOUD.")
 
 	// Google Cloud Storage librarian flags
+	flags.Var(&c.cmdConfig.GCSBucket, "google-bucket", "")
+	// deprecated, kept for compatibility
 	flags.Var(&c.cmdConfig.GCSBucket, "gcs-bucket", "")
 }
 
@@ -280,6 +282,8 @@ Azure Blob Storage Options: (Note: Non-Solaris platforms only)
                                         disables local storage.
   -azure-blob-environment        Environment to use. Defaults to AZUREPUBLICCLOUD. Other valid environments are 
                                         AZURECHINACLOUD, AZUREGERMANCLOUD and AZUREUSGOVERNMENTCLOUD.
+Google Storage Options:
+  -google-bucket           The bucket google to use
 `
 	return strings.ReplaceAll(text, "__PRODUCT__", product)
 }

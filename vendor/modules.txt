@@ -506,7 +506,7 @@ github.com/hashicorp/raft
 github.com/hashicorp/raft-boltdb
 # github.com/hashicorp/raft-snapshot v1.0.2
 github.com/hashicorp/raft-snapshot
-# github.com/hashicorp/raft-snapshotagent v0.0.0-20200619173010-bf0b429f9ade
+# github.com/hashicorp/raft-snapshotagent v0.0.0-20200722144111-4f9a8b6ca39e
 ## explicit
 github.com/hashicorp/raft-snapshotagent
 github.com/hashicorp/raft-snapshotagent/internal/flags
