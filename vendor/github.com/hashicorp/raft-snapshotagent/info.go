@@ -12,7 +12,7 @@ snapshot {
   deregister_after = "72h"
   lock_key         = "__PRODUCT__-snapshot/lock"
   max_failures     = 3
-  name_prefix      = "__PRODUCT__"
+  prefix           = "__PRODUCT__"
 }
 
 log {

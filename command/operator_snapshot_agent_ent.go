@@ -45,7 +45,7 @@ Usage: nomad operator snapshot agent [options] <config_file>
   The Config file has the following format (shown populated with default values):
 
 nomad {
-  http_addr       = "127.0.0.1:8500"
+  address         = "http://127.0.0.1:4646"
   token           = ""
   region          = ""
   ca_file         = ""
@@ -123,6 +123,9 @@ func (c *OperatorSnapshotAgentCommand) Run(args []string) int {
 	}
 	setDefault(&config.Nomad.HTTPAddr, c.Meta.flagAddress)
 	c.Meta.flagAddress = config.Nomad.HTTPAddr
+	if config.Nomad.Address != "" {
+		c.Meta.flagAddress = config.Nomad.Address
+	}
 	setDefault(&config.Nomad.Token, c.Meta.token)
 	c.Meta.token = config.Nomad.Token
 	setDefault(&config.Nomad.Region, c.Meta.region)
@@ -233,7 +236,8 @@ type NomadSnapshotAgentConfig struct {
 }
 
 type NomadConfig struct {
-	HTTPAddr      string `hcl:"http_addr,optional"`
+	Address       string `hcl:"address,optional"`
+	HTTPAddr      string `hcl:"http_addr,optional"` // deprecated in favor of address
 	Token         string `hcl:"token,optional"`
 	Region        string `hcl:"region,optional"`
 	CAFile        string `hcl:"ca_file,optional"`
