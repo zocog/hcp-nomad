@@ -1,0 +1,9 @@
+name: "My CodeQL config"
+
+disable-default-queries: true
+
+queries:
+ - name: Use external security and quality queries (Go)
+   uses: github/codeql-go/ql/src/codeql-suites/go-security-extended.qls@master
+ - name: Use external security and quality queries (Javascript)
+   uses: github/codeql/javascript/ql/src/codeql-suites/javascript-security-extended.qls@master
