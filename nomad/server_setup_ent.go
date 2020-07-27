@@ -120,3 +120,7 @@ func (s *Server) establishTemporaryLicenseMetadata() (int64, error) {
 	}
 	return timestamp, nil
 }
+
+func (s *Server) entVaultDelegate() *VaultNoopDelegate {
+	return &VaultNoopDelegate{}
+}
