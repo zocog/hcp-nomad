@@ -1,5 +1,10 @@
 ## 0.12.2 (Unreleased)
 
+BUG FIXES:
+
+ * api: added missing namespace field to scaling status GET response object [[GH-8527](https://github.com/hashicorp/nomad/issues/8527)]
+ * api: do not allow submission of jobs of type `system` that include task groups with scaling stanzas [[GH-8481](https://github.com/hashicorp/nomad/issues/8481)]
+
 ## 0.12.1 (July 23, 2020)
 
 SECURITY:
@@ -61,6 +66,7 @@ IMPROVEMENTS:
 * build: Updated to Go 1.14.4 [[GH-8172](https://github.com/hashicorp/nomad/issues/9172)]
 * build: Switched to Go modules for dependency management [[GH-8041](https://github.com/hashicorp/nomad/pull/8041)]
 * connect: Infer service task parameter where possible [[GH-8274](https://github.com/hashicorp/nomad/issues/8274)]
+* csi: Added `-force` flag to `nomad volume deregister` [[GH-8251](https://github.com/hashicorp/nomad/issues/8251)]
 * server: Added `raft_multiplier` config to tweak Raft related timeouts [[GH-8082](https://github.com/hashicorp/nomad/issues/8082)]
 
 BUG FIXES:
