@@ -7,6 +7,8 @@ GIT_DIRTY := $(if $(shell git status --porcelain),+CHANGES)
 
 GO_LDFLAGS := "-X github.com/hashicorp/nomad/version.GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
 GO_TAGS ?= ent consulent codegen_generated
+ON_PREM_MODULES_GO_TAGS ?= ent premmod consulent codegen_generated
+ON_PREM_PLATFORM_GO_TAGS ?= ent premplat consulent codegen_generated
 
 GO_TEST_CMD = $(if $(shell command -v gotestsum 2>/dev/null),gotestsum --,go test)
 
@@ -287,6 +289,42 @@ dev: changelogfmt hclfmt ## Build for the current development platform
 	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(PROJECT_ROOT)/bin/
 	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(GOPATH)/bin
 
+.PHONY: premplatdev
+premplatdev: GOOS=$(shell go env GOOS)
+premplatdev: GOARCH=$(shell go env GOARCH)
+premplatdev: GOPATH=$(shell go env GOPATH)
+premplatdev: DEV_TARGET=pkg/$(GOOS)_$(GOARCH)/nomad
+premplatdev: changelogfmt hclfmt ## Build for the current development platform
+	@echo "==> Removing old development build..."
+	@rm -f $(PROJECT_ROOT)/$(DEV_TARGET)
+	@rm -f $(PROJECT_ROOT)/bin/nomad
+	@rm -f $(GOPATH)/bin/nomad
+	@$(MAKE) --no-print-directory \
+		$(DEV_TARGET) \
+		GO_TAGS="$(ON_PREM_PLATFORM_GO_TAGS) $(NOMAD_UI_TAG)"
+	@mkdir -p $(PROJECT_ROOT)/bin
+	@mkdir -p $(GOPATH)/bin
+	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(PROJECT_ROOT)/bin/
+	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(GOPATH)/bin
+
+.PHONY: premmoddev
+premplatdev: GOOS=$(shell go env GOOS)
+premplatdev: GOARCH=$(shell go env GOARCH)
+premplatdev: GOPATH=$(shell go env GOPATH)
+premplatdev: DEV_TARGET=pkg/$(GOOS)_$(GOARCH)/nomad
+premplatdev: changelogfmt hclfmt ## Build for the current development platform
+	@echo "==> Removing old development build..."
+	@rm -f $(PROJECT_ROOT)/$(DEV_TARGET)
+	@rm -f $(PROJECT_ROOT)/bin/nomad
+	@rm -f $(GOPATH)/bin/nomad
+	@$(MAKE) --no-print-directory \
+		$(DEV_TARGET) \
+		GO_TAGS="$(ON_PREM_MODULES_GO_TAGS) $(NOMAD_UI_TAG)"
+	@mkdir -p $(PROJECT_ROOT)/bin
+	@mkdir -p $(GOPATH)/bin
+	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(PROJECT_ROOT)/bin/
+	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(GOPATH)/bin
+
 .PHONY: prerelease
 prerelease: GO_TAGS=ui codegen_generated release ent consulent
 prerelease: generate-all ember-dist static-assets ## Generate all the static assets for a Nomad release
@@ -294,6 +332,18 @@ prerelease: generate-all ember-dist static-assets ## Generate all the static ass
 .PHONY: release
 release: GO_TAGS=ui codegen_generated release ent consulent
 release: clean $(foreach t,$(ALL_TARGETS),pkg/$(t).zip) ## Build all release packages which can be built on this platform.
+	@echo "==> Results:"
+	@tree --dirsfirst $(PROJECT_ROOT)/pkg
+
+.PHONY: premplatrelease
+premplatrelease: GO_TAGS=ui codegen_generated release ent consulent on_prem_platform
+premplatrelease: clean $(foreach t,$(ALL_TARGETS),pkg/$(t).zip) ## Build all release packages which can be built on this platform.
+	@echo "==> Results:"
+	@tree --dirsfirst $(PROJECT_ROOT)/pkg
+
+.PHONY: premmodrelease
+premmodrelease: GO_TAGS=ui codegen_generated release ent consulent on_prem_modules
+premmodrelease: clean $(foreach t,$(ALL_TARGETS),pkg/$(t).zip) ## Build all release packages which can be built on this platform.
 	@echo "==> Results:"
 	@tree --dirsfirst $(PROJECT_ROOT)/pkg
 

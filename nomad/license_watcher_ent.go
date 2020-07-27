@@ -29,6 +29,8 @@ var (
 	// manually, e.g. upon upgrades from non-licensed versions.
 	// This value gets evaluated twice to be extra cautious
 	defaultExpiredTmpGrace = 1 * time.Minute
+
+	permanentLicenseID = "permanent"
 )
 
 type LicenseWatcher struct {
@@ -169,8 +171,7 @@ func (w *LicenseWatcher) hasFeature(feature license.Features) bool {
 }
 
 func watcherStartupOpts(cfg *LicenseConfig) (*licensing.License, *licensing.WatcherOptions, error) {
-	flags := temporaryFlags()
-	tempLicense, signed, pubKey, err := licensing.TemporaryLicenseInfo(license.ProductName, flags, temporaryLicenseTimeLimit)
+	tempLicense, signed, pubKey, err := temporaryLicenseInfo()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed creating temporary license: %w", err)
 	}
@@ -227,6 +228,9 @@ func (w *LicenseWatcher) watch(ctx context.Context, state *state.StateStore) {
 			if _, err := w.watcher.SetLicense(stored.Signed); err != nil {
 				w.logger.Error("failed setting license", "error", err)
 			}
+		}
+		if !paidLicense && w.License().LicenseID == permanentLicenseID {
+			paidLicense = true
 		}
 		if !paidLicense && tempLicenseTooOld(tmpLicenseInitTime) {
 			// The server is not brand new, the cluster age is too old
