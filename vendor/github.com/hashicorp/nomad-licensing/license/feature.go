@@ -40,6 +40,9 @@ const (
 	// snapshot agent
 	FeatureAutoBackups
 
+	// multiple vault namespaces
+	FeatureMultiVaultNamespaces
+
 	// Should always be last, add features above.
 	numOfFeatures uint = iota
 )
@@ -64,6 +67,8 @@ func (f Features) String() string {
 		return "Multiregion Deployments"
 	case FeatureAutoBackups:
 		return "Automated Backups"
+	case FeatureMultiVaultNamespaces:
+		return "Multi-Vault Namespaces"
 	default:
 		return "Unknown"
 	}

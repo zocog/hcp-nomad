@@ -46,7 +46,8 @@ func ModuleFromString(module string) (Module, error) {
 
 // ModulePlatform represents the features that are delivered in all versions of Nomad Enterprise
 const (
-	PlatformFeatures Features = FeatureAutoUpgrades | FeatureReadScalability | FeatureRedundancyZones | FeatureAutoBackups
+	PlatformFeatures Features = FeatureAutoUpgrades | FeatureReadScalability |
+		FeatureRedundancyZones | FeatureAutoBackups | FeatureMultiVaultNamespaces
 )
 
 // Features returns all the features for a module

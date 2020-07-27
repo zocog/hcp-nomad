@@ -1,6 +1,7 @@
 package license
 
 import (
+	"bytes"
 	"encoding/json"
 
 	"github.com/hashicorp/go-licensing"
@@ -81,7 +82,7 @@ type Flags struct {
 
 // UnmarshalJSON is a custom unmarshaller for LicenseFlags
 func (f *Flags) UnmarshalJSON(data []byte) error {
-	if err := json.Unmarshal(data, &f.flagsRaw); err != nil {
+	if err := strictUnmarshal(data, &f.flagsRaw); err != nil {
 		return err
 	}
 
@@ -119,7 +120,7 @@ type features struct {
 
 // UnmarshalJSON is a custom unmarshaller for Features
 func (f *features) UnmarshalJSON(data []byte) error {
-	if err := json.Unmarshal(data, &f.featuresRaw); err != nil {
+	if err := strictUnmarshal(data, &f.featuresRaw); err != nil {
 		return err
 	}
 	for _, a := range f.Add {
@@ -139,4 +140,11 @@ func (f *features) UnmarshalJSON(data []byte) error {
 		f.remove.AddFeature(feature)
 	}
 	return nil
+}
+
+func strictUnmarshal(data []byte, v interface{}) error {
+	reader := bytes.NewReader(data)
+	decoder := json.NewDecoder(reader)
+	decoder.DisallowUnknownFields()
+	return decoder.Decode(v)
 }
