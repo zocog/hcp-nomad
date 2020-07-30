@@ -1,9 +1,15 @@
 ## 0.12.2 (Unreleased)
 
+FEATURES:
+
+ * **Multiple Vault Namespaces (Enterprise)**: Support for multiple Vault Namespaces [[GH-8453](https://github.com/hashicorp/nomad/issues/8453)]
+ * **Scaling Observability UI**: View changes in task group scale (both manual and automatic) over time. [[GH-8551](https://github.com/hashicorp/nomad/issues/8551)]
+
 BUG FIXES:
 
- * api: added missing namespace field to scaling status GET response object [[GH-8527](https://github.com/hashicorp/nomad/issues/8527)]
- * api: do not allow submission of jobs of type `system` that include task groups with scaling stanzas [[GH-8481](https://github.com/hashicorp/nomad/issues/8481)]
+ * api: Added missing namespace field to scaling status GET response object [[GH-8527](https://github.com/hashicorp/nomad/issues/8527)]
+ * api: Do not allow submission of jobs of type `system` that include task groups with scaling stanzas [[GH-8481](https://github.com/hashicorp/nomad/issues/8481)]
+ * vault: Fixed a bug where upgrades from pre-0.11.3 that use Vault can lead to memory spikes and write large Raft messages. [[GH-8553](https://github.com/hashicorp/nomad/issues/8553)]
 
 ## 0.12.1 (July 23, 2020)
 
