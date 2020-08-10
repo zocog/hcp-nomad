@@ -363,10 +363,10 @@ github.com/hashicorp/consul-template/signals
 github.com/hashicorp/consul-template/template
 github.com/hashicorp/consul-template/version
 github.com/hashicorp/consul-template/watch
-# github.com/hashicorp/consul/api v1.4.0
+# github.com/hashicorp/consul/api v1.4.1-0.20200730220852-12f574c9de39
 ## explicit
 github.com/hashicorp/consul/api
-# github.com/hashicorp/consul/sdk v0.4.0
+# github.com/hashicorp/consul/sdk v0.5.0
 ## explicit
 github.com/hashicorp/consul/sdk/freeport
 github.com/hashicorp/consul/sdk/testutil
@@ -548,7 +548,7 @@ github.com/hashicorp/sentinel-sdk/encoding
 github.com/hashicorp/sentinel-sdk/framework
 github.com/hashicorp/sentinel-sdk/proto/go
 github.com/hashicorp/sentinel-sdk/rpc
-# github.com/hashicorp/serf v0.9.2
+# github.com/hashicorp/serf v0.9.3
 ## explicit
 github.com/hashicorp/serf/coordinate
 github.com/hashicorp/serf/serf
