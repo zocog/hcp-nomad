@@ -552,20 +552,6 @@ func (v *CSIVolume) Unpublish(args *structs.CSIVolumeUnpublishRequest, reply *st
 	claim := args.Claim
 	claim.Mode = structs.CSIVolumeClaimRelease
 
-	// we send a controller detach if a Nomad client no longer has
-	// any claim to the volume, so track the counts here
-	var nodeClaims int
-	for _, alloc := range vol.ReadAllocs {
-		if alloc != nil && alloc.NodeID == claim.NodeID {
-			nodeClaims++
-		}
-	}
-	for _, alloc := range vol.WriteAllocs {
-		if alloc != nil && alloc.NodeID == claim.NodeID {
-			nodeClaims++
-		}
-	}
-
 	// previous checkpoints may have set the past claim state already.
 	// in practice we should never see CSIVolumeClaimStateControllerDetached
 	// but having an option for the state makes it easy to add a checkpoint
@@ -584,8 +570,7 @@ func (v *CSIVolume) Unpublish(args *structs.CSIVolumeUnpublishRequest, reply *st
 	}
 
 NODE_DETACHED:
-	nodeClaims--
-	err = v.controllerUnpublishVolume(vol, claim, nodeClaims)
+	err = v.controllerUnpublishVolume(vol, claim)
 	if err != nil {
 		return err
 	}
@@ -620,9 +605,7 @@ func (v *CSIVolume) nodeUnpublishVolume(vol *structs.CSIVolume, claim *structs.C
 		// we should only get this error if the Nomad node disconnects and
 		// is garbage-collected, so at this point we don't have any reason
 		// to operate as though the volume is attached to it.
-		if !errors.Is(err, fmt.Errorf("Unknown node: %s", claim.NodeID)) {
-			// TODO(tgross): need to capture case where NodeUnpublish previously
-			// happened but we failed to checkpoint for some reason
+		if !errors.Is(err, structs.ErrUnknownNode) {
 			return fmt.Errorf("could not detach from node: %w", err)
 		}
 	}
@@ -630,13 +613,32 @@ func (v *CSIVolume) nodeUnpublishVolume(vol *structs.CSIVolume, claim *structs.C
 	return v.checkpointClaim(vol, claim)
 }
 
-func (v *CSIVolume) controllerUnpublishVolume(vol *structs.CSIVolume, claim *structs.CSIVolumeClaim, nodeClaims int) error {
+func (v *CSIVolume) controllerUnpublishVolume(vol *structs.CSIVolume, claim *structs.CSIVolumeClaim) error {
 
-	// we can drop the claim without sending the controller detach if
-	// another node has a claim on the volume
-	if !vol.ControllerRequired || nodeClaims >= 1 {
+	if !vol.ControllerRequired {
 		claim.State = structs.CSIVolumeClaimStateReadyToFree
 		return nil
+	}
+
+	// we only send a controller detach if a Nomad client no longer has
+	// any claim to the volume, so we need to check the status of claimed
+	// allocations
+	state := v.srv.fsm.State()
+	vol, err := state.CSIVolumeDenormalize(memdb.NewWatchSet(), vol)
+	if err != nil {
+		return err
+	}
+	for _, alloc := range vol.ReadAllocs {
+		if alloc != nil && alloc.NodeID == claim.NodeID && !alloc.TerminalStatus() {
+			claim.State = structs.CSIVolumeClaimStateReadyToFree
+			return nil
+		}
+	}
+	for _, alloc := range vol.WriteAllocs {
+		if alloc != nil && alloc.NodeID == claim.NodeID && !alloc.TerminalStatus() {
+			claim.State = structs.CSIVolumeClaimStateReadyToFree
+			return nil
+		}
 	}
 
 	// if the RPC is sent by a client node, it doesn't know the claim's
@@ -655,11 +657,9 @@ func (v *CSIVolume) controllerUnpublishVolume(vol *structs.CSIVolume, claim *str
 		Secrets:         vol.Secrets,
 	}
 	req.PluginID = vol.PluginID
-	err := v.srv.RPC("ClientCSI.ControllerDetachVolume", req,
+	err = v.srv.RPC("ClientCSI.ControllerDetachVolume", req,
 		&cstructs.ClientCSIControllerDetachVolumeResponse{})
 	if err != nil {
-		// TODO(tgross): need to capture case where ControllerUnpublish previously
-		// happened but we failed to checkpoint for some reason
 		return fmt.Errorf("could not detach from controller: %v", err)
 	}
 	claim.State = structs.CSIVolumeClaimStateReadyToFree
@@ -700,7 +700,7 @@ func (v *CSIVolume) lookupExternalNodeID(vol *structs.CSIVolume, claim *structs.
 	// get the the storage provider's ID for the client node (not
 	// Nomad's ID for the node)
 	targetCSIInfo, ok := targetNode.CSINodePlugins[vol.PluginID]
-	if !ok {
+	if !ok || targetCSIInfo.NodeInfo == nil {
 		return "", fmt.Errorf("failed to find storage provider info for client %q, node plugin %q is not running or has not fingerprinted on this client", targetNode.ID, vol.PluginID)
 	}
 	return targetCSIInfo.NodeInfo.ID, nil
