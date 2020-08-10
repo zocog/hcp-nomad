@@ -308,11 +308,11 @@ premplatdev: changelogfmt hclfmt ## Build for the current development platform
 	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(GOPATH)/bin
 
 .PHONY: premmoddev
-premplatdev: GOOS=$(shell go env GOOS)
-premplatdev: GOARCH=$(shell go env GOARCH)
-premplatdev: GOPATH=$(shell go env GOPATH)
-premplatdev: DEV_TARGET=pkg/$(GOOS)_$(GOARCH)/nomad
-premplatdev: changelogfmt hclfmt ## Build for the current development platform
+premmoddev: GOOS=$(shell go env GOOS)
+premmoddev: GOARCH=$(shell go env GOARCH)
+premmoddev: GOPATH=$(shell go env GOPATH)
+premmoddev: DEV_TARGET=pkg/$(GOOS)_$(GOARCH)/nomad
+premmoddev: changelogfmt hclfmt ## Build for the current development platform
 	@echo "==> Removing old development build..."
 	@rm -f $(PROJECT_ROOT)/$(DEV_TARGET)
 	@rm -f $(PROJECT_ROOT)/bin/nomad
