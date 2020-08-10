@@ -201,19 +201,28 @@ func (j *Job) multiregionStart(args *structs.JobRegisterRequest, reply *structs.
 	// created a deployment before starting any one of them
 	for _, region := range args.Job.Multiregion.Regions {
 		if jobIsMultiregionStarter(job, region.Name) {
-			req := &structs.JobSpecificRequest{JobID: job.ID}
-			req.Region = region.Name
-			req.AuthToken = args.AuthToken
-
+			req := &structs.JobSpecificRequest{
+				JobID: job.ID,
+				QueryOptions: structs.QueryOptions{
+					Region:    region.Name,
+					Namespace: job.Namespace,
+					AuthToken: args.AuthToken,
+				},
+			}
 			deploymentID, err := j.deploymentIDForJobVersion(req, version)
 			if err != nil {
 				return fmt.Errorf("could not find deployment for job %q in region %q: %w",
 					job.ID, region.Name, err)
 			}
 
-			runReq := &structs.DeploymentRunRequest{DeploymentID: deploymentID}
-			runReq.Region = region.Name
-			runReq.AuthToken = args.AuthToken
+			runReq := &structs.DeploymentRunRequest{
+				DeploymentID: deploymentID,
+				WriteRequest: structs.WriteRequest{
+					Region:    region.Name,
+					Namespace: job.Namespace,
+					AuthToken: args.AuthToken,
+				},
+			}
 			runReqs = append(runReqs, runReq)
 		}
 	}

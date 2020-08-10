@@ -230,13 +230,18 @@ func (w *deploymentWatcher) nextRegion(status string) error {
 // we'll set our state to match and return the error. All other errors fail
 // the deployment and are returned.
 func (w *deploymentWatcher) runDeployment(otherID string, region string) error {
-	args := &structs.DeploymentRunRequest{DeploymentID: otherID}
-	args.Region = region
 	token, err := w.tokenForJob()
 	if err != nil {
 		return fmt.Errorf("failed to run deploy in peer region: %v", err)
 	}
-	args.AuthToken = token
+	args := &structs.DeploymentRunRequest{
+		DeploymentID: otherID,
+		WriteRequest: structs.WriteRequest{
+			Region:    region,
+			Namespace: w.j.Namespace,
+			AuthToken: token,
+		},
+	}
 	err = w.Run(args, &structs.DeploymentUpdateResponse{})
 
 	if err != nil {
@@ -292,13 +297,19 @@ func (w *deploymentWatcher) tokenForJob() (string, error) {
 // or running, we'll set our state and return the error. All other errors fail
 // the deployment and are returned.
 func (w *deploymentWatcher) unblockDeployment(otherID, region string) error {
-	args := &structs.DeploymentUnblockRequest{DeploymentID: otherID}
-	args.Region = region
+
 	token, err := w.tokenForJob()
 	if err != nil {
 		return fmt.Errorf("failed to unblock deploy in peer region: %v", err)
 	}
-	args.AuthToken = token
+	args := &structs.DeploymentUnblockRequest{
+		DeploymentID: otherID,
+		WriteRequest: structs.WriteRequest{
+			Region:    region,
+			Namespace: w.j.Namespace,
+			AuthToken: token,
+		},
+	}
 	err = w.Unblock(args, &structs.DeploymentUpdateResponse{})
 	if err != nil {
 		switch err {
@@ -403,24 +414,34 @@ func (w *deploymentWatcher) abort(regions []string, abortImpl abortFunc) error {
 type abortFunc func(string, string) error
 
 func (w *deploymentWatcher) cancelImpl(id string, region string) error {
-	args := &structs.DeploymentCancelRequest{DeploymentID: id}
-	args.Region = region
 	token, err := w.tokenForJob()
 	if err != nil {
 		return fmt.Errorf("failed to cancel deploy in peer region: %v", err)
 	}
-	args.AuthToken = token
+	args := &structs.DeploymentCancelRequest{
+		DeploymentID: id,
+		WriteRequest: structs.WriteRequest{
+			Region:    region,
+			Namespace: w.j.Namespace,
+			AuthToken: token,
+		},
+	}
 	return w.Cancel(args, &structs.DeploymentUpdateResponse{})
 }
 
 func (w *deploymentWatcher) failImpl(id string, region string) error {
-	args := &structs.DeploymentFailRequest{DeploymentID: id}
-	args.Region = region
 	token, err := w.tokenForJob()
 	if err != nil {
 		return fmt.Errorf("failed to fail deploy in peer region: %v", err)
 	}
-	args.AuthToken = token
+	args := &structs.DeploymentFailRequest{
+		DeploymentID: id,
+		WriteRequest: structs.WriteRequest{
+			Region:    region,
+			Namespace: w.j.Namespace,
+			AuthToken: token,
+		},
+	}
 	return w.Fail(args, &structs.DeploymentUpdateResponse{})
 }
 
@@ -429,13 +450,18 @@ func isLastRegion(regions []string, region string) bool {
 }
 
 func (w *deploymentWatcher) deploymentForJobVersion(jobID string, version uint64, region string) (*structs.Deployment, error) {
-	args := &structs.JobSpecificRequest{JobID: jobID}
-	args.Region = region
 	token, err := w.tokenForJob()
 	if err != nil {
 		return nil, err
 	}
-	args.AuthToken = token
+	args := &structs.JobSpecificRequest{
+		JobID: jobID,
+		QueryOptions: structs.QueryOptions{
+			Namespace: w.j.Namespace,
+			Region:    region,
+			AuthToken: token,
+		},
+	}
 	reply := &structs.DeploymentListResponse{}
 
 	// Query the remote region, with retries and backoff
