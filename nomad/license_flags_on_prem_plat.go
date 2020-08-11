@@ -16,9 +16,9 @@ func temporaryFlags() map[string]interface{} {
 	return map[string]interface{}{}
 }
 
-func temporaryLicenseInfo() (license *licensing.License, signed, pubKey string, err error) {
+func temporaryLicenseInfo() (l *licensing.License, signed, pubKey string, err error) {
 	now := time.Now()
-	l := &licensing.License{
+	l = &licensing.License{
 		LicenseID:       permanentLicenseID,
 		CustomerID:      permanentLicenseID,
 		InstallationID:  "*",

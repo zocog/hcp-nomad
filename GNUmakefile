@@ -7,8 +7,8 @@ GIT_DIRTY := $(if $(shell git status --porcelain),+CHANGES)
 
 GO_LDFLAGS := "-X github.com/hashicorp/nomad/version.GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
 GO_TAGS ?= ent consulent codegen_generated
-ON_PREM_MODULES_GO_TAGS ?= ent premmod consulent codegen_generated
-ON_PREM_PLATFORM_GO_TAGS ?= ent premplat consulent codegen_generated
+ON_PREM_MODULES_GO_TAGS ?= ent on_prem_modules consulent codegen_generated
+ON_PREM_PLATFORM_GO_TAGS ?= ent on_prem_platform consulent codegen_generated
 
 GO_TEST_CMD = $(if $(shell command -v gotestsum 2>/dev/null),gotestsum --,go test)
 

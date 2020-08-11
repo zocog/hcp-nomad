@@ -21,18 +21,18 @@ func temporaryFlags() map[string]interface{} {
 	}
 }
 
-func temporaryLicenseInfo() (license *licensing.License, signed, pubkey string, err error) {
+func temporaryLicenseInfo() (l *licensing.License, signed, pubKey string, err error) {
 	now := time.Now()
-	l := &licensing.License{
-		LicenseID:      permanentLicenseID,
-		CustomerID:     permanentLicenseID,
-		InstallationID: "*",
-		Product:        nomadLicense.ProductName,
-		IssueTime:      now,
-		StartTime:      now,
-		ExpirationTime: 30 * 365 * 24 * time.Hour,
-		ExpirationTime: 30 * 365 * 24 * time.Hour,
-		Flags:          temporaryFlags(),
+	l = &licensing.License{
+		LicenseID:       permanentLicenseID,
+		CustomerID:      permanentLicenseID,
+		InstallationID:  "*",
+		Product:         nomadLicense.ProductName,
+		IssueTime:       now,
+		StartTime:       now,
+		ExpirationTime:  now.Add(30 * 365 * 24 * time.Hour),
+		TerminationTime: now.Add(30 * 365 * 24 * time.Hour),
+		Flags:           temporaryFlags(),
 	}
 
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
