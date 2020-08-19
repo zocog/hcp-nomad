@@ -6,9 +6,9 @@ orbs:
 references:
   # environment specific references - aim to avoid conflicts
   go-machine-image: &go_machine_image
-    default
+    circleci/classic:201808-01
   go-machine-recent-image: &go_machine_recent_image
-    default
+    ubuntu-1604:201903-01
   go-windows-image: &go_windows_image
     windows-server-2019-vs2019:stable
 
