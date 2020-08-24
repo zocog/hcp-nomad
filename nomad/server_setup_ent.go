@@ -68,13 +68,13 @@ func (s *Server) setupEnterprise(config *Config) error {
 
 	s.setupEnterpriseAutopilot(config)
 
-	licenseWatcher, err := NewLicenseWatcher(s.logger, config.LicenseConfig, config.AgentShutdown, s.establishTemporaryLicenseMetadata)
+	licenseWatcher, err := NewLicenseWatcher(s.logger, config.LicenseConfig, config.AgentShutdown, s.establishTemporaryLicenseMetadata, s.State)
 	if err != nil {
 		return fmt.Errorf("failed to create a new license watcher: %w", err)
 	}
 	s.EnterpriseState.licenseWatcher = licenseWatcher
 	if !config.LicenseConfig.preventStart {
-		s.EnterpriseState.licenseWatcher.start(s.shutdownCtx, s.State())
+		s.EnterpriseState.licenseWatcher.start(s.shutdownCtx)
 	}
 	return nil
 }

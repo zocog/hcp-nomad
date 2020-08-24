@@ -3,6 +3,7 @@
 package nomad
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -177,7 +178,7 @@ func TestLicenseWatcher_FeatureCheck(t *testing.T) {
 			lw := s1.EnterpriseState.licenseWatcher
 
 			ctx, cancel := context.WithCancel(context.Background())
-			lw.start(ctx, state)
+			lw.start(ctx)
 			defer cancel()
 
 			flags := map[string]interface{}{
@@ -289,11 +290,10 @@ func TestLicenseWatcher_InitLicense(t *testing.T) {
 		}
 	})
 	defer cleanupS1()
-	state := s1.State()
 	lw := s1.EnterpriseState.licenseWatcher
 
 	ctx, cancel := context.WithCancel(context.Background())
-	lw.start(ctx, state)
+	lw.start(ctx)
 	defer cancel()
 
 	require.True(t, lw.License().Temporary)
@@ -337,7 +337,7 @@ func TestLicenseWatcher_Init_LoadRaft(t *testing.T) {
 
 	prev := lw.License().LicenseID
 	// start license watcher
-	lw.start(s1.shutdownCtx, state)
+	lw.start(s1.shutdownCtx)
 
 	waitForLicense(t, lw, prev)
 	// Ensure we have the license from raft
@@ -371,7 +371,7 @@ func TestLicenseWatcher_Init_ExpiredTemp_Shutdown(t *testing.T) {
 		CreateTime: time.Now().Add(-24 * time.Hour).UnixNano()})
 	require.NoError(t, err)
 
-	lw.start(s1.shutdownCtx, state)
+	lw.start(s1.shutdownCtx)
 
 	select {
 	case <-executed:
@@ -408,7 +408,7 @@ func TestLicenseWatcher_Init_ExpiredTemp_Shutdown_Cancelled(t *testing.T) {
 		CreateTime: time.Now().Add(-24 * time.Hour).UnixNano()})
 	require.NoError(t, err)
 
-	lw.start(s1.shutdownCtx, state)
+	lw.start(s1.shutdownCtx)
 
 	// apply a new license
 	newLicense := license.NewTestLicense(license.TestGovernancePolicyFlags())
@@ -460,7 +460,7 @@ func TestLicenseWatcher_Init_ExpiredValid_License(t *testing.T) {
 	state := s1.State()
 	lw := s1.EnterpriseState.licenseWatcher
 
-	lw.start(s1.shutdownCtx, state)
+	lw.start(s1.shutdownCtx)
 
 	// Set expiration time
 	existingLicense := license.NewTestLicense(license.TestGovernancePolicyFlags())
@@ -611,4 +611,87 @@ func TestTempLicense_Cluster_LicenseMeta(t *testing.T) {
 
 	require.Equal(t, t1, t2)
 	require.Equal(t, t2, t3)
+}
+
+// TestLicenseWatcher_StateRestore ensures that an already running
+// license watcher will be be notified and properly update if a server restores
+// it's state from a snapshot
+func TestLicenseWatcher_StateRestore(t *testing.T) {
+	t.Parallel()
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+			preventStart:      true,
+		}
+	})
+	defer cleanupS1()
+
+	// s2 will be used to store license and create a snapshot for s1 to restore from
+	s2, cleanupS2 := TestServer(t, func(c *Config) {
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+			preventStart:      true,
+		}
+	})
+	defer cleanupS2()
+
+	s1State := s1.State()
+	s2State := s2.State()
+
+	// executed and shutdown are used to track if the license watcher
+	// intends to shutdown a server
+	executed := make(chan struct{})
+	shutdown := func() error { close(executed); return nil }
+
+	lw := s1.EnterpriseState.licenseWatcher
+	lw.shutdownCallback = shutdown
+	lw.expiredTmpGrace = 1 * time.Second
+
+	// Set the tmp license create time in the past
+	err := s1State.TmpLicenseSetMeta(10, &structs.TmpLicenseMeta{
+		CreateTime: time.Now().Add(-24 * time.Hour).UnixNano()})
+	require.NoError(t, err)
+
+	err = s2State.TmpLicenseSetMeta(10, &structs.TmpLicenseMeta{
+		CreateTime: time.Now().Add(-24 * time.Hour).UnixNano()})
+	require.NoError(t, err)
+
+	// Start the license watcher
+	lw.start(s1.shutdownCtx)
+
+	// Store a valid license on s2
+	newLicense := license.NewTestLicense(license.TestGovernancePolicyFlags())
+	stored := &structs.StoredLicense{
+		Signed:      newLicense.Signed,
+		CreateIndex: uint64(1000),
+	}
+	s2State.UpsertLicense(1001, stored)
+	require.NoError(t, err)
+
+	// Create a new snapshot from s2
+	snap, err := s2.fsm.Snapshot()
+	require.NoError(t, err)
+
+	// Persist the snapshot
+	buf := bytes.NewBuffer(nil)
+	sink := &MockSink{buf, false}
+	require.NoError(t, snap.Persist(sink))
+
+	// Ensure the current license is still the temporary one
+	require.Equal(t, lw.License().LicenseID, "temporary-license")
+
+	// Restore the snapshot into s1 while the license watcher is running
+	err = s1.fsm.Restore(sink)
+	require.NoError(t, err)
+
+	waitForLicense(t, lw, previousID(t, lw))
+
+	require.Equal(t, lw.License().LicenseID, "new-temp-license")
+
+	select {
+	case <-executed:
+		require.Fail(t, "license watcher should not have closed")
+	default:
+		// Pass
+	}
 }

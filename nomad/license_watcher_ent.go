@@ -33,6 +33,8 @@ var (
 	permanentLicenseID = "permanent"
 )
 
+type stateStoreFn func() *state.StateStore
+
 type LicenseWatcher struct {
 	// once ensures watch is only invoked once
 	once sync.Once
@@ -62,6 +64,8 @@ type LicenseWatcher struct {
 	logTimes map[license.Features]time.Time
 
 	establishTmpLicenseMetaFn func() (int64, error)
+
+	stateStoreFn stateStoreFn
 }
 
 func NewLicenseWatcher(
@@ -69,6 +73,7 @@ func NewLicenseWatcher(
 	cfg *LicenseConfig,
 	shutdownCallback func() error,
 	tmpLicenseMetaFn func() (int64, error),
+	stateStoreFn stateStoreFn,
 ) (*LicenseWatcher, error) {
 	// Configure the setup options for the license watcher
 	tmpLicense, opts, err := watcherStartupOpts(cfg)
@@ -98,6 +103,7 @@ func NewLicenseWatcher(
 		logger:                    logger.Named("licensing"),
 		logTimes:                  make(map[license.Features]time.Time),
 		establishTmpLicenseMetaFn: tmpLicenseMetaFn,
+		stateStoreFn:              stateStoreFn,
 	}
 
 	lw.license.Store(nomadTmpLicense)
@@ -186,18 +192,21 @@ func watcherStartupOpts(cfg *LicenseConfig) (*licensing.License, *licensing.Watc
 
 // start the license watching process in a goroutine. Callers are responsible
 // for ensuring it is shut down properly
-func (w *LicenseWatcher) start(ctx context.Context, state *state.StateStore) {
+func (w *LicenseWatcher) start(ctx context.Context) {
 	w.once.Do(func() {
-		go w.watch(ctx, state)
+		go w.watch(ctx)
 	})
 }
 
-func (w *LicenseWatcher) watch(ctx context.Context, state *state.StateStore) {
+func (w *LicenseWatcher) watch(ctx context.Context) {
+	state := w.stateStoreFn()
+	stateAbandonCh := state.AbandonCh()
+
 	// Block for the temporary license metadata to be populated to raft
 	// This value is used to check if a temporary license is within
 	// the initial 6 hour evaluation period
 	tmpLicenseInitTime := w.getOrSetTmpLicenseMeta(ctx, state)
-	w.logger.Debug("received temporary license metadata", "init time", tmpLicenseInitTime)
+	w.logger.Info("received temporary license metadata", "init time", tmpLicenseInitTime)
 
 	// paidLicense indicates if a valid, non-temporary license has been set.
 	// If true, agent should not be shutdown.
@@ -212,10 +221,18 @@ func (w *LicenseWatcher) watch(ctx context.Context, state *state.StateStore) {
 		case <-ctx.Done():
 			w.watcher.Stop()
 			return
+		case <-stateAbandonCh:
+			w.logger.Debug("current state abandoned by newer one, getting latest state")
+			state = w.stateStoreFn()
+			stateAbandonCh = state.AbandonCh()
 		default:
 		}
 
+		// Add the current state's abandonCh to watchset to signal if the given
+		// state store has been abandoned.
 		watchSet := memdb.NewWatchSet()
+		watchSet.Add(stateAbandonCh)
+
 		stored, err := state.License(watchSet)
 		if err != nil {
 			w.logger.Error("failed fetching license from state store", "error", err)
@@ -253,16 +270,16 @@ func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, 
 	// the context is canceled, and the function can exit.
 	case err := <-wsCh:
 		if err == nil {
-			w.logger.Debug("retreiving new license")
+			w.logger.Info("received notification from license watch channel, querying license..")
 		} else {
 			w.logger.Error("received from license watchset", "error", err)
 		}
 
 	// Handle updated license from the watcher
 	case lic := <-w.watcher.UpdateCh():
-		w.logger.Debug("received update from license manager")
+		w.logger.Info("received update from license manager")
 
-		// Check if watcher has a license and if it needs to be upated
+		// Check if watcher has a license and if it needs to be updated
 		watcherLicense := w.License()
 		if watcherLicense == nil || !watcherLicense.Equal(lic) {
 			// Update license
@@ -301,7 +318,7 @@ func (w *LicenseWatcher) getOrSetTmpLicenseMeta(ctx context.Context, state *stat
 	for {
 		select {
 		case <-ctx.Done():
-			w.logger.Debug("context cancelled while waiting for temporary license metadata")
+			w.logger.Warn("context cancelled while waiting for temporary license metadata")
 			return time.Now()
 		case err := <-w.watcher.ErrorCh():
 			w.logger.Warn("received error from license watcher", "err", err)
@@ -309,7 +326,7 @@ func (w *LicenseWatcher) getOrSetTmpLicenseMeta(ctx context.Context, state *stat
 		case <-interval:
 			tmpCreateTime, err := w.establishTmpLicenseMetaFn()
 			if err != nil {
-				w.logger.Debug("failed to get or set temporary license metadata, retrying...", "error", err)
+				w.logger.Info("failed to get or set temporary license metadata, retrying...", "error", err)
 				interval = time.After(2 * time.Second)
 				continue
 			}
@@ -335,7 +352,7 @@ func (w *LicenseWatcher) monitorExpiredTmpLicense(ctx context.Context) {
 				w.logger.Error("cluster will shutdown soon. Please apply a valid license")
 			} else {
 				// This shouldn't happen but being careful to prevent bad shutdown
-				w.logger.Debug("never received monitor ctx cancellation update but license is no longer temporary")
+				w.logger.Error("never received monitor ctx cancellation update but license is no longer temporary")
 				return
 			}
 		}
