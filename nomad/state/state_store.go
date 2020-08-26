@@ -1448,6 +1448,12 @@ func (s *StateStore) upsertJobImpl(index uint64, job *structs.Job, keepVersion b
 		return fmt.Errorf("unable to update job scaling policies: %v", err)
 	}
 
+	if existingJob != nil && existingJob.Version != job.Version {
+		if err := s.deleteJobPinnedRecommendations(index, txn, job); err != nil {
+			return fmt.Errorf("unable to delete recommendations: %v", err)
+		}
+	}
+
 	if err := s.updateJobCSIPlugins(index, job, existingJob, txn); err != nil {
 		return fmt.Errorf("unable to update job scaling policies: %v", err)
 	}
@@ -1563,6 +1569,11 @@ func (s *StateStore) DeleteJobTxn(index uint64, namespace, jobID string, txn Txn
 	// Delete any remaining job scaling policies
 	if err := s.deleteJobScalingPolicies(index, job, txn); err != nil {
 		return fmt.Errorf("deleting job scaling policies failed: %v", err)
+	}
+
+	// Delete any job recommendations
+	if err := s.deleteRecommendationsByJob(index, txn, job); err != nil {
+		return fmt.Errorf("deleting job recommendatons failed: %v", err)
 	}
 
 	// Delete the scaling events
@@ -5820,6 +5831,7 @@ func (r *StateRestore) CSIVolumeRestore(volume *structs.CSIVolume) error {
 	return nil
 }
 
+// ScalingEventsRestore is used to restore scaling events for a job
 func (r *StateRestore) ScalingEventsRestore(jobEvents *structs.JobScalingEvents) error {
 	if err := r.txn.Insert("scaling_event", jobEvents); err != nil {
 		return fmt.Errorf("scaling event insert failed: %v", err)
