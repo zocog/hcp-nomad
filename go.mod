@@ -16,7 +16,6 @@ replace (
 )
 
 require (
-	cloud.google.com/go/storage v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go v29.0.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.4 // indirect
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.1 // indirect
