@@ -437,6 +437,14 @@ func (j *Job) Register(args *structs.JobRegisterRequest, reply *structs.JobRegis
 		if err != nil {
 			return err
 		}
+		// We drop any unwanted regions only once we know all jobs have
+		// been registered and we've kicked off the deployment. This keeps
+		// dropping regions close in semantics to dropping task groups in
+		// single-region deployments
+		err = j.multiregionDrop(args, reply)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

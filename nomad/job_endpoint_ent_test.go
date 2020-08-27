@@ -392,6 +392,35 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 
 	require.EqualValues(1, westJob.Version)
 	require.EqualValues(1, eastJob.Version)
+
+	// Update the job again, dropping one region
+	job.Version = 2
+	job.Multiregion.Regions = []*structs.MultiregionRegion{
+		{
+			Name:        "west",
+			Count:       2,
+			Datacenters: []string{"west-1", "west-2"},
+			Meta:        map[string]string{"region_code": "W"},
+		},
+	}
+	req.Job = job
+	req.WriteRequest.Region = "west"
+
+	err = msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp)
+	require.NoError(err)
+
+	getReq.Region = "east"
+	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
+	require.NoError(err)
+	eastJob = getResp.Job
+	require.True(eastJob.Stopped(), "expected job to be stopped")
+
+	getReq.Region = "west"
+	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
+	require.NoError(err)
+	westJob = getResp.Job
+	require.Equal(uint64(2), westJob.Version)
+	require.False(westJob.Stopped(), "expected job to be running")
 }
 
 func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {

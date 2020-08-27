@@ -253,7 +253,71 @@ func (j *Job) multiregionStart(args *structs.JobRegisterRequest, reply *structs.
 // multiregionDrop is used to deregister regions from a previous version of the
 // job that are no longer in use
 func (j *Job) multiregionDrop(args *structs.JobRegisterRequest, reply *structs.JobRegisterResponse) error {
-	return nil
+
+	// by this point we've been interpolated for fan-out
+	if args.Job.Multiregion == nil {
+		return nil
+	}
+
+	// Lookup the previous version of the job
+	snap, err := j.srv.State().Snapshot()
+	if err != nil {
+		return err
+	}
+	ws := memdb.NewWatchSet()
+	versions, err := snap.JobVersionsByID(ws, args.RequestNamespace(), args.Job.ID)
+	if err != nil {
+		return err
+	}
+
+	// find the first version that's not this version
+	var existingJob *structs.Job
+	for _, version := range versions {
+		if version.Version != args.Job.Version {
+			existingJob = version
+		}
+	}
+	if existingJob == nil || existingJob.Multiregion == nil {
+		return nil
+	}
+
+	// enterprise license enforcement - if not licensed then users can't
+	// register/update multiregion jobs.
+	err = j.srv.EnterpriseState.FeatureCheck(license.FeatureMultiregionDeployments, true)
+	if err != nil {
+		return err
+	}
+
+	deleteReqs := []*structs.JobDeregisterRequest{}
+	newRegions := map[string]bool{}
+
+	for _, region := range args.Job.Multiregion.Regions {
+		newRegions[region.Name] = true
+	}
+
+	for _, region := range existingJob.Multiregion.Regions {
+		if _, ok := newRegions[region.Name]; !ok {
+			deleteReqs = append(deleteReqs,
+				&structs.JobDeregisterRequest{
+					JobID: args.Job.ID,
+					WriteRequest: structs.WriteRequest{
+						Region:    region.Name,
+						Namespace: args.Job.Namespace,
+						AuthToken: args.AuthToken,
+					},
+				},
+			)
+		}
+	}
+
+	var mErr multierror.Error
+	for _, req := range deleteReqs {
+		err = j.srv.RPC("Job.Deregister", req, &structs.JobDeregisterResponse{})
+		if err != nil {
+			multierror.Append(&mErr, err)
+		}
+	}
+	return mErr.ErrorOrNil()
 }
 
 // versionForModifyIndex finds the job version associated with a given
