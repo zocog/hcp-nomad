@@ -59,10 +59,10 @@ jobs:
         name: install protoc
     - run:
         command: |
-          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.4
+        name: Install Consul 1.8.3
     - run:
         command: |
           set -x
@@ -177,10 +177,10 @@ jobs:
         name: install protoc
     - run:
         command: |
-          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.4
+        name: Install Consul 1.8.3
     - run:
         command: |
           set -x
@@ -295,10 +295,10 @@ jobs:
         name: install protoc
     - run:
         command: |
-          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.4
+        name: Install Consul 1.8.3
     - run:
         command: |
           set -x
@@ -413,10 +413,10 @@ jobs:
         name: install protoc
     - run:
         command: |
-          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.4
+        name: Install Consul 1.8.3
     - run:
         command: |
           set -x
@@ -531,10 +531,10 @@ jobs:
         name: install protoc
     - run:
         command: |
-          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.4
+        name: Install Consul 1.8.3
     - run:
         command: |
           set -x
@@ -933,10 +933,10 @@ jobs:
         name: install protoc
     - run:
         command: |
-          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.4
+        name: Install Consul 1.8.3
     - run:
         command: |
           set -x
@@ -1025,10 +1025,10 @@ jobs:
         name: install protoc
     - run:
         command: |
-          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.4
+        name: Install Consul 1.8.3
     - run:
         command: |
           set -x
@@ -1132,10 +1132,10 @@ jobs:
         name: install protoc
     - run:
         command: |
-          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.4
+        name: Install Consul 1.8.3
     - run:
         command: |
           set -x
@@ -1312,10 +1312,10 @@ jobs:
         name: install protoc
     - run:
         command: |
-          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.6.4/consul_1.6.4_linux_amd64.zip
+          curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/consul.zip
           rm -rf /tmp/consul*
-        name: Install Consul 1.6.4
+        name: Install Consul 1.8.3
     - run:
         command: |
           set -x

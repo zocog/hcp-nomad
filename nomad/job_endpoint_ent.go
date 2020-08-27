@@ -250,6 +250,12 @@ func (j *Job) multiregionStart(args *structs.JobRegisterRequest, reply *structs.
 	return nil
 }
 
+// multiregionDrop is used to deregister regions from a previous version of the
+// job that are no longer in use
+func (j *Job) multiregionDrop(args *structs.JobRegisterRequest, reply *structs.JobRegisterResponse) error {
+	return nil
+}
+
 // versionForModifyIndex finds the job version associated with a given
 // modifyIndex. we know all regions will have the same version, but we
 // don't know what it is because the fsm apply may have coerced it to
