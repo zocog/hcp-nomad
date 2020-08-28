@@ -565,3 +565,116 @@ func TestJobEndpoint_MultiregionStarter(t *testing.T) {
 	require.False(jobIsMultiregionStarter(j, "east"))
 	require.False(jobIsMultiregionStarter(j, "west"))
 }
+
+func TestJobEndpoint_Deregister_Multiregion(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	west, root, cleanupWest := TestACLServer(t, func(c *Config) {
+		c.Region = "west"
+		c.AuthoritativeRegion = "west"
+		c.ACLEnabled = true
+		c.NumSchedulers = 1
+	})
+	defer cleanupWest()
+
+	east, _, cleanupEast := TestACLServer(t, func(c *Config) {
+		c.Region = "east"
+		c.AuthoritativeRegion = "west"
+		c.ACLEnabled = true
+		c.ReplicationBackoff = 20 * time.Millisecond
+		c.ReplicationToken = root.SecretID
+		c.NumSchedulers = 1
+	})
+	defer cleanupEast()
+
+	north, _, cleanupNorth := TestACLServer(t, func(c *Config) {
+		c.Region = "north"
+		c.AuthoritativeRegion = "west"
+		c.ACLEnabled = true
+		c.ReplicationBackoff = 20 * time.Millisecond
+		c.ReplicationToken = root.SecretID
+		c.NumSchedulers = 1
+	})
+	defer cleanupNorth()
+
+	TestJoin(t, west, east, north)
+	testutil.WaitForLeader(t, west.RPC)
+	testutil.WaitForLeader(t, east.RPC)
+	testutil.WaitForLeader(t, north.RPC)
+
+	codec := rpcClient(t, north)
+
+	// can't use Server.numPeers here b/c these are different regions
+	testutil.WaitForResult(func() (bool, error) {
+		return west.serf.NumNodes() == 3, nil
+	}, func(err error) {
+		t.Fatalf("should have 3 peers")
+	})
+
+	job := mock.MultiregionJob()
+	job.Multiregion.Regions = append(
+		job.Multiregion.Regions,
+		&structs.MultiregionRegion{
+			Name:        "north",
+			Count:       1,
+			Datacenters: []string{"north-1"},
+		},
+	)
+
+	req := &structs.JobRegisterRequest{
+		Job: job,
+		WriteRequest: structs.WriteRequest{
+			Region:    "east",
+			AuthToken: root.SecretID,
+		},
+	}
+
+	err := msgpackrpc.CallWithCodec(codec, "Job.Register", req,
+		&structs.JobRegisterResponse{})
+	require.NoError(err)
+
+	assertStatus := func(region string, isRunning bool) {
+		getReq := &structs.JobSpecificRequest{
+			JobID: job.ID,
+			QueryOptions: structs.QueryOptions{
+				Region:    region,
+				AuthToken: root.SecretID,
+			},
+		}
+		var getResp structs.SingleJobResponse
+		err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
+		require.NoError(err)
+		require.Equal(!isRunning, getResp.Job.Stopped(),
+			"expected %q region to be running=%v", region, isRunning)
+	}
+
+	assertStatus("east", true)
+	assertStatus("west", true)
+	assertStatus("north", true)
+
+	// deregister a single region
+	deReq := &structs.JobDeregisterRequest{
+		JobID:  job.ID,
+		Global: false,
+		WriteRequest: structs.WriteRequest{
+			Region:    "east",
+			Namespace: job.Namespace,
+			AuthToken: root.SecretID,
+		},
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Job.Deregister", deReq,
+		&structs.JobDeregisterResponse{})
+
+	assertStatus("east", false)
+	assertStatus("west", true)
+	assertStatus("north", true)
+
+	deReq.Global = true
+	err = msgpackrpc.CallWithCodec(codec, "Job.Deregister", deReq,
+		&structs.JobDeregisterResponse{})
+
+	assertStatus("east", false)
+	assertStatus("west", false)
+	assertStatus("north", false)
+}

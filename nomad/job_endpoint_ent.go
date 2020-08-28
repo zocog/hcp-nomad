@@ -288,22 +288,52 @@ func (j *Job) multiregionDrop(args *structs.JobRegisterRequest, reply *structs.J
 		return err
 	}
 
-	deleteReqs := []*structs.JobDeregisterRequest{}
 	newRegions := map[string]bool{}
-
 	for _, region := range args.Job.Multiregion.Regions {
 		newRegions[region.Name] = true
 	}
 
-	for _, region := range existingJob.Multiregion.Regions {
-		if _, ok := newRegions[region.Name]; !ok {
+	return j.deregisterRegionImpl(existingJob, args.AuthToken, false,
+		func(region *structs.MultiregionRegion) bool {
+			_, ok := newRegions[region.Name]
+			return !ok
+		})
+}
+
+// multiregionStop is used to fan-out Job.Deregister RPCs to all regions if
+// the global flag is passed to Job.Deregister
+func (j *Job) multiregionStop(job *structs.Job, args *structs.JobDeregisterRequest, reply *structs.JobDeregisterResponse) error {
+
+	if job == nil || job.Multiregion == nil {
+		return nil
+	}
+	if !args.Global {
+		return nil
+	}
+
+	return j.deregisterRegionImpl(job, args.AuthToken, args.Purge,
+		func(region *structs.MultiregionRegion) bool {
+			return region.Name != j.srv.Region()
+		})
+}
+
+// deregisterRegionImpl fans-out non-global Job.Deregister RPCs to all regions
+// that meet the 'test' function.
+func (j *Job) deregisterRegionImpl(job *structs.Job, authToken string, purge bool, test func(*structs.MultiregionRegion) bool) error {
+
+	deleteReqs := []*structs.JobDeregisterRequest{}
+
+	for _, region := range job.Multiregion.Regions {
+		if test(region) {
 			deleteReqs = append(deleteReqs,
 				&structs.JobDeregisterRequest{
-					JobID: args.Job.ID,
+					JobID:  job.ID,
+					Purge:  purge,
+					Global: false, // set explicitly to call attention to it
 					WriteRequest: structs.WriteRequest{
 						Region:    region.Name,
-						Namespace: args.Job.Namespace,
-						AuthToken: args.AuthToken,
+						Namespace: job.Namespace,
+						AuthToken: authToken,
 					},
 				},
 			)
@@ -312,18 +342,12 @@ func (j *Job) multiregionDrop(args *structs.JobRegisterRequest, reply *structs.J
 
 	var mErr multierror.Error
 	for _, req := range deleteReqs {
-		err = j.srv.RPC("Job.Deregister", req, &structs.JobDeregisterResponse{})
+		err := j.srv.RPC("Job.Deregister", req, &structs.JobDeregisterResponse{})
 		if err != nil {
 			multierror.Append(&mErr, err)
 		}
 	}
 	return mErr.ErrorOrNil()
-}
-
-// multiregionStop is used to fan-out Job.Deregister RPCs to all regions if
-// the global flag is passed to Job.Deregister
-func (j *Job) multiregionStop(job *structs.Job, args *structs.JobDeregisterRequest, reply *structs.JobDeregisterResponse) error {
-	return nil
 }
 
 // versionForModifyIndex finds the job version associated with a given
