@@ -320,6 +320,12 @@ func (j *Job) multiregionDrop(args *structs.JobRegisterRequest, reply *structs.J
 	return mErr.ErrorOrNil()
 }
 
+// multiregionStop is used to fan-out Job.Deregister RPCs to all regions if
+// the global flag is passed to Job.Deregister
+func (j *Job) multiregionStop(job *structs.Job, args *structs.JobDeregisterRequest, reply *structs.JobDeregisterResponse) error {
+	return nil
+}
+
 // versionForModifyIndex finds the job version associated with a given
 // modifyIndex. we know all regions will have the same version, but we
 // don't know what it is because the fsm apply may have coerced it to
