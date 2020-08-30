@@ -33,6 +33,8 @@ const (
 	LicenseUpsertRequestType
 	LicenseDeleteRequestType
 	TmpLicenseUpsertRequestType
+	RecommendationUpsertRequestType
+	RecommendationDeleteRequestType
 )
 
 const (
@@ -934,6 +936,18 @@ func (r *Recommendation) Target(group, task, resource string) {
 	group = url.PathEscape(group)
 	task = url.PathEscape(task)
 	r.Path = fmt.Sprintf(".TaskGroups[%s].Tasks[%s].Resources.%s", group, task, resource)
+}
+
+// RecommendationDeleteRequest is used to delete a set of recommendations
+type RecommendationDeleteRequest struct {
+	Recommendations []string
+	WriteRequest
+}
+
+// RecommendationUpsertRequest is used to upsert a recommendation
+type RecommendationUpsertRequest struct {
+	Recommendation *Recommendation
+	WriteRequest
 }
 
 // RecommendationSpecificRequest is used to query a specific recommendation

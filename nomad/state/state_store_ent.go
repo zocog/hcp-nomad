@@ -1206,28 +1206,18 @@ func (s *StateStore) RecommendationsByNamespace(ws memdb.WatchSet, namespace str
 	return recs, nil
 }
 
-// RecommendationsAll returns all recommendations for the cluster
-func (s *StateStore) RecommendationsAll(ws memdb.WatchSet) ([]*structs.Recommendation, error) {
+// Recommendations returns all recommendations for the cluster
+func (s *StateStore) Recommendations(ws memdb.WatchSet) (memdb.ResultIterator, error) {
 	txn := s.db.Txn(false)
 
-	iter, err := txn.Get(TableRecommendations, "job_prefix", "")
+	iter, err := txn.Get(TableRecommendations, "id")
 	if err != nil {
 		return nil, err
 	}
 
 	ws.Add(iter.WatchCh())
 
-	recs := []*structs.Recommendation{}
-	for {
-		raw := iter.Next()
-		if raw == nil {
-			break
-		}
-		r := raw.(*structs.Recommendation)
-		recs = append(recs, r)
-	}
-
-	return recs, nil
+	return iter, nil
 }
 
 // recommendationsByJob returns an iterator of all recommendations for a specific job
@@ -1331,5 +1321,13 @@ func (s *StateStore) deleteJobPinnedRecommendations(index uint64, txn Txn, job *
 		}
 	}
 
+	return nil
+}
+
+// RecommendationRestore is used to restore a namespace
+func (r *StateRestore) RecommendationRestore(rec *structs.Recommendation) error {
+	if err := r.txn.Insert(TableRecommendations, rec); err != nil {
+		return fmt.Errorf("recommendation insert failed: %v", err)
+	}
 	return nil
 }
