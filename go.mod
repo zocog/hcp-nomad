@@ -87,7 +87,7 @@ require (
 	github.com/hashicorp/nomad/api v0.0.0-20200529203653-c4416b26d3eb
 	github.com/hashicorp/raft v1.1.3-0.20200211192230-365023de17e6
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
-	github.com/hashicorp/raft-snapshotagent v0.0.0-20200722144111-4f9a8b6ca39e
+	github.com/hashicorp/raft-snapshotagent v0.0.0-20200831014059-4352e54f37b3
 	github.com/hashicorp/sentinel v0.15.5
 	github.com/hashicorp/serf v0.9.3
 	github.com/hashicorp/vault/api v1.0.5-0.20190730042357-746c0b111519
