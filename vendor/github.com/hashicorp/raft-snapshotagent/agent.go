@@ -406,7 +406,7 @@ func (a *Agent) snapshotAndRotate() error {
 	defer snap.Close()
 
 	// Stream this snapshot to disk in the scratch space first.
-	tmpFile, err := ioutil.TempFile(a.config.Local.Path, "unverified-snapshot")
+	tmpFile, err := ioutil.TempFile(a.config.Agent.LocalScratchPath, "unverified-snapshot")
 	if err != nil {
 		return fmt.Errorf("could not open local scratch file for saving the unverified snapshot: %v", err)
 	}
