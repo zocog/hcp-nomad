@@ -255,7 +255,7 @@ func setDefault(v *string, def string) {
 
 func checkLicense(ctx context.Context, client *api.Client, logger hclog.Logger) error {
 	logger = logger.Named("license")
-	autoBackupFeature := license.FeatureAutoUpgrades.String()
+	autoBackupFeature := license.FeatureAutoBackups.String()
 
 	checkLisense := func(index uint64) (bool, uint64, error) {
 		q := &api.QueryOptions{WaitIndex: index}
