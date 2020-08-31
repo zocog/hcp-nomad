@@ -474,8 +474,6 @@ github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea h1:xykPFhrBA
 github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea/go.mod h1:pNv7Wc3ycL6F5oOWn+tPGo2gWD4a5X+yp/ntwdKLjRk=
 github.com/hashicorp/raft-snapshot v1.0.2 h1:65VRIDa08Q3zGpSzLZBpLbyeCTlX8Lo4yKpCCj5T+2s=
 github.com/hashicorp/raft-snapshot v1.0.2/go.mod h1:5sL9eUn72lH5DzsFIJ9jaysITbHksSSszImWSOTC8Ic=
-github.com/hashicorp/raft-snapshotagent v0.0.0-20200722144111-4f9a8b6ca39e h1:3z+Nx3ScxR97M7mrvbX6WaQtOXiBdHiUksK9cY0ig9E=
-github.com/hashicorp/raft-snapshotagent v0.0.0-20200722144111-4f9a8b6ca39e/go.mod h1:AmjbEZt/c4oOFvrHEFdVOkqtXniV3DYtQPfQ6HS9jC8=
 github.com/hashicorp/raft-snapshotagent v0.0.0-20200831014059-4352e54f37b3 h1:d0REj+9LneIoOuW+nY1LVe9MScGlVdMcxyDodU67uaY=
 github.com/hashicorp/raft-snapshotagent v0.0.0-20200831014059-4352e54f37b3/go.mod h1:AmjbEZt/c4oOFvrHEFdVOkqtXniV3DYtQPfQ6HS9jC8=
 github.com/hashicorp/release-party v0.3.4/go.mod h1:Jkp9dTXVO8Znb4eyeL7Dg/Y2HQGPHnRoz6ZtNDnE7hU=
