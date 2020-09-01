@@ -57,7 +57,7 @@ require (
 	github.com/hashicorp/consul-template v0.24.1
 	github.com/hashicorp/consul/api v1.6.0
 	github.com/hashicorp/consul/sdk v0.6.0
-	github.com/hashicorp/cronexpr v1.1.0
+	github.com/hashicorp/cronexpr v1.1.1
 	github.com/hashicorp/errwrap v1.0.0
 	github.com/hashicorp/eventlogger v0.0.0-20200503125528-e0cd2ba137df
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
