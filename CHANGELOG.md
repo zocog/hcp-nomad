@@ -1,9 +1,14 @@
 ## 0.12.4 (Unreleased)
 
+FEATURES:
+
+ * **Consul Ingress Gateways**: Support for Consul Connect Ingress Gateways [[GH-8709](https://github.com/hashicorp/nomad/pull/8709)]
+
 IMPROVEMENTS:
 
  * api: Added node purge SDK functionality. [[GH-8142](https://github.com/hashicorp/nomad/issues/8142)]
  * api: Added an option to stop multiregion jobs globally. [[GH-8776](https://github.com/hashicorp/nomad/issues/8776)]
+ * core: Added `poststart` hook to task lifecycle [[GH-8390](https://github.com/hashicorp/nomad/pull/8390)]
  * csi: Improved the accuracy of plugin `Expected` allocation counts. [[GH-8699](https://github.com/hashicorp/nomad/pull/8699)]
  * driver/docker: Allow configurable image pull context timeout setting. [[GH-5718](https://github.com/hashicorp/nomad/issues/5718)]
  * ui: Added exec keepalive heartbeat. [[GH-8759](https://github.com/hashicorp/nomad/pull/8759)]
@@ -11,12 +16,15 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * core: Fixed a bug where unpromoted job versions are used when rescheduling failed allocations [[GH-8691](https://github.com/hashicorp/nomad/issues/8691)]
+ * core: Fixed a bug where servers become unresponsive when cron jobs containing zero-padded months [[GH-8804](https://github.com/hashicorp/nomad/issues/8804)]
  * core: Fixed bugs where scaling policies could be matched against incorrect jobs with a similar prefix [[GH-8753](https://github.com/hashicorp/nomad/issues/8753)]
  * core: Fixed a bug where garbage collection evaluations that failed or spanned leader elections would be re-enqueued forever. [[GH-8682](https://github.com/hashicorp/nomad/issues/8682)]
  * core (Enterprise): Fixed a bug where enterprise servers may self-terminate as licenses are ignored after a Raft snapshot restore. [[GH-8737](https://github.com/hashicorp/nomad/issues/8737)]
+ * client: Fixed a bug where `nomad operator debug` could cause a client agent to panic when the `-node-id` flag was used. [[GH-8794](https://github.com/hashicorp/nomad/issues/8794)]
  * csi: Fixed a bug where querying CSI volumes would cause a panic if an allocation that claimed the volume had been garbage collected but the claim was not yet dropped. [[GH-8735](https://github.com/hashicorp/nomad/issues/8735)]
  * deployments (Enterprise): Fixed a bug where counts could not be changed in the web UI for multiregion jobs. [[GH-8685](https://github.com/hashicorp/nomad/issues/8685)]
  * deployments (Enterprise): Fixed a bug in multi-region deployments where a region that was dropped from the jobspec was not deregistered. [[GH-8763](https://github.com/hashicorp/nomad/issues/8763)]
+ * exec: Fixed a bug causing escape characters to be missed in special cases [[GH-8798](https://github.com/hashicorp/nomad/issues/8798)]
  * plan: Fixed a bug where plans always included a change for the `NomadTokenID`. [[GH-8559](https://github.com/hashicorp/nomad/issues/8559)]
 
 ## 0.12.3 (August 13, 2020)
