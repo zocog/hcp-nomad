@@ -11,6 +11,7 @@ const (
 	TableQuotaUsage       = "quota_usage"
 	TableLicense          = "license"
 	TableTmpLicenseMeta   = "tmp_license"
+	TableRecommendations  = "recommendations"
 )
 
 func init() {
@@ -22,6 +23,7 @@ func init() {
 		namespaceTableSchema,
 		licenseTableSchema,
 		tmpLicenseMetaSchema,
+		recommendationTableSchema,
 	}...)
 }
 
@@ -118,7 +120,7 @@ func licenseTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: TableLicense,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: true,
 				Unique:       true,
@@ -134,11 +136,44 @@ func tmpLicenseMetaSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: TableTmpLicenseMeta,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
 				Indexer:      singletonRecord,
+			},
+		},
+	}
+}
+
+// recommendationTableSchema returns the MemDB schema for the recommendation table.
+func recommendationTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: TableRecommendations,
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": {
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.StringFieldIndex{
+					Field: "ID",
+				},
+			},
+			"job": {
+				Name:         "job",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field: "JobNamespace",
+						},
+
+						&memdb.StringFieldIndex{
+							Field: "JobID",
+						},
+					},
+				},
 			},
 		},
 	}

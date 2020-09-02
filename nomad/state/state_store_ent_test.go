@@ -8,10 +8,12 @@ import (
 	"time"
 
 	memdb "github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/nomad/nomad/mock"
-	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/nomad/helper/uuid"
+	"github.com/hashicorp/nomad/nomad/mock"
+	"github.com/hashicorp/nomad/nomad/structs"
 )
 
 func TestStateStore_UpsertNamespaces(t *testing.T) {
@@ -1951,7 +1953,7 @@ func TestStateStore_UpsertLicense(t *testing.T) {
 
 	ws := memdb.NewWatchSet()
 	out, err := state.License(ws)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, out, stored)
 }
 
@@ -1965,7 +1967,7 @@ func TestStateStore_UpsertTmpLicenseMeta(t *testing.T) {
 
 	ws := memdb.NewWatchSet()
 	out, err := state.TmpLicenseMeta(ws)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, out, stored)
 }
 
@@ -1986,4 +1988,353 @@ func TestStateStore_RestoreTmpLicenseMeta(t *testing.T) {
 	out, err := state.TmpLicenseMeta(ws)
 	assert.Nil(err)
 	assert.Equal(meta, out)
+}
+
+func TestStateStore_UpsertRecommendation(t *testing.T) {
+	require := require.New(t)
+	state := testStateStore(t)
+	job := mock.Job()
+	require.NoError(state.UpsertJob(900, job))
+	rec := mock.Recommendation(job)
+
+	// Create a watchset so we can test that upsert fires the watch
+	ws := memdb.NewWatchSet()
+	_, err := state.RecommendationByID(ws, rec.ID)
+	require.NoError(err)
+
+	require.NoError(state.UpsertRecommendation(1000, rec))
+	require.True(watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	out, err := state.RecommendationByID(ws, rec.ID)
+	require.NoError(err)
+	require.Equal(rec, out)
+
+	index, err := state.Index(TableRecommendations)
+	require.NoError(err)
+	require.EqualValues(1000, index)
+	require.False(watchFired(ws))
+}
+
+func TestStateStore_ListRecommendationsByJob(t *testing.T) {
+	require := require.New(t)
+	state := testStateStore(t)
+	job1 := mock.Job()
+	require.NoError(state.UpsertJob(900, job1))
+	ns2 := mock.Namespace()
+	require.NoError(state.UpsertNamespaces(909, []*structs.Namespace{ns2}))
+	job2 := mock.Job()
+	job2.Namespace = ns2.Name
+	require.NoError(state.UpsertJob(910, job2))
+
+	// Create watchsets so we can test that upsert fires the watches
+	wsList1 := memdb.NewWatchSet()
+	_, err := state.RecommendationsByJob(wsList1, job1.Namespace, job1.ID)
+	require.NoError(err)
+	wsList2 := memdb.NewWatchSet()
+	_, err = state.RecommendationsByJob(wsList2, job2.Namespace, job2.ID)
+	require.NoError(err)
+
+	rec1 := mock.Recommendation(job1)
+	require.NoError(state.UpsertRecommendation(1000, rec1))
+	require.True(watchFired(wsList1))
+
+	rec2 := mock.Recommendation(job2)
+	require.NoError(state.UpsertRecommendation(1001, rec2))
+	require.True(watchFired(wsList2))
+
+	wsList1 = memdb.NewWatchSet()
+	out, err := state.RecommendationsByJob(wsList1, job1.Namespace, job1.ID)
+	require.NoError(err)
+	require.Len(out, 1)
+	require.Equal(rec1, out[0])
+
+	wsList2 = memdb.NewWatchSet()
+	out, err = state.RecommendationsByJob(wsList2, job2.Namespace, job2.ID)
+	require.NoError(err)
+	require.Len(out, 1)
+	require.Equal(rec2, out[0])
+
+	index, err := state.Index(TableRecommendations)
+	require.NoError(err)
+	require.EqualValues(1001, index)
+}
+
+func TestStateStore_ListRecommendationsByNamespace(t *testing.T) {
+	require := require.New(t)
+	state := testStateStore(t)
+	job1 := mock.Job()
+	require.NoError(state.UpsertJob(900, job1))
+	ns2 := mock.Namespace()
+	require.NoError(state.UpsertNamespaces(909, []*structs.Namespace{ns2}))
+	job2 := mock.Job()
+	job2.Namespace = ns2.Name
+	require.NoError(state.UpsertJob(910, job2))
+	job3 := mock.Job()
+	job3.Namespace = ns2.Name
+	require.NoError(state.UpsertJob(915, job3))
+
+	// Create watchsets so we can test that upsert fires the watches
+	wsList1 := memdb.NewWatchSet()
+	_, err := state.RecommendationsByNamespace(wsList1, job1.Namespace)
+	require.NoError(err)
+	wsList2 := memdb.NewWatchSet()
+	_, err = state.RecommendationsByNamespace(wsList2, job2.Namespace)
+	require.NoError(err)
+
+	rec1 := mock.Recommendation(job1)
+	require.NoError(state.UpsertRecommendation(1000, rec1))
+	require.True(watchFired(wsList1))
+	rec2 := mock.Recommendation(job2)
+	require.NoError(state.UpsertRecommendation(1001, rec2))
+	require.True(watchFired(wsList2))
+	rec3 := mock.Recommendation(job3)
+	require.NoError(state.UpsertRecommendation(1002, rec3))
+
+	wsList1 = memdb.NewWatchSet()
+	out, err := state.RecommendationsByNamespace(wsList1, job1.Namespace)
+	require.NoError(err)
+	require.Len(out, 1)
+	require.Equal(rec1, out[0])
+
+	wsList2 = memdb.NewWatchSet()
+	out, err = state.RecommendationsByNamespace(wsList2, job2.Namespace)
+	require.NoError(err)
+	require.Len(out, 2)
+	outIds := []string{out[0].ID, out[1].ID}
+	expIds := []string{rec2.ID, rec3.ID}
+	sort.Strings(outIds)
+	sort.Strings(expIds)
+	require.Equal(expIds, outIds)
+
+	index, err := state.Index(TableRecommendations)
+	require.NoError(err)
+	require.EqualValues(1002, index)
+}
+
+func TestStateStore_ListAllRecommendations(t *testing.T) {
+	require := require.New(t)
+	state := testStateStore(t)
+	job1 := mock.Job()
+	require.NoError(state.UpsertJob(900, job1))
+	ns2 := mock.Namespace()
+	require.NoError(state.UpsertNamespaces(909, []*structs.Namespace{ns2}))
+	job2 := mock.Job()
+	job2.Namespace = ns2.Name
+	require.NoError(state.UpsertJob(910, job2))
+	job3 := mock.Job()
+	job3.Namespace = ns2.Name
+	require.NoError(state.UpsertJob(915, job3))
+
+	// Create watchsets so we can test that upsert fires the watches
+	wsList := memdb.NewWatchSet()
+	_, err := state.RecommendationsAll(wsList)
+	require.NoError(err)
+
+	rec1 := mock.Recommendation(job1)
+	require.NoError(state.UpsertRecommendation(1000, rec1))
+	require.True(watchFired(wsList))
+	rec2 := mock.Recommendation(job2)
+	require.NoError(state.UpsertRecommendation(1001, rec2))
+	rec3 := mock.Recommendation(job3)
+	require.NoError(state.UpsertRecommendation(1002, rec3))
+
+	wsList = memdb.NewWatchSet()
+	out, err := state.RecommendationsAll(wsList)
+	require.NoError(err)
+	require.Len(out, 3)
+	outIds := []string{out[0].ID, out[1].ID, out[2].ID}
+	expIds := []string{rec1.ID, rec2.ID, rec3.ID}
+	sort.Strings(outIds)
+	sort.Strings(expIds)
+	require.Equal(expIds, outIds)
+
+	index, err := state.Index(TableRecommendations)
+	require.NoError(err)
+	require.EqualValues(1002, index)
+}
+
+// upserting a recommendation with the same job,path will update
+// any existing recommendation with that job,path
+func TestStateStore_UpsertRecommendation_UpdateExistingPath(t *testing.T) {
+	require := require.New(t)
+	state := testStateStore(t)
+	job := mock.Job()
+	require.NoError(state.UpsertJob(900, job))
+	job.TaskGroups[0].Name = "this is a [more interesting] group name 🤣"
+	job.TaskGroups[0].Tasks[0].Name = "and this is a [more interesting] task name 🤣🤣🤣"
+
+	rec := mock.Recommendation(job)
+	require.NoError(state.UpsertRecommendation(1000, rec))
+
+	wsOrig := memdb.NewWatchSet()
+	out, err := state.RecommendationByID(wsOrig, rec.ID)
+	require.NoError(err)
+	require.Equal(rec, out)
+
+	wsList := memdb.NewWatchSet()
+	list, err := state.RecommendationsByJob(wsList, job.Namespace, job.ID)
+	require.NoError(err)
+	require.Len(list, 1)
+
+	updatedRec := rec.Copy()
+	updatedRec.Value = 750
+	updatedRec.ID = uuid.Generate() // this should be overwritten on the Path match
+	updatedRec.Meta["updated"] = true
+	require.NoError(state.UpsertRecommendation(1010, updatedRec))
+
+	require.True(watchFired(wsOrig))
+	require.True(watchFired(wsList))
+
+	list, err = state.RecommendationsByJob(wsList, job.Namespace, job.ID)
+	require.NoError(err)
+	require.Len(list, 1)
+	require.Equal(rec.ID, list[0].ID)
+	require.Equal(updatedRec.Value, list[0].Value)
+	require.True(list[0].Meta["updated"].(bool))
+
+	index, err := state.Index(TableRecommendations)
+	require.NoError(err)
+	require.GreaterOrEqual(index, uint64(1010))
+}
+
+func TestStateStore_UpsertRecommendation_ErrorWithoutJob(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	state := testStateStore(t)
+	job := mock.Job()
+	rec := mock.Recommendation(job)
+
+	// Create a watchset so we can test that delete fires the watch
+	ws := memdb.NewWatchSet()
+	_, err := state.RecommendationByID(ws, rec.ID)
+	require.NoError(err)
+
+	prevIndex, err := state.Index(TableRecommendations)
+	require.NoError(err)
+
+	require.Error(state.UpsertRecommendation(1000, rec), "job does not exist")
+
+	out, err := state.RecommendationByID(nil, rec.ID)
+	require.NoError(err)
+	require.Nil(out)
+
+	index, err := state.Index(TableRecommendations)
+	require.NoError(err)
+	require.EqualValues(prevIndex, index)
+	require.False(watchFired(ws))
+}
+
+func TestStateStore_DeleteRecommendation(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	state := testStateStore(t)
+	job := mock.Job()
+	require.NoError(state.UpsertJob(900, job))
+	rec1 := mock.Recommendation(job)
+	rec2 := mock.Recommendation(job)
+	rec2.Target(job.TaskGroups[0].Name, job.TaskGroups[0].Tasks[0].Name, "MemoryMB")
+	rec2.Value = 500
+
+	require.NoError(state.UpsertRecommendation(1000, rec1))
+	require.NoError(state.UpsertRecommendation(1010, rec2))
+	// Create a watchset so we can test that delete fires the watch
+	ws := memdb.NewWatchSet()
+	list, err := state.RecommendationsByJob(ws, job.Namespace, job.ID)
+	require.NoError(err)
+	require.Len(list, 2)
+
+	require.NoError(state.DeleteRecommendations(1020, []string{rec1.ID, rec2.ID}))
+	require.True(watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	out, err := state.RecommendationByID(ws, rec1.ID)
+	require.NoError(err)
+	require.Nil(out)
+
+	out, err = state.RecommendationByID(ws, rec2.ID)
+	require.NoError(err)
+	require.Nil(out)
+
+	index, err := state.Index(TableRecommendations)
+	require.NoError(err)
+	require.EqualValues(1020, index)
+	require.False(watchFired(ws))
+}
+
+func TestStateStore_DeleteJob_DeletesRecommendations(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	state := testStateStore(t)
+	job := mock.Job()
+	require.NoError(state.UpsertJob(900, job))
+	rec1 := mock.Recommendation(job)
+	rec2 := mock.Recommendation(job)
+	rec2.Target(job.TaskGroups[0].Name, job.TaskGroups[0].Tasks[0].Name, "MemoryMB")
+	rec2.Value = 500
+
+	require.NoError(state.UpsertRecommendation(1000, rec1))
+	require.NoError(state.UpsertRecommendation(1010, rec2))
+	// Create a watchset so we can test that delete fires the watch
+	ws := memdb.NewWatchSet()
+	_, err := state.RecommendationByID(ws, rec1.ID)
+	require.NoError(err)
+
+	require.Nil(state.DeleteJob(1020, job.Namespace, job.ID))
+
+	out, err := state.RecommendationByID(nil, rec1.ID)
+	require.NoError(err)
+	require.Nil(out)
+
+	out, err = state.RecommendationByID(nil, rec2.ID)
+	require.NoError(err)
+	require.Nil(out)
+
+	index, err := state.Index(TableRecommendations)
+	require.NoError(err)
+	require.GreaterOrEqual(index, uint64(1020))
+	require.True(watchFired(ws))
+}
+
+func TestStateStore_UpdateJob_DeletesFixedRecommendations(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	state := testStateStore(t)
+	job := mock.Job()
+	require.NoError(state.UpsertJob(900, job))
+	rec1 := mock.Recommendation(job)
+	rec1.EnforceVersion = true
+	rec2 := mock.Recommendation(job)
+	rec2.Target(job.TaskGroups[0].Name, job.TaskGroups[0].Tasks[0].Name, "MemoryMB")
+	rec2.Value = 500
+	rec2.EnforceVersion = false
+
+	require.NoError(state.UpsertRecommendation(1000, rec1))
+	require.NoError(state.UpsertRecommendation(1010, rec2))
+	// Create watchsets so we can test that update fires appropriately
+	ws1 := memdb.NewWatchSet()
+	_, err := state.RecommendationByID(ws1, rec1.ID)
+	require.NoError(err)
+	ws2 := memdb.NewWatchSet()
+	_, err = state.RecommendationByID(ws2, rec2.ID)
+	require.NoError(err)
+
+	updatedJob := job.Copy()
+	updatedJob.Meta["updated"] = "true"
+	updatedJob.Version = job.Version + 1
+	require.Nil(state.UpsertJob(1020, updatedJob))
+
+	out, err := state.RecommendationByID(nil, rec1.ID)
+	require.NoError(err)
+	require.Nil(out)
+	require.True(watchFired(ws1))
+
+	out, err = state.RecommendationByID(nil, rec2.ID)
+	require.NoError(err)
+	require.NotNil(out)
+	require.False(watchFired(ws2))
+
+	index, err := state.Index(TableRecommendations)
+	require.NoError(err)
+	require.GreaterOrEqual(index, uint64(1020))
 }

@@ -648,3 +648,38 @@ func TestMultiregion_Validate(t *testing.T) {
 		})
 	}
 }
+
+func TestRecommendation_Target(t *testing.T) {
+	cases := []struct {
+		Name         string
+		Group        string
+		Task         string
+		Resource     string
+		ExpectedPath string
+	}{
+		{
+			Name:     "can handle complicated names",
+			Group:    "this has [brackets] and emoji 🔥🔥🔥",
+			Task:     "this also has [brackets] and emoji 🔥🔥🔥",
+			Resource: "CPU",
+			ExpectedPath: ".TaskGroups[this%20has%20%5Bbrackets%5D%20and%20emoji%20%F0%9F%94%A5%F0%9F%94%A5%F0%9F%94%A5]" +
+				".Tasks[this%20also%20has%20%5Bbrackets%5D%20and%20emoji%20%F0%9F%94%A5%F0%9F%94%A5%F0%9F%94%A5]" +
+				".Resources.CPU",
+		},
+		{
+			Name:         "simple names are simple",
+			Group:        "cache",
+			Task:         "redis",
+			Resource:     "MemoryMB",
+			ExpectedPath: ".TaskGroups[cache].Tasks[redis].Resources.MemoryMB",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			r := &Recommendation{}
+			r.Target(tc.Group, tc.Task, tc.Resource)
+			require.Equal(t, tc.ExpectedPath, r.Path)
+		})
+	}
+}

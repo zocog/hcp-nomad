@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 
 	"github.com/hashicorp/errwrap"
@@ -893,4 +894,56 @@ func (m *Multiregion) Validate(jobType string, jobDatacenters []string) error {
 		}
 	}
 	return mErr.ErrorOrNil()
+}
+
+// Recommendation represents a recommended change to a job
+type Recommendation struct {
+	ID             string
+	JobNamespace   string
+	JobID          string
+	JobVersion     uint64
+	Path           string
+	Value          interface{}
+	Meta           map[string]interface{}
+	Stats          map[string]float64
+	EnforceVersion bool
+	PolicyOverride bool
+
+	CreateIndex uint64
+	ModifyIndex uint64
+}
+
+func (r *Recommendation) Copy() *Recommendation {
+	if r == nil {
+		return nil
+	}
+	c := &Recommendation{}
+	*c = *r
+	c.Meta = make(map[string]interface{})
+	for k, v := range r.Meta {
+		c.Meta[k] = v
+	}
+	c.Stats = make(map[string]float64)
+	for k, v := range r.Stats {
+		c.Stats[k] = v
+	}
+	return c
+}
+
+func (r *Recommendation) Target(group, task, resource string) {
+	group = url.PathEscape(group)
+	task = url.PathEscape(task)
+	r.Path = fmt.Sprintf(".TaskGroups[%s].Tasks[%s].Resources.%s", group, task, resource)
+}
+
+// RecommendationSpecificRequest is used to query a specific recommendation
+type RecommendationSpecificRequest struct {
+	ID string
+	QueryOptions
+}
+
+// SingleRecommendationResponse is used to return a single recommendation
+type SingleRecommendationResponse struct {
+	Recommendation *Recommendation
+	QueryMeta
 }
