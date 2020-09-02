@@ -1065,3 +1065,271 @@ func (s *StateStore) setTmpLicenseMeta(txn *memdb.Txn, meta *structs.TmpLicenseM
 
 	return nil
 }
+
+// UpsertRecommendation is used to register or update a set of recommendations
+func (s *StateStore) UpsertRecommendation(index uint64, rec *structs.Recommendation) error {
+	txn := s.db.Txn(true)
+	defer txn.Abort()
+
+	if err := s.upsertRecommendation(index, txn, rec); err != nil {
+		return err
+	}
+
+	if err := txn.Insert("index", &IndexEntry{TableRecommendations, index}); err != nil {
+		return fmt.Errorf("index update failed: %v", err)
+	}
+
+	txn.Commit()
+	return nil
+}
+
+// upsertRecommendation is used to upsert a recommendation
+func (s *StateStore) upsertRecommendation(index uint64, txn *memdb.Txn, rec *structs.Recommendation) error {
+	// Check if the recommendation already exists
+	// existing with the same ID
+	existing, err := txn.First(TableRecommendations, "id", rec.ID)
+	if err != nil {
+		return fmt.Errorf("recommendation lookup failed: %v", err)
+	}
+
+	if existing == nil {
+		// check whether a recommendation exists for the same path
+		iter, err := s.recommendationsByJob(nil, txn, rec.JobNamespace, rec.JobID)
+		if err != nil {
+			return fmt.Errorf("recommendation lookup fail: %v", err)
+		}
+		for {
+			raw := iter.Next()
+			if raw == nil {
+				break
+			}
+			r := raw.(*structs.Recommendation)
+			if r.Path == rec.Path {
+				existing = r
+				break
+			}
+		}
+	}
+
+	if existing != nil {
+		exist := existing.(*structs.Recommendation)
+		rec.ID = exist.ID
+		rec.CreateIndex = exist.CreateIndex
+		rec.ModifyIndex = index
+	} else {
+		rec.CreateIndex = index
+		rec.ModifyIndex = index
+	}
+
+	job, err := s.JobByIDTxn(nil, rec.JobNamespace, rec.JobID, txn)
+	if err != nil {
+		return fmt.Errorf("error looking up recommendation job")
+	}
+	if job == nil {
+		return fmt.Errorf("job does not exist for recommendation")
+	}
+
+	// Insert the recommendation
+	if err := txn.Insert(TableRecommendations, rec); err != nil {
+		return fmt.Errorf("recommendation insert failed: %v", err)
+	}
+
+	return nil
+}
+
+// RecommendationByName is used to lookup a recommendation by name
+func (s *StateStore) RecommendationByID(ws memdb.WatchSet, id string) (*structs.Recommendation, error) {
+	txn := s.db.Txn(false)
+	return s.recommendationByID(ws, txn, id)
+}
+
+// recommendationByID is used to lookup a recommendation by ID
+func (s *StateStore) recommendationByID(ws memdb.WatchSet, txn *memdb.Txn, id string) (*structs.Recommendation, error) {
+	watchCh, existing, err := txn.FirstWatch(TableRecommendations, "id", id)
+	if err != nil {
+		return nil, fmt.Errorf("recommendation lookup failed: %v", err)
+	}
+	ws.Add(watchCh)
+
+	if existing != nil {
+		return existing.(*structs.Recommendation), nil
+	}
+	return nil, nil
+}
+
+// RecommendationsByJob returns all recommendations for a specific job
+func (s *StateStore) RecommendationsByJob(ws memdb.WatchSet, namespace string, id string) ([]*structs.Recommendation, error) {
+	txn := s.db.Txn(false)
+
+	iter, err := s.recommendationsByJob(ws, txn, namespace, id)
+	if err != nil {
+		return nil, err
+	}
+
+	recs := []*structs.Recommendation{}
+	for {
+		raw := iter.Next()
+		if raw == nil {
+			break
+		}
+		r := raw.(*structs.Recommendation)
+		recs = append(recs, r)
+	}
+
+	return recs, nil
+}
+
+// RecommendationsByNamespace returns all recommendations for a specific namespace
+func (s *StateStore) RecommendationsByNamespace(ws memdb.WatchSet, namespace string) ([]*structs.Recommendation, error) {
+	txn := s.db.Txn(false)
+
+	iter, err := txn.Get(TableRecommendations, "job_prefix", namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	ws.Add(iter.WatchCh())
+
+	recs := []*structs.Recommendation{}
+	for {
+		raw := iter.Next()
+		if raw == nil {
+			break
+		}
+		r := raw.(*structs.Recommendation)
+		if r.JobNamespace != namespace {
+			continue
+		}
+		recs = append(recs, r)
+	}
+
+	return recs, nil
+}
+
+// RecommendationsAll returns all recommendations for the cluster
+func (s *StateStore) RecommendationsAll(ws memdb.WatchSet) ([]*structs.Recommendation, error) {
+	txn := s.db.Txn(false)
+
+	iter, err := txn.Get(TableRecommendations, "job_prefix", "")
+	if err != nil {
+		return nil, err
+	}
+
+	ws.Add(iter.WatchCh())
+
+	recs := []*structs.Recommendation{}
+	for {
+		raw := iter.Next()
+		if raw == nil {
+			break
+		}
+		r := raw.(*structs.Recommendation)
+		recs = append(recs, r)
+	}
+
+	return recs, nil
+}
+
+// recommendationsByJob returns an iterator of all recommendations for a specific job
+func (s *StateStore) recommendationsByJob(ws memdb.WatchSet, txn *memdb.Txn,
+	namespace string, id string) (memdb.ResultIterator, error) {
+
+	iter, err := txn.Get(TableRecommendations, "job", namespace, id)
+	if err != nil {
+		return nil, err
+	}
+
+	ws.Add(iter.WatchCh())
+
+	return iter, nil
+}
+
+// DeleteRecommendations deletes recommendations
+func (s *StateStore) DeleteRecommendations(index uint64, ids []string) error {
+	txn := s.db.Txn(true)
+	defer txn.Abort()
+
+	if err := s.deleteRecommendations(index, txn, ids); err != nil {
+		return nil
+	}
+
+	txn.Commit()
+	return nil
+}
+
+// deleteRecommendations deletes recommendations, in a transaction
+func (s *StateStore) deleteRecommendations(index uint64, txn *memdb.Txn, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	for _, id := range ids {
+		// Lookup the recommendation
+		existing, err := txn.First(TableRecommendations, "id", id)
+		if err != nil {
+			return fmt.Errorf("recommendation lookup failed: %v", err)
+		}
+		if existing == nil {
+			return fmt.Errorf("recommendation not found")
+		}
+
+		// Delete the recommendation
+		if err := txn.Delete(TableRecommendations, existing); err != nil {
+			return fmt.Errorf("recommendation deletion failed: %v", err)
+		}
+	}
+
+	if err := txn.Insert("index", &IndexEntry{TableRecommendations, index}); err != nil {
+		return fmt.Errorf("index update failed: %v", err)
+	}
+
+	return nil
+}
+
+// deleteRecommendationsByJob deletes all recommendations for the specified job
+func (s *StateStore) deleteRecommendationsByJob(index uint64, txn Txn, job *structs.Job) error {
+	num, err := txn.DeleteAll(TableRecommendations, "job", job.Namespace, job.ID)
+	if err != nil {
+		return fmt.Errorf("deleting job recommendations failed: %v", err)
+	}
+	if num != 0 {
+		if err := txn.Insert("index", &IndexEntry{TableRecommendations, index}); err != nil {
+			return fmt.Errorf("index update failed: %v", err)
+		}
+	}
+	return nil
+}
+
+// deleteJobPinnedRecommendations deletes all recommendations with EnforceVersion
+func (s *StateStore) deleteJobPinnedRecommendations(index uint64, txn Txn, job *structs.Job) error {
+	iter, err := s.recommendationsByJob(nil, txn, job.Namespace, job.ID)
+	if err != nil {
+		return fmt.Errorf("looking up job recommendations failed: %v", err)
+	}
+
+	fixedRecs := []*structs.Recommendation{}
+	for {
+		raw := iter.Next()
+		if raw == nil {
+			break
+		}
+		r := raw.(*structs.Recommendation)
+		if r.EnforceVersion {
+			fixedRecs = append(fixedRecs, r)
+		}
+	}
+
+	if len(fixedRecs) > 0 {
+		for _, r := range fixedRecs {
+			err := txn.Delete(TableRecommendations, r)
+			if err != nil {
+				return fmt.Errorf("deleting job recommendation failed: %v", err)
+			}
+		}
+		if err := txn.Insert("index", &IndexEntry{TableRecommendations, index}); err != nil {
+			return fmt.Errorf("index update failed: %v", err)
+		}
+	}
+
+	return nil
+}

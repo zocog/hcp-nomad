@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/go-licensing"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
+
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
@@ -90,4 +91,30 @@ func StoredLicense() (*structs.StoredLicense, *licensing.License) {
 		Signed:      license.Signed,
 		CreateIndex: uint64(1000),
 	}, license.License.License
+}
+
+func Recommendation(job *structs.Job) *structs.Recommendation {
+	recommendation := &structs.Recommendation{
+		ID:           uuid.Generate(),
+		JobNamespace: job.Namespace,
+		JobID:        job.ID,
+		JobVersion:   job.Version,
+		Value:        500,
+		Meta: map[string]interface{}{
+			"testing": true,
+			"mocked":  "also true",
+		},
+		Stats: map[string]float64{
+			"median": 50.0,
+			"mean":   51.0,
+			"max":    75.5,
+			"99":     73.0,
+			"min":    0.0,
+		},
+	}
+	recommendation.Target(
+		job.TaskGroups[0].Name,
+		job.TaskGroups[0].Tasks[0].Name,
+		"CPU")
+	return recommendation
 }
