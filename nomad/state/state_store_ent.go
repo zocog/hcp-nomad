@@ -1179,7 +1179,7 @@ func (s *StateStore) RecommendationsByJob(ws memdb.WatchSet, namespace string, i
 	return recs, nil
 }
 
-// RecommendationsByNamespace returns all recommendations for a specific job
+// RecommendationsByNamespace returns all recommendations for a specific namespace
 func (s *StateStore) RecommendationsByNamespace(ws memdb.WatchSet, namespace string) ([]*structs.Recommendation, error) {
 	txn := s.db.Txn(false)
 
