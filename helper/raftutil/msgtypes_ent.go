@@ -15,4 +15,6 @@ func init() {
 	msgTypeNames[structs.LicenseUpsertRequestType] = "LicenseUpsertRequestType"
 	msgTypeNames[structs.LicenseDeleteRequestType] = "LicenseDeleteRequestType"
 	msgTypeNames[structs.TmpLicenseUpsertRequestType] = "TmpLicenseUpsertRequestType"
+	msgTypeNames[structs.RecommendationUpsertRequestType] = "RecommendationUpsertRequestType"
+	msgTypeNames[structs.RecommendationDeleteRequestType] = "RecommendationDeleteRequestType"
 }

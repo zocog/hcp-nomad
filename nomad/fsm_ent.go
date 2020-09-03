@@ -23,6 +23,7 @@ const (
 	QuotaUsageSnapshot
 	LicenseSnapshot
 	TmpLicenseMetaSnapshot
+	RecommendationSnapshot
 )
 
 // registerEntLogAppliers registers all the Nomad Enterprise Raft log appliers
@@ -35,6 +36,8 @@ func (n *nomadFSM) registerEntLogAppliers() {
 	n.enterpriseAppliers[structs.QuotaSpecDeleteRequestType] = n.applyQuotaSpecDelete
 	n.enterpriseAppliers[structs.LicenseUpsertRequestType] = n.applyLicenseUpsert
 	n.enterpriseAppliers[structs.TmpLicenseUpsertRequestType] = n.applyTmpLicenseMetaUpsert
+	n.enterpriseAppliers[structs.RecommendationUpsertRequestType] = n.applyRecommendationUpsert
+	n.enterpriseAppliers[structs.RecommendationDeleteRequestType] = n.applyRecommendationDelete
 }
 
 // registerEntSnapshotRestorers registers all the Nomad Enterprise snapshot restorers
@@ -45,6 +48,7 @@ func (n *nomadFSM) registerEntSnapshotRestorers() {
 	n.enterpriseRestorers[NamespaceSnapshot] = restoreNamespace
 	n.enterpriseRestorers[LicenseSnapshot] = restoreLicense
 	n.enterpriseRestorers[TmpLicenseMetaSnapshot] = restoreTmpLicenseMeta
+	n.enterpriseRestorers[RecommendationSnapshot] = restoreRecommendation
 }
 
 // applyNamespaceUpsert is used to upsert a set of namespaces
@@ -59,7 +63,7 @@ func (n *nomadFSM) applyNamespaceUpsert(buf []byte, index uint64) interface{} {
 	for _, ns := range req.Namespaces {
 		old, err := n.state.NamespaceByName(nil, ns.Name)
 		if err != nil {
-			n.logger.Named("nomad.fsm").Error("namespace lookup failed", "error", err)
+			n.logger.Error("namespace lookup failed", "error", err)
 			return err
 		}
 
@@ -71,7 +75,7 @@ func (n *nomadFSM) applyNamespaceUpsert(buf []byte, index uint64) interface{} {
 	}
 
 	if err := n.state.UpsertNamespaces(index, req.Namespaces); err != nil {
-		n.logger.Named("nomad.fsm").Error("UpsertNamespaces failed", "error", err)
+		n.logger.Error("UpsertNamespaces failed", "error", err)
 		return err
 	}
 
@@ -92,7 +96,7 @@ func (n *nomadFSM) applyNamespaceDelete(buf []byte, index uint64) interface{} {
 	}
 
 	if err := n.state.DeleteNamespaces(index, req.Namespaces); err != nil {
-		n.logger.Named("nomad.fsm").Error("DeleteNamespaces failed", "error", err)
+		n.logger.Error("DeleteNamespaces failed", "error", err)
 		return err
 	}
 
@@ -294,6 +298,9 @@ func (s *nomadSnapshot) persistEntTables(sink raft.SnapshotSink, encoder *codec.
 	if err := s.persistTmpLicenseMeta(sink, encoder); err != nil {
 		return err
 	}
+	if err := s.persistRecommendations(sink, encoder); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -444,4 +451,70 @@ func (s *nomadSnapshot) persistTmpLicenseMeta(sink raft.SnapshotSink, enc *codec
 	}
 
 	return nil
+}
+
+// persistRecommendations is used to persist sizing recommendations.
+func (s *nomadSnapshot) persistRecommendations(sink raft.SnapshotSink, enc *codec.Encoder) error {
+	ws := memdb.NewWatchSet()
+	recs, err := s.snap.Recommendations(ws)
+	if err != nil {
+		return err
+	}
+
+	for {
+		// Get the next item
+		raw := recs.Next()
+		if raw == nil {
+			break
+		}
+
+		// Prepare the request struct
+		rec := raw.(*structs.Recommendation)
+
+		sink.Write([]byte{byte(RecommendationSnapshot)})
+		if err := enc.Encode(rec); err != nil {
+			return err
+		}
+	}
+	return nil
+
+}
+
+func (n *nomadFSM) applyRecommendationUpsert(buf []byte, index uint64) interface{} {
+	defer metrics.MeasureSince([]string{"nomad", "fsm", "apply_recommendation_upsert"}, time.Now())
+	var req structs.RecommendationUpsertRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+
+	if err := n.state.UpsertRecommendation(index, req.Recommendation); err != nil {
+		n.logger.Error("UpsertRecommendation failed", "error", err)
+		return err
+	}
+
+	return nil
+}
+
+func (n *nomadFSM) applyRecommendationDelete(buf []byte, index uint64) interface{} {
+	defer metrics.MeasureSince([]string{"nomad", "fsm", "apply_recommendation_delete"}, time.Now())
+	var req structs.RecommendationDeleteRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+
+	if err := n.state.DeleteRecommendations(index, req.Recommendations); err != nil {
+		n.logger.Error("DeleteRecommendations failed", "error", err)
+		return err
+	}
+
+	return nil
+}
+
+// restoreRecommendation is used to restore a recommendation snapshot
+func restoreRecommendation(restore *state.StateRestore, dec *codec.Decoder) error {
+	rec := new(structs.Recommendation)
+	if err := dec.Decode(rec); err != nil {
+		return err
+	}
+	return restore.RecommendationRestore(rec)
 }

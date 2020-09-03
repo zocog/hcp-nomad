@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFSM_UpsertNamespaces(t *testing.T) {
@@ -494,4 +495,93 @@ func TestFSM_SnapshotRestore_TmpLicenseMeta(t *testing.T) {
 	out1, _ := state2.TmpLicenseMeta(nil)
 	assert.NotNil(t, out1)
 	assert.Equal(stored, out1)
+}
+
+func TestFSM_UpsertRecommdation(t *testing.T) {
+	require := require.New(t)
+	t.Parallel()
+	fsm := testFSM(t)
+
+	ns := mock.Namespace()
+	job := mock.Job()
+	job.Namespace = ns.Name
+	rec := mock.Recommendation(job)
+	require.NoError(fsm.State().UpsertNamespaces(1000, []*structs.Namespace{ns}))
+	require.NoError(fsm.State().UpsertJob(1010, job))
+	req := structs.RecommendationUpsertRequest{
+		Recommendation: rec,
+	}
+	buf, err := structs.Encode(structs.RecommendationUpsertRequestType, req)
+	require.NoError(err)
+	require.Nil(fsm.Apply(makeLog(buf)))
+
+	out, err := fsm.State().RecommendationByID(nil, rec.ID)
+	require.NoError(err)
+	require.NotNil(out)
+}
+
+func TestFSM_DeleteRecommendations(t *testing.T) {
+	require := require.New(t)
+	t.Parallel()
+	fsm := testFSM(t)
+
+	ns1 := mock.Namespace()
+	ns2 := mock.Namespace()
+	require.NoError(fsm.State().UpsertNamespaces(1000, []*structs.Namespace{ns1, ns2}))
+	job1 := mock.Job()
+	job1.Namespace = ns1.Name
+	job2 := mock.Job()
+	job2.Namespace = ns2.Name
+	require.NoError(fsm.State().UpsertJob(1001, job1))
+	require.NoError(fsm.State().UpsertJob(1002, job2))
+	rec1 := mock.Recommendation(job1)
+	rec2 := mock.Recommendation(job2)
+	require.NoError(fsm.State().UpsertRecommendation(1002, rec1))
+	require.NoError(fsm.State().UpsertRecommendation(1003, rec2))
+
+	req := structs.RecommendationDeleteRequest{
+		Recommendations: []string{rec1.ID, rec2.ID},
+	}
+	buf, err := structs.Encode(structs.RecommendationDeleteRequestType, req)
+	require.NoError(err)
+	require.Nil(fsm.Apply(makeLog(buf)))
+
+	out, err := fsm.State().RecommendationByID(nil, rec1.ID)
+	require.NoError(err)
+	require.Nil(out)
+
+	out, err = fsm.State().RecommendationByID(nil, rec2.ID)
+	require.NoError(err)
+	require.Nil(out)
+}
+
+func TestFSM_SnapshotRestore_Recommendations(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	// Add some state
+	fsm := testFSM(t)
+	state := fsm.State()
+	job1 := mock.Job()
+	job2 := mock.Job()
+	rec1 := mock.Recommendation(job1)
+	rec2 := mock.Recommendation(job2)
+	state.UpsertJob(1000, job1)
+	state.UpsertJob(1001, job2)
+	state.UpsertRecommendation(1002, rec1)
+	state.UpsertRecommendation(1003, rec2)
+
+	// Verify the contents
+	fsm2 := testSnapshotRestore(t, fsm)
+	state2 := fsm2.State()
+	ws := memdb.NewWatchSet()
+	out1, _ := state2.RecommendationsByJob(ws, job1.Namespace, job1.ID)
+	require.Len(out1, 1)
+	require.EqualValues(rec1.Value, out1[0].Value)
+	out1[0].Value = rec1.Value
+	require.True(reflect.DeepEqual(rec1, out1[0]))
+	out2, _ := state2.RecommendationsByJob(ws, job2.Namespace, job2.ID)
+	require.Len(out2, 1)
+	require.EqualValues(rec2.Value, out2[0].Value)
+	out2[0].Value = rec2.Value
+	require.True(reflect.DeepEqual(rec2, out2[0]))
 }

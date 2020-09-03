@@ -2128,7 +2128,7 @@ func TestStateStore_ListAllRecommendations(t *testing.T) {
 
 	// Create watchsets so we can test that upsert fires the watches
 	wsList := memdb.NewWatchSet()
-	_, err := state.RecommendationsAll(wsList)
+	_, err := state.Recommendations(wsList)
 	require.NoError(err)
 
 	rec1 := mock.Recommendation(job1)
@@ -2140,10 +2140,18 @@ func TestStateStore_ListAllRecommendations(t *testing.T) {
 	require.NoError(state.UpsertRecommendation(1002, rec3))
 
 	wsList = memdb.NewWatchSet()
-	out, err := state.RecommendationsAll(wsList)
+	out, err := state.Recommendations(wsList)
+	outRecs := []*structs.Recommendation{}
+	for {
+		raw := out.Next()
+		if raw == nil {
+			break
+		}
+		outRecs = append(outRecs, raw.(*structs.Recommendation))
+	}
 	require.NoError(err)
-	require.Len(out, 3)
-	outIds := []string{out[0].ID, out[1].ID, out[2].ID}
+	require.Len(outRecs, 3)
+	outIds := []string{outRecs[0].ID, outRecs[1].ID, outRecs[2].ID}
 	expIds := []string{rec1.ID, rec2.ID, rec3.ID}
 	sort.Strings(outIds)
 	sort.Strings(expIds)
