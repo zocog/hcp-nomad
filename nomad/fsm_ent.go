@@ -63,7 +63,7 @@ func (n *nomadFSM) applyNamespaceUpsert(buf []byte, index uint64) interface{} {
 	for _, ns := range req.Namespaces {
 		old, err := n.state.NamespaceByName(nil, ns.Name)
 		if err != nil {
-			n.logger.Named("nomad.fsm").Error("namespace lookup failed", "error", err)
+			n.logger.Error("namespace lookup failed", "error", err)
 			return err
 		}
 
@@ -75,7 +75,7 @@ func (n *nomadFSM) applyNamespaceUpsert(buf []byte, index uint64) interface{} {
 	}
 
 	if err := n.state.UpsertNamespaces(index, req.Namespaces); err != nil {
-		n.logger.Named("nomad.fsm").Error("UpsertNamespaces failed", "error", err)
+		n.logger.Error("UpsertNamespaces failed", "error", err)
 		return err
 	}
 
@@ -96,7 +96,7 @@ func (n *nomadFSM) applyNamespaceDelete(buf []byte, index uint64) interface{} {
 	}
 
 	if err := n.state.DeleteNamespaces(index, req.Namespaces); err != nil {
-		n.logger.Named("nomad.fsm").Error("DeleteNamespaces failed", "error", err)
+		n.logger.Error("DeleteNamespaces failed", "error", err)
 		return err
 	}
 
@@ -488,7 +488,7 @@ func (n *nomadFSM) applyRecommendationUpsert(buf []byte, index uint64) interface
 	}
 
 	if err := n.state.UpsertRecommendation(index, req.Recommendation); err != nil {
-		n.logger.Named("nomad.fsm").Error("UpsertRecommendation failed", "error", err)
+		n.logger.Error("UpsertRecommendation failed", "error", err)
 		return err
 	}
 
@@ -503,7 +503,7 @@ func (n *nomadFSM) applyRecommendationDelete(buf []byte, index uint64) interface
 	}
 
 	if err := n.state.DeleteRecommendations(index, req.Recommendations); err != nil {
-		n.logger.Named("nomad.fsm").Error("DeleteRecommendations failed", "error", err)
+		n.logger.Error("DeleteRecommendations failed", "error", err)
 		return err
 	}
 
