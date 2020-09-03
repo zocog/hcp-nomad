@@ -453,7 +453,7 @@ func (s *nomadSnapshot) persistTmpLicenseMeta(sink raft.SnapshotSink, enc *codec
 	return nil
 }
 
-// persist
+// persistRecommendations is used to persist sizing recommendations.
 func (s *nomadSnapshot) persistRecommendations(sink raft.SnapshotSink, enc *codec.Encoder) error {
 	ws := memdb.NewWatchSet()
 	recs, err := s.snap.Recommendations(ws)
