@@ -31,7 +31,7 @@ func (s *StateStore) enterpriseInit() error {
 }
 
 // namespaceExists returns whether a namespace exists
-func (s *StateStore) namespaceExists(txn *memdb.Txn, namespace string) (bool, error) {
+func (s *StateStore) namespaceExists(txn *txn, namespace string) (bool, error) {
 	if namespace == structs.DefaultNamespace {
 		return true, nil
 	}
@@ -46,7 +46,7 @@ func (s *StateStore) namespaceExists(txn *memdb.Txn, namespace string) (bool, er
 
 // UpsertNamespace is used to register or update a set of namespaces
 func (s *StateStore) UpsertNamespaces(index uint64, namespaces []*structs.Namespace) error {
-	txn := s.db.Txn(true)
+	txn := s.db.WriteTxn(index)
 	defer txn.Abort()
 
 	for _, ns := range namespaces {
@@ -65,7 +65,7 @@ func (s *StateStore) UpsertNamespaces(index uint64, namespaces []*structs.Namesp
 
 // DeleteNamespaces is used to remove a set of namespaces
 func (s *StateStore) DeleteNamespaces(index uint64, names []string) error {
-	txn := s.db.Txn(true)
+	txn := s.db.WriteTxn(index)
 	defer txn.Abort()
 
 	for _, name := range names {
@@ -118,12 +118,12 @@ func (s *StateStore) DeleteNamespaces(index uint64, names []string) error {
 
 // NamespaceByName is used to lookup a namespace by name
 func (s *StateStore) NamespaceByName(ws memdb.WatchSet, name string) (*structs.Namespace, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 	return s.namespaceByNameImpl(ws, txn, name)
 }
 
 // namespaceByNameImpl is used to lookup a namespace by name
-func (s *StateStore) namespaceByNameImpl(ws memdb.WatchSet, txn *memdb.Txn, name string) (*structs.Namespace, error) {
+func (s *StateStore) namespaceByNameImpl(ws memdb.WatchSet, txn *txn, name string) (*structs.Namespace, error) {
 	watchCh, existing, err := txn.FirstWatch(TableNamespaces, "id", name)
 	if err != nil {
 		return nil, fmt.Errorf("namespace lookup failed: %v", err)
@@ -138,7 +138,7 @@ func (s *StateStore) namespaceByNameImpl(ws memdb.WatchSet, txn *memdb.Txn, name
 
 // NamespacesByNamePrefix is used to lookup namespaces by prefix
 func (s *StateStore) NamespacesByNamePrefix(ws memdb.WatchSet, namePrefix string) (memdb.ResultIterator, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 
 	iter, err := txn.Get(TableNamespaces, "id_prefix", namePrefix)
 	if err != nil {
@@ -151,7 +151,7 @@ func (s *StateStore) NamespacesByNamePrefix(ws memdb.WatchSet, namePrefix string
 
 // Namespaces returns an iterator over all the namespaces
 func (s *StateStore) Namespaces(ws memdb.WatchSet) (memdb.ResultIterator, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 
 	// Walk the entire namespace table
 	iter, err := txn.Get(TableNamespaces, "id")
@@ -183,12 +183,12 @@ func (s *StateStore) NamespaceNames() ([]string, error) {
 
 // NamespacesByQuota is used to lookup namespaces by quota
 func (s *StateStore) NamespacesByQuota(ws memdb.WatchSet, quota string) (memdb.ResultIterator, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 	return s.namespacesByQuotaImpl(ws, txn, quota)
 }
 
 // namespacesByQuotaImpl is used to lookup namespaces by quota
-func (s *StateStore) namespacesByQuotaImpl(ws memdb.WatchSet, txn *memdb.Txn, quota string) (memdb.ResultIterator, error) {
+func (s *StateStore) namespacesByQuotaImpl(ws memdb.WatchSet, txn *txn, quota string) (memdb.ResultIterator, error) {
 	iter, err := txn.Get(TableNamespaces, "quota", quota)
 	if err != nil {
 		return nil, fmt.Errorf("namespaces lookup failed: %v", err)
@@ -208,7 +208,7 @@ func (r *StateRestore) NamespaceRestore(ns *structs.Namespace) error {
 
 // UpsertSentinelPolicies is used to create or update a set of Sentinel policies
 func (s *StateStore) UpsertSentinelPolicies(index uint64, policies []*structs.SentinelPolicy) error {
-	txn := s.db.Txn(true)
+	txn := s.db.WriteTxn(index)
 	defer txn.Abort()
 
 	for _, policy := range policies {
@@ -250,7 +250,7 @@ func (s *StateStore) UpsertSentinelPolicies(index uint64, policies []*structs.Se
 
 // DeleteSentinelPolicies deletes the policies with the given names
 func (s *StateStore) DeleteSentinelPolicies(index uint64, names []string) error {
-	txn := s.db.Txn(true)
+	txn := s.db.WriteTxn(index)
 	defer txn.Abort()
 
 	// Delete the policy
@@ -268,7 +268,7 @@ func (s *StateStore) DeleteSentinelPolicies(index uint64, names []string) error 
 
 // SentinelPolicyByName is used to lookup a policy by name
 func (s *StateStore) SentinelPolicyByName(ws memdb.WatchSet, name string) (*structs.SentinelPolicy, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 
 	watchCh, existing, err := txn.FirstWatch(TableSentinelPolicies, "id", name)
 	if err != nil {
@@ -284,7 +284,7 @@ func (s *StateStore) SentinelPolicyByName(ws memdb.WatchSet, name string) (*stru
 
 // SentinelPolicyByNamePrefix is used to lookup policies by prefix
 func (s *StateStore) SentinelPolicyByNamePrefix(ws memdb.WatchSet, prefix string) (memdb.ResultIterator, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 
 	iter, err := txn.Get(TableSentinelPolicies, "id_prefix", prefix)
 	if err != nil {
@@ -297,7 +297,7 @@ func (s *StateStore) SentinelPolicyByNamePrefix(ws memdb.WatchSet, prefix string
 
 // SentinelPolicies returns an iterator over all the sentinel policies
 func (s *StateStore) SentinelPolicies(ws memdb.WatchSet) (memdb.ResultIterator, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 
 	// Walk the entire table
 	iter, err := txn.Get(TableSentinelPolicies, "id")
@@ -310,7 +310,7 @@ func (s *StateStore) SentinelPolicies(ws memdb.WatchSet) (memdb.ResultIterator, 
 
 // SentinelPoliciesByScope returns an iterator over all the sentinel policies by scope
 func (s *StateStore) SentinelPoliciesByScope(ws memdb.WatchSet, scope string) (memdb.ResultIterator, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 
 	// Walk the entire table
 	iter, err := txn.Get(TableSentinelPolicies, "scope", scope)
@@ -331,7 +331,7 @@ func (r *StateRestore) SentinelPolicyRestore(policy *structs.SentinelPolicy) err
 
 // updateEntWithAlloc is used to update enterprise objects when an allocation is
 // added/modified/deleted
-func (s *StateStore) updateEntWithAlloc(index uint64, new, existing *structs.Allocation, txn *memdb.Txn) error {
+func (s *StateStore) updateEntWithAlloc(index uint64, new, existing *structs.Allocation, txn *txn) error {
 	if err := s.updateQuotaWithAlloc(index, new, existing, txn); err != nil {
 		return fmt.Errorf("updating quota usage failed: %v", err)
 	}
@@ -340,7 +340,7 @@ func (s *StateStore) updateEntWithAlloc(index uint64, new, existing *structs.All
 
 // updateQuotaWithAlloc is used to update quotas when an allocation is
 // added/modified/deleted
-func (s *StateStore) updateQuotaWithAlloc(index uint64, new, existing *structs.Allocation, txn *memdb.Txn) error {
+func (s *StateStore) updateQuotaWithAlloc(index uint64, new, existing *structs.Allocation, txn *txn) error {
 	// This could only mean the allocation is being deleted and it should first
 	// be set to a terminal status which means we would have already deducted
 	// its resources.
@@ -405,7 +405,7 @@ func (s *StateStore) updateQuotaWithAlloc(index uint64, new, existing *structs.A
 }
 
 // upsertNamespaceImpl is used to upsert a namespace
-func (s *StateStore) upsertNamespaceImpl(index uint64, txn *memdb.Txn, namespace *structs.Namespace) error {
+func (s *StateStore) upsertNamespaceImpl(index uint64, txn *txn, namespace *structs.Namespace) error {
 	// Ensure the namespace hash is non-nil. This should be done outside the state store
 	// for performance reasons, but we check here for defense in depth.
 	ns := namespace
@@ -515,7 +515,7 @@ func (s *StateStore) upsertNamespaceImpl(index uint64, txn *memdb.Txn, namespace
 
 // UpsertQuotaSpecs is used to create or update a set of quota specifications
 func (s *StateStore) UpsertQuotaSpecs(index uint64, specs []*structs.QuotaSpec) error {
-	txn := s.db.Txn(true)
+	txn := s.db.WriteTxn(index)
 	defer txn.Abort()
 
 	for _, spec := range specs {
@@ -590,7 +590,7 @@ func (s *StateStore) UpsertQuotaSpecs(index uint64, specs []*structs.QuotaSpec) 
 
 // DeleteQuotaSpecs deletes the quota specifications with the given names
 func (s *StateStore) DeleteQuotaSpecs(index uint64, names []string) error {
-	txn := s.db.Txn(true)
+	txn := s.db.WriteTxn(index)
 	defer txn.Abort()
 
 	// Delete the quota specs
@@ -632,11 +632,11 @@ func (s *StateStore) DeleteQuotaSpecs(index uint64, names []string) error {
 
 // QuotaSpecByName is used to lookup a quota specification by name
 func (s *StateStore) QuotaSpecByName(ws memdb.WatchSet, name string) (*structs.QuotaSpec, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 	return s.quotaSpecByNameImpl(ws, txn, name)
 }
 
-func (s *StateStore) quotaSpecByNameImpl(ws memdb.WatchSet, txn *memdb.Txn, name string) (*structs.QuotaSpec, error) {
+func (s *StateStore) quotaSpecByNameImpl(ws memdb.WatchSet, txn *txn, name string) (*structs.QuotaSpec, error) {
 	watchCh, existing, err := txn.FirstWatch(TableQuotaSpec, "id", name)
 	if err != nil {
 		return nil, fmt.Errorf("quota specification lookup failed: %v", err)
@@ -650,14 +650,14 @@ func (s *StateStore) quotaSpecByNameImpl(ws memdb.WatchSet, txn *memdb.Txn, name
 }
 
 // quotaSpecExists on returns whether the quota exists
-func (s *StateStore) quotaSpecExists(txn *memdb.Txn, name string) (bool, error) {
+func (s *StateStore) quotaSpecExists(txn *txn, name string) (bool, error) {
 	qs, err := s.quotaSpecByNameImpl(nil, txn, name)
 	return qs != nil, err
 }
 
 // QuotaSpecsByNamePrefix is used to lookup quota specifications by prefix
 func (s *StateStore) QuotaSpecsByNamePrefix(ws memdb.WatchSet, prefix string) (memdb.ResultIterator, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 
 	iter, err := txn.Get(TableQuotaSpec, "id_prefix", prefix)
 	if err != nil {
@@ -670,7 +670,7 @@ func (s *StateStore) QuotaSpecsByNamePrefix(ws memdb.WatchSet, prefix string) (m
 
 // QuotaSpecs returns an iterator over all the quota specifications
 func (s *StateStore) QuotaSpecs(ws memdb.WatchSet) (memdb.ResultIterator, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 
 	// Walk the entire table
 	iter, err := txn.Get(TableQuotaSpec, "id")
@@ -693,7 +693,7 @@ func (r *StateRestore) QuotaSpecRestore(spec *structs.QuotaSpec) error {
 // should be side effects of other calls.
 // UpsertQuotaUsages is used to create or update a set of quota usages
 func (s *StateStore) UpsertQuotaUsages(index uint64, usages []*structs.QuotaUsage) error {
-	txn := s.db.Txn(true)
+	txn := s.db.WriteTxn(index)
 	defer txn.Abort()
 
 	for _, usage := range usages {
@@ -708,7 +708,7 @@ func (s *StateStore) UpsertQuotaUsages(index uint64, usages []*structs.QuotaUsag
 
 // upsertQuotaUsageImpl is used to create or update a quota usage object and
 // potentially reconcile the usages.
-func (s *StateStore) upsertQuotaUsageImpl(index uint64, txn *memdb.Txn, usage *structs.QuotaUsage,
+func (s *StateStore) upsertQuotaUsageImpl(index uint64, txn *txn, usage *structs.QuotaUsage,
 	reconcile bool) error {
 
 	// Check if the usage already exists
@@ -774,7 +774,7 @@ type reconcileQuotaUsageOpts struct {
 }
 
 // reconcileQuotaUsage computes the usage for the QuotaUsage object
-func (s *StateStore) reconcileQuotaUsage(index uint64, txn *memdb.Txn, opts reconcileQuotaUsageOpts) error {
+func (s *StateStore) reconcileQuotaUsage(index uint64, txn *txn, opts reconcileQuotaUsageOpts) error {
 	if opts.Spec == nil || opts.Usage == nil {
 		return fmt.Errorf("invalid quota usage reconcile options: %+v", opts)
 	}
@@ -866,7 +866,7 @@ func (s *StateStore) reconcileQuotaUsage(index uint64, txn *memdb.Txn, opts reco
 
 // DeleteQuotaUsages deletes the quota usages with the given names
 func (s *StateStore) DeleteQuotaUsages(index uint64, names []string) error {
-	txn := s.db.Txn(true)
+	txn := s.db.WriteTxn(index)
 	defer txn.Abort()
 
 	// Delete the quota usages
@@ -883,7 +883,7 @@ func (s *StateStore) DeleteQuotaUsages(index uint64, names []string) error {
 }
 
 // deleteQuotaUsageImpl deletes the quota usages with the given name
-func (s *StateStore) deleteQuotaUsageImpl(index uint64, txn *memdb.Txn, name string) error {
+func (s *StateStore) deleteQuotaUsageImpl(index uint64, txn *txn, name string) error {
 	// Delete the quota usage
 	if _, err := txn.DeleteAll(TableQuotaUsage, "id", name); err != nil {
 		return fmt.Errorf("deleting quota usage failed: %v", err)
@@ -896,11 +896,11 @@ func (s *StateStore) deleteQuotaUsageImpl(index uint64, txn *memdb.Txn, name str
 
 // QuotaUsageByName is used to lookup a quota usage by name
 func (s *StateStore) QuotaUsageByName(ws memdb.WatchSet, name string) (*structs.QuotaUsage, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 	return s.quotaUsageByNameImpl(txn, ws, name)
 }
 
-func (s *StateStore) quotaUsageByNameImpl(txn *memdb.Txn, ws memdb.WatchSet, name string) (*structs.QuotaUsage, error) {
+func (s *StateStore) quotaUsageByNameImpl(txn *txn, ws memdb.WatchSet, name string) (*structs.QuotaUsage, error) {
 	watchCh, existing, err := txn.FirstWatch(TableQuotaUsage, "id", name)
 	if err != nil {
 		return nil, fmt.Errorf("quota usage lookup failed: %v", err)
@@ -915,7 +915,7 @@ func (s *StateStore) quotaUsageByNameImpl(txn *memdb.Txn, ws memdb.WatchSet, nam
 
 // QuotaUsagesByNamePrefix is used to lookup quota usages by prefix
 func (s *StateStore) QuotaUsagesByNamePrefix(ws memdb.WatchSet, prefix string) (memdb.ResultIterator, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 
 	iter, err := txn.Get(TableQuotaUsage, "id_prefix", prefix)
 	if err != nil {
@@ -928,7 +928,7 @@ func (s *StateStore) QuotaUsagesByNamePrefix(ws memdb.WatchSet, prefix string) (
 
 // QuotaUsages returns an iterator over all the quota usages
 func (s *StateStore) QuotaUsages(ws memdb.WatchSet) (memdb.ResultIterator, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 
 	// Walk the entire table
 	iter, err := txn.Get(TableQuotaUsage, "id")
@@ -958,7 +958,7 @@ func (r *StateRestore) LicenseRestore(license *structs.StoredLicense) error {
 
 // License is used to lookup the stored enterprise license
 func (s *StateStore) License(ws memdb.WatchSet) (*structs.StoredLicense, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 	defer txn.Abort()
 
 	// Get the license blob
@@ -978,7 +978,7 @@ func (s *StateStore) License(ws memdb.WatchSet) (*structs.StoredLicense, error) 
 
 // UpsertLicense is used to store the current license blob
 func (s *StateStore) UpsertLicense(index uint64, license *structs.StoredLicense) error {
-	txn := s.db.Txn(true)
+	txn := s.db.WriteTxn(index)
 	defer txn.Abort()
 	if err := s.upsertLicenseImpl(index, license, txn); err != nil {
 		return err
@@ -987,7 +987,7 @@ func (s *StateStore) UpsertLicense(index uint64, license *structs.StoredLicense)
 	return nil
 }
 
-func (s *StateStore) upsertLicenseImpl(index uint64, license *structs.StoredLicense, txn *memdb.Txn) error {
+func (s *StateStore) upsertLicenseImpl(index uint64, license *structs.StoredLicense, txn *txn) error {
 	// Check for an existing license
 	existing, err := txn.First("license", "id")
 	if err != nil {
@@ -1009,7 +1009,7 @@ func (s *StateStore) upsertLicenseImpl(index uint64, license *structs.StoredLice
 }
 
 func (s *StateStore) TmpLicenseMeta(ws memdb.WatchSet) (*structs.TmpLicenseMeta, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 	defer txn.Abort()
 
 	watchCh, m, err := txn.FirstWatch(TableTmpLicenseMeta, "id")
@@ -1033,7 +1033,7 @@ func (r *StateRestore) TmpLicenseMetaRestore(meta *structs.TmpLicenseMeta) error
 }
 
 func (s *StateStore) TmpLicenseSetMeta(index uint64, meta *structs.TmpLicenseMeta) error {
-	txn := s.db.Txn(true)
+	txn := s.db.WriteTxn(index)
 	defer txn.Abort()
 
 	if err := s.setTmpLicenseMeta(txn, meta); err != nil {
@@ -1044,7 +1044,7 @@ func (s *StateStore) TmpLicenseSetMeta(index uint64, meta *structs.TmpLicenseMet
 	return nil
 }
 
-func (s *StateStore) setTmpLicenseMeta(txn *memdb.Txn, meta *structs.TmpLicenseMeta) error {
+func (s *StateStore) setTmpLicenseMeta(txn *txn, meta *structs.TmpLicenseMeta) error {
 	// Check for an existing config, if it exists, sanity check the cluster ID matches
 	existing, err := txn.First(TableTmpLicenseMeta, "id")
 	if err != nil {
@@ -1068,7 +1068,7 @@ func (s *StateStore) setTmpLicenseMeta(txn *memdb.Txn, meta *structs.TmpLicenseM
 
 // UpsertRecommendation is used to register or update a set of recommendations
 func (s *StateStore) UpsertRecommendation(index uint64, rec *structs.Recommendation) error {
-	txn := s.db.Txn(true)
+	txn := s.db.WriteTxn(index)
 	defer txn.Abort()
 
 	if err := s.upsertRecommendation(index, txn, rec); err != nil {
@@ -1084,7 +1084,7 @@ func (s *StateStore) UpsertRecommendation(index uint64, rec *structs.Recommendat
 }
 
 // upsertRecommendation is used to upsert a recommendation
-func (s *StateStore) upsertRecommendation(index uint64, txn *memdb.Txn, rec *structs.Recommendation) error {
+func (s *StateStore) upsertRecommendation(index uint64, txn *txn, rec *structs.Recommendation) error {
 	// Check if the recommendation already exists
 	// existing with the same ID
 	existing, err := txn.First(TableRecommendations, "id", rec.ID)
@@ -1139,12 +1139,12 @@ func (s *StateStore) upsertRecommendation(index uint64, txn *memdb.Txn, rec *str
 
 // RecommendationByName is used to lookup a recommendation by name
 func (s *StateStore) RecommendationByID(ws memdb.WatchSet, id string) (*structs.Recommendation, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 	return s.recommendationByID(ws, txn, id)
 }
 
 // recommendationByID is used to lookup a recommendation by ID
-func (s *StateStore) recommendationByID(ws memdb.WatchSet, txn *memdb.Txn, id string) (*structs.Recommendation, error) {
+func (s *StateStore) recommendationByID(ws memdb.WatchSet, txn *txn, id string) (*structs.Recommendation, error) {
 	watchCh, existing, err := txn.FirstWatch(TableRecommendations, "id", id)
 	if err != nil {
 		return nil, fmt.Errorf("recommendation lookup failed: %v", err)
@@ -1159,7 +1159,7 @@ func (s *StateStore) recommendationByID(ws memdb.WatchSet, txn *memdb.Txn, id st
 
 // RecommendationsByJob returns all recommendations for a specific job
 func (s *StateStore) RecommendationsByJob(ws memdb.WatchSet, namespace string, id string) ([]*structs.Recommendation, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 
 	iter, err := s.recommendationsByJob(ws, txn, namespace, id)
 	if err != nil {
@@ -1181,7 +1181,7 @@ func (s *StateStore) RecommendationsByJob(ws memdb.WatchSet, namespace string, i
 
 // RecommendationsByNamespace returns all recommendations for a specific namespace
 func (s *StateStore) RecommendationsByNamespace(ws memdb.WatchSet, namespace string) ([]*structs.Recommendation, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 
 	iter, err := txn.Get(TableRecommendations, "job_prefix", namespace)
 	if err != nil {
@@ -1208,7 +1208,7 @@ func (s *StateStore) RecommendationsByNamespace(ws memdb.WatchSet, namespace str
 
 // Recommendations returns all recommendations for the cluster
 func (s *StateStore) Recommendations(ws memdb.WatchSet) (memdb.ResultIterator, error) {
-	txn := s.db.Txn(false)
+	txn := s.db.ReadTxn()
 
 	iter, err := txn.Get(TableRecommendations, "id")
 	if err != nil {
@@ -1221,7 +1221,7 @@ func (s *StateStore) Recommendations(ws memdb.WatchSet) (memdb.ResultIterator, e
 }
 
 // recommendationsByJob returns an iterator of all recommendations for a specific job
-func (s *StateStore) recommendationsByJob(ws memdb.WatchSet, txn *memdb.Txn,
+func (s *StateStore) recommendationsByJob(ws memdb.WatchSet, txn *txn,
 	namespace string, id string) (memdb.ResultIterator, error) {
 
 	iter, err := txn.Get(TableRecommendations, "job", namespace, id)
@@ -1236,7 +1236,7 @@ func (s *StateStore) recommendationsByJob(ws memdb.WatchSet, txn *memdb.Txn,
 
 // DeleteRecommendations deletes recommendations
 func (s *StateStore) DeleteRecommendations(index uint64, ids []string) error {
-	txn := s.db.Txn(true)
+	txn := s.db.WriteTxn(index)
 	defer txn.Abort()
 
 	if err := s.deleteRecommendations(index, txn, ids); err != nil {
@@ -1248,7 +1248,7 @@ func (s *StateStore) DeleteRecommendations(index uint64, ids []string) error {
 }
 
 // deleteRecommendations deletes recommendations, in a transaction
-func (s *StateStore) deleteRecommendations(index uint64, txn *memdb.Txn, ids []string) error {
+func (s *StateStore) deleteRecommendations(index uint64, txn *txn, ids []string) error {
 	if len(ids) == 0 {
 		return nil
 	}
