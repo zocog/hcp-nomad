@@ -51,7 +51,7 @@ sudo chown root:root /usr/local/bin/consul
 echo "Configure Consul"
 mkdir_for_root /etc/consul.d
 mkdir_for_root /opt/consul
-sudo mv /tmp/linux/consul_aws.service /etc/systemd/system/consul.service
+sudo mv /tmp/linux/consul.service /etc/systemd/system/consul.service
 
 echo "Install Vault"
 curl -fsL -o /tmp/vault.zip \
@@ -72,9 +72,9 @@ mkdir_for_root $NOMAD_PLUGIN_DIR
 sudo mv /tmp/linux/nomad.service /etc/systemd/system/nomad.service
 
 echo "Install Nomad"
-sudo mv /tmp/linux/install-nomad /opt/install-nomad
-sudo chmod +x /opt/install-nomad
-/opt/install-nomad --nomad_version $NOMADVERSION --nostart
+sudo mv /tmp/linux/provision.sh /opt/provision.sh
+sudo chmod +x /opt/provision.sh
+/opt/provision.sh --nomad_version $NOMADVERSION --nostart
 
 echo "Installing third-party apt repositories"
 
