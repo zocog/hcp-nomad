@@ -57,6 +57,9 @@ const (
 var (
 	// validNamespaceName is used to validate a namespace name
 	validNamespaceName = regexp.MustCompile("^[a-zA-Z0-9-]{1,128}$")
+
+	// validRecommendationPath is used to validate and parse the recommendation path
+	validRecommendationPath = regexp.MustCompile(`^\.TaskGroups\[([^\[\]]+)].Tasks\[([^\[\]]+)].Resources.([a-zA-Z]+)$`)
 )
 
 // Restrict the possible Sentinel scopes
@@ -915,6 +918,61 @@ type Recommendation struct {
 	ModifyIndex uint64
 }
 
+type RecommendationPath struct {
+	Group    string
+	Task     string
+	Resource string
+}
+
+func (r Recommendation) ParsePath() (RecommendationPath, error) {
+	path := RecommendationPath{}
+	match := validRecommendationPath.FindStringSubmatch(r.Path)
+	if len(match) != 4 {
+		return path, fmt.Errorf("recommendation path is not valid")
+	}
+	if match[3] != "CPU" && match[3] != "MemoryMB" {
+		return path, fmt.Errorf("recommendation resource not supported")
+	}
+	path.Group = match[1]
+	path.Task = match[2]
+	path.Resource = match[3]
+	return path, nil
+}
+
+func (r *Recommendation) Validate() (RecommendationPath, error) {
+	if r == nil {
+		return RecommendationPath{}, nil
+	}
+
+	var mErr multierror.Error
+	if r.Value == nil {
+		err := fmt.Errorf("recommendation must contain a value")
+		mErr.Errors = append(mErr.Errors, err)
+	}
+
+	if r.Path == "" {
+		err := fmt.Errorf("recommendation must contain a path")
+		mErr.Errors = append(mErr.Errors, err)
+	}
+
+	if r.JobID == "" {
+		err := fmt.Errorf("recommendation must specify target job")
+		mErr.Errors = append(mErr.Errors, err)
+	}
+
+	if r.JobNamespace == "" {
+		err := fmt.Errorf("recommendation must specify target namespace")
+		mErr.Errors = append(mErr.Errors, err)
+	}
+
+	path, err := r.ParsePath()
+	if err != nil {
+		mErr.Errors = append(mErr.Errors, err)
+	}
+
+	return path, mErr.ErrorOrNil()
+}
+
 func (r *Recommendation) Copy() *Recommendation {
 	if r == nil {
 		return nil
@@ -952,7 +1010,7 @@ type RecommendationUpsertRequest struct {
 
 // RecommendationSpecificRequest is used to query a specific recommendation
 type RecommendationSpecificRequest struct {
-	ID string
+	RecommendationID string
 	QueryOptions
 }
 

@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
@@ -2160,50 +2159,6 @@ func TestStateStore_ListAllRecommendations(t *testing.T) {
 	index, err := state.Index(TableRecommendations)
 	require.NoError(err)
 	require.EqualValues(1002, index)
-}
-
-// upserting a recommendation with the same job,path will update
-// any existing recommendation with that job,path
-func TestStateStore_UpsertRecommendation_UpdateExistingPath(t *testing.T) {
-	require := require.New(t)
-	state := testStateStore(t)
-	job := mock.Job()
-	require.NoError(state.UpsertJob(900, job))
-	job.TaskGroups[0].Name = "this is a [more interesting] group name 🤣"
-	job.TaskGroups[0].Tasks[0].Name = "and this is a [more interesting] task name 🤣🤣🤣"
-
-	rec := mock.Recommendation(job)
-	require.NoError(state.UpsertRecommendation(1000, rec))
-
-	wsOrig := memdb.NewWatchSet()
-	out, err := state.RecommendationByID(wsOrig, rec.ID)
-	require.NoError(err)
-	require.Equal(rec, out)
-
-	wsList := memdb.NewWatchSet()
-	list, err := state.RecommendationsByJob(wsList, job.Namespace, job.ID)
-	require.NoError(err)
-	require.Len(list, 1)
-
-	updatedRec := rec.Copy()
-	updatedRec.Value = 750
-	updatedRec.ID = uuid.Generate() // this should be overwritten on the Path match
-	updatedRec.Meta["updated"] = true
-	require.NoError(state.UpsertRecommendation(1010, updatedRec))
-
-	require.True(watchFired(wsOrig))
-	require.True(watchFired(wsList))
-
-	list, err = state.RecommendationsByJob(wsList, job.Namespace, job.ID)
-	require.NoError(err)
-	require.Len(list, 1)
-	require.Equal(rec.ID, list[0].ID)
-	require.Equal(updatedRec.Value, list[0].Value)
-	require.True(list[0].Meta["updated"].(bool))
-
-	index, err := state.Index(TableRecommendations)
-	require.NoError(err)
-	require.GreaterOrEqual(index, uint64(1010))
 }
 
 func TestStateStore_UpsertRecommendation_ErrorWithoutJob(t *testing.T) {
