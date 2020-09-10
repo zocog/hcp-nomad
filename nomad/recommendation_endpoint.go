@@ -21,7 +21,7 @@ type Recommendation struct {
 	srv *Server
 }
 
-// GetRecommendation is used to upsert a recommendation.
+// GetRecommendation is used to query a recommendation.
 func (r *Recommendation) GetRecommendation(args *structs.RecommendationSpecificRequest,
 	reply *structs.SingleRecommendationResponse) error {
 	args.Region = r.srv.config.AuthoritativeRegion
