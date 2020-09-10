@@ -24,16 +24,10 @@ type Recommendation struct {
 // GetRecommendation is used to query a recommendation.
 func (r *Recommendation) GetRecommendation(args *structs.RecommendationSpecificRequest,
 	reply *structs.SingleRecommendationResponse) error {
-	args.Region = r.srv.config.AuthoritativeRegion
 	if done, err := r.srv.forward("Recommendation.GetRecommendation", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"nomad", "recommendation", "get_recommendation"}, time.Now())
-
-	// Strict enforcement for read requests - if not licensed then requests will be denied
-	if err := r.srv.EnterpriseState.FeatureCheck(license.FeatureDynamicApplicationSizing, true); err != nil {
-		return err
-	}
 
 	// Check for read-job permissions
 	allowNsOp := acl.NamespaceValidator(acl.NamespaceCapabilityReadJob)
@@ -44,15 +38,21 @@ func (r *Recommendation) GetRecommendation(args *structs.RecommendationSpecificR
 		return structs.ErrPermissionDenied
 	}
 
+	// Strict enforcement for read requests - if not licensed then requests will be denied
+	if err := r.srv.EnterpriseState.FeatureCheck(license.FeatureDynamicApplicationSizing, true); err != nil {
+		return err
+	}
+
+	// Verify the arguments
+	if args.RecommendationID == "" {
+		return fmt.Errorf("missing recommendation ID")
+	}
+
 	// Setup the blocking query
 	opts := blockingOptions{
 		queryOpts: &args.QueryOptions,
 		queryMeta: &reply.QueryMeta,
 		run: func(ws memdb.WatchSet, state *state.StateStore) error {
-			// Verify the arguments
-			if args.RecommendationID == "" {
-				return fmt.Errorf("missing recommendation ID")
-			}
 
 			out, err := state.RecommendationByID(ws, args.RecommendationID)
 			if err != nil {
@@ -84,12 +84,12 @@ func (r *Recommendation) GetRecommendation(args *structs.RecommendationSpecificR
 // UpsertRecommendation is used to upsert a recommendation
 func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsertRequest,
 	reply *structs.SingleRecommendationResponse) error {
-	args.Region = r.srv.config.AuthoritativeRegion
 	if done, err := r.srv.forward("Recommendation.UpsertRecommendation", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"nomad", "recommendation", "upsert_recommendation"}, time.Now())
 
+	// determine namespace before ACL check
 	if args.Namespace == "" {
 		args.Namespace = args.Recommendation.JobNamespace
 	} else if args.Recommendation.JobNamespace == "" {
@@ -99,14 +99,7 @@ func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsert
 	}
 
 	// Check submit-recommendation permissions
-	var allowNsOp func(aclObj *acl.ACL, ns string) bool
-	{
-		submitRec := acl.NamespaceValidator(acl.NamespaceCapabilitySubmitRecommendation)
-		submitJob := acl.NamespaceValidator(acl.NamespaceCapabilitySubmitJob)
-		allowNsOp = func(aclObj *acl.ACL, ns string) bool {
-			return submitRec(aclObj, ns) || submitJob(aclObj, ns)
-		}
-	}
+	allowNsOp := acl.NamespaceValidator(acl.NamespaceCapabilitySubmitRecommendation, acl.NamespaceCapabilitySubmitJob)
 	aclObj, err := r.srv.ResolveToken(args.AuthToken)
 	if err != nil {
 		return err
@@ -122,7 +115,7 @@ func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsert
 	// Validate
 	path, err := args.Recommendation.Validate()
 	if err != nil {
-		return fmt.Errorf("Invalid recommendation: %v", err)
+		return fmt.Errorf("invalid recommendation: %v", err)
 	}
 
 	// Check whether the associated job exists
@@ -176,19 +169,19 @@ func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsert
 		return structs.NewErrRPCCoded(400, "cannot update recommendation path")
 	}
 
-	if existing == nil {
-		// otherwise, check whether a recommendation exists for the same path
-		jobRecs, err := snap.RecommendationsByJob(nil, job.Namespace, job.ID)
-		if err != nil {
-			return fmt.Errorf("recommendation lookup fail: %v", err)
-		}
-		for _, r := range jobRecs {
-			if r.Path == args.Recommendation.Path {
-				existing = r
-				break
-			}
-		}
-	}
+	// if existing == nil {
+	// 	// otherwise, check whether a recommendation exists for the same path
+	// 	jobRecs, err := snap.RecommendationsByJob(nil, job.Namespace, job.ID)
+	// 	if err != nil {
+	// 		return fmt.Errorf("recommendation lookup fail: %v", err)
+	// 	}
+	// 	for _, r := range jobRecs {
+	// 		if r.Path == args.Recommendation.Path {
+	// 			existing = r
+	// 			break
+	// 		}
+	// 	}
+	// }
 
 	if existing != nil {
 		args.Recommendation.ID = existing.ID
@@ -208,15 +201,11 @@ func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsert
 		return err
 	}
 
+	outRec := out.(*structs.Recommendation)
+
 	// Update the index
 	reply.Index = index
-	reply.Recommendation = args.Recommendation
-	reply.Recommendation.ModifyIndex = index
-	if existing != nil {
-		reply.Recommendation.CreateIndex = existing.CreateIndex
-	} else {
-		reply.Recommendation.CreateIndex = index
-	}
+	reply.Recommendation = outRec
 
 	return nil
 }
@@ -224,11 +213,17 @@ func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsert
 // DeleteRecommendations is used to delete one or more recommendations
 func (r *Recommendation) DeleteRecommendations(args *structs.RecommendationDeleteRequest,
 	reply *structs.GenericResponse) error {
-	args.Region = r.srv.config.AuthoritativeRegion
 	if done, err := r.srv.forward("Recommendation.DeleteRecommendations", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"nomad", "namespace", "delete_recommendations"}, time.Now())
+
+	// Check submit-recommendation permissions
+	allowNsOp := acl.NamespaceValidator(acl.NamespaceCapabilitySubmitRecommendation, acl.NamespaceCapabilitySubmitJob)
+	aclObj, err := r.srv.ResolveToken(args.AuthToken)
+	if err != nil {
+		return err
+	}
 
 	// Strict enforcement for delete requests - if not licensed then requests will be denied
 	if err := r.srv.EnterpriseState.FeatureCheck(license.FeatureDynamicApplicationSizing, true); err != nil {
@@ -238,20 +233,6 @@ func (r *Recommendation) DeleteRecommendations(args *structs.RecommendationDelet
 	// Validate: at least one recommendation
 	if len(args.Recommendations) == 0 {
 		return fmt.Errorf("must specify at least one recommendation to delete")
-	}
-
-	// Check submit-recommendation permissions
-	var allowNsOp func(aclObj *acl.ACL, ns string) bool
-	{
-		submitRec := acl.NamespaceValidator(acl.NamespaceCapabilitySubmitRecommendation)
-		submitJob := acl.NamespaceValidator(acl.NamespaceCapabilitySubmitJob)
-		allowNsOp = func(aclObj *acl.ACL, ns string) bool {
-			return submitRec(aclObj, ns) || submitJob(aclObj, ns)
-		}
-	}
-	aclObj, err := r.srv.ResolveToken(args.AuthToken)
-	if err != nil {
-		return err
 	}
 
 	// Check whether the recommendations exist and whether we have permission on their namespace

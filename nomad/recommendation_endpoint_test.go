@@ -3,7 +3,6 @@
 package nomad
 
 import (
-	"fmt"
 	"reflect"
 	"sort"
 	"testing"
@@ -74,6 +73,7 @@ func TestRecommendationEndpoint_Get(t *testing.T) {
 				&structs.RecommendationSpecificRequest{
 					RecommendationID: tc.ID,
 					QueryOptions: structs.QueryOptions{
+						Region:    "global",
 						Namespace: tc.Namespace,
 					},
 				}, &resp)
@@ -187,24 +187,6 @@ func TestRecommendationEndpoint_GetRecommendation_ACL(t *testing.T) {
 			assert.Equal(t, tc.Found, resp.Recommendation != nil)
 		})
 	}
-}
-
-func licensedServer(t *testing.T, signedLicense string) (*Server, func()) {
-	s, cleanup := TestServer(t, licenseCallback)
-	testutil.WaitForLeader(t, s.RPC)
-	_, err := s.EnterpriseState.licenseWatcher.SetLicense(signedLicense)
-	require.NoError(t, err)
-	testutil.WaitForResult(func() (bool, error) {
-		out := s.EnterpriseState.licenseWatcher.License()
-		require.NoError(t, err)
-		if _, ok := out.License.Flags["temporary"]; !ok {
-			return true, nil
-		}
-		return false, fmt.Errorf("license still temporary")
-	}, func(err error) {
-		require.Failf(t, "failed to find updated license", err.Error())
-	})
-	return s, cleanup
 }
 
 func TestRecommendationEndpoint_GetRecommendation_License(t *testing.T) {
@@ -849,6 +831,9 @@ func TestRecommendationEndpoint_Delete_SingleRec(t *testing.T) {
 	var delResp structs.GenericResponse
 	delReq := &structs.RecommendationDeleteRequest{
 		Recommendations: []string{resp1.Recommendation.ID},
+		WriteRequest: structs.WriteRequest{
+			Region: "global",
+		},
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.DeleteRecommendations", delReq, &delResp)
 	require.NoError(err)
@@ -906,6 +891,9 @@ func TestRecommendationEndpoint_Delete_MultipleRecs(t *testing.T) {
 	var delResp structs.GenericResponse
 	delReq := &structs.RecommendationDeleteRequest{
 		Recommendations: []string{resp1.Recommendation.ID, resp2.Recommendation.ID},
+		WriteRequest: structs.WriteRequest{
+			Region: "global",
+		},
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.DeleteRecommendations", delReq, &delResp)
 	require.NoError(err)
@@ -968,6 +956,9 @@ func TestRecommendationEndpoint_Delete_License(t *testing.T) {
 			var delResp structs.GenericResponse
 			delReq := &structs.RecommendationDeleteRequest{
 				Recommendations: []string{rec.ID},
+				WriteRequest: structs.WriteRequest{
+					Region: "global",
+				},
 			}
 			err := msgpackrpc.CallWithCodec(codec, "Recommendation.DeleteRecommendations", delReq, &delResp)
 			if tc.Error {
@@ -991,6 +982,9 @@ func TestRecommendationEndpoint_Delete_Errors(t *testing.T) {
 	var delResp structs.GenericResponse
 	delReq := &structs.RecommendationDeleteRequest{
 		Recommendations: []string{uuid.Generate()},
+		WriteRequest: structs.WriteRequest{
+			Region: "global",
+		},
 	}
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.DeleteRecommendations", delReq, &delResp)
 	require.Error(err)

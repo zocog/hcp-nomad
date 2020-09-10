@@ -1092,8 +1092,28 @@ func (s *StateStore) upsertRecommendation(index uint64, txn *txn, rec *structs.R
 		return fmt.Errorf("recommendation lookup failed: %v", err)
 	}
 
+	if existing == nil {
+		// check whether a recommendation exists for the same path
+		iter, err := s.recommendationsByJob(nil, txn, rec.JobNamespace, rec.JobID)
+		if err != nil {
+			return fmt.Errorf("recommendation lookup fail: %v", err)
+		}
+		for {
+			raw := iter.Next()
+			if raw == nil {
+				break
+			}
+			r := raw.(*structs.Recommendation)
+			if r.Path == rec.Path {
+				existing = r
+				break
+			}
+		}
+	}
+
 	if existing != nil {
 		exist := existing.(*structs.Recommendation)
+		rec.ID = exist.ID
 		rec.CreateIndex = exist.CreateIndex
 		rec.ModifyIndex = index
 	} else {
