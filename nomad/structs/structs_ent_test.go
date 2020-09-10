@@ -694,7 +694,7 @@ func TestRecommendation_Validate(t *testing.T) {
 			Name: "requires value",
 			Rec: &Recommendation{
 				Value:        nil,
-				Path:         "TaskGroups[web].Tasks[nginx].Resources.CPU",
+				Path:         ".TaskGroups[web].Tasks[nginx].Resources.CPU",
 				JobID:        "example",
 				JobNamespace: "default",
 			},
