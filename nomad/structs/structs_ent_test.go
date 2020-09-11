@@ -398,7 +398,7 @@ func TestQuotaUsage_Diff(t *testing.T) {
 					},
 				},
 			},
-			Create: []string{string(0x1), string(0x2)},
+			Create: []string{string(rune(0x1)), string(rune(0x2))},
 			Delete: []string{},
 		},
 		{
@@ -425,7 +425,7 @@ func TestQuotaUsage_Diff(t *testing.T) {
 				},
 			},
 			Create: []string{},
-			Delete: []string{string(0x1), string(0x2)},
+			Delete: []string{string(rune(0x1)), string(rune(0x2))},
 		},
 		{
 			Name: "both",
@@ -472,8 +472,8 @@ func TestQuotaUsage_Diff(t *testing.T) {
 					},
 				},
 			},
-			Create: []string{string(0x2)},
-			Delete: []string{string(0x3)},
+			Create: []string{string(rune(0x2))},
+			Delete: []string{string(rune(0x3))},
 		},
 	}
 
