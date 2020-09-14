@@ -32,7 +32,7 @@ func (s *StateStore) deleteRecommendationsByJob(index uint64, txn Txn, job *stru
 	return nil
 }
 
-// deleteJobPinnedRecommendations deletes all recommendations for the current version of a job
-func (s *StateStore) deleteJobPinnedRecommendations(index uint64, txn Txn, job *structs.Job) error {
+// updateJobRecommendations updates/deletes job recommendations as necessary for a job update
+func (s *StateStore) updateJobRecommendations(index uint64, txn Txn, prevJob, newJob *structs.Job) error {
 	return nil
 }
