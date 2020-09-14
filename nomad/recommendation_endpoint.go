@@ -169,20 +169,6 @@ func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsert
 		return structs.NewErrRPCCoded(400, "cannot update recommendation path")
 	}
 
-	// if existing == nil {
-	// 	// otherwise, check whether a recommendation exists for the same path
-	// 	jobRecs, err := snap.RecommendationsByJob(nil, job.Namespace, job.ID)
-	// 	if err != nil {
-	// 		return fmt.Errorf("recommendation lookup fail: %v", err)
-	// 	}
-	// 	for _, r := range jobRecs {
-	// 		if r.Path == args.Recommendation.Path {
-	// 			existing = r
-	// 			break
-	// 		}
-	// 	}
-	// }
-
 	if existing != nil {
 		args.Recommendation.ID = existing.ID
 	} else {
@@ -201,7 +187,23 @@ func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsert
 		return err
 	}
 
-	outRec := out.(*structs.Recommendation)
+	// the FSM will only allow one recommendation per path
+	// find that recommendation and return it
+	var outRec *structs.Recommendation
+	jobRecs, err := r.srv.fsm.State().RecommendationsByJob(nil, job.Namespace, job.ID)
+	if err != nil {
+		return fmt.Errorf("recommendation lookup fail: %v", err)
+	}
+	for _, r := range jobRecs {
+		if r.Path == args.Recommendation.Path {
+			outRec = r
+			break
+		}
+	}
+
+	if outRec == nil {
+		return fmt.Errorf("could not find recommendation by path after log apply")
+	}
 
 	// Update the index
 	reply.Index = index
