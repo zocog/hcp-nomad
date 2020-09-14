@@ -2346,3 +2346,67 @@ func TestStateStore_UpdateJob_DeletesFixedRecommendations(t *testing.T) {
 	require.NoError(err)
 	require.GreaterOrEqual(index, uint64(1020))
 }
+
+// TestStateStore_UpdateJob_DeletesOrphanedRecommendations_Group tests that
+// recommendations against a specific task are automatically deleted if the
+// task is removed from the job
+func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteGroup(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	state := testStateStore(t)
+	job := mock.Job()
+	require.NoError(state.UpsertJob(900, job))
+	rec := mock.Recommendation(job)
+
+	require.NoError(state.UpsertRecommendation(1000, rec))
+	// Create watchsets so we can test that update fires appropriately
+	ws := memdb.NewWatchSet()
+	_, err := state.RecommendationByID(ws, rec.ID)
+	require.NoError(err)
+
+	updatedJob := job.Copy()
+	updatedJob.TaskGroups[0].Name = "new task group"
+	updatedJob.Version = job.Version + 1
+	require.Nil(state.UpsertJob(1020, updatedJob))
+
+	out, err := state.RecommendationByID(nil, rec.ID)
+	require.NoError(err)
+	require.Nil(out)
+	require.True(watchFired(ws))
+
+	index, err := state.Index(TableRecommendations)
+	require.NoError(err)
+	require.GreaterOrEqual(index, uint64(1020))
+}
+
+// TestStateStore_UpdateJob_DeletesOrphanedRecommendations_Task tests that
+// recommendations against a specific task are automatically deleted if the
+// task is removed from the job
+func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteTask(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	state := testStateStore(t)
+	job := mock.Job()
+	require.NoError(state.UpsertJob(900, job))
+	rec := mock.Recommendation(job)
+
+	require.NoError(state.UpsertRecommendation(1000, rec))
+	// Create watchsets so we can test that update fires appropriately
+	ws := memdb.NewWatchSet()
+	_, err := state.RecommendationByID(ws, rec.ID)
+	require.NoError(err)
+
+	updatedJob := job.Copy()
+	updatedJob.TaskGroups[0].Tasks[0].Name = "new task"
+	updatedJob.Version = job.Version + 1
+	require.Nil(state.UpsertJob(1020, updatedJob))
+
+	out, err := state.RecommendationByID(nil, rec.ID)
+	require.NoError(err)
+	require.Nil(out)
+	require.True(watchFired(ws))
+
+	index, err := state.Index(TableRecommendations)
+	require.NoError(err)
+	require.GreaterOrEqual(index, uint64(1020))
+}

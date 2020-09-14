@@ -683,3 +683,98 @@ func TestRecommendation_Target(t *testing.T) {
 		})
 	}
 }
+func TestRecommendation_Validate(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Rec      *Recommendation
+		Error    bool
+		ErrorMsg string
+	}{
+		{
+			Name: "requires value",
+			Rec: &Recommendation{
+				Value:        nil,
+				Path:         ".TaskGroups[web].Tasks[nginx].Resources.CPU",
+				JobID:        "example",
+				JobNamespace: "default",
+			},
+			Error:    true,
+			ErrorMsg: "must contain a value",
+		},
+		{
+			Name: "requires path",
+			Rec: &Recommendation{
+				Value:        nil,
+				Path:         "",
+				JobID:        "example",
+				JobNamespace: "default",
+			},
+			Error:    true,
+			ErrorMsg: "must contain a path",
+		},
+		{
+			Name: "unparseable path",
+			Rec: &Recommendation{
+				Value:        10,
+				Path:         "NotValid",
+				JobID:        "example",
+				JobNamespace: "default",
+			},
+			Error:    true,
+			ErrorMsg: "path is not valid",
+		},
+		{
+			Name: "bad resource",
+			Rec: &Recommendation{
+				Value:        10,
+				Path:         ".TaskGroups[web].Tasks[nginx].Resources.Wrong",
+				JobID:        "example",
+				JobNamespace: "default",
+			},
+			Error:    true,
+			ErrorMsg: "resource not supported",
+		},
+		{
+			Name: "missing job",
+			Rec: &Recommendation{
+				Value:        10,
+				Path:         ".TaskGroups[web].Tasks[nginx].Resources.CPU",
+				JobID:        "",
+				JobNamespace: "default",
+			},
+			Error:    true,
+			ErrorMsg: "must specify target job",
+		},
+		{
+			Name: "missing namespace",
+			Rec: &Recommendation{
+				Value:        10,
+				Path:         ".TaskGroups[web].Tasks[nginx].Resources.CPU",
+				JobID:        "example",
+				JobNamespace: "",
+			},
+			Error:    true,
+			ErrorMsg: "must specify target namespace",
+		},
+		{
+			Name: "happy little recommendation",
+			Rec: &Recommendation{
+				Value:        10,
+				Path:         ".TaskGroups[web].Tasks[nginx].Resources.CPU",
+				JobID:        "example",
+				JobNamespace: "default",
+			},
+			Error: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			_, err := tc.Rec.Validate()
+			assert.Equal(t, tc.Error, err != nil)
+			if err != nil {
+				assert.Contains(t, err.Error(), tc.ErrorMsg)
+			}
+		})
+	}
+}

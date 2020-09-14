@@ -1290,27 +1290,50 @@ func (s *StateStore) deleteRecommendationsByJob(index uint64, txn Txn, job *stru
 	return nil
 }
 
-// deleteJobPinnedRecommendations deletes all recommendations with EnforceVersion
-func (s *StateStore) deleteJobPinnedRecommendations(index uint64, txn Txn, job *structs.Job) error {
-	iter, err := s.recommendationsByJob(nil, txn, job.Namespace, job.ID)
+// updateJobRecommendations updates/deletes job recommendations as necessary for a job update
+func (s *StateStore) updateJobRecommendations(index uint64, txn Txn, prevJob, newJob *structs.Job) error {
+
+	deleteEnforced := prevJob != nil && prevJob.Version != newJob.Version
+
+	iter, err := s.recommendationsByJob(nil, txn, newJob.Namespace, newJob.ID)
 	if err != nil {
 		return fmt.Errorf("looking up job recommendations failed: %v", err)
 	}
 
-	fixedRecs := []*structs.Recommendation{}
+	type gt struct {
+		group string
+		task  string
+	}
+	groupsAndTasks := map[gt]struct{}{}
+	for _, g := range newJob.TaskGroups {
+		for _, t := range g.Tasks {
+			groupsAndTasks[gt{
+				group: g.Name,
+				task:  t.Name,
+			}] = struct{}{}
+		}
+	}
+
+	deleteRecs := []*structs.Recommendation{}
 	for {
 		raw := iter.Next()
 		if raw == nil {
 			break
 		}
 		r := raw.(*structs.Recommendation)
-		if r.EnforceVersion {
-			fixedRecs = append(fixedRecs, r)
+		path, _ := r.ParsePath()
+		if deleteEnforced && r.EnforceVersion {
+			deleteRecs = append(deleteRecs, r)
+		} else if _, ok := groupsAndTasks[gt{
+			group: path.Group,
+			task:  path.Task,
+		}]; !ok {
+			deleteRecs = append(deleteRecs, r)
 		}
 	}
 
-	if len(fixedRecs) > 0 {
-		for _, r := range fixedRecs {
+	if len(deleteRecs) > 0 {
+		for _, r := range deleteRecs {
 			err := txn.Delete(TableRecommendations, r)
 			if err != nil {
 				return fmt.Errorf("deleting job recommendation failed: %v", err)

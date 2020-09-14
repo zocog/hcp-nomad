@@ -1462,10 +1462,8 @@ func (s *StateStore) upsertJobImpl(index uint64, job *structs.Job, keepVersion b
 		return fmt.Errorf("unable to update job scaling policies: %v", err)
 	}
 
-	if existingJob != nil && existingJob.Version != job.Version {
-		if err := s.deleteJobPinnedRecommendations(index, txn, job); err != nil {
-			return fmt.Errorf("unable to delete recommendations: %v", err)
-		}
+	if err := s.updateJobRecommendations(index, txn, existingJob, job); err != nil {
+		return fmt.Errorf("unable to update job recommendations: %v", err)
 	}
 
 	if err := s.updateJobCSIPlugins(index, job, existingJob, txn); err != nil {

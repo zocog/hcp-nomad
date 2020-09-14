@@ -56,7 +56,7 @@ func (m Module) Features() Features {
 	case ModuleGovernancePolicy:
 		return PlatformFeatures | FeatureNamespaces | FeatureResourceQuotas | FeatureAuditLogging | FeatureSentinelPolicies
 	case ModuleMulticlusterAndEfficiency:
-		return PlatformFeatures | FeatureMultiregionDeployments
+		return PlatformFeatures | FeatureMultiregionDeployments | FeatureDynamicApplicationSizing
 	default:
 		return PlatformFeatures
 	}

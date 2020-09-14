@@ -3,7 +3,6 @@
 package nomad
 
 import (
-	"encoding/base64"
 	"fmt"
 	"testing"
 	"time"
@@ -11,19 +10,14 @@ import (
 	"github.com/hashicorp/go-licensing"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/nomad/acl"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
-
-func licenseCallback(cfg *Config) {
-	cfg.LicenseConfig = &LicenseConfig{
-		AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
-	}
-}
 
 func TestLicenseEndpoint_GetLicense(t *testing.T) {
 	t.Parallel()

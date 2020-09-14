@@ -43,6 +43,9 @@ const (
 	// multiple vault namespaces
 	FeatureMultiVaultNamespaces
 
+	// dynamic application sizing
+	FeatureDynamicApplicationSizing
+
 	// Should always be last, add features above.
 	numOfFeatures uint = iota
 )
@@ -69,6 +72,8 @@ func (f Features) String() string {
 		return "Automated Backups"
 	case FeatureMultiVaultNamespaces:
 		return "Multi-Vault Namespaces"
+	case FeatureDynamicApplicationSizing:
+		return "Dynamic Application Sizing"
 	default:
 		return "Unknown"
 	}
