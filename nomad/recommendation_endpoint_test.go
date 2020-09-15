@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-memdb"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/stretchr/testify/assert"
@@ -1564,6 +1565,452 @@ func TestRecommendationEndpoint_Delete_ACL(t *testing.T) {
 			if tc.Error {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), structs.ErrPermissionDenied.Error())
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestRecommendationEndpoint_Apply_SingleRec(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.NumSchedulers = 0 // Prevent automatic dequeue
+	})
+	defer cleanupS1()
+	codec := rpcClient(t, s1)
+	testutil.WaitForLeader(t, s1.RPC)
+
+	job := mock.Job()
+	require.NoError(s1.State().UpsertJob(900, job))
+
+	rec1 := mock.Recommendation(job)
+	require.NoError(s1.State().UpsertRecommendation(910, rec1))
+
+	rec2 := mock.Recommendation(job)
+	rec2.Target("web", "web", "MemoryMB")
+	rec2.Value = job.TaskGroups[0].Tasks[0].Resources.MemoryMB * 2
+	rec2.EnforceVersion = true
+	require.NoError(s1.State().UpsertRecommendation(920, rec2))
+
+	// set up watch set for job update on rec apply
+	jobWatch := memdb.NewWatchSet()
+	_, err := s1.State().JobByID(jobWatch, job.Namespace, job.ID)
+	require.NoError(err)
+
+	// set up watch for rec1, which will be deleted by the job update
+	rec2Watch := memdb.NewWatchSet()
+	_, err = s1.State().RecommendationByID(rec2Watch, rec2.ID)
+
+	var applyResp structs.RecommendationApplyResponse
+	applyReq := &structs.RecommendationApplyRequest{
+		Recommendations: []string{rec1.ID},
+		WriteRequest: structs.WriteRequest{
+			Region: "global",
+		},
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
+	require.NoError(err)
+	require.Len(applyResp.Errors, 0)
+	require.Len(applyResp.UpdatedJobs, 1)
+	require.Equal(job.Namespace, applyResp.UpdatedJobs[0].Namespace)
+	require.Equal(job.ID, applyResp.UpdatedJobs[0].JobID)
+	require.Equal([]string{rec1.ID}, applyResp.UpdatedJobs[0].Recommendations)
+
+	require.False(jobWatch.Watch(time.After(100 * time.Millisecond)))
+	require.False(rec2Watch.Watch(time.After(100 * time.Millisecond)))
+
+	job, err = s1.State().JobByID(nil, job.Namespace, job.ID)
+	require.NoError(err)
+	require.NotNil(job)
+	require.Equal(job.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.CPU, rec1.Value)
+	require.Equal(job.ModifyIndex, applyResp.UpdatedJobs[0].JobModifyIndex)
+
+	// rec1 was deleted during application, while rec2 was deleted because of the job update
+	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, "", "")
+	require.NoError(err)
+	require.Len(recs, 0)
+}
+
+func TestRecommendationEndpoint_Apply_MultipleRecs(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.NumSchedulers = 0 // Prevent automatic dequeue
+	})
+	defer cleanupS1()
+	codec := rpcClient(t, s1)
+	testutil.WaitForLeader(t, s1.RPC)
+
+	job := mock.Job()
+	require.NoError(s1.State().UpsertJob(900, job))
+
+	rec1 := mock.Recommendation(job)
+	require.NoError(s1.State().UpsertRecommendation(910, rec1))
+
+	rec2 := mock.Recommendation(job)
+	rec2.Target("web", "web", "MemoryMB")
+	rec2.Value = job.TaskGroups[0].Tasks[0].Resources.MemoryMB * 2
+	require.NoError(s1.State().UpsertRecommendation(920, rec2))
+
+	// set up watch set for job update on rec apply
+	jobWatch := memdb.NewWatchSet()
+	_, err := s1.State().JobByID(jobWatch, job.Namespace, job.ID)
+	require.NoError(err)
+
+	// set up watch for rec1, which will be deleted by the job update
+	rec2Watch := memdb.NewWatchSet()
+	_, err = s1.State().RecommendationByID(rec2Watch, rec2.ID)
+
+	var applyResp structs.RecommendationApplyResponse
+	applyReq := &structs.RecommendationApplyRequest{
+		Recommendations: []string{rec1.ID, rec2.ID},
+		WriteRequest: structs.WriteRequest{
+			Region: "global",
+		},
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
+	require.NoError(err)
+	require.Len(applyResp.Errors, 0)
+	require.Len(applyResp.UpdatedJobs, 1)
+	require.Equal(job.Namespace, applyResp.UpdatedJobs[0].Namespace)
+	require.Equal(job.ID, applyResp.UpdatedJobs[0].JobID)
+	require.Equal([]string{rec1.ID, rec2.ID}, applyResp.UpdatedJobs[0].Recommendations)
+
+	require.False(jobWatch.Watch(time.After(100 * time.Millisecond)))
+	require.False(rec2Watch.Watch(time.After(100 * time.Millisecond)))
+
+	job, err = s1.State().JobByID(nil, job.Namespace, job.ID)
+	require.NoError(err)
+	require.NotNil(job)
+	require.Equal(job.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.CPU, rec1.Value)
+	require.Equal(job.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.MemoryMB, rec2.Value)
+	require.Equal(job.ModifyIndex, applyResp.UpdatedJobs[0].JobModifyIndex)
+
+	// both recommendations were deleted during update
+	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, "", "")
+	require.NoError(err)
+	require.Len(recs, 0)
+}
+
+func TestRecommendationEndpoint_Apply_MultipleJobs(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.NumSchedulers = 0 // Prevent automatic dequeue
+	})
+	defer cleanupS1()
+	codec := rpcClient(t, s1)
+	testutil.WaitForLeader(t, s1.RPC)
+
+	job1 := mock.Job()
+	require.NoError(s1.State().UpsertJob(900, job1))
+	rec1 := mock.Recommendation(job1)
+	require.NoError(s1.State().UpsertRecommendation(910, rec1))
+
+	job2 := mock.Job()
+	require.NoError(s1.State().UpsertJob(901, job2))
+	rec2 := mock.Recommendation(job2)
+	rec2.Target("web", "web", "MemoryMB")
+	rec2.Value = job2.TaskGroups[0].Tasks[0].Resources.MemoryMB * 2
+	require.NoError(s1.State().UpsertRecommendation(920, rec2))
+
+	// set up watch set for job updates on rec apply
+	job1Watch := memdb.NewWatchSet()
+	_, err := s1.State().JobByID(job1Watch, job1.Namespace, job1.ID)
+	require.NoError(err)
+	job2Watch := memdb.NewWatchSet()
+	_, err = s1.State().JobByID(job2Watch, job2.Namespace, job2.ID)
+	require.NoError(err)
+
+	var applyResp structs.RecommendationApplyResponse
+	applyReq := &structs.RecommendationApplyRequest{
+		Recommendations: []string{rec1.ID, rec2.ID},
+		WriteRequest: structs.WriteRequest{
+			Region: "global",
+		},
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
+	require.NoError(err)
+	require.Len(applyResp.Errors, 0)
+	require.Len(applyResp.UpdatedJobs, 2)
+
+	jobs := []*structs.Job{job1, job2}
+	sort.Slice(jobs, func(i int, j int) bool {
+		return jobs[i].ID < jobs[j].ID
+	})
+	sort.Slice(applyResp.UpdatedJobs, func(i int, j int) bool {
+		return applyResp.UpdatedJobs[i].JobID < applyResp.UpdatedJobs[j].JobID
+	})
+
+	require.Equal(jobs[0].Namespace, applyResp.UpdatedJobs[0].Namespace)
+	require.Equal(jobs[0].ID, applyResp.UpdatedJobs[0].JobID)
+	require.Equal(jobs[1].Namespace, applyResp.UpdatedJobs[1].Namespace)
+	require.Equal(jobs[1].ID, applyResp.UpdatedJobs[1].JobID)
+
+	require.False(job1Watch.Watch(time.After(100 * time.Millisecond)))
+	require.False(job2Watch.Watch(time.After(100 * time.Millisecond)))
+
+	job1, err = s1.State().JobByID(nil, job1.Namespace, job1.ID)
+	require.NoError(err)
+	require.NotNil(job1)
+	require.Equal(job1.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.CPU, rec1.Value)
+
+	job2, err = s1.State().JobByID(nil, job2.Namespace, job2.ID)
+	require.NoError(err)
+	require.NotNil(job2)
+	require.Equal(job2.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.MemoryMB, rec2.Value)
+
+	// all recommendations were deleted during update
+	recs, err := s1.State().Recommendations(nil)
+	require.NoError(err)
+	require.Nil(recs.Next())
+}
+
+func TestRecommendationEndpoint_Apply_License(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		Label   string
+		License *nomadLicense.TestLicense
+		Error   bool
+	}{
+		{
+			Label:   "platform",
+			Error:   true,
+			License: nomadLicense.NewTestLicense(nomadLicense.TestPlatformFlags()),
+		},
+		{
+			Label: "multicluster and efficiency module",
+			Error: false,
+			License: nomadLicense.NewTestLicense(map[string]interface{}{
+				"modules": []interface{}{nomadLicense.ModuleMulticlusterAndEfficiency.String()},
+			}),
+		},
+		{
+			Label: "dynamic application sizing feature",
+			Error: false,
+			License: nomadLicense.NewTestLicense(map[string]interface{}{
+				"modules": []interface{}{},
+				"features": map[string]interface{}{
+					"add": []string{nomadLicense.FeatureDynamicApplicationSizing.String()},
+				},
+			}),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Label, func(t *testing.T) {
+			s, cleanup := licensedServer(t, tc.License.Signed)
+			defer cleanup()
+			codec := rpcClient(t, s)
+			state := s.fsm.State()
+
+			job := mock.Job()
+			require.NoError(t, state.UpsertJob(900, job))
+			rec := mock.Recommendation(job)
+			require.NoError(t, state.UpsertRecommendation(910, rec))
+			var applyResp structs.RecommendationApplyResponse
+			applyReq := &structs.RecommendationApplyRequest{
+				Recommendations: []string{rec.ID},
+				WriteRequest: structs.WriteRequest{
+					Region: "global",
+				},
+			}
+			err := msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
+
+			if tc.Error {
+				require.Error(t, err)
+				require.Equal(t, `Feature "Dynamic Application Sizing" is unlicensed`, err.Error())
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestRecommendationEndpoint_Apply_Errors(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.NumSchedulers = 0 // Prevent automatic dequeue
+	})
+	defer cleanupS1()
+	codec := rpcClient(t, s1)
+	testutil.WaitForLeader(t, s1.RPC)
+	state := s1.State()
+
+	job := mock.Job()
+	require.NoError(state.UpsertJob(900, job))
+	rec := mock.Recommendation(job)
+	require.NoError(state.UpsertRecommendation(900, rec))
+
+	var applyResp structs.RecommendationApplyResponse
+	applyReq := &structs.RecommendationApplyRequest{
+		Recommendations: []string{},
+		WriteRequest: structs.WriteRequest{
+			Region: "global",
+		},
+	}
+	err := msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
+	require.Error(err)
+	require.Contains(err.Error(), "at least one recommendation")
+
+	applyReq.Recommendations = []string{rec.ID}
+	{
+		// mutate rec in memory
+		r, err := state.RecommendationByID(nil, rec.ID)
+		require.NoError(err)
+		r.JobID = "nonexistent job"
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
+	require.Error(err)
+	require.Contains(err.Error(), `job "nonexistent job" in namespace "default" does not exist`)
+	// fix it
+	rec.JobID = job.ID
+	require.NoError(state.UpsertRecommendation(900, rec))
+
+	applyReq.Recommendations = []string{uuid.Generate()}
+	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
+	require.Error(err)
+	require.Contains(err.Error(), "recommendation does not exist")
+
+	applyReq.Recommendations = []string{rec.ID}
+	rec.Target("bad group", job.TaskGroups[0].Tasks[0].Name, "CPU")
+	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
+	require.Error(err)
+	require.Contains(err.Error(), "task group does not exist in job")
+
+	applyReq.Recommendations = []string{rec.ID}
+	rec.Target(job.TaskGroups[0].Name, "bad task", "CPU")
+	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
+	require.Error(err)
+	require.Contains(err.Error(), "task does not exist in group")
+
+	applyReq.Recommendations = []string{rec.ID}
+	rec.Target(job.TaskGroups[0].Name, job.TaskGroups[0].Tasks[0].Name, "Bad Resource")
+	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
+	require.Error(err)
+	require.Contains(err.Error(), "resource not valid")
+
+}
+
+func TestRecommendationEndpoint_Apply_ACL(t *testing.T) {
+	t.Parallel()
+	s, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.NumSchedulers = 0 // Prevent automatic dequeue
+	})
+	defer cleanupS1()
+	codec := rpcClient(t, s)
+	testutil.WaitForLeader(t, s.RPC)
+
+	state := s.fsm.State()
+
+	ns1 := mock.Namespace()
+	ns2 := mock.Namespace()
+	require.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
+
+	ns1token_readJob := mock.CreatePolicyAndToken(t, state, 900, "ns1-read",
+		mock.NamespacePolicy(ns1.Name, "", []string{acl.NamespaceCapabilityReadJob}))
+	ns1token := mock.CreatePolicyAndToken(t, state, 901, "ns1",
+		mock.NamespacePolicy(ns1.Name, "", []string{acl.NamespaceCapabilityReadJob, acl.NamespaceCapabilitySubmitJob}))
+	ns2token := mock.CreatePolicyAndToken(t, state, 903, "ns2",
+		mock.NamespacePolicy(ns2.Name, "", []string{acl.NamespaceCapabilityReadJob, acl.NamespaceCapabilitySubmitJob}))
+	nsBothToken := mock.CreatePolicyAndToken(t, state, 903, "nsBoth",
+		mock.NamespacePolicy(ns1.Name, "", []string{acl.NamespaceCapabilityReadJob, acl.NamespaceCapabilitySubmitJob})+
+			mock.NamespacePolicy(ns2.Name, "", []string{acl.NamespaceCapabilityReadJob, acl.NamespaceCapabilitySubmitJob}))
+
+	rec1ID := uuid.Generate()
+	rec2ID := uuid.Generate()
+
+	cases := []struct {
+		Label   string
+		Recs    []string
+		Token   string
+		Error   bool
+		Message string
+	}{
+		{
+			Label:   "no token",
+			Recs:    []string{rec1ID},
+			Token:   "",
+			Error:   true,
+			Message: "recommendation does not exist",
+		},
+		{
+			Label:   "token from different namespace",
+			Recs:    []string{rec1ID},
+			Token:   ns2token.SecretID,
+			Error:   true,
+			Message: "recommendation does not exist",
+		},
+		{
+			Label: "insufficient privileges on namespace",
+			Recs:  []string{rec1ID},
+			Token: ns1token_readJob.SecretID,
+			Error: true,
+		},
+		{
+			Label:   "submit-job on only one namespace",
+			Recs:    []string{rec1ID, rec2ID},
+			Token:   ns1token.SecretID,
+			Error:   true,
+			Message: "recommendation does not exist",
+		},
+		{
+			Label: "valid submit-job token",
+			Recs:  []string{rec1ID},
+			Token: ns1token.SecretID,
+			Error: false,
+		},
+		{
+			Label: "submit-job on both namespaces",
+			Recs:  []string{rec1ID, rec2ID},
+			Token: nsBothToken.SecretID,
+			Error: false,
+		},
+		{
+			Label: "mgmt token can do anything",
+			Recs:  []string{rec1ID, rec2ID},
+			Token: root.SecretID,
+			Error: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Label, func(t *testing.T) {
+			// cleanup  and recreate
+			job1 := mock.Job()
+			job1.Namespace = ns1.Name
+			require.NoError(t, state.UpsertJob(904, job1))
+			job2 := mock.Job()
+			job2.Namespace = ns2.Name
+			require.NoError(t, state.UpsertJob(905, job2))
+			rec1 := mock.Recommendation(job1)
+			rec1.ID = rec1ID
+			rec2 := mock.Recommendation(job2)
+			rec2.ID = rec2ID
+			_ = state.DeleteRecommendations(1000, []string{rec1.ID, rec2.ID})
+			require.NoError(t, state.UpsertRecommendation(906, rec1))
+			require.NoError(t, state.UpsertRecommendation(907, rec2))
+
+			var applyResp structs.RecommendationApplyResponse
+			applyReq := &structs.RecommendationApplyRequest{
+				Recommendations: tc.Recs,
+				WriteRequest: structs.WriteRequest{
+					Region:    "global",
+					AuthToken: tc.Token,
+				},
+			}
+			err := msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
+			if tc.Error {
+				require.Error(t, err)
+				if tc.Message != "" {
+					require.Contains(t, err.Error(), tc.Message)
+				} else {
+					require.Contains(t, err.Error(), structs.ErrPermissionDenied.Error())
+				}
 			} else {
 				require.NoError(t, err)
 			}

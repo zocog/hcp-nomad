@@ -8,6 +8,7 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/nomad-licensing/license"
 
 	"github.com/hashicorp/nomad/acl"
@@ -190,23 +191,11 @@ func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsert
 	}
 
 	// Validate the path against the job
-	var group *structs.TaskGroup
-	for _, g := range job.TaskGroups {
-		if g.Name == args.Recommendation.Group {
-			group = g
-			break
-		}
-	}
+	group := job.LookupTaskGroup(args.Recommendation.Group)
 	if group == nil {
 		return structs.NewErrRPCCoded(400, fmt.Sprintf("group %q does not exist in job", args.Recommendation.Group))
 	}
-	var task *structs.Task
-	for _, t := range group.Tasks {
-		if t.Name == args.Recommendation.Task {
-			task = t
-			break
-		}
-	}
+	task := group.LookupTask(args.Recommendation.Task)
 	if task == nil {
 		return structs.NewErrRPCCoded(400, fmt.Sprintf("task %q does not exist in group %q", args.Recommendation.Task, args.Recommendation.Group))
 	}
@@ -412,4 +401,152 @@ func (r *Recommendation) listAllRecommendations(args *structs.RecommendationList
 			return nil
 		}}
 	return r.srv.blockingRPC(&opts)
+}
+
+// ApplyRecommendations is used to apply some number of recommendations by updating
+// the associated jobs.
+func (r *Recommendation) ApplyRecommendations(args *structs.RecommendationApplyRequest,
+	reply *structs.RecommendationApplyResponse) error {
+	if done, err := r.srv.forward("Recommendation.ApplyRecommendations", args, args, reply); done {
+		return err
+	}
+	defer metrics.MeasureSince([]string{"nomad", "recommendation", "apply_recommendations"}, time.Now())
+
+	// Prepare for ACL checking, but this will happen below when we have resolved the recommendations
+	// and their individual namespaces
+	readRecOp := acl.NamespaceValidator(acl.NamespaceCapabilityReadJob,
+		acl.NamespaceCapabilitySubmitJob, acl.NamespaceCapabilitySubmitRecommendation)
+	submitJobOp := acl.NamespaceValidator(acl.NamespaceCapabilitySubmitJob)
+	aclObj, err := r.srv.ResolveToken(args.AuthToken)
+	if err != nil {
+		return err
+	}
+
+	// Strict enforcement for apply operations - if not licensed then requests will be denied
+	if err := r.srv.EnterpriseState.FeatureCheck(license.FeatureDynamicApplicationSizing, true); err != nil {
+		return err
+	}
+
+	// Validate
+	if len(args.Recommendations) == 0 {
+		return structs.NewErrRPCCoded(400, "must provide at least one recommendation")
+	}
+
+	// Collect recommendations and jobs
+	snap, err := r.srv.fsm.State().Snapshot()
+	if err != nil {
+		return fmt.Errorf("error creating snapshot: %v", err)
+	}
+	var mErr multierror.Error
+	recs := make([]*structs.Recommendation, 0, len(args.Recommendations))
+	for _, id := range args.Recommendations {
+		rec, err := snap.RecommendationByID(nil, id)
+		if err != nil {
+			return err
+		}
+		if rec == nil || (aclObj != nil && !readRecOp(aclObj, rec.Namespace)) {
+			// doesn't exist (absolutely or relative to our token)
+			mErr.Errors = append(mErr.Errors, fmt.Errorf("recommendation does not exist: %v", id))
+		} else if aclObj != nil && !submitJobOp(aclObj, rec.Namespace) {
+			// catch this early: don't have permission to apply this recommendation
+			return structs.ErrPermissionDenied
+		} else {
+			recs = append(recs, rec)
+		}
+	}
+	if len(mErr.Errors) > 0 {
+		return structs.NewErrRPCCoded(400, mErr.ErrorOrNil().Error())
+	}
+
+	// Get the associated jobs and update
+	type jobKey struct {
+		ns  string
+		job string
+	}
+	jobUpdates := map[jobKey]*structs.JobRegisterRequest{}
+	recsByJob := map[jobKey][]string{}
+	for _, rec := range recs {
+		k := jobKey{
+			ns:  rec.Namespace,
+			job: rec.JobID,
+		}
+		recsByJob[k] = append(recsByJob[k], rec.ID)
+		update := jobUpdates[k]
+		if update == nil {
+			job, err := snap.JobByID(nil, k.ns, k.job)
+			if err != nil {
+				return fmt.Errorf("error looking up job %q in namespace %q", k.job, k.ns)
+			}
+			if job == nil {
+				return fmt.Errorf("job %q in namespace %q does not exist", k.job, k.ns)
+			}
+			// must work on a copy of the job, not the entry in the state store
+			job = job.Copy()
+			job.Version++
+			update = &structs.JobRegisterRequest{
+				Job:            job,
+				EnforceIndex:   true,
+				JobModifyIndex: job.ModifyIndex,
+				PreserveCounts: false,
+				PolicyOverride: args.PolicyOverride,
+				WriteRequest: structs.WriteRequest{
+					Region:    args.RequestRegion(),
+					Namespace: job.Namespace,
+					AuthToken: args.AuthToken,
+				},
+			}
+			jobUpdates[k] = update
+		}
+		// apply the recommendation change to the job
+		if err := rec.UpdateJob(update.Job); err != nil {
+			return err
+		}
+	}
+
+	// the job updates below may invalidate the recommendations, so we need to delete them first
+	var delResp structs.GenericResponse
+	if err := r.DeleteRecommendations(&structs.RecommendationDeleteRequest{
+		Recommendations: args.Recommendations,
+		WriteRequest: structs.WriteRequest{
+			Region:    args.RequestRegion(),
+			AuthToken: args.AuthToken,
+		}}, &delResp); err != nil {
+		return fmt.Errorf("error deleting recommendations before apply: %v", err.Error())
+	}
+
+	index := delResp.Index
+	for _, update := range jobUpdates {
+		var updateResp structs.JobRegisterResponse
+		if err := r.srv.RPC("Job.Register", update, &updateResp); err != nil {
+			reply.Errors = append(reply.Errors, &structs.SingleRecommendationApplyError{
+				Namespace: update.Namespace,
+				JobID:     update.Job.ID,
+				Recommendations: recsByJob[jobKey{
+					ns:  update.Namespace,
+					job: update.Job.ID,
+				}],
+				Error: err.Error(),
+			})
+		} else {
+			reply.UpdatedJobs = append(reply.UpdatedJobs, &structs.SingleRecommendationApplyResult{
+				Namespace:       update.Namespace,
+				JobID:           update.Job.ID,
+				JobModifyIndex:  updateResp.JobModifyIndex,
+				EvalID:          updateResp.EvalID,
+				EvalCreateIndex: updateResp.EvalCreateIndex,
+				Warnings:        updateResp.Warnings,
+				Recommendations: recsByJob[jobKey{
+					ns:  update.Namespace,
+					job: update.Job.ID,
+				}],
+			})
+			index = updateResp.JobModifyIndex
+			if updateResp.EvalCreateIndex > index {
+				index = updateResp.EvalCreateIndex
+			}
+		}
+	}
+
+	reply.Index = index
+	return nil
 }
