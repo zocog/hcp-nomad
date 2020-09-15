@@ -324,27 +324,33 @@ func TestRecommendationEndpoint_ListRecommendations(t *testing.T) {
 	job1a.TaskGroups[1].Tasks[1].Name = "second task"
 	require.NoError(t, state.UpsertJob(901, job1a))
 	rec1a := mock.Recommendation(job1a)
+	rec1a.ID = "aa" + rec1a.ID[2:]
 	require.NoError(t, state.UpsertRecommendation(901, rec1a))
 	rec1a2 := mock.Recommendation(job1a)
+	rec1a2.ID = "bb" + rec1a2.ID[2:]
 	rec1a2.Target(job1a.TaskGroups[1].Name, job1a.TaskGroups[1].Tasks[0].Name, "CPU")
 	require.NoError(t, state.UpsertRecommendation(901, rec1a2))
 	rec1a22 := mock.Recommendation(job1a)
+	rec1a22.ID = "cc" + rec1a22.ID[2:]
 	rec1a22.Target(job1a.TaskGroups[1].Name, job1a.TaskGroups[1].Tasks[1].Name, "CPU")
 	require.NoError(t, state.UpsertRecommendation(901, rec1a22))
 	job1b := mock.Job()
 	job1b.Namespace = ns1.Name
 	require.NoError(t, state.UpsertJob(901, job1b))
 	rec1b := mock.Recommendation(job1b)
+	rec1b.ID = "dd" + rec1b.ID[2:]
 	require.NoError(t, state.UpsertRecommendation(901, rec1b))
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
 	require.NoError(t, state.UpsertJob(902, job2))
 	rec2 := mock.Recommendation(job2)
+	rec2.ID = "aa" + rec2.ID[2:]
 	require.NoError(t, state.UpsertRecommendation(902, rec2))
 
 	cases := []struct {
 		Label     string
 		Namespace string
+		Prefix    string
 		Job       string
 		Group     string
 		Task      string
@@ -356,9 +362,27 @@ func TestRecommendationEndpoint_ListRecommendations(t *testing.T) {
 			Recs:      []*structs.Recommendation{rec1a, rec1a2, rec1a22, rec1b, rec2},
 		},
 		{
+			Label:     "all namespaces with prefix",
+			Namespace: "*",
+			Prefix:    rec1a.ID[0:2],
+			Recs:      []*structs.Recommendation{rec1a, rec2},
+		},
+		{
+			Label:     "all namespaces with non-matching prefix",
+			Namespace: "*",
+			Prefix:    "00",
+			Recs:      []*structs.Recommendation{},
+		},
+		{
 			Label:     "ns1",
 			Namespace: ns1.Name,
 			Recs:      []*structs.Recommendation{rec1a, rec1a2, rec1a22, rec1b},
+		},
+		{
+			Label:     "ns1 with prefix",
+			Namespace: ns1.Name,
+			Prefix:    rec1a.ID[0:2],
+			Recs:      []*structs.Recommendation{rec1a},
 		},
 		{
 			Label:     "ns2",
@@ -454,6 +478,7 @@ func TestRecommendationEndpoint_ListRecommendations(t *testing.T) {
 					Task:  tc.Task,
 					QueryOptions: structs.QueryOptions{
 						Namespace: tc.Namespace,
+						Prefix:    tc.Prefix,
 					},
 				}, &resp)
 			require.NoError(t, err)

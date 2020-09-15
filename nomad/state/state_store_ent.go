@@ -1204,6 +1204,34 @@ func (s *StateStore) RecommendationsByJob(ws memdb.WatchSet, namespace string, j
 	return recs, nil
 }
 
+// RecommendationsByIDPrefix returns all recommendations in a namespace whose prefix matches the specified value
+func (s *StateStore) RecommendationsByIDPrefix(ws memdb.WatchSet, namespace string, prefix string) ([]*structs.Recommendation, error) {
+	txn := s.db.ReadTxn()
+
+	iter, err := txn.Get(TableRecommendations, "id_prefix", prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	ws.Add(iter.WatchCh())
+
+	recs := []*structs.Recommendation{}
+	for {
+		raw := iter.Next()
+		if raw == nil {
+			break
+		}
+		r := raw.(*structs.Recommendation)
+		if r.Namespace != namespace {
+			continue
+		}
+		recs = append(recs, r)
+	}
+
+	return recs, nil
+
+}
+
 // RecommendationsByNamespace returns all recommendations for a specific namespace
 func (s *StateStore) RecommendationsByNamespace(ws memdb.WatchSet, namespace string) ([]*structs.Recommendation, error) {
 	txn := s.db.ReadTxn()

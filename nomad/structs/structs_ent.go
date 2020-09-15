@@ -1065,7 +1065,7 @@ type SingleRecommendationApplyError struct {
 	Error           string
 }
 
-// RecommendationApplyResponse is used to apply a set of recommendations
+// RecommendationApplyResponse is the response from applying a set of recommendations
 type RecommendationApplyResponse struct {
 	UpdatedJobs []*SingleRecommendationApplyResult
 	Errors      []*SingleRecommendationApplyError
