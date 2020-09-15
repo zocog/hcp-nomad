@@ -20,7 +20,10 @@ func licenseCallback(cfg *Config) {
 }
 
 func licensedServer(t *testing.T, signedLicense string) (*Server, func()) {
-	s, cleanup := TestServer(t, licenseCallback)
+	s, cleanup := TestServer(t, func(c *Config) {
+		c.NumSchedulers = 0 // Prevent automatic dequeue
+		licenseCallback(c)
+	})
 	testutil.WaitForLeader(t, s.RPC)
 	_, err := s.EnterpriseState.licenseWatcher.SetLicense(signedLicense)
 	require.NoError(t, err)

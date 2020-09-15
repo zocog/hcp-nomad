@@ -94,12 +94,12 @@ func StoredLicense() (*structs.StoredLicense, *licensing.License) {
 }
 
 func Recommendation(job *structs.Job) *structs.Recommendation {
-	recommendation := &structs.Recommendation{
-		ID:           uuid.Generate(),
-		JobNamespace: job.Namespace,
-		JobID:        job.ID,
-		JobVersion:   job.Version,
-		Value:        500,
+	rec := &structs.Recommendation{
+		ID:         uuid.Generate(),
+		Region:     job.Region,
+		Namespace:  job.Namespace,
+		JobID:      job.ID,
+		JobVersion: job.Version,
 		Meta: map[string]interface{}{
 			"testing": true,
 			"mocked":  "also true",
@@ -112,9 +112,10 @@ func Recommendation(job *structs.Job) *structs.Recommendation {
 			"min":    0.0,
 		},
 	}
-	recommendation.Target(
+	rec.Target(
 		job.TaskGroups[0].Name,
 		job.TaskGroups[0].Tasks[0].Name,
 		"CPU")
-	return recommendation
+	rec.Value = job.TaskGroups[0].Tasks[0].Resources.CPU * 2
+	return rec
 }

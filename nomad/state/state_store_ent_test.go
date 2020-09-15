@@ -2029,10 +2029,10 @@ func TestStateStore_ListRecommendationsByJob(t *testing.T) {
 
 	// Create watchsets so we can test that upsert fires the watches
 	wsList1 := memdb.NewWatchSet()
-	_, err := state.RecommendationsByJob(wsList1, job1.Namespace, job1.ID)
+	_, err := state.RecommendationsByJob(wsList1, job1.Namespace, job1.ID, nil)
 	require.NoError(err)
 	wsList2 := memdb.NewWatchSet()
-	_, err = state.RecommendationsByJob(wsList2, job2.Namespace, job2.ID)
+	_, err = state.RecommendationsByJob(wsList2, job2.Namespace, job2.ID, nil)
 	require.NoError(err)
 
 	rec1 := mock.Recommendation(job1)
@@ -2044,13 +2044,13 @@ func TestStateStore_ListRecommendationsByJob(t *testing.T) {
 	require.True(watchFired(wsList2))
 
 	wsList1 = memdb.NewWatchSet()
-	out, err := state.RecommendationsByJob(wsList1, job1.Namespace, job1.ID)
+	out, err := state.RecommendationsByJob(wsList1, job1.Namespace, job1.ID, nil)
 	require.NoError(err)
 	require.Len(out, 1)
 	require.Equal(rec1, out[0])
 
 	wsList2 = memdb.NewWatchSet()
-	out, err = state.RecommendationsByJob(wsList2, job2.Namespace, job2.ID)
+	out, err = state.RecommendationsByJob(wsList2, job2.Namespace, job2.ID, nil)
 	require.NoError(err)
 	require.Len(out, 1)
 	require.Equal(rec2, out[0])
@@ -2181,7 +2181,7 @@ func TestStateStore_UpsertRecommendation_UpdateExistingPath(t *testing.T) {
 	require.Equal(rec, out)
 
 	wsList := memdb.NewWatchSet()
-	list, err := state.RecommendationsByJob(wsList, job.Namespace, job.ID)
+	list, err := state.RecommendationsByJob(wsList, job.Namespace, job.ID, nil)
 	require.NoError(err)
 	require.Len(list, 1)
 
@@ -2194,7 +2194,7 @@ func TestStateStore_UpsertRecommendation_UpdateExistingPath(t *testing.T) {
 	require.True(watchFired(wsOrig))
 	require.True(watchFired(wsList))
 
-	list, err = state.RecommendationsByJob(wsList, job.Namespace, job.ID)
+	list, err = state.RecommendationsByJob(wsList, job.Namespace, job.ID, nil)
 	require.NoError(err)
 	require.Len(list, 1)
 	require.Equal(rec.ID, list[0].ID)
@@ -2248,7 +2248,7 @@ func TestStateStore_DeleteRecommendation(t *testing.T) {
 	require.NoError(state.UpsertRecommendation(1010, rec2))
 	// Create a watchset so we can test that delete fires the watch
 	ws := memdb.NewWatchSet()
-	list, err := state.RecommendationsByJob(ws, job.Namespace, job.ID)
+	list, err := state.RecommendationsByJob(ws, job.Namespace, job.ID, nil)
 	require.NoError(err)
 	require.Len(list, 2)
 

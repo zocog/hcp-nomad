@@ -574,12 +574,12 @@ func TestFSM_SnapshotRestore_Recommendations(t *testing.T) {
 	fsm2 := testSnapshotRestore(t, fsm)
 	state2 := fsm2.State()
 	ws := memdb.NewWatchSet()
-	out1, _ := state2.RecommendationsByJob(ws, job1.Namespace, job1.ID)
+	out1, _ := state2.RecommendationsByJob(ws, job1.Namespace, job1.ID, nil)
 	require.Len(out1, 1)
 	require.EqualValues(rec1.Value, out1[0].Value)
 	out1[0].Value = rec1.Value
 	require.True(reflect.DeepEqual(rec1, out1[0]))
-	out2, _ := state2.RecommendationsByJob(ws, job2.Namespace, job2.ID)
+	out2, _ := state2.RecommendationsByJob(ws, job2.Namespace, job2.ID, nil)
 	require.Len(out2, 1)
 	require.EqualValues(rec2.Value, out2[0].Value)
 	out2[0].Value = rec2.Value

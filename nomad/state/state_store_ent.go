@@ -1094,7 +1094,7 @@ func (s *StateStore) upsertRecommendation(index uint64, txn *txn, rec *structs.R
 
 	if existing == nil {
 		// check whether a recommendation exists for the same path
-		iter, err := s.recommendationsByJob(nil, txn, rec.JobNamespace, rec.JobID)
+		iter, err := s.recommendationsByJob(nil, txn, rec.Namespace, rec.JobID)
 		if err != nil {
 			return fmt.Errorf("recommendation lookup fail: %v", err)
 		}
@@ -1104,7 +1104,7 @@ func (s *StateStore) upsertRecommendation(index uint64, txn *txn, rec *structs.R
 				break
 			}
 			r := raw.(*structs.Recommendation)
-			if r.Path == rec.Path {
+			if rec.SamePath(r) {
 				existing = r
 				break
 			}
@@ -1121,7 +1121,7 @@ func (s *StateStore) upsertRecommendation(index uint64, txn *txn, rec *structs.R
 		rec.ModifyIndex = index
 	}
 
-	job, err := s.JobByIDTxn(nil, rec.JobNamespace, rec.JobID, txn)
+	job, err := s.JobByIDTxn(nil, rec.Namespace, rec.JobID, txn)
 	if err != nil {
 		return fmt.Errorf("error looking up recommendation job")
 	}
@@ -1157,13 +1157,38 @@ func (s *StateStore) recommendationByID(ws memdb.WatchSet, txn *txn, id string) 
 	return nil, nil
 }
 
+type RecommendationsFilter struct {
+	Group    string
+	Task     string
+	Resource string
+}
+
 // RecommendationsByJob returns all recommendations for a specific job
-func (s *StateStore) RecommendationsByJob(ws memdb.WatchSet, namespace string, id string) ([]*structs.Recommendation, error) {
+func (s *StateStore) RecommendationsByJob(ws memdb.WatchSet, namespace string, jobid string,
+	filter *RecommendationsFilter) ([]*structs.Recommendation, error) {
 	txn := s.db.ReadTxn()
 
-	iter, err := s.recommendationsByJob(ws, txn, namespace, id)
+	iter, err := s.recommendationsByJob(ws, txn, namespace, jobid)
 	if err != nil {
 		return nil, err
+	}
+
+	if filter != nil {
+		if filter.Group != "" {
+			iter = memdb.NewFilterIterator(iter, func(raw interface{}) bool {
+				return raw.(*structs.Recommendation).Group != filter.Group
+			})
+			if filter.Task != "" {
+				iter = memdb.NewFilterIterator(iter, func(raw interface{}) bool {
+					return raw.(*structs.Recommendation).Task != filter.Task
+				})
+				if filter.Resource != "" {
+					iter = memdb.NewFilterIterator(iter, func(raw interface{}) bool {
+						return raw.(*structs.Recommendation).Resource != filter.Resource
+					})
+				}
+			}
+		}
 	}
 
 	recs := []*structs.Recommendation{}
@@ -1197,7 +1222,7 @@ func (s *StateStore) RecommendationsByNamespace(ws memdb.WatchSet, namespace str
 			break
 		}
 		r := raw.(*structs.Recommendation)
-		if r.JobNamespace != namespace {
+		if r.Namespace != namespace {
 			continue
 		}
 		recs = append(recs, r)
@@ -1321,12 +1346,11 @@ func (s *StateStore) updateJobRecommendations(index uint64, txn Txn, prevJob, ne
 			break
 		}
 		r := raw.(*structs.Recommendation)
-		path, _ := r.ParsePath()
 		if deleteEnforced && r.EnforceVersion {
 			deleteRecs = append(deleteRecs, r)
 		} else if _, ok := groupsAndTasks[gt{
-			group: path.Group,
-			task:  path.Task,
+			group: r.Group,
+			task:  r.Task,
 		}]; !ok {
 			deleteRecs = append(deleteRecs, r)
 		}
