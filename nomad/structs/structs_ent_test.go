@@ -673,20 +673,6 @@ func TestRecommendation_Validate(t *testing.T) {
 			ErrorMsg: "region",
 		},
 		{
-			Name: "requires value",
-			Rec: &Recommendation{
-				Value:     -1,
-				Group:     "web",
-				Task:      "nginx",
-				Resource:  "CPU",
-				Region:    "global",
-				Namespace: "default",
-				JobID:     "example",
-			},
-			Error:    true,
-			ErrorMsg: "non-negative",
-		},
-		{
 			Name: "requires group",
 			Rec: &Recommendation{
 				Value:     10,
@@ -766,9 +752,37 @@ func TestRecommendation_Validate(t *testing.T) {
 			ErrorMsg: "must specify a job namespace",
 		},
 		{
+			Name: "minimum CPU",
+			Rec: &Recommendation{
+				Value:     0,
+				Group:     "web",
+				Task:      "nginx",
+				Resource:  "CPU",
+				Region:    "global",
+				JobID:     "example",
+				Namespace: "default",
+			},
+			Error:    true,
+			ErrorMsg: "minimum CPU value",
+		},
+		{
+			Name: "minimum memory",
+			Rec: &Recommendation{
+				Value:     0,
+				Group:     "web",
+				Task:      "nginx",
+				Resource:  "MemoryMB",
+				Region:    "global",
+				JobID:     "example",
+				Namespace: "default",
+			},
+			Error:    true,
+			ErrorMsg: "minimum MemoryMB value",
+		},
+		{
 			Name: "happy little recommendation",
 			Rec: &Recommendation{
-				Value:     10,
+				Value:     100,
 				Group:     "web",
 				Task:      "nginx",
 				Resource:  "CPU",

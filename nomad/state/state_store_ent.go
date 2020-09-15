@@ -1157,9 +1157,15 @@ func (s *StateStore) recommendationByID(ws memdb.WatchSet, txn *txn, id string) 
 	return nil, nil
 }
 
+type RecommendationsFilter struct {
+	Group    string
+	Task     string
+	Resource string
+}
+
 // RecommendationsByJob returns all recommendations for a specific job
 func (s *StateStore) RecommendationsByJob(ws memdb.WatchSet, namespace string, jobid string,
-	group string, task string) ([]*structs.Recommendation, error) {
+	filter *RecommendationsFilter) ([]*structs.Recommendation, error) {
 	txn := s.db.ReadTxn()
 
 	iter, err := s.recommendationsByJob(ws, txn, namespace, jobid)
@@ -1167,15 +1173,22 @@ func (s *StateStore) RecommendationsByJob(ws memdb.WatchSet, namespace string, j
 		return nil, err
 	}
 
-	if group != "" {
-		iter = memdb.NewFilterIterator(iter, func(raw interface{}) bool {
-			return raw.(*structs.Recommendation).Group != group
-		})
-	}
-	if task != "" {
-		iter = memdb.NewFilterIterator(iter, func(raw interface{}) bool {
-			return raw.(*structs.Recommendation).Task != task
-		})
+	if filter != nil {
+		if filter.Group != "" {
+			iter = memdb.NewFilterIterator(iter, func(raw interface{}) bool {
+				return raw.(*structs.Recommendation).Group != filter.Group
+			})
+			if filter.Task != "" {
+				iter = memdb.NewFilterIterator(iter, func(raw interface{}) bool {
+					return raw.(*structs.Recommendation).Task != filter.Task
+				})
+				if filter.Resource != "" {
+					iter = memdb.NewFilterIterator(iter, func(raw interface{}) bool {
+						return raw.(*structs.Recommendation).Resource != filter.Resource
+					})
+				}
+			}
+		}
 	}
 
 	recs := []*structs.Recommendation{}

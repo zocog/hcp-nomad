@@ -952,15 +952,19 @@ func (r *Recommendation) Validate() error {
 		err := fmt.Errorf("recommendation must contain a resource")
 		mErr.Errors = append(mErr.Errors, err)
 	}
-	if r.Resource != "CPU" && r.Resource != "MemoryMB" {
-		err := fmt.Errorf("resource not supported")
-		mErr.Errors = append(mErr.Errors, err)
+	minResources := MinResources()
+	switch r.Resource {
+	case "CPU":
+		if r.Value < minResources.CPU {
+			mErr.Errors = append(mErr.Errors, fmt.Errorf("minimum CPU value is %d; got %d", minResources.CPU, r.Value))
+		}
+	case "MemoryMB":
+		if r.Value < minResources.MemoryMB {
+			mErr.Errors = append(mErr.Errors, fmt.Errorf("minimum MemoryMB value is %d; got %d", minResources.MemoryMB, r.Value))
+		}
+	default:
+		mErr.Errors = append(mErr.Errors, fmt.Errorf("resource not supported"))
 	}
-	if r.Value < 0 {
-		err := fmt.Errorf("recommendation value must be non-negative")
-		mErr.Errors = append(mErr.Errors, err)
-	}
-
 	return mErr.ErrorOrNil()
 }
 

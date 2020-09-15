@@ -112,13 +112,16 @@ func (r *Recommendation) ListRecommendations(args *structs.RecommendationListReq
 	opts := blockingOptions{
 		queryOpts: &args.QueryOptions,
 		queryMeta: &reply.QueryMeta,
-		run: func(ws memdb.WatchSet, state *state.StateStore) error {
+		run: func(ws memdb.WatchSet, store *state.StateStore) error {
 			var out []*structs.Recommendation
 			var err error
 			if args.JobID == "" {
-				out, err = state.RecommendationsByNamespace(ws, args.Namespace)
+				out, err = store.RecommendationsByNamespace(ws, args.Namespace)
 			} else {
-				out, err = state.RecommendationsByJob(ws, args.Namespace, args.JobID, args.Group, args.Task)
+				out, err = store.RecommendationsByJob(ws, args.Namespace, args.JobID, &state.RecommendationsFilter{
+					Group: args.Group,
+					Task:  args.Task,
+				})
 			}
 			if err != nil {
 				return err
@@ -126,7 +129,7 @@ func (r *Recommendation) ListRecommendations(args *structs.RecommendationListReq
 
 			reply.Recommendations = out
 			// use the last index that affected the recommendations table
-			index, err := state.Index("recommendations")
+			index, err := store.Index("recommendations")
 			if err != nil {
 				return err
 			}
@@ -235,25 +238,22 @@ func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsert
 
 	// the FSM will only allow one recommendation per path
 	// find that recommendation and return it
-	var outRec *structs.Recommendation
-	jobRecs, err := r.srv.fsm.State().RecommendationsByJob(nil, job.Namespace, job.ID, "", "")
+	jobRecs, err := r.srv.fsm.State().RecommendationsByJob(nil, job.Namespace, job.ID, &state.RecommendationsFilter{
+		Group:    args.Recommendation.Group,
+		Task:     args.Recommendation.Task,
+		Resource: args.Recommendation.Resource,
+	})
 	if err != nil {
 		return fmt.Errorf("recommendation lookup fail: %v", err)
 	}
-	for _, r := range jobRecs {
-		if r.SamePath(args.Recommendation) {
-			outRec = r
-			break
-		}
-	}
-
-	if outRec == nil {
+	if len(jobRecs) != 1 {
 		return fmt.Errorf("could not find recommendation by path after log apply")
+
 	}
 
 	// Update the index
 	reply.Index = index
-	reply.Recommendation = outRec
+	reply.Recommendation = jobRecs[0]
 
 	return nil
 }
@@ -369,7 +369,6 @@ func (r *Recommendation) listAllRecommendations(args *structs.RecommendationList
 
 			// Capture all the recommendations
 			iter, err := state.Recommendations(ws)
-
 			if err != nil {
 				return err
 			}
@@ -382,7 +381,7 @@ func (r *Recommendation) listAllRecommendations(args *structs.RecommendationList
 				}
 				rec := raw.(*structs.Recommendation)
 				if allowedNSes != nil && !allowedNSes[rec.Namespace] {
-					// not permitted to this name namespace
+					// not permitted to this namespace
 					continue
 				}
 				recs = append(recs, rec)

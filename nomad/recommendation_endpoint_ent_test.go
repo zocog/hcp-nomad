@@ -1109,7 +1109,7 @@ func TestRecommendationEndpoint_Upsert_ExistingRecByID(t *testing.T) {
 	var resp structs.SingleRecommendationResponse
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
 	require.NoError(err)
-	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, "", "")
+	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
 	require.NoError(err)
 	require.Len(recs, 1)
 	require.Equal(recs[0].ID, resp.Recommendation.ID)
@@ -1125,7 +1125,7 @@ func TestRecommendationEndpoint_Upsert_ExistingRecByID(t *testing.T) {
 	var updatedResp structs.SingleRecommendationResponse
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &updatedResp)
 	require.NoError(err)
-	recs, err = s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, "", "")
+	recs, err = s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
 	require.NoError(err)
 	require.Len(recs, 1)
 	require.EqualValues(originalRec.ID, recs[0].ID)
@@ -1157,7 +1157,7 @@ func TestRecommendationEndpoint_Upsert_ExistingByPath(t *testing.T) {
 	var resp structs.SingleRecommendationResponse
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
 	require.NoError(err)
-	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, "", "")
+	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
 	require.NoError(err)
 	require.Len(recs, 1)
 	require.Equal(recs[0].ID, resp.Recommendation.ID)
@@ -1174,7 +1174,7 @@ func TestRecommendationEndpoint_Upsert_ExistingByPath(t *testing.T) {
 	var updatedResp structs.SingleRecommendationResponse
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &updatedResp)
 	require.NoError(err)
-	recs, err = s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, "", "")
+	recs, err = s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
 	require.NoError(err)
 	require.Len(recs, 1)
 	require.EqualValues(originalRec.ID, recs[0].ID)
@@ -1206,7 +1206,7 @@ func TestRecommendationEndpoint_Upsert_MultipleRecs(t *testing.T) {
 	var resp1 structs.SingleRecommendationResponse
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req1, &resp1)
 	require.NoError(err)
-	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, "", "")
+	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
 	require.NoError(err)
 	require.Len(recs, 1)
 	require.Equal(recs[0].ID, resp1.Recommendation.ID)
@@ -1223,7 +1223,7 @@ func TestRecommendationEndpoint_Upsert_MultipleRecs(t *testing.T) {
 	var resp2 structs.SingleRecommendationResponse
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req2, &resp2)
 	require.NoError(err)
-	recs, err = s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, "", "")
+	recs, err = s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
 	require.NoError(err)
 	require.Len(recs, 2)
 	sort.Slice(recs, func(i, j int) bool {
@@ -1628,7 +1628,7 @@ func TestRecommendationEndpoint_Apply_SingleRec(t *testing.T) {
 	require.Equal(job.ModifyIndex, applyResp.UpdatedJobs[0].JobModifyIndex)
 
 	// rec1 was deleted during application, while rec2 was deleted because of the job update
-	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, "", "")
+	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
 	require.NoError(err)
 	require.Len(recs, 0)
 }
@@ -1689,7 +1689,7 @@ func TestRecommendationEndpoint_Apply_MultipleRecs(t *testing.T) {
 	require.Equal(job.ModifyIndex, applyResp.UpdatedJobs[0].JobModifyIndex)
 
 	// both recommendations were deleted during update
-	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, "", "")
+	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
 	require.NoError(err)
 	require.Len(recs, 0)
 }
@@ -1760,7 +1760,75 @@ func TestRecommendationEndpoint_Apply_MultipleJobs(t *testing.T) {
 	job2, err = s1.State().JobByID(nil, job2.Namespace, job2.ID)
 	require.NoError(err)
 	require.NotNil(job2)
-	require.Equal(job2.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.MemoryMB, rec2.Value)
+	require.Equal(job2.LookupTaskGroup(rec2.Group).LookupTask(rec2.Task).Resources.MemoryMB, rec2.Value)
+
+	// all recommendations were deleted during update
+	recs, err := s1.State().Recommendations(nil)
+	require.NoError(err)
+	require.Nil(recs.Next())
+}
+
+func TestRecommendationEndpoint_Apply_WithRegisterErrors(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.NumSchedulers = 0 // Prevent automatic dequeue
+	})
+	defer cleanupS1()
+	codec := rpcClient(t, s1)
+	testutil.WaitForLeader(t, s1.RPC)
+
+	job1 := mock.Job()
+	require.NoError(s1.State().UpsertJob(900, job1))
+	rec1 := mock.Recommendation(job1)
+	require.NoError(s1.State().UpsertRecommendation(910, rec1))
+
+	job2 := mock.Job()
+	require.NoError(s1.State().UpsertJob(901, job2))
+	rec2 := mock.Recommendation(job2)
+	rec2.Target("web", "web", "MemoryMB")
+	rec2.Value = 0 // invalid value for MemoryDB, will trigger error on Job.Register
+	require.NoError(s1.State().UpsertRecommendation(920, rec2))
+	origMem2 := job2.LookupTaskGroup(rec2.Group).LookupTask(rec2.Task).Resources.MemoryMB
+
+	// set up watch set for job updates on rec apply
+	job1Watch := memdb.NewWatchSet()
+	_, err := s1.State().JobByID(job1Watch, job1.Namespace, job1.ID)
+	require.NoError(err)
+	job2Watch := memdb.NewWatchSet()
+	_, err = s1.State().JobByID(job2Watch, job2.Namespace, job2.ID)
+	require.NoError(err)
+
+	var applyResp structs.RecommendationApplyResponse
+	applyReq := &structs.RecommendationApplyRequest{
+		Recommendations: []string{rec1.ID, rec2.ID},
+		WriteRequest: structs.WriteRequest{
+			Region: "global",
+		},
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
+	require.NoError(err)
+	require.Len(applyResp.Errors, 1)
+	require.Len(applyResp.UpdatedJobs, 1)
+
+	require.Equal(job1.Namespace, applyResp.UpdatedJobs[0].Namespace)
+	require.Equal(job1.ID, applyResp.UpdatedJobs[0].JobID)
+	require.Equal(job2.Namespace, applyResp.Errors[0].Namespace)
+	require.Equal(job2.ID, applyResp.Errors[0].JobID)
+	require.Contains(applyResp.Errors[0].Error, "minimum MemoryMB value is 10")
+
+	require.False(job1Watch.Watch(time.After(100 * time.Millisecond)))
+	require.True(job2Watch.Watch(time.After(100 * time.Millisecond)))
+
+	job1, err = s1.State().JobByID(nil, job1.Namespace, job1.ID)
+	require.NoError(err)
+	require.NotNil(job1)
+	require.Equal(job1.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.CPU, rec1.Value)
+
+	job2, err = s1.State().JobByID(nil, job2.Namespace, job2.ID)
+	require.NoError(err)
+	require.NotNil(job2)
+	require.Equal(origMem2, job2.LookupTaskGroup(rec2.Group).LookupTask(rec2.Task).Resources.MemoryMB)
 
 	// all recommendations were deleted during update
 	recs, err := s1.State().Recommendations(nil)
