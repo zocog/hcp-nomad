@@ -4,6 +4,7 @@ package structs
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 	"strings"
 	"testing"
@@ -12,6 +13,8 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/nomad/helper/uuid"
 )
 
 func TestNamespace_Validate(t *testing.T) {
@@ -649,40 +652,6 @@ func TestMultiregion_Validate(t *testing.T) {
 	}
 }
 
-func TestRecommendation_Target(t *testing.T) {
-	cases := []struct {
-		Name         string
-		Group        string
-		Task         string
-		Resource     string
-		ExpectedPath string
-	}{
-		{
-			Name:     "can handle complicated names",
-			Group:    "this has [brackets] and emoji 🔥🔥🔥",
-			Task:     "this also has [brackets] and emoji 🔥🔥🔥",
-			Resource: "CPU",
-			ExpectedPath: ".TaskGroups[this%20has%20%5Bbrackets%5D%20and%20emoji%20%F0%9F%94%A5%F0%9F%94%A5%F0%9F%94%A5]" +
-				".Tasks[this%20also%20has%20%5Bbrackets%5D%20and%20emoji%20%F0%9F%94%A5%F0%9F%94%A5%F0%9F%94%A5]" +
-				".Resources.CPU",
-		},
-		{
-			Name:         "simple names are simple",
-			Group:        "cache",
-			Task:         "redis",
-			Resource:     "MemoryMB",
-			ExpectedPath: ".TaskGroups[cache].Tasks[redis].Resources.MemoryMB",
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.Name, func(t *testing.T) {
-			r := &Recommendation{}
-			r.Target(tc.Group, tc.Task, tc.Resource)
-			require.Equal(t, tc.ExpectedPath, r.Path)
-		})
-	}
-}
 func TestRecommendation_Validate(t *testing.T) {
 	cases := []struct {
 		Name     string
@@ -691,45 +660,81 @@ func TestRecommendation_Validate(t *testing.T) {
 		ErrorMsg string
 	}{
 		{
+			Name: "missing region",
+			Rec: &Recommendation{
+				Value:     -1,
+				Group:     "web",
+				Task:      "nginx",
+				Resource:  "CPU",
+				Namespace: "default",
+				JobID:     "example",
+			},
+			Error:    true,
+			ErrorMsg: "region",
+		},
+		{
 			Name: "requires value",
 			Rec: &Recommendation{
-				Value:        nil,
-				Path:         ".TaskGroups[web].Tasks[nginx].Resources.CPU",
-				JobID:        "example",
-				JobNamespace: "default",
+				Value:     -1,
+				Group:     "web",
+				Task:      "nginx",
+				Resource:  "CPU",
+				Region:    "global",
+				Namespace: "default",
+				JobID:     "example",
 			},
 			Error:    true,
-			ErrorMsg: "must contain a value",
+			ErrorMsg: "non-negative",
 		},
 		{
-			Name: "requires path",
+			Name: "requires group",
 			Rec: &Recommendation{
-				Value:        nil,
-				Path:         "",
-				JobID:        "example",
-				JobNamespace: "default",
+				Value:     10,
+				Task:      "nginx",
+				Resource:  "CPU",
+				Region:    "global",
+				Namespace: "default",
+				JobID:     "example",
 			},
 			Error:    true,
-			ErrorMsg: "must contain a path",
+			ErrorMsg: "must contain a group",
 		},
 		{
-			Name: "unparseable path",
+			Name: "requires task",
 			Rec: &Recommendation{
-				Value:        10,
-				Path:         "NotValid",
-				JobID:        "example",
-				JobNamespace: "default",
+				Value:     10,
+				Group:     "web",
+				Resource:  "CPU",
+				Region:    "global",
+				Namespace: "default",
+				JobID:     "example",
 			},
 			Error:    true,
-			ErrorMsg: "path is not valid",
+			ErrorMsg: "must contain a task",
+		},
+		{
+			Name: "requires resource",
+			Rec: &Recommendation{
+				Value:     10,
+				Group:     "web",
+				Task:      "nginx",
+				Region:    "global",
+				Namespace: "default",
+				JobID:     "example",
+			},
+			Error:    true,
+			ErrorMsg: "must contain a resource",
 		},
 		{
 			Name: "bad resource",
 			Rec: &Recommendation{
-				Value:        10,
-				Path:         ".TaskGroups[web].Tasks[nginx].Resources.Wrong",
-				JobID:        "example",
-				JobNamespace: "default",
+				Value:     10,
+				Group:     "web",
+				Task:      "nginx",
+				Resource:  "Memory",
+				Region:    "global",
+				Namespace: "default",
+				JobID:     "example",
 			},
 			Error:    true,
 			ErrorMsg: "resource not supported",
@@ -737,32 +742,39 @@ func TestRecommendation_Validate(t *testing.T) {
 		{
 			Name: "missing job",
 			Rec: &Recommendation{
-				Value:        10,
-				Path:         ".TaskGroups[web].Tasks[nginx].Resources.CPU",
-				JobID:        "",
-				JobNamespace: "default",
+				Value:     10,
+				Group:     "web",
+				Task:      "nginx",
+				Resource:  "CPU",
+				Region:    "global",
+				Namespace: "default",
 			},
 			Error:    true,
-			ErrorMsg: "must specify target job",
+			ErrorMsg: "must specify a job ID",
 		},
 		{
 			Name: "missing namespace",
 			Rec: &Recommendation{
-				Value:        10,
-				Path:         ".TaskGroups[web].Tasks[nginx].Resources.CPU",
-				JobID:        "example",
-				JobNamespace: "",
+				Value:    10,
+				Group:    "web",
+				Task:     "nginx",
+				Resource: "CPU",
+				Region:   "global",
+				JobID:    "example",
 			},
 			Error:    true,
-			ErrorMsg: "must specify target namespace",
+			ErrorMsg: "must specify a job namespace",
 		},
 		{
 			Name: "happy little recommendation",
 			Rec: &Recommendation{
-				Value:        10,
-				Path:         ".TaskGroups[web].Tasks[nginx].Resources.CPU",
-				JobID:        "example",
-				JobNamespace: "default",
+				Value:     10,
+				Group:     "web",
+				Task:      "nginx",
+				Resource:  "CPU",
+				Region:    "global",
+				Namespace: "default",
+				JobID:     "example",
 			},
 			Error: false,
 		},
@@ -770,11 +782,90 @@ func TestRecommendation_Validate(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, err := tc.Rec.Validate()
+			err := tc.Rec.Validate()
 			assert.Equal(t, tc.Error, err != nil)
 			if err != nil {
 				assert.Contains(t, err.Error(), tc.ErrorMsg)
 			}
 		})
 	}
+}
+
+func TestRecommendation_UpdateJob(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	var rec *Recommendation
+
+	require.NoError(rec.UpdateJob(nil))
+
+	job := &Job{
+		Region:    "global",
+		ID:        fmt.Sprintf("mock-service-%s", uuid.Generate()),
+		Name:      "my-job",
+		Namespace: DefaultNamespace,
+		Type:      JobTypeService,
+		TaskGroups: []*TaskGroup{
+			{
+				Name: "web",
+				Tasks: []*Task{
+					{
+						Name:   "web",
+						Driver: "exec",
+						Config: map[string]interface{}{
+							"command": "/bin/date",
+						},
+						Resources: &Resources{
+							CPU:      500,
+							MemoryMB: 256,
+						},
+					},
+				},
+			},
+		},
+		Status:  JobStatusPending,
+		Version: 0,
+	}
+	rec = &Recommendation{
+		ID:         uuid.Generate(),
+		Region:     job.Region,
+		Namespace:  job.Namespace,
+		JobID:      job.ID,
+		JobVersion: 0,
+	}
+	rec.Target(job.TaskGroups[0].Name, job.TaskGroups[0].Tasks[0].Name, "CPU")
+	rec.Value = 750
+	require.NoError(rec.UpdateJob(job))
+	require.Equal(rec.Value, job.LookupTaskGroup(rec.Group).LookupTask(rec.Task).Resources.CPU)
+
+	rec.Resource = "MemoryMB"
+	rec.Value = 2048
+	require.NoError(rec.UpdateJob(job))
+	require.Equal(rec.Value, job.LookupTaskGroup(rec.Group).LookupTask(rec.Task).Resources.MemoryMB)
+
+	rec.Resource = "Bad Resource"
+	err := rec.UpdateJob(job)
+	require.Error(err)
+	require.Contains(err.Error(), "resource not valid")
+
+	rec.Target("bad group", job.TaskGroups[0].Tasks[0].Name, "CPU")
+	err = rec.UpdateJob(job)
+	require.Error(err)
+	require.Contains(err.Error(), "task group does not exist in job")
+
+	rec.Target(job.TaskGroups[0].Name, "bad task", "CPU")
+	err = rec.UpdateJob(job)
+	require.Error(err)
+	require.Contains(err.Error(), "task does not exist in group")
+
+	rec.JobID = "wrong"
+	err = rec.UpdateJob(job)
+	require.Error(err)
+	require.Contains(err.Error(), "recommendation does not match job ID")
+
+	rec.JobID = job.ID
+	rec.Namespace = "wrong"
+	err = rec.UpdateJob(job)
+	require.Error(err)
+	require.Contains(err.Error(), "recommendation does not match job namespace")
 }

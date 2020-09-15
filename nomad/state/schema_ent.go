@@ -166,7 +166,7 @@ func recommendationTableSchema() *memdb.TableSchema {
 				Indexer: &memdb.CompoundIndex{
 					Indexes: []memdb.Indexer{
 						&memdb.StringFieldIndex{
-							Field: "JobNamespace",
+							Field: "Namespace",
 						},
 
 						&memdb.StringFieldIndex{

@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"regexp"
 
 	"github.com/hashicorp/errwrap"
@@ -57,9 +56,6 @@ const (
 var (
 	// validNamespaceName is used to validate a namespace name
 	validNamespaceName = regexp.MustCompile("^[a-zA-Z0-9-]{1,128}$")
-
-	// validRecommendationPath is used to validate and parse the recommendation path
-	validRecommendationPath = regexp.MustCompile(`^\.TaskGroups\[([^\[\]]+)].Tasks\[([^\[\]]+)].Resources.([a-zA-Z]+)$`)
 )
 
 // Restrict the possible Sentinel scopes
@@ -904,15 +900,17 @@ func (m *Multiregion) Validate(jobType string, jobDatacenters []string) error {
 // Recommendation represents a recommended change to a job
 type Recommendation struct {
 	ID             string
-	JobNamespace   string
+	Region         string
+	Namespace      string
 	JobID          string
 	JobVersion     uint64
-	Path           string
-	Value          interface{}
+	Group          string
+	Task           string
+	Resource       string
+	Value          int
 	Meta           map[string]interface{}
 	Stats          map[string]float64
 	EnforceVersion bool
-	PolicyOverride bool
 
 	CreateIndex uint64
 	ModifyIndex uint64
@@ -924,53 +922,61 @@ type RecommendationPath struct {
 	Resource string
 }
 
-func (r Recommendation) ParsePath() (RecommendationPath, error) {
-	path := RecommendationPath{}
-	match := validRecommendationPath.FindStringSubmatch(r.Path)
-	if len(match) != 4 {
-		return path, fmt.Errorf("recommendation path is not valid")
-	}
-	if match[3] != "CPU" && match[3] != "MemoryMB" {
-		return path, fmt.Errorf("recommendation resource not supported")
-	}
-	path.Group = match[1]
-	path.Task = match[2]
-	path.Resource = match[3]
-	return path, nil
-}
-
-func (r *Recommendation) Validate() (RecommendationPath, error) {
+func (r *Recommendation) Validate() error {
 	if r == nil {
-		return RecommendationPath{}, nil
+		return nil
 	}
 
 	var mErr multierror.Error
-	if r.Value == nil {
-		err := fmt.Errorf("recommendation must contain a value")
+	if r.Region == "" {
+		err := fmt.Errorf("recommendation must specify the job region")
 		mErr.Errors = append(mErr.Errors, err)
 	}
-
-	if r.Path == "" {
-		err := fmt.Errorf("recommendation must contain a path")
+	if r.Namespace == "" {
+		err := fmt.Errorf("recommendation must specify a job namespace")
 		mErr.Errors = append(mErr.Errors, err)
 	}
-
 	if r.JobID == "" {
-		err := fmt.Errorf("recommendation must specify target job")
+		err := fmt.Errorf("recommendation must specify a job ID")
+		mErr.Errors = append(mErr.Errors, err)
+	}
+	if r.Group == "" {
+		err := fmt.Errorf("recommendation must contain a group")
+		mErr.Errors = append(mErr.Errors, err)
+	}
+	if r.Task == "" {
+		err := fmt.Errorf("recommendation must contain a task")
+		mErr.Errors = append(mErr.Errors, err)
+	}
+	if r.Resource == "" {
+		err := fmt.Errorf("recommendation must contain a resource")
+		mErr.Errors = append(mErr.Errors, err)
+	}
+	if r.Resource != "CPU" && r.Resource != "MemoryMB" {
+		err := fmt.Errorf("resource not supported")
+		mErr.Errors = append(mErr.Errors, err)
+	}
+	if r.Value < 0 {
+		err := fmt.Errorf("recommendation value must be non-negative")
 		mErr.Errors = append(mErr.Errors, err)
 	}
 
-	if r.JobNamespace == "" {
-		err := fmt.Errorf("recommendation must specify target namespace")
-		mErr.Errors = append(mErr.Errors, err)
-	}
+	return mErr.ErrorOrNil()
+}
 
-	path, err := r.ParsePath()
-	if err != nil {
-		mErr.Errors = append(mErr.Errors, err)
+func (r *Recommendation) SamePath(r2 *Recommendation) bool {
+	if r == nil && r2 == nil {
+		return true
 	}
-
-	return path, mErr.ErrorOrNil()
+	if r == nil || r2 == nil {
+		return false
+	}
+	return r.Region == r2.Region &&
+		r.JobID == r2.JobID &&
+		r.Namespace == r2.Namespace &&
+		r.Group == r2.Group &&
+		r.Task == r2.Task &&
+		r.Resource == r2.Resource
 }
 
 func (r *Recommendation) Copy() *Recommendation {
@@ -991,15 +997,75 @@ func (r *Recommendation) Copy() *Recommendation {
 }
 
 func (r *Recommendation) Target(group, task, resource string) {
-	group = url.PathEscape(group)
-	task = url.PathEscape(task)
-	r.Path = fmt.Sprintf(".TaskGroups[%s].Tasks[%s].Resources.%s", group, task, resource)
+	r.Group = group
+	r.Task = task
+	r.Resource = resource
+}
+
+func (r *Recommendation) UpdateJob(job *Job) error {
+	if r == nil {
+		return nil
+	}
+	if r.Namespace != job.Namespace {
+		return fmt.Errorf("recommendation does not match job namespace")
+	}
+	if r.JobID != job.ID {
+		return fmt.Errorf("recommendation does not match job ID")
+	}
+	group := job.LookupTaskGroup(r.Group)
+	if group == nil {
+		return fmt.Errorf("task group does not exist in job")
+	}
+	task := group.LookupTask(r.Task)
+	if task == nil {
+		return fmt.Errorf("task does not exist in group")
+	}
+	switch r.Resource {
+	case "CPU":
+		task.Resources.CPU = r.Value
+	case "MemoryMB":
+		task.Resources.MemoryMB = r.Value
+	default:
+		return fmt.Errorf("resource not valid")
+	}
+	return nil
 }
 
 // RecommendationDeleteRequest is used to delete a set of recommendations
 type RecommendationDeleteRequest struct {
 	Recommendations []string
 	WriteRequest
+}
+
+// RecommendationApplyRequest is used to apply a set of recommendations
+type RecommendationApplyRequest struct {
+	Recommendations []string
+	PolicyOverride  bool
+	WriteRequest
+}
+
+type SingleRecommendationApplyResult struct {
+	Namespace       string
+	JobID           string
+	JobModifyIndex  uint64
+	EvalID          string
+	EvalCreateIndex uint64
+	Warnings        string
+	Recommendations []string
+}
+
+type SingleRecommendationApplyError struct {
+	Namespace       string
+	JobID           string
+	Recommendations []string
+	Error           string
+}
+
+// RecommendationApplyResponse is used to apply a set of recommendations
+type RecommendationApplyResponse struct {
+	UpdatedJobs []*SingleRecommendationApplyResult
+	Errors      []*SingleRecommendationApplyError
+	WriteMeta
 }
 
 // RecommendationUpsertRequest is used to upsert a recommendation
@@ -1014,8 +1080,22 @@ type RecommendationSpecificRequest struct {
 	QueryOptions
 }
 
+// RecommendationListRequest is used to list the recommendations
+type RecommendationListRequest struct {
+	JobID string
+	Group string
+	Task  string
+	QueryOptions
+}
+
 // SingleRecommendationResponse is used to return a single recommendation
 type SingleRecommendationResponse struct {
 	Recommendation *Recommendation
+	QueryMeta
+}
+
+// RecommendationListResponse is used to return a list of recommendations
+type RecommendationListResponse struct {
+	Recommendations []*Recommendation
 	QueryMeta
 }
