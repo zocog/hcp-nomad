@@ -12,7 +12,7 @@ func (c *Client) Recommendations() *Recommendations {
 
 // Recommendation is used to serialize a recommendation.
 type Recommendation struct {
-	ID             string
+	ID             *string
 	Region         string
 	Namespace      string
 	JobID          string

@@ -1,18 +1,18 @@
 package api
 
-// Recommendations is used to query the namespace endpoints.
+// Recommendations is used to query the recommendations endpoints.
 type Recommendations struct {
 	client *Client
 }
 
-// Recommendations returns a new handle on the namespaces.
+// Recommendations returns a new handle on the recommendations endpoints.
 func (c *Client) Recommendations() *Recommendations {
 	return &Recommendations{client: c}
 }
 
 // Recommendation is used to serialize a recommendation.
 type Recommendation struct {
-	ID             string
+	ID             *string
 	Region         string
 	Namespace      string
 	JobID          string
