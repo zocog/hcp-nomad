@@ -2315,6 +2315,7 @@ func TestStateStore_UpdateJob_DeletesFixedRecommendations(t *testing.T) {
 	rec2 := mock.Recommendation(job)
 	rec2.Target(job.TaskGroups[0].Name, job.TaskGroups[0].Tasks[0].Name, "MemoryMB")
 	rec2.Value = 500
+	rec2.Current = job.TaskGroups[0].Tasks[0].Resources.MemoryMB
 	rec2.EnforceVersion = false
 
 	require.NoError(state.UpsertRecommendation(1000, rec1))
@@ -2405,6 +2406,54 @@ func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteTask(t *testi
 	require.NoError(err)
 	require.Nil(out)
 	require.True(watchFired(ws))
+
+	index, err := state.Index(TableRecommendations)
+	require.NoError(err)
+	require.GreaterOrEqual(index, uint64(1020))
+}
+
+// TestStateStore_UpdateJob_UpdateRecCurrent tests that recommendations against a
+// job have .Current updated if the job is updated
+func TestStateStore_UpdateJob_UpdateRecCurrent(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	state := testStateStore(t)
+	job := mock.Job()
+
+	require.NoError(state.UpsertJob(900, job))
+	recCPU := mock.Recommendation(job)
+	recMem := mock.Recommendation(job)
+	recMem.Resource = "MemoryMB"
+	recMem.Current = job.TaskGroups[0].Tasks[0].Resources.MemoryMB
+	recMem.Value = recMem.Current * 2
+
+	require.NoError(state.UpsertRecommendation(1000, recCPU))
+	require.NoError(state.UpsertRecommendation(1000, recMem))
+	// Create watchsets so we can test that update fires appropriately
+	wsCPU := memdb.NewWatchSet()
+	_, err := state.RecommendationByID(wsCPU, recCPU.ID)
+	require.NoError(err)
+	wsMem := memdb.NewWatchSet()
+	_, err = state.RecommendationByID(wsMem, recMem.ID)
+	require.NoError(err)
+
+	updatedJob := job.Copy()
+	updatedJob.TaskGroups[0].Tasks[0].Resources.CPU *= 4
+	updatedJob.TaskGroups[0].Tasks[0].Resources.MemoryMB *= 4
+	updatedJob.Version = job.Version + 1
+	require.Nil(state.UpsertJob(1020, updatedJob))
+
+	require.True(watchFired(wsCPU))
+	out, err := state.RecommendationByID(nil, recCPU.ID)
+	require.NoError(err)
+	require.NotNil(out)
+	require.Equal(updatedJob.TaskGroups[0].Tasks[0].Resources.CPU, out.Current)
+
+	require.True(watchFired(wsMem))
+	out, err = state.RecommendationByID(nil, recMem.ID)
+	require.NoError(err)
+	require.NotNil(out)
+	require.Equal(updatedJob.TaskGroups[0].Tasks[0].Resources.MemoryMB, out.Current)
 
 	index, err := state.Index(TableRecommendations)
 	require.NoError(err)

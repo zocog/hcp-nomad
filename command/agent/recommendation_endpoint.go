@@ -1,3 +1,5 @@
+// +build ent
+
 package agent
 
 import (
@@ -38,9 +40,6 @@ func (s *HTTPServer) RecommendationsListRequest(resp http.ResponseWriter, req *h
 	}
 
 	setMeta(resp, &out.QueryMeta)
-	if out.Recommendations == nil {
-		out.Recommendations = make([]*structs.Recommendation, 0)
-	}
 	return out.Recommendations, nil
 }
 
@@ -81,6 +80,7 @@ func apiRecommendationToStructs(aRec api.Recommendation) *structs.Recommendation
 		Task:           aRec.Task,
 		Resource:       aRec.Resource,
 		Value:          aRec.Value,
+		Current:        aRec.Current,
 		Meta:           map[string]interface{}{},
 		Stats:          map[string]float64{},
 		EnforceVersion: aRec.EnforceVersion,
@@ -99,6 +99,32 @@ func apiRecommendationToStructs(aRec api.Recommendation) *structs.Recommendation
 		sRec.Stats[k] = v
 	}
 	return sRec
+}
+
+func structsRecommendationToAPI(sRec *structs.Recommendation) *api.Recommendation {
+	aRec := &api.Recommendation{
+		ID:             &sRec.ID,
+		Region:         sRec.Region,
+		Namespace:      sRec.Namespace,
+		JobID:          sRec.JobID,
+		JobVersion:     sRec.JobVersion,
+		Group:          sRec.Group,
+		Task:           sRec.Task,
+		Resource:       sRec.Resource,
+		Value:          sRec.Value,
+		Meta:           map[string]interface{}{},
+		Stats:          map[string]float64{},
+		EnforceVersion: sRec.EnforceVersion,
+		CreateIndex:    sRec.CreateIndex,
+		ModifyIndex:    sRec.ModifyIndex,
+	}
+	for k, v := range sRec.Meta {
+		aRec.Meta[k] = v
+	}
+	for k, v := range sRec.Stats {
+		aRec.Stats[k] = v
+	}
+	return aRec
 }
 
 func (s *HTTPServer) RecommendationsApplyRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -198,6 +224,7 @@ func structsRecToApi(sRec *structs.Recommendation) *api.Recommendation {
 		Task:           sRec.Task,
 		Resource:       sRec.Resource,
 		Value:          sRec.Value,
+		Current:        sRec.Current,
 		Meta:           map[string]interface{}{},
 		Stats:          map[string]float64{},
 		EnforceVersion: sRec.EnforceVersion,

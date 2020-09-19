@@ -205,7 +205,12 @@ func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsert
 	if task == nil {
 		return structs.NewErrRPCCoded(400, fmt.Sprintf("task %q does not exist in group %q", args.Recommendation.Task, args.Recommendation.Group))
 	}
-
+	switch args.Recommendation.Resource {
+	case "CPU":
+		args.Recommendation.Current = task.Resources.CPU
+	case "MemoryMB":
+		args.Recommendation.Current = task.Resources.MemoryMB
+	}
 	args.Recommendation.JobVersion = job.Version
 
 	// Check whether the recommendation exists by provided ID

@@ -785,6 +785,7 @@ func TestRecommendationEndpoint_Upsert(t *testing.T) {
 	job := mock.Job()
 	job.Version = 5
 	rec := mock.Recommendation(job)
+	rec.Current = 0
 	req := &structs.RecommendationUpsertRequest{
 		Recommendation: rec,
 		WriteRequest: structs.WriteRequest{
@@ -809,6 +810,7 @@ func TestRecommendationEndpoint_Upsert(t *testing.T) {
 	require.Len(recs, 1)
 	require.Equal(resp.Recommendation.ID, recs[0].ID)
 	require.Equal(job.Version, resp.Recommendation.JobVersion)
+	require.Equal(job.TaskGroups[0].Tasks[0].Resources.CPU, recs[0].Current)
 }
 
 func TestRecommendationEndpoint_Upsert_License(t *testing.T) {

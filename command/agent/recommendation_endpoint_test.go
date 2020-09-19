@@ -1,3 +1,5 @@
+// +build ent
+
 package agent
 
 import (
@@ -53,6 +55,7 @@ func TestHTTP_RecommendationList(t *testing.T) {
 				}
 				// RPC Upsert doesn't let us specify the ID, so we'll add it directly to the state store
 				s.Agent.server.State().UpsertRecommendation(1000, rec)
+				rec.Current = job.TaskGroups[0].Tasks[0].Resources.CPU
 				recs = append(recs, rec)
 			}
 		}
@@ -377,6 +380,7 @@ func TestHTTP_RecommendationCreate(t *testing.T) {
 			Task:           rec.Task,
 			Resource:       rec.Resource,
 			Value:          rec.Value,
+			Current:        job.TaskGroups[0].Tasks[0].Resources.CPU,
 			Meta:           rec.Meta,
 			Stats:          rec.Stats,
 			EnforceVersion: false,

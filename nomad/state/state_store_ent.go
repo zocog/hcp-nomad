@@ -1353,21 +1353,8 @@ func (s *StateStore) updateJobRecommendations(index uint64, txn Txn, prevJob, ne
 		return fmt.Errorf("looking up job recommendations failed: %v", err)
 	}
 
-	type gt struct {
-		group string
-		task  string
-	}
-	groupsAndTasks := map[gt]struct{}{}
-	for _, g := range newJob.TaskGroups {
-		for _, t := range g.Tasks {
-			groupsAndTasks[gt{
-				group: g.Name,
-				task:  t.Name,
-			}] = struct{}{}
-		}
-	}
-
 	deleteRecs := []*structs.Recommendation{}
+	updateRecs := []*structs.Recommendation{}
 	for {
 		raw := iter.Next()
 		if raw == nil {
@@ -1376,21 +1363,49 @@ func (s *StateStore) updateJobRecommendations(index uint64, txn Txn, prevJob, ne
 		r := raw.(*structs.Recommendation)
 		if deleteEnforced && r.EnforceVersion {
 			deleteRecs = append(deleteRecs, r)
-		} else if _, ok := groupsAndTasks[gt{
-			group: r.Group,
-			task:  r.Task,
-		}]; !ok {
-			deleteRecs = append(deleteRecs, r)
+		} else {
+			g := newJob.LookupTaskGroup(r.Group)
+			if g == nil {
+				deleteRecs = append(deleteRecs, r)
+				continue
+			}
+			t := g.LookupTask(r.Task)
+			if t == nil {
+				deleteRecs = append(deleteRecs, r)
+				continue
+			}
+			switch r.Resource {
+			case "CPU":
+				if t.Resources.CPU != r.Current {
+					r.Current = t.Resources.CPU
+					updateRecs = append(updateRecs, r)
+				}
+			case "MemoryMB":
+				if t.Resources.MemoryMB != r.Current {
+					r.Current = t.Resources.MemoryMB
+					updateRecs = append(updateRecs, r)
+				}
+			default:
+				s.logger.Error("deleting recommendation with invalid resource",
+					"recommendation_id", r.ID, "resource", r.Resource)
+				deleteRecs = append(deleteRecs, r)
+			}
 		}
 	}
 
-	if len(deleteRecs) > 0 {
-		for _, r := range deleteRecs {
-			err := txn.Delete(TableRecommendations, r)
-			if err != nil {
-				return fmt.Errorf("deleting job recommendation failed: %v", err)
-			}
+	for _, r := range deleteRecs {
+		err := txn.Delete(TableRecommendations, r)
+		if err != nil {
+			return fmt.Errorf("deleting job recommendation failed: %v", err)
 		}
+	}
+	for _, r := range updateRecs {
+		err := txn.Insert(TableRecommendations, r)
+		if err != nil {
+			return fmt.Errorf("updating job recommendation failed: %v", err)
+		}
+	}
+	if len(deleteRecs)+len(updateRecs) > 0 {
 		if err := txn.Insert("index", &IndexEntry{TableRecommendations, index}); err != nil {
 			return fmt.Errorf("index update failed: %v", err)
 		}
