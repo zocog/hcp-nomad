@@ -21,6 +21,7 @@ type Recommendation struct {
 	Task           string
 	Resource       string
 	Value          int
+	Current        int
 	Meta           map[string]interface{}
 	Stats          map[string]float64
 	EnforceVersion bool
