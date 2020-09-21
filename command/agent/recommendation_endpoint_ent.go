@@ -101,32 +101,6 @@ func apiRecommendationToStructs(aRec api.Recommendation) *structs.Recommendation
 	return sRec
 }
 
-func structsRecommendationToAPI(sRec *structs.Recommendation) *api.Recommendation {
-	aRec := &api.Recommendation{
-		ID:             &sRec.ID,
-		Region:         sRec.Region,
-		Namespace:      sRec.Namespace,
-		JobID:          sRec.JobID,
-		JobVersion:     sRec.JobVersion,
-		Group:          sRec.Group,
-		Task:           sRec.Task,
-		Resource:       sRec.Resource,
-		Value:          sRec.Value,
-		Meta:           map[string]interface{}{},
-		Stats:          map[string]float64{},
-		EnforceVersion: sRec.EnforceVersion,
-		CreateIndex:    sRec.CreateIndex,
-		ModifyIndex:    sRec.ModifyIndex,
-	}
-	for k, v := range sRec.Meta {
-		aRec.Meta[k] = v
-	}
-	for k, v := range sRec.Stats {
-		aRec.Stats[k] = v
-	}
-	return aRec
-}
-
 func (s *HTTPServer) RecommendationsApplyRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Method != "PUT" && req.Method != "POST" {
 		return nil, CodedError(405, ErrInvalidMethod)
@@ -213,7 +187,7 @@ func structsRecApplyResultToApi(s *structs.SingleRecommendationApplyResult) *api
 	}
 }
 
-func structsRecToApi(sRec *structs.Recommendation) *api.Recommendation {
+func structsRecommendationToApi(sRec *structs.Recommendation) *api.Recommendation {
 	aRec := &api.Recommendation{
 		ID:             &sRec.ID,
 		Region:         sRec.Region,

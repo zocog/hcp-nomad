@@ -419,7 +419,7 @@ func TestHTTP_RecommendationCreate_NoNils(t *testing.T) {
 		}
 		require.NoError(s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
 
-		rec := structsRecToApi(mock.Recommendation(job))
+		rec := structsRecommendationToApi(mock.Recommendation(job))
 		rec.ID = nil
 		rec.Stats = nil
 		rec.Meta = nil
