@@ -908,6 +908,7 @@ type Recommendation struct {
 	Task           string
 	Resource       string
 	Value          int
+	Current        int
 	Meta           map[string]interface{}
 	Stats          map[string]float64
 	EnforceVersion bool
@@ -1065,7 +1066,7 @@ type SingleRecommendationApplyError struct {
 	Error           string
 }
 
-// RecommendationApplyResponse is used to apply a set of recommendations
+// RecommendationApplyResponse is the response from applying a set of recommendations
 type RecommendationApplyResponse struct {
 	UpdatedJobs []*SingleRecommendationApplyResult
 	Errors      []*SingleRecommendationApplyError

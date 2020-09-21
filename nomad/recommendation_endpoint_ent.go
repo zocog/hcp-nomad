@@ -4,6 +4,7 @@ package nomad
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
@@ -115,7 +116,9 @@ func (r *Recommendation) ListRecommendations(args *structs.RecommendationListReq
 		run: func(ws memdb.WatchSet, store *state.StateStore) error {
 			var out []*structs.Recommendation
 			var err error
-			if args.JobID == "" {
+			if prefix := args.QueryOptions.Prefix; prefix != "" {
+				out, err = store.RecommendationsByIDPrefix(ws, args.RequestNamespace(), prefix)
+			} else if args.JobID == "" {
 				out, err = store.RecommendationsByNamespace(ws, args.Namespace)
 			} else {
 				out, err = store.RecommendationsByJob(ws, args.Namespace, args.JobID, &state.RecommendationsFilter{
@@ -202,7 +205,12 @@ func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsert
 	if task == nil {
 		return structs.NewErrRPCCoded(400, fmt.Sprintf("task %q does not exist in group %q", args.Recommendation.Task, args.Recommendation.Group))
 	}
-
+	switch args.Recommendation.Resource {
+	case "CPU":
+		args.Recommendation.Current = task.Resources.CPU
+	case "MemoryMB":
+		args.Recommendation.Current = task.Resources.MemoryMB
+	}
 	args.Recommendation.JobVersion = job.Version
 
 	// Check whether the recommendation exists by provided ID
@@ -291,7 +299,7 @@ func (r *Recommendation) DeleteRecommendations(args *structs.RecommendationDelet
 			return fmt.Errorf("error getting recommendations")
 		}
 		if rec == nil {
-			return structs.NewErrRPCCoded(400, fmt.Sprintf("recommendation %q does not exist", id))
+			return structs.NewErrRPCCoded(404, fmt.Sprintf("recommendation %q does not exist", id))
 		}
 		if aclObj != nil && !allowNsOp(aclObj, rec.Namespace) {
 			return structs.ErrPermissionDenied
@@ -350,6 +358,7 @@ func (r *Recommendation) listAllRecommendations(args *structs.RecommendationList
 	if err != nil {
 		return err
 	}
+	prefix := args.QueryOptions.Prefix
 
 	// Setup the blocking query
 	opts := blockingOptions{
@@ -380,6 +389,9 @@ func (r *Recommendation) listAllRecommendations(args *structs.RecommendationList
 					break
 				}
 				rec := raw.(*structs.Recommendation)
+				if prefix != "" && !strings.HasPrefix(rec.ID, prefix) {
+					continue
+				}
 				if allowedNSes != nil && !allowedNSes[rec.Namespace] {
 					// not permitted to this namespace
 					continue
@@ -485,7 +497,7 @@ func (r *Recommendation) ApplyRecommendations(args *structs.RecommendationApplyR
 			update = &structs.JobRegisterRequest{
 				Job:            job,
 				EnforceIndex:   true,
-				JobModifyIndex: job.ModifyIndex,
+				JobModifyIndex: job.JobModifyIndex,
 				PreserveCounts: false,
 				PolicyOverride: args.PolicyOverride,
 				WriteRequest: structs.WriteRequest{

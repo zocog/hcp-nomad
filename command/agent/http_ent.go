@@ -33,6 +33,11 @@ func (s *HTTPServer) registerEntHandlers() {
 	s.mux.HandleFunc("/v1/namespace/", s.wrap(s.NamespaceSpecificRequest))
 
 	s.mux.HandleFunc("/v1/operator/license", s.wrap(s.OperatorLicenseRequest))
+
+	s.mux.HandleFunc("/v1/recommendation", s.wrap(s.RecommendationCreateRequest))
+	s.mux.HandleFunc("/v1/recommendations", s.wrap(s.RecommendationsListRequest))
+	s.mux.HandleFunc("/v1/recommendations/apply", s.wrap(s.RecommendationsApplyRequest))
+	s.mux.HandleFunc("/v1/recommendation/", s.wrap(s.RecommendationSpecificRequest))
 }
 
 type auditResponseWriter struct {

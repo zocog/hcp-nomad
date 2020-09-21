@@ -117,5 +117,6 @@ func Recommendation(job *structs.Job) *structs.Recommendation {
 		job.TaskGroups[0].Tasks[0].Name,
 		"CPU")
 	rec.Value = job.TaskGroups[0].Tasks[0].Resources.CPU * 2
+	rec.Current = job.TaskGroups[0].Tasks[0].Resources.CPU
 	return rec
 }
