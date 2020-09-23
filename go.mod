@@ -8,7 +8,10 @@ replace (
 	github.com/apparentlymart/go-textseg/v12 => github.com/apparentlymart/go-textseg/v12 v12.0.0
 	github.com/godbus/dbus => github.com/godbus/dbus v5.0.1+incompatible
 	github.com/golang/protobuf => github.com/golang/protobuf v1.3.4
-	github.com/hashicorp/consul => github.com/hashicorp/consul-enterprise v1.7.8-0.20200812203413-5e744f148653
+
+	// note: this is actually consul 1.7.8+ent!
+	github.com/hashicorp/consul => github.com/hashicorp/consul-enterprise v1.7.9-0.20200911031423-dcac66d22260
+	github.com/hashicorp/go-discover => github.com/hashicorp/go-discover v0.0.0-20200812215701-c4b85f6ed31f
 	github.com/hashicorp/go-getter => github.com/hashicorp/go-getter v1.3.1-0.20190822194507-f5101da01173
 	github.com/hashicorp/nomad/api => ./api
 	github.com/kr/pty => github.com/kr/pty v1.1.5
@@ -16,11 +19,8 @@ replace (
 )
 
 require (
-	github.com/Azure/azure-sdk-for-go v29.0.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.4 // indirect
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.1 // indirect
-	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
-	github.com/Azure/go-autorest/autorest/validation v0.3.0 // indirect
 	github.com/LK4D4/joincontext v0.0.0-20171026170139-1724345da6d5
 	github.com/Microsoft/go-winio v0.4.15-0.20200113171025-3fe6c5262873
 	github.com/Microsoft/hcsshim v0.8.8-0.20200312192636-fd0797d766b1 // indirect
@@ -53,7 +53,7 @@ require (
 	github.com/google/go-cmp v0.4.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.1-0.20200228141219-3ce3d519df39
-	github.com/hashicorp/consul v1.7.7
+	github.com/hashicorp/consul v1.7.8
 	github.com/hashicorp/consul-template v0.24.1
 	github.com/hashicorp/consul/api v1.6.0
 	github.com/hashicorp/consul/sdk v0.6.0
@@ -63,7 +63,7 @@ require (
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-connlimit v0.2.0
-	github.com/hashicorp/go-discover v0.0.0-20200108194735-7698de1390a1
+	github.com/hashicorp/go-discover v0.0.0-20200812215701-c4b85f6ed31f
 	github.com/hashicorp/go-envparse v0.0.0-20180119215841-310ca1881b22
 	github.com/hashicorp/go-getter v1.4.1
 	github.com/hashicorp/go-hclog v0.12.0
@@ -123,7 +123,7 @@ require (
 	github.com/shirou/gopsutil v2.20.2+incompatible
 	github.com/skratchdot/open-golang v0.0.0-20160302144031-75fb7ed4208c
 	github.com/stretchr/objx v0.2.0 // indirect
-	github.com/stretchr/testify v1.5.1
+	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/zclconf/go-cty v1.4.1
 	go.opencensus.io v0.22.1-0.20190713072201-b4a14686f0a9 // indirect
@@ -132,7 +132,6 @@ require (
 	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f // indirect
 	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
-	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1
 	golang.org/x/text v0.3.3-0.20200306154105-06d492aade88 // indirect
