@@ -477,6 +477,111 @@ jobs:
         path: /tmp/test-reports
     - store_artifacts:
         path: /tmp/test-reports
+  test-windows:
+    machine:
+      image: windows-server-2019-vs2019:stable
+    working_directory: c:\gopath\src\github.com\hashicorp\nomad
+    steps:
+    - run:
+        command: git config --global core.autocrlf false
+    - checkout
+    - run:
+        command: |
+          mkdir -p $GOBIN
+          mkdir -p $GOTESTSUM_PATH
+        name: Setup
+    - run:
+        command: |
+          set -x
+
+          echo installing golang ${GOLANG_VERSION}
+
+          case "${OSTYPE}" in
+            linux*)  os="linux" ;;
+            darwin*) os="darwin" ;;
+            msys*)   os="windows" ;;
+            *)       echo "unknown os: ${OSTYPE}"; exit 1 ;;
+          esac
+
+          if [[ "${os}" != "windows" ]]
+          then
+            sudo rm -rf c:/go
+            sudo mkdir -p c:
+            curl -SL --fail -o /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.${os}-amd64.tar.gz
+            sudo tar -C c: -xzf /tmp/golang.tar.gz
+            rm -rf /tmp/golang.tar.gz
+          else
+            rm -rf c:/go
+            mkdir -p c:
+            curl -SL --fail -o /tmp/go.zip https://dl.google.com/go/go${GOLANG_VERSION}.windows-amd64.zip
+            unzip -q -o /tmp/go.zip -d c:
+            rm -rf /tmp/go.zip
+          fi
+        name: Install golang
+    - run:
+        command: go version
+    - run:
+        command: |
+          set -x
+
+          case "${OSTYPE}" in
+            linux*)  os="linux" ;;
+            darwin*) os="darwin" ;;
+            msys*)   os="windows" ;;
+            *)       echo "unknown os: ${OSTYPE}"; exit 1 ;;
+          esac
+
+          curl -SL --fail -o /tmp/vault.zip https://releases.hashicorp.com/vault/"$VAULT_VERSION"/vault_"$VAULT_VERSION"_"${os}"_amd64.zip
+
+          if [[ "${os}" != "windows" ]]; then
+            sudo unzip -d /usr/local/bin /tmp/vault.zip
+            rm -rf /tmp/vault*
+          else
+            rm -rf c:\Windows\vault.exe
+            unzip /tmp/vault.zip -d "/c/Windows"
+            rm -rf /tmp/vault*
+          fi
+        name: Install Vault
+    - run:
+        command: vault version
+    - run:
+        command: choco install make
+    - run:
+        command: |
+          export PATH=$PATH:/c/go/bin:/c/gopath/bin
+          make deps
+        name: Install golang dependencies
+    - run:
+        command: docker pull hashicorpnomad/busybox-windows:server2016-0.1
+        name: Pre-download docker test image
+    - run:
+        command: |
+          export PATH=$PATH:/c/go/bin:/c/gopath/bin
+          go build -o $GOBIN\nomad.exe
+        name: Build nomad
+    - run:
+        command: |
+          # Only test docker driver tests for now
+          export PATH=$PATH:/c/go/bin:/c/gopath/bin
+          gotestsum --format=short-verbose \
+            --junitfile $GOTESTSUM_PATH/results.xml \
+            github.com/hashicorp/nomad/drivers/docker \
+            github.com/hashicorp/nomad/client/lib/fifo \
+            github.com/hashicorp/nomad/client/logmon
+        name: Run tests with gotestsum
+    - store_test_results:
+        path: c:\tmp\test-reports
+    - store_artifacts:
+        path: c:\tmp\test-reports
+    environment:
+    - GOBIN: c:\gopath\bin
+    - GOLANG_VERSION: 1.15.1
+    - GOPATH: c:\gopath
+    - GOTESTSUM_PATH: c:\tmp\test-reports
+    - GOTESTSUM_VERSION: 0.4.2
+    - VAULT_VERSION: 1.4.1
+    resource_class: windows.medium
+    shell: bash --login -eo pipefail
   test-shared-exec:
     machine:
       image: ubuntu-1604:201903-01
@@ -1078,6 +1183,63 @@ jobs:
         path: /tmp/test-reports
     - store_artifacts:
         path: /tmp/test-reports
+  build-darwin-binaries:
+    macos:
+      xcode: 11.3.1
+    working_directory: ~/go/src/github.com/hashicorp/nomad
+    steps:
+    - checkout
+    - run:
+        command: echo 'export PATH="${GOPATH}/bin:${HOME}/goinstall/go/bin:$PATH"' >> ${BASH_ENV}
+        name: configure PATH
+    - run:
+        command: |
+          set -x
+
+          echo installing golang ${GOLANG_VERSION}
+
+          case "${OSTYPE}" in
+            linux*)  os="linux" ;;
+            darwin*) os="darwin" ;;
+            msys*)   os="windows" ;;
+            *)       echo "unknown os: ${OSTYPE}"; exit 1 ;;
+          esac
+
+          if [[ "${os}" != "windows" ]]
+          then
+            sudo rm -rf ~/goinstall/go
+            sudo mkdir -p ~/goinstall
+            curl -SL --fail -o /tmp/golang.tar.gz https://dl.google.com/go/go${GOLANG_VERSION}.${os}-amd64.tar.gz
+            sudo tar -C ~/goinstall -xzf /tmp/golang.tar.gz
+            rm -rf /tmp/golang.tar.gz
+          else
+            rm -rf ~/goinstall/go
+            mkdir -p ~/goinstall
+            curl -SL --fail -o /tmp/go.zip https://dl.google.com/go/go${GOLANG_VERSION}.windows-amd64.zip
+            unzip -q -o /tmp/go.zip -d ~/goinstall
+            rm -rf /tmp/go.zip
+          fi
+        name: Install golang
+    - run:
+        command: source ${BASH_ENV} && make deps
+    - run:
+        command: brew install protobuf
+    - run:
+        command: PATH="$GOPATH/bin:${HOME}/goinstall/go/bin:$PATH" make generate-structs
+    - run:
+        command: source ${BASH_ENV} && make pkg/darwin_amd64.zip
+    - store_artifacts:
+        destination: /builds/nomad_darwin_amd64.zip
+        path: pkg/darwin_amd64.zip
+    environment:
+    - GIT_PAGER: cat
+    - GOLANG_VERSION: 1.15.1
+    - GOMAXPROCS: 1
+    - GOPATH: /Users/distiller/go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
+    - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
+    - NOMAD_SLOW_TEST: 1
+    - PAGER: cat
   test-docker:
     machine:
       image: circleci/classic:201808-01
@@ -1392,63 +1554,7 @@ workflows:
             - /^.-ui\b.*/
             - /^docs-.*/
             - stable-website
-    - test-client:
-        filters:
-          branches:
-            ignore:
-            - /^.-ui\b.*/
-            - /^docs-.*/
-            - stable-website
-    - test-nomad:
-        filters:
-          branches:
-            ignore:
-            - /^.-ui\b.*/
-            - /^docs-.*/
-            - stable-website
-    - test-api:
-        filters:
-          branches:
-            ignore:
-            - /^.-ui\b.*/
-            - /^docs-.*/
-            - stable-website
-    - test-devices:
-        filters:
-          branches:
-            ignore:
-            - /^.-ui\b.*/
-            - /^docs-.*/
-            - stable-website
-    - test-other:
-        filters:
-          branches:
-            ignore:
-            - /^.-ui\b.*/
-            - /^docs-.*/
-            - stable-website
-    - test-docker:
-        filters:
-          branches:
-            ignore:
-            - /^.-ui\b.*/
-            - /^docs-.*/
-            - stable-website
-    - test-exec:
-        filters:
-          branches:
-            ignore:
-            - /^.-ui\b.*/
-            - /^docs-.*/
-            - stable-website
-    - test-shared-exec:
-        filters:
-          branches:
-            ignore:
-            - /^.-ui\b.*/
-            - /^docs-.*/
-            - stable-website
-    - test-32bit:
+    - build-darwin-binaries:
         filters:
           branches:
             ignore:
@@ -1468,6 +1574,86 @@ workflows:
             ignore:
             - stable-website
             - /^docs-.*/
+    - test-windows:
+        filters:
+          branches:
+            ignore:
+            - /^.-ui\b.*/
+            - /^docs-.*/
+            - /^e2e-.*/
+            - stable-website
+    - test-client:
+        filters:
+          branches:
+            ignore:
+            - /^.-ui\b.*/
+            - /^docs-.*/
+            - /^e2e-.*/
+            - stable-website
+    - test-nomad:
+        filters:
+          branches:
+            ignore:
+            - /^.-ui\b.*/
+            - /^docs-.*/
+            - /^e2e-.*/
+            - stable-website
+    - test-api:
+        filters:
+          branches:
+            ignore:
+            - /^.-ui\b.*/
+            - /^docs-.*/
+            - /^e2e-.*/
+            - stable-website
+    - test-devices:
+        filters:
+          branches:
+            ignore:
+            - /^.-ui\b.*/
+            - /^docs-.*/
+            - /^e2e-.*/
+            - stable-website
+    - test-other:
+        filters:
+          branches:
+            ignore:
+            - /^.-ui\b.*/
+            - /^docs-.*/
+            - /^e2e-.*/
+            - stable-website
+    - test-docker:
+        filters:
+          branches:
+            ignore:
+            - /^.-ui\b.*/
+            - /^docs-.*/
+            - /^e2e-.*/
+            - stable-website
+    - test-exec:
+        filters:
+          branches:
+            ignore:
+            - /^.-ui\b.*/
+            - /^docs-.*/
+            - /^e2e-.*/
+            - stable-website
+    - test-shared-exec:
+        filters:
+          branches:
+            ignore:
+            - /^.-ui\b.*/
+            - /^docs-.*/
+            - /^e2e-.*/
+            - stable-website
+    - test-32bit:
+        filters:
+          branches:
+            ignore:
+            - /^.-ui\b.*/
+            - /^docs-.*/
+            - /^e2e-.*/
+            - stable-website
   merge-oss:
     jobs:
     - merge-oss:

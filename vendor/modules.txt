@@ -10,8 +10,7 @@ cloud.google.com/go/internal/version
 cloud.google.com/go/storage
 # github.com/Azure/azure-pipeline-go v0.2.1
 github.com/Azure/azure-pipeline-go/pipeline
-# github.com/Azure/azure-sdk-for-go v29.0.0+incompatible
-## explicit
+# github.com/Azure/azure-sdk-for-go v44.0.0+incompatible
 github.com/Azure/azure-sdk-for-go/services/network/mgmt/2015-06-15/network
 github.com/Azure/azure-sdk-for-go/version
 # github.com/Azure/azure-storage-blob-go v0.9.0
@@ -35,10 +34,8 @@ github.com/Azure/go-autorest/autorest/azure/cli
 # github.com/Azure/go-autorest/autorest/date v0.3.0
 github.com/Azure/go-autorest/autorest/date
 # github.com/Azure/go-autorest/autorest/to v0.4.0
-## explicit
 github.com/Azure/go-autorest/autorest/to
 # github.com/Azure/go-autorest/autorest/validation v0.3.0
-## explicit
 github.com/Azure/go-autorest/autorest/validation
 # github.com/Azure/go-autorest/logger v0.2.0
 github.com/Azure/go-autorest/logger
@@ -322,7 +319,7 @@ github.com/google/go-cmp/cmp/internal/value
 github.com/google/go-querystring/query
 # github.com/googleapis/gax-go/v2 v2.0.5
 github.com/googleapis/gax-go/v2
-# github.com/gophercloud/gophercloud v0.0.0-20180828235145-f29afc2cceca
+# github.com/gophercloud/gophercloud v0.1.0
 github.com/gophercloud/gophercloud
 github.com/gophercloud/gophercloud/openstack
 github.com/gophercloud/gophercloud/openstack/compute/v2/flavors
@@ -343,7 +340,7 @@ github.com/gorilla/websocket
 github.com/grpc-ecosystem/go-grpc-middleware/retry
 github.com/grpc-ecosystem/go-grpc-middleware/util/backoffutils
 github.com/grpc-ecosystem/go-grpc-middleware/util/metautils
-# github.com/hashicorp/consul v1.7.7 => github.com/hashicorp/consul-enterprise v1.7.8-0.20200812203413-5e744f148653
+# github.com/hashicorp/consul v1.7.8 => github.com/hashicorp/consul-enterprise v1.7.9-0.20200911031423-dcac66d22260
 ## explicit
 github.com/hashicorp/consul/agent/consul/autopilot
 github.com/hashicorp/consul/agent/consul/autopilot_ent
@@ -390,7 +387,7 @@ github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-connlimit v0.2.0
 ## explicit
 github.com/hashicorp/go-connlimit
-# github.com/hashicorp/go-discover v0.0.0-20200108194735-7698de1390a1
+# github.com/hashicorp/go-discover v0.0.0-20200812215701-c4b85f6ed31f => github.com/hashicorp/go-discover v0.0.0-20200812215701-c4b85f6ed31f
 ## explicit
 github.com/hashicorp/go-discover
 github.com/hashicorp/go-discover/provider/aliyun
@@ -780,12 +777,12 @@ github.com/softlayer/softlayer-go/filter
 github.com/softlayer/softlayer-go/services
 github.com/softlayer/softlayer-go/session
 github.com/softlayer/softlayer-go/sl
-# github.com/spf13/pflag v1.0.3
+# github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
 # github.com/stretchr/objx v0.2.0
 ## explicit
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.5.1
+# github.com/stretchr/testify v1.6.1
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
@@ -913,8 +910,7 @@ golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/publicsuffix
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-## explicit
+# golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 golang.org/x/oauth2
 golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
@@ -1080,6 +1076,8 @@ gopkg.in/tomb.v2
 # gopkg.in/yaml.v2 v2.3.0
 ## explicit
 gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
+gopkg.in/yaml.v3
 # gotest.tools/gotestsum v0.3.5
 gotest.tools/gotestsum
 gotest.tools/gotestsum/internal/junitxml
@@ -1122,7 +1120,8 @@ honnef.co/go/tools/version
 # github.com/apparentlymart/go-textseg/v12 => github.com/apparentlymart/go-textseg/v12 v12.0.0
 # github.com/godbus/dbus => github.com/godbus/dbus v5.0.1+incompatible
 # github.com/golang/protobuf => github.com/golang/protobuf v1.3.4
-# github.com/hashicorp/consul => github.com/hashicorp/consul-enterprise v1.7.8-0.20200812203413-5e744f148653
+# github.com/hashicorp/consul => github.com/hashicorp/consul-enterprise v1.7.9-0.20200911031423-dcac66d22260
+# github.com/hashicorp/go-discover => github.com/hashicorp/go-discover v0.0.0-20200812215701-c4b85f6ed31f
 # github.com/hashicorp/go-getter => github.com/hashicorp/go-getter v1.3.1-0.20190822194507-f5101da01173
 # github.com/hashicorp/nomad/api => ./api
 # github.com/kr/pty => github.com/kr/pty v1.1.5
