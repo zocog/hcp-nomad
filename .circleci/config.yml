@@ -1574,6 +1574,7 @@ workflows:
             ignore:
             - stable-website
             - /^docs-.*/
+            - /^e2e-.*/
     - test-windows:
         filters:
           branches:
