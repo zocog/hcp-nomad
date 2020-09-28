@@ -983,6 +983,10 @@ type Recommendation struct {
 	Stats          map[string]float64
 	EnforceVersion bool
 
+	// SubmitTime is the time at which the job was submitted as a UnixNano in
+	// UTC
+	SubmitTime int64
+
 	CreateIndex uint64
 	ModifyIndex uint64
 }
