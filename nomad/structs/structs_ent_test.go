@@ -652,6 +652,195 @@ func TestMultiregion_Validate(t *testing.T) {
 	}
 }
 
+func TestScalingPolicy_Validate_Ent(t *testing.T) {
+	type testCase struct {
+		name        string
+		input       *ScalingPolicy
+		expectedErr string
+	}
+
+	cases := []testCase{
+		{
+			name: "full vertical_mem policy",
+			input: &ScalingPolicy{
+				Policy: map[string]interface{}{
+					"key": "value",
+				},
+				Type:    ScalingPolicyTypeVerticalMem,
+				Min:     5,
+				Max:     5,
+				Enabled: true,
+				Target: map[string]string{
+					ScalingTargetNamespace: "my-namespace",
+					ScalingTargetJob:       "my-job",
+					ScalingTargetGroup:     "my-task-group",
+					ScalingTargetTask:      "my-task",
+				},
+			},
+		},
+		{
+			name: "full vertical_cpu policy",
+			input: &ScalingPolicy{
+				Policy: map[string]interface{}{
+					"key": "value",
+				},
+				Type:    ScalingPolicyTypeVerticalCPU,
+				Min:     5,
+				Max:     5,
+				Enabled: true,
+				Target: map[string]string{
+					ScalingTargetNamespace: "my-namespace",
+					ScalingTargetJob:       "my-job",
+					ScalingTargetGroup:     "my-task-group",
+					ScalingTargetTask:      "my-task",
+				},
+			},
+		},
+		{
+			name: "invalid type",
+			input: &ScalingPolicy{
+				Type: "not valid",
+			},
+			expectedErr: `scaling policy type "not valid" is not valid`,
+		},
+		{
+			name: "missing target vertical_mem",
+			input: &ScalingPolicy{
+				Type: ScalingPolicyTypeVerticalMem,
+			},
+			expectedErr: "vertical_mem policies must have a target",
+		},
+		{
+			name: "missing target vertical_cpu",
+			input: &ScalingPolicy{
+				Type: ScalingPolicyTypeVerticalCPU,
+			},
+			expectedErr: "vertical_cpu policies must have a target",
+		},
+	}
+
+	// Explicitly build valid vertical policy target cases.
+	for _, t := range []string{ScalingPolicyTypeVerticalMem, ScalingPolicyTypeVerticalCPU} {
+		cases = append(cases, testCase{
+			name: fmt.Sprintf("%s target namespace", t),
+			input: &ScalingPolicy{
+				Type: t,
+				Target: map[string]string{
+					ScalingTargetNamespace: "my-namespace",
+				},
+			},
+		})
+		cases = append(cases, testCase{
+			name: fmt.Sprintf("%s target job", t),
+			input: &ScalingPolicy{
+				Type: t,
+				Target: map[string]string{
+					ScalingTargetNamespace: "my-namespace",
+					ScalingTargetJob:       "my-job",
+				},
+			},
+		})
+		cases = append(cases, testCase{
+			name: fmt.Sprintf("%s target group", t),
+			input: &ScalingPolicy{
+				Type: t,
+				Target: map[string]string{
+					ScalingTargetNamespace: "my-namespace",
+					ScalingTargetJob:       "my-job",
+					ScalingTargetGroup:     "my-group",
+				},
+			},
+		})
+		cases = append(cases, testCase{
+			name: fmt.Sprintf("%s target task", t),
+			input: &ScalingPolicy{
+				Type: t,
+				Target: map[string]string{
+					ScalingTargetNamespace: "my-namespace",
+					ScalingTargetJob:       "my-job",
+					ScalingTargetGroup:     "my-group",
+					ScalingTargetTask:      "my-task",
+				},
+			},
+		})
+	}
+
+	// Generate invalid vertical policy target cases.
+	// Each case is defined as a 4-bit binary number, with each bit representing
+	// a field (Namespace, Job, Group, Task) and a bit 1 meaning the field is set.
+	// The valid cases are 1000,  1100, 1110, 1111 so we skip them.
+	valid := []int{0b1000, 0b1100, 0b1110, 0b1111}
+	isValid := func(i int) bool {
+		for _, v := range valid {
+			if i == v {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Create bitmasks to check which bits are set.
+	var (
+		namespaceMask = 0b1000
+		jobMask       = 0b0100
+		groupMask     = 0b0010
+		taskMask      = 0b0001
+	)
+
+	// Start from 0001 because 0000 is an empty target, which returns a different
+	// error message. We also already test for it.
+	for i := 0b0001; i <= 0b1111; i++ {
+		if isValid(i) {
+			continue
+		}
+
+		target := make(map[string]string)
+
+		// Apply bitmasks and set the value on fields with bit 1.
+		if i&namespaceMask != 0 {
+			target[ScalingTargetNamespace] = "my-namespace"
+		}
+		if i&jobMask != 0 {
+			target[ScalingTargetJob] = "my-job"
+		}
+		if i&groupMask != 0 {
+			target[ScalingTargetGroup] = "my-group"
+		}
+		if i&taskMask != 0 {
+			target[ScalingTargetTask] = "my-task"
+		}
+
+		// Create cases for multiple types.
+		for _, t := range []string{ScalingPolicyTypeVerticalMem, ScalingPolicyTypeVerticalCPU} {
+			cases = append(cases, testCase{
+				name: fmt.Sprintf("%s invalid target %b", t, i),
+				input: &ScalingPolicy{
+					Type:   t,
+					Target: target,
+				},
+				expectedErr: "missing target",
+			})
+		}
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			require := require.New(t)
+
+			err := c.input.Validate()
+
+			if len(c.expectedErr) > 0 {
+				require.Error(err)
+				mErr := err.(*multierror.Error)
+				require.Len(mErr.Errors, 1)
+				require.Contains(mErr.Errors[0].Error(), c.expectedErr)
+			} else {
+				require.NoError(err)
+			}
+		})
+	}
+}
+
 func TestRecommendation_Validate(t *testing.T) {
 	cases := []struct {
 		Name     string

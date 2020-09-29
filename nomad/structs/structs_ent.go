@@ -897,6 +897,76 @@ func (m *Multiregion) Validate(jobType string, jobDatacenters []string) error {
 	return mErr.ErrorOrNil()
 }
 
+const (
+	ScalingPolicyTypeVerticalCPU = "vertical_cpu"
+	ScalingPolicyTypeVerticalMem = "vertical_mem"
+)
+
+func (p *ScalingPolicy) validateType() multierror.Error {
+	var mErr multierror.Error
+
+	// Check policy type and target
+	switch p.Type {
+	case ScalingPolicyTypeHorizontal:
+		targetErr := p.validateTargetHorizontal()
+		mErr.Errors = append(mErr.Errors, targetErr.Errors...)
+	case ScalingPolicyTypeVerticalCPU, ScalingPolicyTypeVerticalMem:
+		targetErr := p.validateTargetVertical()
+		mErr.Errors = append(mErr.Errors, targetErr.Errors...)
+	default:
+		mErr.Errors = append(mErr.Errors, fmt.Errorf(`scaling policy type "%s" is not valid`, p.Type))
+	}
+
+	return mErr
+}
+
+func (p *ScalingPolicy) validateTargetVertical() (mErr multierror.Error) {
+	if len(p.Target) == 0 {
+		mErr.Errors = append(mErr.Errors, fmt.Errorf("%s policies must have a target", p.Type))
+		return
+	}
+
+	// For a vertical policy, each target level can only be set if all
+	// levels before it are also set, going, in order, from Namespace, Job,
+	// Group and Task.
+	// If a level is set, then all next levels must be empty. Otherwise we
+	// do the same check for the next level.
+
+	var (
+		noNamespace = p.Target[ScalingTargetNamespace] == ""
+		noJob       = p.Target[ScalingTargetJob] == ""
+		noGroup     = p.Target[ScalingTargetGroup] == ""
+		noTask      = p.Target[ScalingTargetTask] == ""
+	)
+
+	// Namespace should always be set
+	if noNamespace {
+		mErr.Errors = append(mErr.Errors, fmt.Errorf("missing target namespace"))
+		return
+	} else if noJob && noGroup && noTask {
+		// Only Namespace is set, so we are good
+		return
+	}
+
+	// We have Namespace plus some other fields; Job is required to be set
+	if noJob {
+		mErr.Errors = append(mErr.Errors, fmt.Errorf("missing target job"))
+		return
+	} else if noGroup && noTask {
+		// Only Namespace and Job are set, so we are good
+		return
+	}
+
+	// We have Namespace and Job and at least one of Group or Task; therefore, Group is required to be set
+	if noGroup {
+		mErr.Errors = append(mErr.Errors, fmt.Errorf("missing target group"))
+		return
+	}
+
+	// At this point Task can be set or not, so we don't need to check it
+	return
+}
+
 // Recommendation represents a recommended change to a job
 type Recommendation struct {
 	ID             string

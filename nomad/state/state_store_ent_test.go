@@ -2459,3 +2459,106 @@ func TestStateStore_UpdateJob_UpdateRecCurrent(t *testing.T) {
 	require.NoError(err)
 	require.GreaterOrEqual(index, uint64(1020))
 }
+
+func TestStateStore_ScalingPoliciesByType_Vertical(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	state := testStateStore(t)
+
+	// Create scaling policies of different types
+	pVertMem := mock.ScalingPolicy()
+	pVertMem.Type = structs.ScalingPolicyTypeVerticalMem
+
+	pVertCPU := mock.ScalingPolicy()
+	pVertCPU.Type = structs.ScalingPolicyTypeVerticalCPU
+
+	// Create search routine
+	search := func(t string) (count int, found []string, err error) {
+		found = []string{}
+		iter, err := state.ScalingPoliciesByType(nil, t)
+		if err != nil {
+			return
+		}
+
+		for raw := iter.Next(); raw != nil; raw = iter.Next() {
+			count++
+			found = append(found, raw.(*structs.ScalingPolicy).Type)
+		}
+		return
+	}
+
+	// Create the policies
+	var baseIndex uint64 = 1000
+	err := state.UpsertScalingPolicies(baseIndex, []*structs.ScalingPolicy{pVertCPU, pVertMem})
+	require.NoError(err)
+
+	// Check if we can read vertical_cpu policies
+	expect := []string{pVertCPU.Type}
+	count, found, err := search(structs.ScalingPolicyTypeVerticalCPU)
+
+	sort.Strings(found)
+	sort.Strings(expect)
+
+	require.NoError(err)
+	require.Equal(expect, found)
+	require.Equal(1, count)
+
+	// Check if we can't read vertical prefix policies
+	expect = []string{}
+	count, found, err = search("vertical")
+
+	sort.Strings(found)
+	sort.Strings(expect)
+
+	require.NoError(err)
+	require.Equal(expect, found)
+	require.Equal(0, count)
+}
+
+func TestStateStore_ScalingPoliciesByTypePrefix_Vertical(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	state := testStateStore(t)
+
+	// Create scaling policies of different types
+	pVertMem := mock.ScalingPolicy()
+	pVertMem.Type = structs.ScalingPolicyTypeVerticalMem
+
+	pVertCPU := mock.ScalingPolicy()
+	pVertCPU.Type = structs.ScalingPolicyTypeVerticalCPU
+
+	// Create search routine
+	search := func(t string) (count int, found []string, err error) {
+		found = []string{}
+		iter, err := state.ScalingPoliciesByTypePrefix(nil, t)
+		if err != nil {
+			return
+		}
+
+		for raw := iter.Next(); raw != nil; raw = iter.Next() {
+			count++
+			found = append(found, raw.(*structs.ScalingPolicy).Type)
+		}
+		return
+	}
+
+	// Create the policies
+	var baseIndex uint64 = 1000
+	err := state.UpsertScalingPolicies(baseIndex, []*structs.ScalingPolicy{pVertCPU, pVertMem})
+	require.NoError(err)
+
+	// Check if we can read vertical prefix policies
+	expect := []string{pVertCPU.Type, pVertMem.Type}
+	count, found, err := search("vertical")
+
+	sort.Strings(found)
+	sort.Strings(expect)
+
+	require.NoError(err)
+	require.Equal(expect, found)
+	require.Equal(2, count)
+}
