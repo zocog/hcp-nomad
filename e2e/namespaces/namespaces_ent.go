@@ -14,7 +14,7 @@ import (
 type NamespacesE2ETest struct {
 	framework.TC
 	namespaceIDs     []string
-	namespacedJobIDs [][]string
+	namespacedJobIDs [][2]string // [(ns, jobID)]
 }
 
 func init() {
@@ -78,7 +78,7 @@ func (tc *NamespacesE2ETest) TestNamespacesFiltering(f *framework.F) {
 	run := func(jobspec, ns string) string {
 		jobID := "test-namespace-" + uuid.Generate()[0:8]
 		f.NoError(e2e.Register(jobID, jobspec))
-		tc.namespacedJobIDs = append(tc.namespacedJobIDs, []string{ns, jobID})
+		tc.namespacedJobIDs = append(tc.namespacedJobIDs, [2]string{ns, jobID})
 		expected := []string{"running"}
 		f.NoError(e2e.WaitForAllocStatusExpected(jobID, ns, expected), "job should be running")
 		return jobID
