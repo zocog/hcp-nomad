@@ -5079,6 +5079,9 @@ type ScalingPolicy struct {
 	// ID is a generated UUID used for looking up the scaling policy
 	ID string
 
+	// Type is the type of scaling performed by the policy
+	Type string
+
 	// Target contains information about the target of the scaling policy, like job and group
 	Target map[string]string
 
@@ -5102,7 +5105,95 @@ const (
 	ScalingTargetNamespace = "Namespace"
 	ScalingTargetJob       = "Job"
 	ScalingTargetGroup     = "Group"
+	ScalingTargetTask      = "Task"
+
+	ScalingPolicyTypeHorizontal = "horizontal"
 )
+
+func (p *ScalingPolicy) Canonicalize() {
+	if p.Type == "" {
+		p.Type = ScalingPolicyTypeHorizontal
+	}
+}
+
+func (p *ScalingPolicy) Copy() *ScalingPolicy {
+	if p == nil {
+		return nil
+	}
+
+	opaquePolicyConfig, err := copystructure.Copy(p.Policy)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	c := ScalingPolicy{
+		ID:          p.ID,
+		Policy:      opaquePolicyConfig.(map[string]interface{}),
+		Enabled:     p.Enabled,
+		Type:        p.Type,
+		Min:         p.Min,
+		Max:         p.Max,
+		CreateIndex: p.CreateIndex,
+		ModifyIndex: p.ModifyIndex,
+	}
+	c.Target = make(map[string]string, len(p.Target))
+	for k, v := range p.Target {
+		c.Target[k] = v
+	}
+	return &c
+}
+
+func (p *ScalingPolicy) Validate() error {
+	if p == nil {
+		return nil
+	}
+
+	var mErr multierror.Error
+
+	// Check policy type and target
+	if p.Type == "" {
+		mErr.Errors = append(mErr.Errors, fmt.Errorf("missing scaling policy type"))
+	} else {
+		mErr.Errors = append(mErr.Errors, p.validateType().Errors...)
+	}
+
+	// Check Min and Max
+	if p.Max < 0 {
+		mErr.Errors = append(mErr.Errors,
+			fmt.Errorf("maximum count must be specified and non-negative"))
+	} else {
+		if p.Max < p.Min {
+			mErr.Errors = append(mErr.Errors,
+				fmt.Errorf("maximum count must not be less than minimum count"))
+		}
+	}
+
+	if p.Min < 0 {
+		mErr.Errors = append(mErr.Errors,
+			fmt.Errorf("minimum count must be specified and non-negative"))
+	}
+
+	return mErr.ErrorOrNil()
+}
+
+func (p *ScalingPolicy) validateTargetHorizontal() (mErr multierror.Error) {
+	if len(p.Target) == 0 {
+		// This is probably not a Nomad horizontal policy
+		return
+	}
+
+	// Nomad horizontal policies should have Namespace, Job and TaskGroup
+	if p.Target[ScalingTargetNamespace] == "" {
+		mErr.Errors = append(mErr.Errors, fmt.Errorf("missing target namespace"))
+	}
+	if p.Target[ScalingTargetJob] == "" {
+		mErr.Errors = append(mErr.Errors, fmt.Errorf("missing target job"))
+	}
+	if p.Target[ScalingTargetGroup] == "" {
+		mErr.Errors = append(mErr.Errors, fmt.Errorf("missing target group"))
+	}
+	return
+}
 
 // Diff indicates whether the specification for a given scaling policy has changed
 func (p *ScalingPolicy) Diff(p2 *ScalingPolicy) bool {
@@ -5125,6 +5216,7 @@ func (p *ScalingPolicy) TargetTaskGroup(job *Job, tg *TaskGroup) *ScalingPolicy 
 func (p *ScalingPolicy) Stub() *ScalingPolicyListStub {
 	stub := &ScalingPolicyListStub{
 		ID:          p.ID,
+		Type:        p.Type,
 		Target:      make(map[string]string),
 		Enabled:     p.Enabled,
 		CreateIndex: p.CreateIndex,
@@ -5154,6 +5246,7 @@ func (j *Job) GetScalingPolicies() []*ScalingPolicy {
 type ScalingPolicyListStub struct {
 	ID          string
 	Enabled     bool
+	Type        string
 	Target      map[string]string
 	CreateIndex uint64
 	ModifyIndex uint64
@@ -5570,7 +5663,7 @@ func (tg *TaskGroup) Copy() *TaskGroup {
 	ntg.Affinities = CopySliceAffinities(ntg.Affinities)
 	ntg.Spreads = CopySliceSpreads(ntg.Spreads)
 	ntg.Volumes = CopyMapVolumeRequest(ntg.Volumes)
-	ntg.Scaling = CopyScalingPolicy(ntg.Scaling)
+	ntg.Scaling = ntg.Scaling.Copy()
 
 	// Copy the network objects
 	if tg.Networks != nil {
@@ -5638,6 +5731,10 @@ func (tg *TaskGroup) Canonicalize(job *Job) {
 	// Set a default ephemeral disk object if the user has not requested for one
 	if tg.EphemeralDisk == nil {
 		tg.EphemeralDisk = DefaultEphemeralDisk()
+	}
+
+	if tg.Scaling != nil {
+		tg.Scaling.Canonicalize()
 	}
 
 	for _, service := range tg.Services {
@@ -5801,6 +5898,12 @@ func (tg *TaskGroup) Validate(j *Job) error {
 		mErr.Errors = append(mErr.Errors, outer)
 	}
 
+	// Validate group service script-checks
+	if err := tg.validateScriptChecksInGroupServices(); err != nil {
+		outer := fmt.Errorf("Task group service check validation failed: %v", err)
+		mErr.Errors = append(mErr.Errors, outer)
+	}
+
 	// Validate the scaling policy
 	if err := tg.validateScalingPolicy(j); err != nil {
 		outer := fmt.Errorf("Task group scaling policy validation failed: %v", err)
@@ -5950,6 +6053,26 @@ func (tg *TaskGroup) validateServices() error {
 	return mErr.ErrorOrNil()
 }
 
+// validateScriptChecksInGroupServices ensures group-level services with script
+// checks know what task driver to use. Either the service.task or service.check.task
+// parameter must be configured.
+func (tg *TaskGroup) validateScriptChecksInGroupServices() error {
+	var mErr multierror.Error
+	for _, service := range tg.Services {
+		if service.TaskName == "" {
+			for _, check := range service.Checks {
+				if check.Type == "script" && check.TaskName == "" {
+					mErr.Errors = append(mErr.Errors,
+						fmt.Errorf("Service [%s]->%s or Check %s must specify task parameter",
+							tg.Name, service.Name, check.Name,
+						))
+				}
+			}
+		}
+	}
+	return mErr.ErrorOrNil()
+}
+
 // validateScalingPolicy ensures that the scaling policy has consistent
 // min and max, not in conflict with the task group count
 func (tg *TaskGroup) validateScalingPolicy(j *Job) error {
@@ -5959,19 +6082,19 @@ func (tg *TaskGroup) validateScalingPolicy(j *Job) error {
 
 	var mErr multierror.Error
 
-	// was invalid or not specified; don't bother testing anything else involving max
-	if tg.Scaling.Max < 0 {
+	err := tg.Scaling.Validate()
+	if err != nil {
+		// prefix scaling policy errors
+		if me, ok := err.(*multierror.Error); ok {
+			for _, e := range me.Errors {
+				mErr.Errors = append(mErr.Errors, fmt.Errorf("Scaling policy invalid: %s", e))
+			}
+		}
+	}
+
+	if tg.Scaling.Max < int64(tg.Count) {
 		mErr.Errors = append(mErr.Errors,
-			fmt.Errorf("Scaling policy invalid: maximum count must be specified and non-negative"))
-	} else {
-		if tg.Scaling.Max < tg.Scaling.Min {
-			mErr.Errors = append(mErr.Errors,
-				fmt.Errorf("Scaling policy invalid: maximum count must not be less than minimum count"))
-		}
-		if tg.Scaling.Max < int64(tg.Count) {
-			mErr.Errors = append(mErr.Errors,
-				fmt.Errorf("Scaling policy invalid: task group count must not be greater than maximum count in scaling policy"))
-		}
+			fmt.Errorf("Scaling policy invalid: task group count must not be greater than maximum count in scaling policy"))
 	}
 
 	if int64(tg.Count) < tg.Scaling.Min && !(j.IsMultiregion() && tg.Count == 0 && j.Region == "global") {
