@@ -50,6 +50,7 @@ func (tc *NamespacesE2ETest) AfterEach(f *framework.F) {
 		}
 		f.NoError(err)
 	}
+	tc.namespacedJobIDs = [][2]string{}
 
 	for _, ns := range tc.namespaceIDs {
 		_, err = e2e.Command("nomad", "namespace", "delete", ns)
