@@ -38,28 +38,28 @@ func (tc *NamespacesE2ETest) AfterEach(f *framework.F) {
 	if os.Getenv("NOMAD_TEST_SKIPCLEANUP") == "1" {
 		return
 	}
-	var err error
 
 	for _, pair := range tc.namespacedJobIDs {
 		ns := pair[0]
 		jobID := pair[1]
 		if ns != "" {
-			_, err = e2e.Command("nomad", "job", "stop", "-purge", "-namespace", ns, jobID)
+			_, err := e2e.Command("nomad", "job", "stop", "-purge", "-namespace", ns, jobID)
+			f.Assert().NoError(err)
 		} else {
-			_, err = e2e.Command("nomad", "job", "stop", "-purge", jobID)
+			_, err := e2e.Command("nomad", "job", "stop", "-purge", jobID)
+			f.Assert().NoError(err)
 		}
-		f.NoError(err)
 	}
 	tc.namespacedJobIDs = [][2]string{}
 
 	for _, ns := range tc.namespaceIDs {
-		_, err = e2e.Command("nomad", "namespace", "delete", ns)
-		f.NoError(err)
+		_, err := e2e.Command("nomad", "namespace", "delete", ns)
+		f.Assert().NoError(err)
 	}
 	tc.namespaceIDs = []string{}
 
-	_, err = e2e.Command("nomad", "system", "gc")
-	f.NoError(err)
+	_, err := e2e.Command("nomad", "system", "gc")
+	f.Assert().NoError(err)
 }
 
 // TestNamespacesFiltering exercises the -namespace flag on various commands
