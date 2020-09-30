@@ -70,7 +70,7 @@ func testPeriodicJob() *Job {
 
 func testRecommendation(job *Job) *Recommendation {
 	rec := &Recommendation{
-		ID:        stringToPtr(""),
+		ID:        "",
 		Region:    *job.Region,
 		Namespace: *job.Namespace,
 		JobID:     *job.ID,

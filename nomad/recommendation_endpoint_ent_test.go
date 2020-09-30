@@ -793,6 +793,7 @@ func TestRecommendationEndpoint_Upsert(t *testing.T) {
 		},
 	}
 
+	now := time.Now().Unix()
 	var resp structs.SingleRecommendationResponse
 	require.NoError(s1.State().UpsertJob(900, job))
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
@@ -811,6 +812,7 @@ func TestRecommendationEndpoint_Upsert(t *testing.T) {
 	require.Equal(resp.Recommendation.ID, recs[0].ID)
 	require.Equal(job.Version, resp.Recommendation.JobVersion)
 	require.Equal(job.TaskGroups[0].Tasks[0].Resources.CPU, recs[0].Current)
+	require.GreaterOrEqual(resp.Recommendation.SubmitTime, now)
 }
 
 func TestRecommendationEndpoint_Upsert_License(t *testing.T) {

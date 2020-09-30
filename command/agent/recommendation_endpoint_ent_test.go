@@ -370,6 +370,7 @@ func TestHTTP_RecommendationCreate(t *testing.T) {
 		require.NotEmpty(resp.ID)
 		require.NotEmpty(resp.CreateIndex)
 		require.Equal(resp.CreateIndex, resp.ModifyIndex)
+
 		require.Equal(&structs.Recommendation{
 			ID:             resp.ID,
 			Region:         "global",
@@ -384,6 +385,7 @@ func TestHTTP_RecommendationCreate(t *testing.T) {
 			Meta:           rec.Meta,
 			Stats:          rec.Stats,
 			EnforceVersion: false,
+			SubmitTime:     resp.SubmitTime,
 			CreateIndex:    resp.CreateIndex,
 			ModifyIndex:    resp.ModifyIndex,
 		}, resp)
@@ -420,7 +422,7 @@ func TestHTTP_RecommendationCreate_NoNils(t *testing.T) {
 		require.NoError(s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
 
 		rec := structsRecommendationToApi(mock.Recommendation(job))
-		rec.ID = nil
+		rec.ID = ""
 		rec.Stats = nil
 		rec.Meta = nil
 		buf := encodeReq(rec)

@@ -87,11 +87,7 @@ func apiRecommendationToStructs(aRec api.Recommendation) *structs.Recommendation
 		CreateIndex:    aRec.CreateIndex,
 		ModifyIndex:    aRec.ModifyIndex,
 	}
-	if aRec.ID != nil {
-		sRec.ID = *aRec.ID
-	} else {
-		sRec.ID = ""
-	}
+	sRec.ID = aRec.ID
 	for k, v := range aRec.Meta {
 		sRec.Meta[k] = v
 	}
@@ -189,7 +185,7 @@ func structsRecApplyResultToApi(s *structs.SingleRecommendationApplyResult) *api
 
 func structsRecommendationToApi(sRec *structs.Recommendation) *api.Recommendation {
 	aRec := &api.Recommendation{
-		ID:             &sRec.ID,
+		ID:             sRec.ID,
 		Region:         sRec.Region,
 		Namespace:      sRec.Namespace,
 		JobID:          sRec.JobID,
