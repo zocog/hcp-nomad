@@ -237,6 +237,9 @@ func (s *HTTPServer) recQuery(resp http.ResponseWriter, req *http.Request,
 		return nil, err
 	}
 	setMeta(resp, &out.QueryMeta)
+	if out.Recommendation == nil {
+		return nil, CodedError(404, "Recommendation not found")
+	}
 	return out.Recommendation, nil
 }
 

@@ -224,15 +224,21 @@ func TestHTTP_RecommendationGet(t *testing.T) {
 				respW := httptest.NewRecorder()
 
 				obj, err := s.Server.RecommendationSpecificRequest(respW, req)
-				require.NoError(t, err)
 
 				require.NotZero(t, respW.Header().Get("X-Nomad-Index"), "missing index response header")
 				require.NotZero(t, respW.Header().Get("X-Nomad-KnownLeader"), "missing known leader response header")
 				require.NotZero(t, respW.Header().Get("X-Nomad-LastContact"), "missing last contact response header")
 
-				out := obj.(*structs.Recommendation)
+				if tc.ExpRec == nil {
+					require.Error(t, err)
+					require.Contains(t, err.Error(), "Recommendation not found")
 
-				require.Equal(t, tc.ExpRec, out)
+				} else {
+					require.NoError(t, err)
+					require.NotNil(t, obj)
+					out := obj.(*structs.Recommendation)
+					require.Equal(t, tc.ExpRec, out)
+				}
 			})
 		}
 	})
