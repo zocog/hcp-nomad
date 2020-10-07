@@ -53,6 +53,7 @@ const (
 	CSIVolumeSnapshot                    SnapshotType = 18
 	ScalingEventsSnapshot                SnapshotType = 19
 	EventSinkSnapshot                    SnapshotType = 20
+
 	// Namespace appliers were moved from enterprise and therefore start at 64
 	NamespaceSnapshot SnapshotType = 64
 )

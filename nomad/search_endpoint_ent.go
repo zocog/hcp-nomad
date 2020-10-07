@@ -18,7 +18,7 @@ var (
 
 	// entContexts are the ent contexts which are searched to find matches
 	// for a given prefix
-	entContexts = []structs.Context{structs.Namespaces, structs.Quotas}
+	entContexts = []structs.Context{structs.Quotas}
 )
 
 // contextToIndex returns the index name to lookup in the state store.
@@ -31,17 +31,6 @@ func contextToIndex(ctx structs.Context) string {
 	}
 }
 
-// getProMatch is used to match on an object only defined in Nomad Pro or
-// Premium
-func getProMatch(match interface{}) (id string, ok bool) {
-	switch match.(type) {
-	case *structs.Namespace:
-		return match.(*structs.Namespace).Name, true
-	default:
-		return "", false
-	}
-}
-
 // getEnterpriseMatch is used to match on an object only defined in Nomad Pro or
 // Premium
 func getEnterpriseMatch(match interface{}) (id string, ok bool) {
@@ -49,33 +38,7 @@ func getEnterpriseMatch(match interface{}) (id string, ok bool) {
 	case *structs.QuotaSpec:
 		return m.Name, true
 	default:
-		return getProMatch(match)
-	}
-}
-
-// getProResourceIter is used to retrieve an iterator over an enterprise
-// only table.
-func getProResourceIter(context structs.Context, aclObj *acl.ACL, namespace, prefix string, ws memdb.WatchSet, state *state.StateStore) (memdb.ResultIterator, error) {
-	switch context {
-	case structs.Namespaces:
-		iter, err := state.NamespacesByNamePrefix(ws, prefix)
-		if err != nil {
-			return nil, err
-		}
-		if aclObj == nil {
-			return iter, nil
-		}
-		return memdb.NewFilterIterator(iter, namespaceFilter(aclObj)), nil
-	default:
-		return nil, fmt.Errorf("context must be one of %v or 'all' for all contexts; got %q", allContexts, context)
-	}
-}
-
-// namespaceFilter wraps a namespace iterator with a filter for removing
-// namespaces the ACL can't access.
-func namespaceFilter(aclObj *acl.ACL) memdb.FilterFunc {
-	return func(v interface{}) bool {
-		return !aclObj.AllowNamespace(v.(*structs.Namespace).Name)
+		return "", false
 	}
 }
 
@@ -86,7 +49,7 @@ func getEnterpriseResourceIter(context structs.Context, aclObj *acl.ACL, namespa
 	case structs.Quotas:
 		return state.QuotaSpecsByNamePrefix(ws, prefix)
 	default:
-		return getProResourceIter(context, aclObj, namespace, prefix, ws, state)
+		return nil, fmt.Errorf("context must be one of %v or 'all' for all contexts; got %q", allContexts, context)
 	}
 }
 

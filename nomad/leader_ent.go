@@ -17,10 +17,6 @@ import (
 // establishEnterpriseLeadership is used to instantiate Nomad Pro and Premium
 // systems upon acquiring leadership.
 func (s *Server) establishEnterpriseLeadership(stopCh chan struct{}) error {
-	if err := s.establishProLeadership(stopCh); err != nil {
-		return err
-	}
-
 	// If we are not the authoritative region, start replicating.
 	if s.config.Region != s.config.AuthoritativeRegion {
 		// Start replication of Sentinel Policies if ACLs are enabled,

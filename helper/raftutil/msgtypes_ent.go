@@ -6,8 +6,6 @@ package raftutil
 import "github.com/hashicorp/nomad/nomad/structs"
 
 func init() {
-	msgTypeNames[structs.NamespaceUpsertRequestType] = "NamespaceUpsertRequestType"
-	msgTypeNames[structs.NamespaceDeleteRequestType] = "NamespaceDeleteRequestType"
 	msgTypeNames[structs.SentinelPolicyUpsertRequestType] = "SentinelPolicyUpsertRequestType"
 	msgTypeNames[structs.SentinelPolicyDeleteRequestType] = "SentinelPolicyDeleteRequestType"
 	msgTypeNames[structs.QuotaSpecUpsertRequestType] = "QuotaSpecUpsertRequestType"
