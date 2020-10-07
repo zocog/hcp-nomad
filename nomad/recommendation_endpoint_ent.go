@@ -232,7 +232,7 @@ func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsert
 		// don't let callers specify UUIDs for now
 		args.Recommendation.ID = uuid.Generate()
 	}
-	args.Recommendation.SubmitTime = time.Now().Unix()
+	args.Recommendation.SubmitTime = time.Now().UnixNano()
 
 	// Update via Raft
 	out, index, err := r.srv.raftApply(structs.RecommendationUpsertRequestType, args)
