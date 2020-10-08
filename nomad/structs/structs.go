@@ -5104,6 +5104,14 @@ type ScalingPolicy struct {
 	ModifyIndex uint64
 }
 
+// JobKey returns a key that is unique to a job-scoped target, useful as a map
+// key. This uses the policy type, plus target (group and task).
+func (p *ScalingPolicy) JobKey() string {
+	return p.Type + "\000" +
+		p.Target[ScalingTargetGroup] + "\000" +
+		p.Target[ScalingTargetTask]
+}
+
 const (
 	ScalingTargetNamespace = "Namespace"
 	ScalingTargetJob       = "Job"
@@ -5240,6 +5248,8 @@ func (j *Job) GetScalingPolicies() []*ScalingPolicy {
 			ret = append(ret, tg.Scaling)
 		}
 	}
+
+	ret = append(ret, j.GetEntScalingPolicies()...)
 
 	return ret
 }

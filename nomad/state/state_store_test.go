@@ -8964,16 +8964,15 @@ func TestStateStore_UnstopJob_UpsertScalingPolicies(t *testing.T) {
 	require.NoError(err)
 	require.Nil(list.Next())
 
-	// upsert a stopped job, verify that we don't fire the watcher or add any scaling policies
+	// upsert a stopped job, this should create the associated scaling policy
 	err = state.UpsertJob(1000, job)
 	require.NoError(err)
-	require.False(watchFired(ws))
-	// stopped job should have no scaling policies, watcher doesn't fire
+	require.True(watchFired(ws))
 	list, err = state.ScalingPolicies(ws)
 	require.NoError(err)
-	require.Nil(list.Next())
+	require.NotNil(list.Next())
 
-	// Establish a new watcher
+	// Establish a new watchset
 	ws = memdb.NewWatchSet()
 	_, err = state.ScalingPolicies(ws)
 	require.NoError(err)
@@ -8982,14 +8981,14 @@ func TestStateStore_UnstopJob_UpsertScalingPolicies(t *testing.T) {
 	err = state.UpsertJob(1100, job)
 	require.NoError(err)
 
-	// Ensure the scaling policy was added, watch was fired, index was advanced
-	require.True(watchFired(ws))
+	// Ensure the scaling policy still exists, watch was not fired, index was not advanced
 	out, err := state.ScalingPolicyByTargetAndType(nil, policy.Target, policy.Type)
 	require.NoError(err)
 	require.NotNil(out)
 	index, err := state.Index("scaling_policy")
 	require.NoError(err)
-	require.GreaterOrEqual(index, uint64(1100))
+	require.EqualValues(index, 1000)
+	require.False(watchFired(ws))
 }
 
 func TestStateStore_DeleteJob_DeleteScalingPolicies(t *testing.T) {

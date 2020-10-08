@@ -4525,17 +4525,10 @@ func (s *StateStore) updateJobScalingPolicies(index uint64, job *structs.Job, tx
 
 	ws := memdb.NewWatchSet()
 
-	if job.Stop {
-		if err := s.deleteJobScalingPolicies(index, job, txn); err != nil {
-			return fmt.Errorf("deleting job scaling policies failed: %v", err)
-		}
-		return nil
-	}
-
 	scalingPolicies := job.GetScalingPolicies()
 	newTargets := map[string]struct{}{}
 	for _, p := range scalingPolicies {
-		newTargets[p.Target[structs.ScalingTargetGroup]] = struct{}{}
+		newTargets[p.JobKey()] = struct{}{}
 	}
 	// find existing policies that need to be deleted
 	deletedPolicies := []string{}
@@ -4543,13 +4536,9 @@ func (s *StateStore) updateJobScalingPolicies(index uint64, job *structs.Job, tx
 	if err != nil {
 		return fmt.Errorf("ScalingPoliciesByJob lookup failed: %v", err)
 	}
-	for {
-		raw := iter.Next()
-		if raw == nil {
-			break
-		}
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
 		oldPolicy := raw.(*structs.ScalingPolicy)
-		if _, ok := newTargets[oldPolicy.Target[structs.ScalingTargetGroup]]; !ok {
+		if _, ok := newTargets[oldPolicy.JobKey()]; !ok {
 			deletedPolicies = append(deletedPolicies, oldPolicy.ID)
 		}
 	}
