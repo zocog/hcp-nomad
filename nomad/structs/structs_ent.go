@@ -967,6 +967,11 @@ func (p *ScalingPolicy) validateTargetVertical() (mErr multierror.Error) {
 	return
 }
 
+// Return Task-specific scaling policies
+func (j *Job) GetEntScalingPolicies() []*ScalingPolicy {
+	return nil
+}
+
 // Recommendation represents a recommended change to a job
 type Recommendation struct {
 	ID             string
