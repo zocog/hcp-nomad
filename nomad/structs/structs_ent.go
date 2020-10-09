@@ -933,43 +933,50 @@ func (p *ScalingPolicy) validateTargetVertical() (mErr multierror.Error) {
 	// do the same check for the next level.
 
 	var (
-		noNamespace = p.Target[ScalingTargetNamespace] == ""
-		noJob       = p.Target[ScalingTargetJob] == ""
-		noGroup     = p.Target[ScalingTargetGroup] == ""
-		noTask      = p.Target[ScalingTargetTask] == ""
+		hasNamespace = p.Target[ScalingTargetNamespace] != ""
+		hasJob       = p.Target[ScalingTargetJob] != ""
+		hasGroup     = p.Target[ScalingTargetGroup] != ""
+		hasTask      = p.Target[ScalingTargetTask] != ""
 	)
 
-	// Namespace should always be set
-	if noNamespace {
+	switch {
+	case hasNamespace && !hasJob && !hasGroup && !hasTask:
+		return
+	case hasNamespace && hasJob && !hasGroup && !hasTask:
+		return
+	case hasNamespace && hasJob && hasGroup && !hasTask:
+		return
+	case hasNamespace && hasJob && hasGroup && hasTask:
+		return
+	}
+
+	if !hasNamespace {
 		mErr.Errors = append(mErr.Errors, fmt.Errorf("missing target namespace"))
 		return
-	} else if noJob && noGroup && noTask {
-		// Only Namespace is set, so we are good
-		return
 	}
 
-	// We have Namespace plus some other fields; Job is required to be set
-	if noJob {
+	if !hasJob {
 		mErr.Errors = append(mErr.Errors, fmt.Errorf("missing target job"))
 		return
-	} else if noGroup && noTask {
-		// Only Namespace and Job are set, so we are good
-		return
 	}
 
-	// We have Namespace and Job and at least one of Group or Task; therefore, Group is required to be set
-	if noGroup {
+	if !hasGroup {
 		mErr.Errors = append(mErr.Errors, fmt.Errorf("missing target group"))
 		return
 	}
 
-	// At this point Task can be set or not, so we don't need to check it
 	return
 }
 
 // Return Task-specific scaling policies
 func (j *Job) GetEntScalingPolicies() []*ScalingPolicy {
-	return nil
+	policies := []*ScalingPolicy{}
+	for _, tg := range j.TaskGroups {
+		for _, t := range tg.Tasks {
+			policies = append(policies, t.ScalingPolicies...)
+		}
+	}
+	return policies
 }
 
 // Recommendation represents a recommended change to a job

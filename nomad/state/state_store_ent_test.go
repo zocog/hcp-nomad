@@ -2475,15 +2475,14 @@ func TestStateStore_ScalingPoliciesByType_Vertical(t *testing.T) {
 	pVertCPU.Type = structs.ScalingPolicyTypeVerticalCPU
 
 	// Create search routine
-	search := func(t string) (count int, found []string, err error) {
+	search := func(t string) (found []string, err error) {
 		found = []string{}
-		iter, err := state.ScalingPoliciesByType(nil, t)
+		iter, err := state.ScalingPoliciesByTypePrefix(nil, t)
 		if err != nil {
 			return
 		}
 
 		for raw := iter.Next(); raw != nil; raw = iter.Next() {
-			count++
 			found = append(found, raw.(*structs.ScalingPolicy).Type)
 		}
 		return
@@ -2495,26 +2494,22 @@ func TestStateStore_ScalingPoliciesByType_Vertical(t *testing.T) {
 	require.NoError(err)
 
 	// Check if we can read vertical_cpu policies
+	actual, err := search(structs.ScalingPolicyTypeVerticalCPU)
+	require.NoError(err)
 	expect := []string{pVertCPU.Type}
-	count, found, err := search(structs.ScalingPolicyTypeVerticalCPU)
+	require.ElementsMatch(expect, actual)
 
-	sort.Strings(found)
-	sort.Strings(expect)
-
+	// Check if we can read vertical_mem policies
+	actual, err = search(structs.ScalingPolicyTypeVerticalMem)
 	require.NoError(err)
-	require.Equal(expect, found)
-	require.Equal(1, count)
+	expect = []string{pVertMem.Type}
+	require.ElementsMatch(expect, actual)
 
-	// Check if we can't read vertical prefix policies
-	expect = []string{}
-	count, found, err = search("vertical")
-
-	sort.Strings(found)
-	sort.Strings(expect)
-
+	// Check if we can read vertical prefix policies
+	expect = []string{pVertCPU.Type, pVertMem.Type}
+	actual, err = search("vertical")
 	require.NoError(err)
-	require.Equal(expect, found)
-	require.Equal(0, count)
+	require.ElementsMatch(expect, actual)
 }
 
 func TestStateStore_ScalingPoliciesByTypePrefix_Vertical(t *testing.T) {

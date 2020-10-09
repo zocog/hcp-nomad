@@ -323,43 +323,16 @@ func (r *Recommendation) DeleteRecommendations(args *structs.RecommendationDelet
 	return nil
 }
 
-// allowedRecNSes returns a set (as map of ns->true) of the namespaces a token
-// has access to, for the purpose of reading recommendations.
-// Returns `nil` set if the token has access to all namespaces
-// and ErrPermissionDenied if the token has no capabilities on any namespace.
-func allowedRecNSes(aclObj *acl.ACL, state *state.StateStore) (map[string]bool, error) {
-	if aclObj == nil || aclObj.IsManagement() {
-		return nil, nil
-	}
-
-	// namespaces
-	nses, err := state.NamespaceNames()
-	if err != nil {
-		return nil, err
-	}
-
-	r := make(map[string]bool, len(nses))
-
-	for _, ns := range nses {
-		if aclObj.AllowNsOp(ns, acl.NamespaceCapabilityReadJob) ||
-			aclObj.AllowNsOp(ns, acl.NamespaceCapabilitySubmitRecommendation) {
-			r[ns] = true
-		}
-	}
-
-	if len(r) == 0 {
-		return nil, structs.ErrPermissionDenied
-	}
-
-	return r, nil
-}
-
 func (r *Recommendation) listAllRecommendations(args *structs.RecommendationListRequest, reply *structs.RecommendationListResponse) error {
 	aclObj, err := r.srv.ResolveToken(args.AuthToken)
 	if err != nil {
 		return err
 	}
 	prefix := args.QueryOptions.Prefix
+	allow := func(ns string) bool {
+		return aclObj.AllowNsOp(ns, acl.NamespaceCapabilityReadJob) ||
+			aclObj.AllowNsOp(ns, acl.NamespaceCapabilitySubmitRecommendation)
+	}
 
 	// Setup the blocking query
 	opts := blockingOptions{
@@ -367,7 +340,7 @@ func (r *Recommendation) listAllRecommendations(args *structs.RecommendationList
 		queryMeta: &reply.QueryMeta,
 		run: func(ws memdb.WatchSet, state *state.StateStore) error {
 			// check if user has permission to all namespaces
-			allowedNSes, err := allowedRecNSes(aclObj, state)
+			allowedNSes, err := allowedNSes(aclObj, state, allow)
 			if err == structs.ErrPermissionDenied {
 				// return empty list if token isn't authorized for any
 				// namespace, matching other endpoints
