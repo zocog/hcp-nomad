@@ -459,16 +459,16 @@ func propagateScalingPolicyIDs(old, new *structs.Job) error {
 
 	oldIDs := make(map[string]string)
 	if old != nil {
-		// jobs currently only have scaling policies on task groups, so we can
-		// find correspondences using task group names
+		// use the job-scoped key (includes type, group, and task) to uniquely
+		// identify policies in a job
 		for _, p := range old.GetScalingPolicies() {
-			oldIDs[p.Target[structs.ScalingTargetGroup]] = p.ID
+			oldIDs[p.JobKey()] = p.ID
 		}
 	}
 
 	// ignore any existing ID in the policy, they should be empty
 	for _, p := range new.GetScalingPolicies() {
-		if id, ok := oldIDs[p.Target[structs.ScalingTargetGroup]]; ok {
+		if id, ok := oldIDs[p.JobKey()]; ok {
 			p.ID = id
 		} else {
 			p.ID = uuid.Generate()
@@ -1273,7 +1273,7 @@ func (j *Job) GetJobVersions(args *structs.JobVersionsRequest,
 // allowedNSes returns a set (as map of ns->true) of the namespaces a token has access to.
 // Returns `nil` set if the token has access to all namespaces
 // and ErrPermissionDenied if the token has no capabilities on any namespace.
-func allowedNSes(aclObj *acl.ACL, state *state.StateStore) (map[string]bool, error) {
+func allowedNSes(aclObj *acl.ACL, state *state.StateStore, allow func(ns string) bool) (map[string]bool, error) {
 	if aclObj == nil || aclObj.IsManagement() {
 		return nil, nil
 	}
@@ -1287,7 +1287,7 @@ func allowedNSes(aclObj *acl.ACL, state *state.StateStore) (map[string]bool, err
 	r := make(map[string]bool, len(nses))
 
 	for _, ns := range nses {
-		if aclObj.AllowNsOp(ns, acl.NamespaceCapabilityListJobs) {
+		if allow(ns) {
 			r[ns] = true
 		}
 	}
@@ -1375,6 +1375,9 @@ func (j *Job) listAllNamespaces(args *structs.JobListRequest, reply *structs.Job
 		return err
 	}
 	prefix := args.QueryOptions.Prefix
+	allow := func(ns string) bool {
+		return aclObj.AllowNsOp(ns, acl.NamespaceCapabilityListJobs)
+	}
 
 	// Setup the blocking query
 	opts := blockingOptions{
@@ -1382,7 +1385,7 @@ func (j *Job) listAllNamespaces(args *structs.JobListRequest, reply *structs.Job
 		queryMeta: &reply.QueryMeta,
 		run: func(ws memdb.WatchSet, state *state.StateStore) error {
 			// check if user has permission to all namespaces
-			allowedNSes, err := allowedNSes(aclObj, state)
+			allowedNSes, err := allowedNSes(aclObj, state, allow)
 			if err == structs.ErrPermissionDenied {
 				// return empty jobs if token isn't authorized for any
 				// namespace, matching other endpoints

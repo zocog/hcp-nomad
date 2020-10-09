@@ -1,6 +1,7 @@
 job "elastic" {
   group "group" {
     scaling {
+      type    = "vertical_cpu"
       enabled = false
       min     = 5
       max     = 100

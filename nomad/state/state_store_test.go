@@ -8733,17 +8733,16 @@ func TestStateStore_UpsertJob_UpsertScalingPolicies(t *testing.T) {
 
 	// Create a watchset so we can test that upsert fires the watch
 	ws := memdb.NewWatchSet()
-	out, err := state.ScalingPolicyByTargetAndType(ws, policy.Target, policy.Type)
+	out, err := state.ScalingPolicyByTargetAndType(ws, policy.Target, structs.ScalingPolicyTypeHorizontal)
 	require.NoError(err)
 	require.Nil(out)
 
 	var newIndex uint64 = 1000
 	err = state.UpsertJob(newIndex, job)
 	require.NoError(err)
-	require.True(watchFired(ws), "watch did not fire")
+	require.True(watchFired(ws), "watch should have fired on job upsert")
 
-	ws = memdb.NewWatchSet()
-	out, err = state.ScalingPolicyByTargetAndType(ws, policy.Target, policy.Type)
+	out, err = state.ScalingPolicyByTargetAndType(nil, policy.Target, policy.Type)
 	require.NoError(err)
 	require.NotNil(out)
 	require.Equal(newIndex, out.CreateIndex)
@@ -8752,6 +8751,53 @@ func TestStateStore_UpsertJob_UpsertScalingPolicies(t *testing.T) {
 	index, err := state.Index("scaling_policy")
 	require.NoError(err)
 	require.Equal(newIndex, index)
+
+	cpuPolicy := &structs.ScalingPolicy{
+		ID:      uuid.Generate(),
+		Type:    structs.ScalingPolicyTypeVerticalCPU,
+		Policy:  map[string]interface{}{},
+		Min:     100,
+		Max:     1000,
+		Enabled: true,
+	}
+	job.TaskGroups[0].Tasks[0].ScalingPolicies = []*structs.ScalingPolicy{cpuPolicy}
+	cpuPolicy.TargetTask(job, job.TaskGroups[0], job.TaskGroups[0].Tasks[0])
+
+	out, err = state.ScalingPolicyByTargetAndType(nil, policy.Target, policy.Type)
+	newIndex = 1100
+	err = state.UpsertJob(newIndex, job)
+	require.NoError(err)
+	require.True(watchFired(ws), "watch should have fired on job upsert")
+
+	// old policy is undisturbed
+	out, err = state.ScalingPolicyByTargetAndType(nil, policy.Target, policy.Type)
+	require.NoError(err)
+	require.NotNil(out)
+	require.EqualValues(1000, out.CreateIndex)
+	require.EqualValues(1000, out.ModifyIndex)
+
+	// new policy is created
+	out, err = state.ScalingPolicyByTargetAndType(nil, cpuPolicy.Target, cpuPolicy.Type)
+	require.NoError(err)
+	require.NotNil(out)
+	require.EqualValues(newIndex, out.CreateIndex)
+	require.EqualValues(newIndex, out.ModifyIndex)
+
+	index, err = state.Index("scaling_policy")
+	require.NoError(err)
+	require.Equal(newIndex, index, "table index should be updated")
+
+	// simple change on job
+	job.Meta["updated"] = "yes"
+	ws = memdb.NewWatchSet()
+	out, err = state.ScalingPolicyByTargetAndType(ws, policy.Target, policy.Type)
+	newIndex = 1200
+	err = state.UpsertJob(newIndex, job)
+	require.NoError(err)
+	require.False(watchFired(ws), "watch should not have fired on job upsert")
+	index, err = state.Index("scaling_policy")
+	require.NoError(err)
+	require.EqualValues(1100, index, "table index should not be updated")
 }
 
 // Scaling Policy IDs are generated randomly during Job.Register

@@ -77,9 +77,14 @@ func (s *HTTPServer) scalingPolicyQuery(resp http.ResponseWriter, req *http.Requ
 
 func ApiScalingPolicyToStructs(count int, ap *api.ScalingPolicy) *structs.ScalingPolicy {
 	p := structs.ScalingPolicy{
-		Enabled: *ap.Enabled,
-		Policy:  ap.Policy,
-		Target:  map[string]string{},
+		Type:   ap.Type,
+		Policy: ap.Policy,
+		Target: map[string]string{},
+	}
+	if ap.Enabled != nil {
+		p.Enabled = *ap.Enabled
+	} else {
+		p.Enabled = true
 	}
 	if ap.Max != nil {
 		p.Max = *ap.Max

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"time"
 
 	log "github.com/hashicorp/go-hclog"
@@ -4526,9 +4527,9 @@ func (s *StateStore) updateJobScalingPolicies(index uint64, job *structs.Job, tx
 	ws := memdb.NewWatchSet()
 
 	scalingPolicies := job.GetScalingPolicies()
-	newTargets := map[string]struct{}{}
+	newTargets := map[string]bool{}
 	for _, p := range scalingPolicies {
-		newTargets[p.JobKey()] = struct{}{}
+		newTargets[p.JobKey()] = true
 	}
 	// find existing policies that need to be deleted
 	deletedPolicies := []string{}
@@ -4538,7 +4539,7 @@ func (s *StateStore) updateJobScalingPolicies(index uint64, job *structs.Job, tx
 	}
 	for raw := iter.Next(); raw != nil; raw = iter.Next() {
 		oldPolicy := raw.(*structs.ScalingPolicy)
-		if _, ok := newTargets[oldPolicy.JobKey()]; !ok {
+		if !newTargets[oldPolicy.JobKey()] {
 			deletedPolicies = append(deletedPolicies, oldPolicy.ID)
 		}
 	}
@@ -5413,12 +5414,11 @@ func (s *StateStore) UpsertScalingPoliciesTxn(index uint64, scalingPolicies []*s
 			}
 			policy.ID = existing.ID
 			policy.CreateIndex = existing.CreateIndex
-			policy.ModifyIndex = index
 		} else {
 			// policy.ID must have been set already in Job.Register before log apply
 			policy.CreateIndex = index
-			policy.ModifyIndex = index
 		}
+		policy.ModifyIndex = index
 
 		// Insert the scaling policy
 		hadUpdates = true
@@ -5427,7 +5427,7 @@ func (s *StateStore) UpsertScalingPoliciesTxn(index uint64, scalingPolicies []*s
 		}
 	}
 
-	// Update the indexes table for scaling policy
+	// Update the indexes table for scaling policy if we updated any policies
 	if hadUpdates {
 		if err := txn.Insert("index", &IndexEntry{"scaling_policy", index}); err != nil {
 			return fmt.Errorf("index update failed: %v", err)
@@ -5493,19 +5493,6 @@ func (s *StateStore) ScalingPolicies(ws memdb.WatchSet) (memdb.ResultIterator, e
 	return iter, nil
 }
 
-// ScalingPoliciesByType returns an iterator over scaling policies of a certain type.
-func (s *StateStore) ScalingPoliciesByType(ws memdb.WatchSet, t string) (memdb.ResultIterator, error) {
-	txn := s.db.ReadTxn()
-
-	iter, err := txn.Get("scaling_policy", "type", t)
-	if err != nil {
-		return nil, err
-	}
-
-	ws.Add(iter.WatchCh())
-	return iter, nil
-}
-
 // ScalingPoliciesByTypePrefix returns an iterator over scaling policies with a certain type prefix.
 func (s *StateStore) ScalingPoliciesByTypePrefix(ws memdb.WatchSet, t string) (memdb.ResultIterator, error) {
 	txn := s.db.ReadTxn()
@@ -5519,7 +5506,7 @@ func (s *StateStore) ScalingPoliciesByTypePrefix(ws memdb.WatchSet, t string) (m
 	return iter, nil
 }
 
-func (s *StateStore) ScalingPoliciesByNamespace(ws memdb.WatchSet, namespace string) (memdb.ResultIterator, error) {
+func (s *StateStore) ScalingPoliciesByNamespace(ws memdb.WatchSet, namespace, typ string) (memdb.ResultIterator, error) {
 	txn := s.db.ReadTxn()
 
 	iter, err := txn.Get("scaling_policy", "target_prefix", namespace)
@@ -5528,18 +5515,22 @@ func (s *StateStore) ScalingPoliciesByNamespace(ws memdb.WatchSet, namespace str
 	}
 
 	ws.Add(iter.WatchCh())
-	filter := func(raw interface{}) bool {
-		d, ok := raw.(*structs.ScalingPolicy)
-		if !ok {
-			return true
-		}
 
-		return d.Target[structs.ScalingTargetNamespace] != namespace
+	// Wrap the iterator in a filter to exact match the namespace
+	iter = memdb.NewFilterIterator(iter, scalingPolicyNamespaceFilter(namespace))
+
+	// If policy type is specified as well, wrap again
+	if typ != "" {
+		iter = memdb.NewFilterIterator(iter, func(raw interface{}) bool {
+			p, ok := raw.(*structs.ScalingPolicy)
+			if !ok {
+				return true
+			}
+			return !strings.HasPrefix(p.Type, typ)
+		})
 	}
 
-	// Wrap the iterator in a filter
-	wrap := memdb.NewFilterIterator(iter, filter)
-	return wrap, nil
+	return iter, nil
 }
 
 func (s *StateStore) ScalingPoliciesByJob(ws memdb.WatchSet, namespace, jobID string) (memdb.ResultIterator, error) {
@@ -5587,6 +5578,8 @@ func (s *StateStore) ScalingPolicyByID(ws memdb.WatchSet, id string) (*structs.S
 	return nil, nil
 }
 
+// ScalingPolicyByTargetAndType returns a fully-qualified policy against a target and policy type,
+// or nil if it does not exist. This method does not honor the watchset on the policy type, just the target.
 func (s *StateStore) ScalingPolicyByTargetAndType(ws memdb.WatchSet, target map[string]string, typ string) (*structs.ScalingPolicy,
 	error) {
 	txn := s.db.ReadTxn()
@@ -5600,6 +5593,7 @@ func (s *StateStore) ScalingPolicyByTargetAndType(ws memdb.WatchSet, target map[
 	if err != nil {
 		return nil, fmt.Errorf("scaling_policy lookup failed: %v", err)
 	}
+
 	ws.Add(it.WatchCh())
 
 	// Check for type
@@ -5617,6 +5611,34 @@ func (s *StateStore) ScalingPolicyByTargetAndType(ws memdb.WatchSet, target map[
 	}
 
 	return nil, nil
+}
+
+func (s *StateStore) ScalingPoliciesByIDPrefix(ws memdb.WatchSet, namespace string, prefix string) (memdb.ResultIterator, error) {
+	txn := s.db.ReadTxn()
+
+	iter, err := txn.Get("scaling_policy", "id_prefix", prefix)
+	if err != nil {
+		return nil, fmt.Errorf("scaling policy lookup failed: %v", err)
+	}
+
+	ws.Add(iter.WatchCh())
+
+	iter = memdb.NewFilterIterator(iter, scalingPolicyNamespaceFilter(namespace))
+
+	return iter, nil
+}
+
+// scalingPolicyNamespaceFilter returns a filter function that filters all
+// scaling policies not targeting the given namespace.
+func scalingPolicyNamespaceFilter(namespace string) func(interface{}) bool {
+	return func(raw interface{}) bool {
+		p, ok := raw.(*structs.ScalingPolicy)
+		if !ok {
+			return true
+		}
+
+		return p.Target[structs.ScalingTargetNamespace] != namespace
+	}
 }
 
 // StateSnapshot is used to provide a point-in-time snapshot
