@@ -22,6 +22,12 @@ func (s *HTTPServer) scalingPoliciesListRequest(resp http.ResponseWriter, req *h
 	if s.parse(resp, req, &args.Region, &args.QueryOptions) {
 		return nil, nil
 	}
+	if job := req.URL.Query().Get("job"); job != "" {
+		args.Job = job
+	}
+	if tpe := req.URL.Query().Get("type"); tpe != "" {
+		args.Type = tpe
+	}
 
 	var out structs.ScalingPolicyListResponse
 	if err := s.agent.RPC("Scaling.ListPolicies", &args, &out); err != nil {
