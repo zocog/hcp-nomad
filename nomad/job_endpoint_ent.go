@@ -53,7 +53,7 @@ func (j *Job) interpolateMultiregionFields(args *structs.JobPlanRequest) error {
 // multiregionRegister is used to send a job across multiple regions.  The
 // bool returned is a flag indicating if the caller's region is the "runner",
 // which kicks off the deployments of peer regions in `multiregionStart`.
-func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *structs.JobRegisterResponse, existingVersion uint64) (bool, error) {
+func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *structs.JobRegisterResponse, newVersion uint64) (bool, error) {
 
 	// a multiregion job that's been interpolated for fan-out will never
 	// have the "global" region.
@@ -71,10 +71,6 @@ func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *struc
 	var isRunner bool
 	requests := []*structs.JobRegisterRequest{}
 
-	// we can treat existingVersion == 0 if the job doesn't exist, this will
-	// result in newVersion == 1. it's okay to set this too high if this is
-	// the initial creation for all jobs; FSM will force it to zero
-	newVersion := existingVersion + 1
 	var job *structs.Job
 
 	for _, region := range args.Job.Multiregion.Regions {
@@ -82,15 +78,17 @@ func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *struc
 			job = regionalJob(args.Job.Copy(), region)
 			isRunner = true
 		} else {
-			remoteVersion, jobModifyIndex, err := j.getJobVersion(args, region.Name)
+			existed, remoteVersion, jobModifyIndex, err := j.getJobVersion(args, region.Name)
 			if err != nil {
 				return false, err
 			}
-			// versions must increase
-			if newVersion <= remoteVersion {
-				newVersion = remoteVersion + 1
+			// versions must increase, but checking 'existed' lets us avoid
+			// having the first version of a MRD job always be 1.
+			if existed {
+				if newVersion <= remoteVersion {
+					newVersion = remoteVersion + 1
+				}
 			}
-
 			req := *args // copies everything except the job
 			req.Job = regionalJob(args.Job.Copy(), region)
 			req.Region = region.Name
@@ -129,8 +127,10 @@ func (j *Job) multiregionRegister(args *structs.JobRegisterRequest, reply *struc
 	return isRunner, nil
 }
 
-// getJobVersion gets the job version and modify index for the job from a specific region
-func (j *Job) getJobVersion(args *structs.JobRegisterRequest, region string) (uint64, uint64, error) {
+// getJobVersion gets the job version and modify index for the job from a
+// specific region, as well as whether the job existed in that region (to
+// differentiate the default value for Version)
+func (j *Job) getJobVersion(args *structs.JobRegisterRequest, region string) (bool, uint64, uint64, error) {
 	req := &structs.JobSpecificRequest{
 		JobID: args.Job.ID,
 		QueryOptions: structs.QueryOptions{
@@ -142,12 +142,12 @@ func (j *Job) getJobVersion(args *structs.JobRegisterRequest, region string) (ui
 	resp := &structs.SingleJobResponse{}
 	err := j.GetJob(req, resp)
 	if err != nil {
-		return 0, 0, err
+		return false, 0, 0, err
 	}
 	if resp.Job == nil {
-		return 0, 0, nil
+		return false, 0, 0, nil
 	}
-	return resp.Job.Version, resp.Job.JobModifyIndex, nil
+	return true, resp.Job.Version, resp.Job.JobModifyIndex, nil
 }
 
 // regionalJob interpolates a multiregion job for a specific region

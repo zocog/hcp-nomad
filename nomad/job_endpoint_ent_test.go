@@ -362,7 +362,8 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	require.Equal([]string{"west-1", "west-2"}, westJob.Datacenters)
 	require.Equal("W", westJob.Meta["region_code"])
 	require.Equal(10, westJob.TaskGroups[0].Count)
-	require.EqualValues(0, westJob.Version)
+	require.EqualValues(westJob.Version, eastJob.Version)
+	oldVersion := westJob.Version
 
 	getReq.Region = "north"
 	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
@@ -371,7 +372,6 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 
 	// Update the job
 	job.TaskGroups[0].Count = 0
-	job.Version = 1
 	req.Job = job
 	err = msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp)
 	require.NoError(err)
@@ -390,11 +390,11 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	westJob = getResp.Job
 	require.Equal(2, westJob.TaskGroups[0].Count)
 
-	require.EqualValues(1, westJob.Version)
-	require.EqualValues(1, eastJob.Version)
+	require.Greater(eastJob.Version, oldVersion)
+	require.EqualValues(eastJob.Version, westJob.Version)
+	oldVersion = eastJob.Version
 
 	// Update the job again, dropping one region
-	job.Version = 2
 	job.Multiregion.Regions = []*structs.MultiregionRegion{
 		{
 			Name:        "west",
@@ -419,7 +419,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
 	require.NoError(err)
 	westJob = getResp.Job
-	require.Equal(uint64(2), westJob.Version)
+	require.Greater(westJob.Version, oldVersion)
 	require.False(westJob.Stopped(), "expected job to be running")
 }
 
