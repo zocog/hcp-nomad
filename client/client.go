@@ -409,9 +409,10 @@ func NewClient(cfg *config.Config, consulCatalog consul.CatalogAPI, consulServic
 		return nil, fmt.Errorf("fingerprinting failed: %v", err)
 	}
 
-	// Build the white/blacklists of drivers.
-	allowlistDrivers := cfg.ReadStringListToMap("driver.whitelist")
-	blocklistDrivers := cfg.ReadStringListToMap("driver.blacklist")
+	// Build the allow/denylists of drivers.
+	// COMPAT(0.13) uses inclusive language. white/blacklist are there for backward compatible reasons only.
+	allowlistDrivers := cfg.ReadStringListToMap("driver.allowlist", "driver.whitelist")
+	blocklistDrivers := cfg.ReadStringListToMap("driver.denylist", "driver.blacklist")
 
 	// Setup the csi manager
 	csiConfig := &csimanager.Config{
@@ -1886,6 +1887,7 @@ func (c *Client) AllocStateUpdated(alloc *structs.Allocation) {
 	stripped.ClientStatus = alloc.ClientStatus
 	stripped.ClientDescription = alloc.ClientDescription
 	stripped.DeploymentStatus = alloc.DeploymentStatus
+	stripped.NetworkStatus = alloc.NetworkStatus
 
 	select {
 	case c.allocUpdates <- stripped:
