@@ -7,6 +7,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"golang.org/x/time/rate"
@@ -30,6 +32,9 @@ func (s *Server) establishEnterpriseLeadership(stopCh chan struct{}) error {
 		// Start replciating quota specifications.
 		go s.replicateQuotaSpecs(stopCh)
 	}
+
+	// Periodically publish recommendation metrics
+	go s.publishRecommendationMetrics(stopCh)
 
 	return nil
 }
@@ -325,4 +330,56 @@ func diffQuotaSpecs(state *state.StateStore, minIndex uint64, remoteList []*stru
 		}
 	}
 	return
+}
+
+// publishRecommendationMetrics publishes metrics about the number of recommendations
+func (s *Server) publishRecommendationMetrics(stopCh chan struct{}) {
+	timer := time.NewTimer(0)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-stopCh:
+			return
+		case <-timer.C:
+			timer.Reset(s.config.StatsCollectionInterval)
+			state, err := s.State().Snapshot()
+			if err != nil {
+				s.logger.Error("failed to get state", "error", err)
+				continue
+			}
+			iter, err := state.Recommendations(nil)
+			if err != nil {
+				s.logger.Error("failed to get recommendations", "error", err)
+				continue
+			}
+
+			s.iterateRecommendationMetrics(&iter)
+		}
+	}
+}
+
+func (s *Server) iterateRecommendationMetrics(recs *memdb.ResultIterator) {
+	namespaceRecs := map[string]int64{}
+	var totalRecs int64
+
+	for raw := (*recs).Next(); raw != nil; raw = (*recs).Next() {
+		rec := raw.(*structs.Recommendation)
+
+		totalRecs++
+		namespaceRecs[rec.Namespace]++
+	}
+
+	metrics.SetGauge([]string{"nomad", "recommendations", "num_recommendations"}, float32(totalRecs))
+
+	for ns, count := range namespaceRecs {
+		labels := []metrics.Label{
+			{
+				Name:  "namespace",
+				Value: ns,
+			},
+		}
+		metrics.SetGaugeWithLabels([]string{"nomad", "recommendations", "num_recommendations"},
+			float32(count), labels)
+	}
 }
