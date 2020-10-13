@@ -53,7 +53,7 @@ func (r *Recommendations) Delete(ids []string, q *WriteOptions) (*WriteMeta, err
 	return wm, nil
 }
 
-// Apply is used to apply a set of recommendation
+// Apply is used to apply a set of recommendations
 func (r *Recommendations) Apply(ids []string, policyOverride bool) (
 	*RecommendationApplyResponse, *WriteMeta, error) {
 	req := &RecommendationApplyRequest{

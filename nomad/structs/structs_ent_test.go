@@ -841,6 +841,70 @@ func TestScalingPolicy_Validate_Ent(t *testing.T) {
 	}
 }
 
+func TestJob_GetScalingPolicies_TaskPolicies(t *testing.T) {
+	t.Parallel()
+
+	job := MockJob()
+	var expected []*ScalingPolicy
+
+	// no policies
+	t.Run("job with no policies", func(t *testing.T) {
+		actual := job.GetScalingPolicies()
+		assert.ElementsMatch(t, expected, actual)
+	})
+
+	// one group policy
+	pGroup := &ScalingPolicy{
+		ID:      uuid.Generate(),
+		Type:    ScalingPolicyTypeHorizontal,
+		Policy:  nil,
+		Min:     5,
+		Max:     10,
+		Enabled: true,
+	}
+	pGroup.TargetTaskGroup(job, job.TaskGroups[0])
+	job.TaskGroups[0].Scaling = pGroup
+	expected = append(expected, pGroup)
+	t.Run("job with single group policy", func(t *testing.T) {
+		actual := job.GetScalingPolicies()
+		assert.ElementsMatch(t, expected, actual)
+	})
+
+	// plus a task policy
+	pTaskCpu := &ScalingPolicy{
+		ID:      uuid.Generate(),
+		Type:    ScalingPolicyTypeVerticalCPU,
+		Policy:  nil,
+		Min:     128,
+		Max:     256,
+		Enabled: true,
+	}
+	pTaskCpu.TargetTask(job, job.TaskGroups[0], job.TaskGroups[0].Tasks[0])
+	job.TaskGroups[0].Tasks[0].ScalingPolicies = []*ScalingPolicy{pTaskCpu}
+	expected = append(expected, pTaskCpu)
+	t.Run("job with a task policy", func(t *testing.T) {
+		actual := job.GetScalingPolicies()
+		assert.ElementsMatch(t, expected, actual)
+	})
+
+	// plus one more task policy
+	pTaskMem := &ScalingPolicy{
+		ID:      uuid.Generate(),
+		Type:    ScalingPolicyTypeVerticalMem,
+		Policy:  nil,
+		Min:     1024,
+		Max:     2048,
+		Enabled: true,
+	}
+	pTaskMem.TargetTask(job, job.TaskGroups[0], job.TaskGroups[0].Tasks[0])
+	job.TaskGroups[0].Tasks[0].ScalingPolicies = []*ScalingPolicy{pTaskCpu, pTaskMem}
+	expected = append(expected, pTaskMem)
+	t.Run("job with multiple task policies", func(t *testing.T) {
+		actual := job.GetScalingPolicies()
+		assert.ElementsMatch(t, expected, actual)
+	})
+}
+
 func TestRecommendation_Validate(t *testing.T) {
 	cases := []struct {
 		Name     string

@@ -1152,7 +1152,6 @@ func TestParse(t *testing.T) {
 			},
 			false,
 		},
-
 		{
 			"tg-service-check.hcl",
 			&api.Job{
@@ -1382,7 +1381,6 @@ func TestParse(t *testing.T) {
 			},
 			false,
 		},
-
 		{
 			"tg-scaling-policy.hcl",
 			&api.Job{
@@ -1392,8 +1390,9 @@ func TestParse(t *testing.T) {
 					{
 						Name: stringToPtr("group"),
 						Scaling: &api.ScalingPolicy{
-							Min: int64ToPtr(5),
-							Max: int64ToPtr(100),
+							Type: "horizontal",
+							Min:  int64ToPtr(5),
+							Max:  int64ToPtr(100),
 							Policy: map[string]interface{}{
 								"foo": "bar",
 								"b":   true,
@@ -1401,6 +1400,47 @@ func TestParse(t *testing.T) {
 								"f":   .1,
 							},
 							Enabled: boolToPtr(false),
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"task-scaling-policy.hcl",
+			&api.Job{
+				ID:   stringToPtr("foo"),
+				Name: stringToPtr("foo"),
+				TaskGroups: []*api.TaskGroup{
+					{
+						Name: stringToPtr("bar"),
+						Tasks: []*api.Task{
+							{
+								Name:   "bar",
+								Driver: "docker",
+								ScalingPolicies: []*api.ScalingPolicy{
+									{
+										Type:   "vertical_cpu",
+										Target: nil,
+										Min:    int64ToPtr(50),
+										Max:    int64ToPtr(1000),
+										Policy: map[string]interface{}{
+											"test": "cpu",
+										},
+										Enabled: boolToPtr(true),
+									},
+									{
+										Type:   "vertical_mem",
+										Target: nil,
+										Min:    int64ToPtr(128),
+										Max:    int64ToPtr(1024),
+										Policy: map[string]interface{}{
+											"test": "mem",
+										},
+										Enabled: boolToPtr(false),
+									},
+								},
+							},
 						},
 					},
 				},
@@ -1473,6 +1513,7 @@ func TestParse(t *testing.T) {
 					{
 						Name: stringToPtr("group"),
 						Scaling: &api.ScalingPolicy{
+							Type:    "horizontal",
 							Min:     nil,
 							Max:     int64ToPtr(10),
 							Policy:  nil,
@@ -1483,19 +1524,51 @@ func TestParse(t *testing.T) {
 			},
 			false,
 		},
-
 		{
 			"tg-scaling-policy-missing-max.hcl",
 			nil,
 			true,
 		},
-
 		{
 			"tg-scaling-policy-multi-policy.hcl",
 			nil,
 			true,
 		},
-
+		{
+			"tg-scaling-policy-with-label.hcl",
+			nil,
+			true,
+		},
+		{
+			"tg-scaling-policy-invalid-type.hcl",
+			nil,
+			true,
+		},
+		{
+			"task-scaling-policy-missing-name.hcl",
+			nil,
+			true,
+		},
+		{
+			"task-scaling-policy-multi-name.hcl",
+			nil,
+			true,
+		},
+		{
+			"task-scaling-policy-multi-cpu.hcl",
+			nil,
+			true,
+		},
+		{
+			"task-scaling-policy-invalid-type.hcl",
+			nil,
+			true,
+		},
+		{
+			"task-scaling-policy-invalid-resource.hcl",
+			nil,
+			true,
+		},
 		{
 			"multiregion.hcl",
 			&api.Job{

@@ -631,7 +631,7 @@ type DispatchPayloadConfig struct {
 }
 
 const (
-	TaskLifecycleHookPrestart = "prestart"
+	TaskLifecycleHookPrestart  = "prestart"
 	TaskLifecycleHookPoststart = "poststart"
 )
 
@@ -671,6 +671,7 @@ type Task struct {
 	ShutdownDelay   time.Duration `mapstructure:"shutdown_delay"`
 	KillSignal      string        `mapstructure:"kill_signal"`
 	Kind            string
+	ScalingPolicies []*ScalingPolicy
 }
 
 func (t *Task) Canonicalize(tg *TaskGroup, job *Job) {

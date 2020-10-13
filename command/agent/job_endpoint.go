@@ -974,7 +974,7 @@ func ApiTgToStructsTG(job *structs.Job, taskGroup *api.TaskGroup, tg *structs.Ta
 		tg.Tasks = make([]*structs.Task, l)
 		for l, task := range taskGroup.Tasks {
 			t := &structs.Task{}
-			ApiTaskToStructsTask(task, t)
+			ApiTaskToStructsTask(job, tg, task, t)
 
 			// Set the tasks vault namespace from Job if it was not
 			// specified by the task or group
@@ -988,7 +988,9 @@ func ApiTgToStructsTG(job *structs.Job, taskGroup *api.TaskGroup, tg *structs.Ta
 
 // ApiTaskToStructsTask is a copy and type conversion between the API
 // representation of a task from a struct representation of a task.
-func ApiTaskToStructsTask(apiTask *api.Task, structsTask *structs.Task) {
+func ApiTaskToStructsTask(job *structs.Job, group *structs.TaskGroup,
+	apiTask *api.Task, structsTask *structs.Task) {
+
 	structsTask.Name = apiTask.Name
 	structsTask.Driver = apiTask.Driver
 	structsTask.User = apiTask.User
@@ -1022,6 +1024,13 @@ func ApiTaskToStructsTask(apiTask *api.Task, structsTask *structs.Task) {
 				ReadOnly:        *mount.ReadOnly,
 				PropagationMode: *mount.PropagationMode,
 			}
+		}
+	}
+
+	if l := len(apiTask.ScalingPolicies); l != 0 {
+		structsTask.ScalingPolicies = make([]*structs.ScalingPolicy, l)
+		for i, policy := range apiTask.ScalingPolicies {
+			structsTask.ScalingPolicies[i] = ApiScalingPolicyToStructs(0, policy).TargetTask(job, group, structsTask)
 		}
 	}
 

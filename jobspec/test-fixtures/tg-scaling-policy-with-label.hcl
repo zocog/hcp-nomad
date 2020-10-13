@@ -1,6 +1,6 @@
 job "elastic" {
   group "group" {
-    scaling {
+    scaling "no-label-allowed" {
       enabled = false
       min     = 5
       max     = 100
