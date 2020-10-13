@@ -61,6 +61,9 @@ func (s *HTTPServer) RecommendationCreateRequest(resp http.ResponseWriter, req *
 		},
 	}
 	s.parseWriteRequest(req, &args.WriteRequest)
+	if sRec.Region == "" {
+		sRec.Region = args.Region
+	}
 
 	var out structs.SingleRecommendationResponse
 	if err := s.agent.RPC("Recommendation.UpsertRecommendation", &args, &out); err != nil {
