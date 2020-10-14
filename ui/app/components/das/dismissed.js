@@ -9,17 +9,13 @@ export default class DasDismissedComponent extends Component {
   @tracked dismissInTheFuture = false;
 
   @action
-  proceedManually() {
-    const manualPromise = new Promise(resolve => {
-      this.manualPromiseResolve = resolve;
-    });
-
-    this.args.proceed.perform(manualPromise);
+  proceedAutomatically() {
+    this.args.proceed({ manuallyDismissed: false });
   }
 
   @action
   understoodClicked() {
     this.explanationUnderstood = this.dismissInTheFuture;
-    this.manualPromiseResolve(true);
+    this.args.proceed({ manuallyDismissed: true });
   }
 }

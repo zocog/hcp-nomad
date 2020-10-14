@@ -1,8 +1,8 @@
 <section class="das-dismissed {{if this.explanationUnderstood 'understood'}}">
   {{#if this.explanationUnderstood}}
-    <h3 {{did-insert (perform @proceed false)}}>Recommendation dismissed</h3>
+    <h3 {{did-insert this.proceedAutomatically}}>Recommendation dismissed</h3>
   {{else}}
-    <section {{did-insert this.proceedManually}}>
+    <section>
       <h3>Recommendation dismissed</h3>
 
       <p>Nomad will not apply these resource change recommendations.</p>
