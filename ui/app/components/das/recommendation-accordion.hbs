@@ -14,8 +14,22 @@
           <span data-test-group class="group">{{@summary.taskGroup.name}}</span>
         </section>
 
-        <section>
-          CPU X Memory Y
+        <section class="diffs">
+          {{#if this.diffs.cpu.delta}}
+            <section>
+              <span class="resource">CPU</span>
+              {{this.diffs.cpu.signedDiff}}
+              <span class="percent">{{this.diffs.cpu.percentDiff}}</span>
+            </section>
+          {{/if}}
+
+          {{#if this.diffs.memory.delta}}
+            <section>
+              <span class="resource">Mem</span>
+              {{this.diffs.memory.signedDiff}}
+              <span class="percent">{{this.diffs.memory.percentDiff}}</span>
+            </section>
+          {{/if}}
         </section>
       </a.head>
     {{/if}}

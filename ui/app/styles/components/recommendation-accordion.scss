@@ -20,6 +20,22 @@
       }
     }
 
+    .diffs {
+      display: flex;
+
+      > * {
+        margin-left: 1.5em;
+      }
+
+      .resource {
+        font-weight: $weight-bold;
+      }
+
+      .percent {
+        color: $ui-gray-500;
+      }
+    }
+
     .group {
       font-weight: $weight-bold;
     }
