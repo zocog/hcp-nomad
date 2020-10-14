@@ -1,7 +1,11 @@
 {{#unless this.processed}}
   <ListAccordion data-test-recommendation-accordion class="recommendation-accordion boxed-section" @source={{array @summary}} @key="id" as |a|>
     {{#if a.isOpen}}
-      <Das::RecommendationCard @summary={{@summary}} @proceed={{this.proceed}} />
+      <Das::RecommendationCard
+        @summary={{@summary}}
+        @proceed={{this.proceed}}
+        @onCollapse={{action (mut a.isOpen) false}}
+      />
     {{else}}
       <a.head @buttonLabel={{if a.isOpen "Hide" "Show"}}>
         <section class="left">

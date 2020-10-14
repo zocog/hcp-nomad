@@ -92,6 +92,18 @@
     </section>
 
     <section class="active-task-group" data-test-active-task>
+      {{#if @onCollapse}}
+        <section class="top active-task inner-container">
+          <button
+            data-test-accordion-toggle
+            class="button is-light is-compact pull-right accordion-toggle"
+            {{on "click" @onCollapse}}
+            type="button">
+            Collapse
+          </button>
+        </section>
+      {{/if}}
+
       <header class="active-task inner-container">
         <h3 data-test-task-name>{{this.activeTask.name}} task</h3>
       </header>
