@@ -91,6 +91,11 @@ export default class JobSerializer extends ApplicationSerializer {
           related: buildURL(`${jobURL}/scale`, { namespace }),
         },
       },
+      recommendationSummaries: {
+        links: {
+          related: buildURL(`/v1/recommendations?job=${hash.ID}`), // FIXME buildURLesque?
+        },
+      },
     });
   }
 }

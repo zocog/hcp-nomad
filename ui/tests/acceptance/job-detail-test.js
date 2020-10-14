@@ -1,4 +1,4 @@
-import { currentURL } from '@ember/test-helpers';
+import { currentURL, settled } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
 import { selectChoose } from 'ember-power-select/test-support';
@@ -105,8 +105,12 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
       type: 'service',
       status: 'running',
       namespaceId: server.db.namespaces[1].name,
+      createRecommendations: true,
     });
-    server.createList('job', 3, { namespaceId: server.db.namespaces[0].name });
+    server.createList('job', 3, {
+      namespaceId: server.db.namespaces[0].name,
+      createRecommendations: true,
+    });
 
     server.create('token');
     clientToken = server.create('token');
@@ -205,5 +209,27 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
 
     await JobDetail.visit({ id: job.id, namespace: server.db.namespaces[1].name });
     assert.notOk(JobDetail.execButton.isDisabled);
+  });
+
+  test('resource recommendations show when they exist', async function(assert) {
+    await JobDetail.visit({ id: job.id, namespace: server.db.namespaces[1].name });
+
+    assert.equal(JobDetail.recommendations.length, job.taskGroups.length);
+
+    await JobDetail.recommendations[0].as(async recommendation => {
+      assert.equal(recommendation.group, job.taskGroups.models[0].name);
+
+      await recommendation.toggleButton.as(async toggle => {
+        assert.equal(toggle.text, 'Show');
+        await toggle.click();
+        assert.notOk(toggle.isPresent);
+      });
+
+      await recommendation.card.acceptButton.click();
+    });
+
+    await settled();
+
+    assert.equal(JobDetail.recommendations.length, job.taskGroups.length - 1);
   });
 });

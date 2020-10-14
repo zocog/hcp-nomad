@@ -1,0 +1,27 @@
+.recommendation-accordion {
+  .accordion-head-content {
+    display: flex;
+    justify-content: space-between;
+
+    .left {
+      display: flex;
+      align-items: center;
+
+      > * {
+        margin-right: 1.5em;
+      }
+
+      .icon {
+        color: $info;
+        width: 1.75rem;
+        height: 1.75rem;
+        margin-left: -10px;
+        margin-right: 1em;
+      }
+    }
+
+    .group {
+      font-weight: $weight-bold;
+    }
+  }
+}
