@@ -49,11 +49,14 @@ steps:
           git checkout --theirs version/version.go
           git checkout --theirs command/agent/bindata_assetfs.go
           git checkout --ours   vendor/modules.txt
+          git checkout --ours   go.sum
+          make sync
           # Regenerate enterprise Circle CI config to apply changes from OSS merge.
           rm -f .circleci/config.yml
+          make sync
           make -C .circleci CIRCLECI="circleci-local-cli --skip-update-check" config.yml
 
-          git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go vendor/modules.txt .circleci/config.yml
+          git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go go.sum vendor/modules.txt .circleci/config.yml
 
           # attempt merging again
           if ! git commit -m "$message"; then
