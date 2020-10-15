@@ -527,6 +527,51 @@ export default function() {
       return this.serialize(clientStats.find(host));
     });
   });
+
+  this.get('/recommendations', function(
+    { jobs, recommendations },
+    { queryParams: { job: jobId } }
+  ) {
+    if (jobId) {
+      const [id, namespace] = JSON.parse(jobId);
+      const job = jobs.findBy({ id, namespace });
+
+      if (!job) {
+        return [];
+      }
+
+      const taskGroups = job.taskGroups.models;
+
+      const tasks = taskGroups.reduce((tasks, taskGroup) => {
+        return tasks.concat(taskGroup.tasks.models);
+      }, []);
+
+      const recommendationIds = tasks.reduce((recommendationIds, task) => {
+        return recommendationIds.concat(task.recommendations.models.mapBy('id'));
+      }, []);
+
+      return recommendations.find(recommendationIds);
+    } else {
+      return recommendations.all();
+    }
+  });
+
+  this.post('/recommendations/apply', function({ recommendations }, { requestBody }) {
+    const { Apply, Dismiss } = JSON.parse(requestBody);
+
+    Apply.concat(Dismiss).forEach(id => {
+      const recommendation = recommendations.find(id);
+      const task = recommendation.task;
+
+      if (Apply.includes(id)) {
+        task.Resources[recommendation.resource] = recommendation.value;
+      }
+      recommendation.destroy();
+      task.save();
+    });
+
+    return {};
+  });
 }
 
 function filterKeys(object, ...keys) {

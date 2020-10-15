@@ -1,0 +1,46 @@
+<PageLayout>
+  <section class="section">
+    {{#if @model}}
+      {{#if this.interstitialComponent}}
+        <section class="das-interstitial" style={{this.interstitialStyle}}>
+          {{component (concat 'das/' this.interstitialComponent) proceed=this.proceed error=this.error}}
+        </section>
+      {{else if this.activeRecommendationSummary}}
+        <Das::RecommendationCard
+          {{will-destroy this.recommendationCardDestroying}}
+          @summary={{this.activeRecommendationSummary}}
+          @onProcessed={{this.onProcessed}}
+          @onDismissed={{this.onDismissed}}
+          @onError={{this.onError}}
+        />
+      {{/if}}
+
+      <ListTable
+        @source={{this.sortedSummaries}} as |t|>
+        <t.head>
+          <th>Job</th>
+          <th>Recommended At</th>
+          <th># Allocs</th>
+          <th>CPU</th>
+          <th>Mem</th>
+          <th>Agg. CPU</th>
+          <th>Agg. Mem</th>
+        </t.head>
+        <t.body as |row index|>
+          <Das::RecommendationRow
+            class="is-interactive {{if (eq row.model this.activeRecommendationSummary) 'is-active'}}"
+            @summary={{row.model}}
+            {{on "click" (action (mut this.recommendationSummaryIndex) index)}}
+          />
+        </t.body>
+      </ListTable>
+    {{else}}
+      <div class="empty-message" data-test-empty-recommendations>
+        <h3 class="empty-message-headline" data-test-empty-recommendations-headline>No Recommendations</h3>
+        <p class="empty-message-body">
+          All recommendations have been accepted or dismissed. Nomad will continuously monitor applications so expect more recommendations in the future.
+        </p>
+      </div>
+    {{/if}}
+  </section>
+</PageLayout>

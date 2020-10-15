@@ -1,0 +1,9 @@
+.recommendation-row {
+  .job {
+    font-weight: $weight-semibold;
+  }
+
+  .task-group, .percent {
+    color: $ui-gray-500;
+  }
+}
