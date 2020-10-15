@@ -2048,7 +2048,7 @@ func TestClientEndpoint_GetAllocs_Blocking(t *testing.T) {
 		allocUpdate.ID = alloc.ID
 		allocUpdate.ClientStatus = structs.AllocClientStatusRunning
 		state.UpsertJobSummary(199, mock.JobSummary(allocUpdate.JobID))
-		err := state.UpdateAllocsFromClient(200, []*structs.Allocation{allocUpdate})
+		err := state.UpdateAllocsFromClient(structs.MsgTypeTestSetup, 200, []*structs.Allocation{allocUpdate})
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -2591,6 +2591,10 @@ func TestClientEndpoint_ListNodes(t *testing.T) {
 	// #7344 - Assert HostVolumes are included in stub
 	require.Equal(t, node.HostVolumes, resp2.Nodes[0].HostVolumes)
 
+	// #9055 - Assert Resources are *not* included by default
+	require.Nil(t, resp2.Nodes[0].NodeResources)
+	require.Nil(t, resp2.Nodes[0].ReservedResources)
+
 	// Lookup the node with prefix
 	get = &structs.NodeListRequest{
 		QueryOptions: structs.QueryOptions{Region: "global", Prefix: node.ID[:4]},
@@ -2609,6 +2613,43 @@ func TestClientEndpoint_ListNodes(t *testing.T) {
 	if resp3.Nodes[0].ID != node.ID {
 		t.Fatalf("bad: %#v", resp3.Nodes[0])
 	}
+}
+
+func TestClientEndpoint_ListNodes_Fields(t *testing.T) {
+	t.Parallel()
+
+	s1, cleanupS1 := TestServer(t, nil)
+	defer cleanupS1()
+	codec := rpcClient(t, s1)
+	testutil.WaitForLeader(t, s1.RPC)
+
+	// Create the register request
+	node := mock.Node()
+	reg := &structs.NodeRegisterRequest{
+		Node:         node,
+		WriteRequest: structs.WriteRequest{Region: "global"},
+	}
+
+	// Fetch the response
+	var resp structs.GenericResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Node.Register", reg, &resp))
+	node.CreateIndex = resp.Index
+	node.ModifyIndex = resp.Index
+
+	// Lookup the node with fields
+	get := &structs.NodeListRequest{
+		QueryOptions: structs.QueryOptions{Region: "global"},
+		Fields: &structs.NodeStubFields{
+			Resources: true,
+		},
+	}
+	var resp2 structs.NodeListResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Node.List", get, &resp2))
+	require.Equal(t, resp.Index, resp2.Index)
+	require.Len(t, resp2.Nodes, 1)
+	require.Equal(t, node.ID, resp2.Nodes[0].ID)
+	require.NotNil(t, resp2.Nodes[0].NodeResources)
+	require.NotNil(t, resp2.Nodes[0].ReservedResources)
 }
 
 func TestClientEndpoint_ListNodes_ACL(t *testing.T) {
@@ -2747,7 +2788,7 @@ func TestClientEndpoint_ListNodes_Blocking(t *testing.T) {
 
 	// Node status update triggers watches
 	time.AfterFunc(100*time.Millisecond, func() {
-		errCh <- state.UpdateNodeStatus(40, node.ID, structs.NodeStatusDown, 0, nil)
+		errCh <- state.UpdateNodeStatus(structs.MsgTypeTestSetup, 40, node.ID, structs.NodeStatusDown, 0, nil)
 	})
 
 	req.MinQueryIndex = 38
