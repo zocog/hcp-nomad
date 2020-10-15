@@ -367,7 +367,7 @@ func (s *Server) iterateRecommendationMetrics(recs *memdb.ResultIterator) {
 	for raw := (*recs).Next(); raw != nil; raw = (*recs).Next() {
 		rec := raw.(*structs.Recommendation)
 		nsNumRecs[rec.Namespace]++
-		diff := int64(rec.Current - rec.Value)
+		diff := int64(rec.Value - rec.Current)
 		switch rec.Resource {
 		case "MemoryMB":
 			nsMemDiff[rec.Namespace] += diff
