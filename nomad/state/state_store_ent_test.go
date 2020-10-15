@@ -1238,7 +1238,7 @@ func TestStateStore_UpdateAllocsFromClient_Quota_UpdateAlloc(t *testing.T) {
 	a3.ClientStatus = structs.AllocClientStatusRunning
 	a4.ClientStatus = structs.AllocClientStatusRunning
 	allocs = []*structs.Allocation{a3, a4}
-	assert.Nil(state.UpdateAllocsFromClient(1003, allocs))
+	assert.Nil(state.UpdateAllocsFromClient(structs.MsgTypeTestSetup, 1003, allocs))
 
 	// 6. Assert that the QuotaUsage is not updated.
 	usageUpdated, err := state.QuotaUsageByName(nil, qs.Name)
@@ -1283,7 +1283,7 @@ func TestStateStore_UpdateAllocsFromClient_Quota_StopAlloc(t *testing.T) {
 	a3.ClientStatus = structs.AllocClientStatusFailed
 	a4.ClientStatus = structs.AllocClientStatusFailed
 	allocs = []*structs.Allocation{a3, a4}
-	assert.Nil(state.UpdateAllocsFromClient(1003, allocs))
+	assert.Nil(state.UpdateAllocsFromClient(structs.MsgTypeTestSetup, 1003, allocs))
 
 	// 5. Assert that the QuotaUsage is updated.
 	usage, err := state.QuotaUsageByName(nil, qs.Name)
