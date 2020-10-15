@@ -360,17 +360,12 @@ func (s *Server) publishRecommendationMetrics(stopCh chan struct{}) {
 }
 
 func (s *Server) iterateRecommendationMetrics(recs *memdb.ResultIterator) {
-	namespaceRecs := map[string]int64{}
-	var totalRecs int64
 
+	namespaceRecs := map[string]int64{}
 	for raw := (*recs).Next(); raw != nil; raw = (*recs).Next() {
 		rec := raw.(*structs.Recommendation)
-
-		totalRecs++
 		namespaceRecs[rec.Namespace]++
 	}
-
-	metrics.SetGauge([]string{"nomad", "recommendations", "num_recommendations"}, float32(totalRecs))
 
 	for ns, count := range namespaceRecs {
 		labels := []metrics.Label{
