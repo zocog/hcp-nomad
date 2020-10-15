@@ -106,6 +106,10 @@ const (
 	// old servers to crash when the FSM attempts to process them.
 	IgnoreUnknownTypeFlag MessageType = 128
 
+	// MsgTypeTestSetup is used during testing when calling state store
+	// methods directly that require an FSM MessageType
+	MsgTypeTestSetup MessageType = IgnoreUnknownTypeFlag
+
 	// ApiMajorVersion is returned as part of the Status.Version request.
 	// It should be incremented anytime the APIs are changed in a way
 	// that would break clients for sane client versioning.
@@ -742,6 +746,8 @@ type JobStabilityResponse struct {
 // NodeListRequest is used to parameterize a list request
 type NodeListRequest struct {
 	QueryOptions
+
+	Fields *NodeStubFields
 }
 
 // EvalUpdateRequest is used for upserting evaluations.
@@ -887,6 +893,8 @@ type AllocStopResponse struct {
 // AllocListRequest is used to request a list of allocations
 type AllocListRequest struct {
 	QueryOptions
+
+	Fields *AllocStubFields
 }
 
 // AllocSpecificRequest is used to query a specific allocation
@@ -1758,7 +1766,7 @@ type Node struct {
 
 	// Resources is the available resources on the client.
 	// For example 'cpu=2' 'memory=2048'
-	// COMPAT(0.10): Remove in 0.10
+	// COMPAT(0.10): Remove after 0.10
 	Resources *Resources
 
 	// Reserved is the set of resources that are reserved,
@@ -1766,6 +1774,7 @@ type Node struct {
 	// the purposes of scheduling. This may be provide certain
 	// high-watermark tolerances or because of external schedulers
 	// consuming resources.
+	// COMPAT(0.10): Remove after 0.10
 	Reserved *Resources
 
 	// Links are used to 'link' this client to external
@@ -2027,11 +2036,11 @@ func (n *Node) ComparableResources() *ComparableResources {
 }
 
 // Stub returns a summarized version of the node
-func (n *Node) Stub() *NodeListStub {
+func (n *Node) Stub(fields *NodeStubFields) *NodeListStub {
 
 	addr, _, _ := net.SplitHostPort(n.HTTPAddr)
 
-	return &NodeListStub{
+	s := &NodeListStub{
 		Address:               addr,
 		ID:                    n.ID,
 		Datacenter:            n.Datacenter,
@@ -2047,6 +2056,15 @@ func (n *Node) Stub() *NodeListStub {
 		CreateIndex:           n.CreateIndex,
 		ModifyIndex:           n.ModifyIndex,
 	}
+
+	if fields != nil {
+		if fields.Resources {
+			s.NodeResources = n.NodeResources
+			s.ReservedResources = n.ReservedResources
+		}
+	}
+
+	return s
 }
 
 // NodeListStub is used to return a subset of job information
@@ -2064,8 +2082,15 @@ type NodeListStub struct {
 	StatusDescription     string
 	Drivers               map[string]*DriverInfo
 	HostVolumes           map[string]*ClientHostVolumeConfig
+	NodeResources         *NodeResources         `json:",omitempty"`
+	ReservedResources     *NodeReservedResources `json:",omitempty"`
 	CreateIndex           uint64
 	ModifyIndex           uint64
+}
+
+// NodeStubFields defines which fields are included in the NodeListStub.
+type NodeStubFields struct {
+	Resources bool
 }
 
 // Resources is used to define the resources available
@@ -9009,6 +9034,15 @@ func (a *Allocation) ReschedulePolicy() *ReschedulePolicy {
 	return tg.ReschedulePolicy
 }
 
+// MigrateStrategy returns the migrate strategy based on the task group
+func (a *Allocation) MigrateStrategy() *MigrateStrategy {
+	tg := a.Job.LookupTaskGroup(a.TaskGroup)
+	if tg == nil {
+		return nil
+	}
+	return tg.Migrate
+}
+
 // NextRescheduleTime returns a time on or after which the allocation is eligible to be rescheduled,
 // and whether the next reschedule time is within policy's interval if the policy doesn't allow unlimited reschedules
 func (a *Allocation) NextRescheduleTime() (time.Time, bool) {
@@ -9263,8 +9297,8 @@ func (a *Allocation) LookupTask(name string) *Task {
 }
 
 // Stub returns a list stub for the allocation
-func (a *Allocation) Stub() *AllocListStub {
-	return &AllocListStub{
+func (a *Allocation) Stub(fields *AllocStubFields) *AllocListStub {
+	s := &AllocListStub{
 		ID:                    a.ID,
 		EvalID:                a.EvalID,
 		Name:                  a.Name,
@@ -9291,6 +9325,17 @@ func (a *Allocation) Stub() *AllocListStub {
 		CreateTime:            a.CreateTime,
 		ModifyTime:            a.ModifyTime,
 	}
+
+	if fields != nil {
+		if fields.Resources {
+			s.AllocatedResources = a.AllocatedResources
+		}
+		if !fields.TaskStates {
+			s.TaskStates = nil
+		}
+	}
+
+	return s
 }
 
 // AllocationDiff converts an Allocation type to an AllocationDiff type
@@ -9318,6 +9363,7 @@ type AllocListStub struct {
 	JobType               string
 	JobVersion            uint64
 	TaskGroup             string
+	AllocatedResources    *AllocatedResources `json:",omitempty"`
 	DesiredStatus         string
 	DesiredDescription    string
 	ClientStatus          string
@@ -9349,6 +9395,24 @@ func setDisplayMsg(taskStates map[string]*TaskState) {
 				event.PopulateEventDisplayMessage()
 			}
 		}
+	}
+}
+
+// AllocStubFields defines which fields are included in the AllocListStub.
+type AllocStubFields struct {
+	// Resources includes resource-related fields if true.
+	Resources bool
+
+	// TaskStates removes the TaskStates field if false (default is to
+	// include TaskStates).
+	TaskStates bool
+}
+
+func NewAllocStubFields() *AllocStubFields {
+	return &AllocStubFields{
+		// Maintain backward compatibility by retaining task states by
+		// default.
+		TaskStates: true,
 	}
 }
 
@@ -10714,4 +10778,90 @@ type ACLTokenUpsertRequest struct {
 type ACLTokenUpsertResponse struct {
 	Tokens []*ACLToken
 	WriteMeta
+}
+
+// EventStreamRequest is used to stream events from a servers EventBroker
+type EventStreamRequest struct {
+	Topics map[Topic][]string
+	Index  int
+
+	QueryOptions
+}
+
+type EventStreamWrapper struct {
+	Error *RpcError
+	Event *EventJson
+}
+
+// RpcError is used for serializing errors with a potential error code
+type RpcError struct {
+	Message string
+	Code    *int64
+}
+
+func NewRpcError(err error, code *int64) *RpcError {
+	return &RpcError{
+		Message: err.Error(),
+		Code:    code,
+	}
+}
+
+func (r *RpcError) Error() string {
+	return r.Message
+}
+
+type Topic string
+
+const (
+	TopicDeployment Topic = "Deployment"
+	TopicEval       Topic = "Eval"
+	TopicAlloc      Topic = "Alloc"
+	TopicJob        Topic = "Job"
+	TopicNode       Topic = "Node"
+	TopicAll        Topic = "*"
+)
+
+// Event represents a change in Nomads state.
+type Event struct {
+	// Topic represeents the primary object for the event
+	Topic Topic
+
+	// Type is a short string representing the reason for the event
+	Type string
+
+	// Key is the primary identifier of the Event, The involved objects ID
+	Key string
+
+	// Namespace is the namespace of the object, If the object is not namespace
+	// aware (Node) it is left blank
+	Namespace string
+
+	// FilterKeys are a set of additional related keys that are used to include
+	// events during filtering.
+	FilterKeys []string
+
+	// Index is the raft index that corresponds to the event
+	Index uint64
+
+	// Payload is the Event itself see state/events.go for a list of events
+	Payload interface{}
+}
+
+// Events is a wrapper that contains a set of events for a given index.
+type Events struct {
+	Index  uint64
+	Events []Event
+}
+
+// EventJson is a wrapper for a JSON object
+type EventJson struct {
+	Data []byte
+}
+
+func (j *EventJson) Copy() *EventJson {
+	n := new(EventJson)
+	*n = *j
+	n.Data = make([]byte, len(j.Data))
+	copy(n.Data, j.Data)
+	return n
 }
