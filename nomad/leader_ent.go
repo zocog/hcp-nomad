@@ -361,13 +361,22 @@ func (s *Server) publishRecommendationMetrics(stopCh chan struct{}) {
 
 func (s *Server) iterateRecommendationMetrics(recs *memdb.ResultIterator) {
 
-	namespaceRecs := map[string]int64{}
+	nsNumRecs := map[string]int64{}
+	nsCpuDiff := map[string]int64{}
+	nsMemDiff := map[string]int64{}
 	for raw := (*recs).Next(); raw != nil; raw = (*recs).Next() {
 		rec := raw.(*structs.Recommendation)
-		namespaceRecs[rec.Namespace]++
+		nsNumRecs[rec.Namespace]++
+		diff := int64(rec.Current - rec.Value)
+		switch rec.Resource {
+		case "MemoryMB":
+			nsMemDiff[rec.Namespace] += diff
+		case "CPU":
+			nsCpuDiff[rec.Namespace] += diff
+		}
 	}
 
-	for ns, count := range namespaceRecs {
+	for ns, count := range nsNumRecs {
 		labels := []metrics.Label{
 			{
 				Name:  "namespace",
@@ -376,5 +385,9 @@ func (s *Server) iterateRecommendationMetrics(recs *memdb.ResultIterator) {
 		}
 		metrics.SetGaugeWithLabels([]string{"nomad", "recommendations", "num_recommendations"},
 			float32(count), labels)
+		metrics.SetGaugeWithLabels([]string{"nomad", "recommendations", "total_diff_memory_bytes"},
+			float32(nsMemDiff[ns])*1024.0*1024.0, labels)
+		metrics.SetGaugeWithLabels([]string{"nomad", "recommendations", "total_diff_cpu_ticks"},
+			float32(nsCpuDiff[ns]), labels)
 	}
 }
