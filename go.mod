@@ -8,9 +8,6 @@ replace (
 	github.com/apparentlymart/go-textseg/v12 => github.com/apparentlymart/go-textseg/v12 v12.0.0
 	github.com/godbus/dbus => github.com/godbus/dbus v5.0.1+incompatible
 	github.com/golang/protobuf => github.com/golang/protobuf v1.3.4
-
-	// note: this is actually consul 1.7.8+ent!
-	github.com/hashicorp/consul => github.com/hashicorp/consul-enterprise v1.7.9-0.20200911031423-dcac66d22260
 	github.com/hashicorp/go-discover => github.com/hashicorp/go-discover v0.0.0-20200812215701-c4b85f6ed31f
 	github.com/hashicorp/nomad/api => ./api
 	github.com/kr/pty => github.com/kr/pty v1.1.5
@@ -57,8 +54,6 @@ require (
 	github.com/hashicorp/consul/api v1.6.0
 	github.com/hashicorp/consul/sdk v0.6.0
 	github.com/hashicorp/cronexpr v1.1.1
-	github.com/hashicorp/errwrap v1.0.0
-	github.com/hashicorp/eventlogger v0.0.0-20200503125528-e0cd2ba137df
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-connlimit v0.2.0
@@ -67,7 +62,6 @@ require (
 	github.com/hashicorp/go-getter v1.5.0
 	github.com/hashicorp/go-hclog v0.12.0
 	github.com/hashicorp/go-immutable-radix v1.3.0
-	github.com/hashicorp/go-licensing v1.3.6
 	github.com/hashicorp/go-memdb v1.3.0
 	github.com/hashicorp/go-msgpack v1.1.5
 	github.com/hashicorp/go-multierror v1.1.0
@@ -82,12 +76,9 @@ require (
 	github.com/hashicorp/logutils v1.0.0
 	github.com/hashicorp/memberlist v0.2.2
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
-	github.com/hashicorp/nomad-licensing v0.0.10
 	github.com/hashicorp/nomad/api v0.0.0-20200529203653-c4416b26d3eb
 	github.com/hashicorp/raft v1.1.3-0.20200211192230-365023de17e6
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
-	github.com/hashicorp/raft-snapshotagent v0.0.0-20200831014059-4352e54f37b3
-	github.com/hashicorp/sentinel v0.15.5
 	github.com/hashicorp/serf v0.9.3
 	github.com/hashicorp/vault/api v1.0.5-0.20190730042357-746c0b111519
 	github.com/hashicorp/vault/sdk v0.1.14-0.20190730042320-0dc007d98cc8
@@ -145,4 +136,19 @@ require (
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 	gotest.tools/v3 v3.0.2 // indirect
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
+)
+
+/// Enterprise specific module requirements
+
+// note: this is actually consul 1.7.8+ent!
+replace github.com/hashicorp/consul => github.com/hashicorp/consul-enterprise v1.7.9-0.20200911031423-dcac66d22260
+
+require (
+	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/hashicorp/errwrap v1.0.0
+	github.com/hashicorp/eventlogger v0.0.0-20200503125528-e0cd2ba137df
+	github.com/hashicorp/go-licensing v1.3.6
+	github.com/hashicorp/nomad-licensing v0.0.10
+	github.com/hashicorp/raft-snapshotagent v0.0.0-20200831014059-4352e54f37b3
+	github.com/hashicorp/sentinel v0.15.5
 )
