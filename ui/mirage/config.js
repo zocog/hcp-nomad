@@ -564,7 +564,7 @@ export default function() {
       const task = recommendation.task;
 
       if (Apply.includes(id)) {
-        task.Resources[recommendation.resource] = recommendation.value;
+        task.resources[recommendation.resource] = recommendation.value;
       }
       recommendation.destroy();
       task.save();

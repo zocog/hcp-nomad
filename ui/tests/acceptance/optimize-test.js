@@ -86,8 +86,8 @@ module('Acceptance | optimize', function(hooks) {
 
       const { currCpu, currMem } = currentTaskGroup.tasks.models.reduce(
         (currentResources, task) => {
-          currentResources.currCpu += task.Resources.CPU;
-          currentResources.currMem += task.Resources.MemoryMB;
+          currentResources.currCpu += task.resources.CPU;
+          currentResources.currMem += task.resources.MemoryMB;
           return currentResources;
         },
         { currCpu: 0, currMem: 0 }
