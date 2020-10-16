@@ -8,7 +8,7 @@ export default Factory.extend({
   submitTime: () => faker.date.past(2 / 365, REF_TIME) * 1000000,
 
   afterCreate(recommendation) {
-    const base = recommendation.resource === 'CPU' ? recommendation.task.Resources.CPU : recommendation.task.Resources.MemoryMB;
+    const base = recommendation.resource === 'CPU' ? recommendation.task.resources.CPU : recommendation.task.resources.MemoryMB;
     const recommendDecrease = faker.random.boolean();
     const directionMultiplier = recommendDecrease ? -1 : 1;
   

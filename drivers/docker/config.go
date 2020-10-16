@@ -96,7 +96,7 @@ func PluginLoader(opts map[string]string) (map[string]interface{}, error) {
 	conf["volumes"] = volConf
 
 	// capabilities
-	// COMPAT(0.13) uses inclusive language. whitelist is used for backward compatibility.
+	// COMPAT(1.0) uses inclusive language. whitelist is used for backward compatibility.
 	if v, ok := opts["docker.caps.allowlist"]; ok {
 		conf["allow_caps"] = strings.Split(v, ",")
 	} else if v, ok := opts["docker.caps.whitelist"]; ok {
@@ -229,6 +229,7 @@ var (
 			),
 		})), hclspec.NewLiteral(`{
 			image = true
+			image_delay = "3m"
 			container = true
 			dangling_containers = {
 				enabled = true
