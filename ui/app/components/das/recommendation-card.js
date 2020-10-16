@@ -24,7 +24,7 @@ export default class DasRecommendationCardComponent extends Component {
 
     const diffs = new ResourcesDiffs(
       taskGroup,
-      taskGroup.allocations.length,
+      taskGroup.count,
       this.args.summary.recommendations,
       this.args.summary.excludedRecommendations
     );
@@ -32,7 +32,7 @@ export default class DasRecommendationCardComponent extends Component {
     const cpuDelta = diffs.cpu.delta;
     const memoryDelta = diffs.memory.delta;
 
-    const aggregate = taskGroup.allocations.length > 1;
+    const aggregate = taskGroup.count > 1;
     const aggregateString = aggregate ? ' an aggregate' : '';
 
     if (cpuDelta || memoryDelta) {
@@ -64,10 +64,10 @@ export default class DasRecommendationCardComponent extends Component {
         narrative += ` <strong>${diffs.memory.absoluteAggregateDiff} of memory</strong>`;
       }
 
-      if (taskGroup.allocations.length === 1) {
+      if (taskGroup.count === 1) {
         narrative += '.';
       } else {
-        narrative += ` across <strong>${taskGroup.allocations.length} allocations</strong>.`;
+        narrative += ` across <strong>${taskGroup.count} allocations</strong>.`;
       }
 
       return htmlSafe(narrative);

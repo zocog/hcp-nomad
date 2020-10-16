@@ -20,7 +20,7 @@ export default class DasRecommendationRow extends Component {
 
     const aggregateDiffs = new ResourcesDiffs(
       this.args.summary.taskGroup,
-      this.args.summary.taskGroup.allocations.length,
+      this.args.summary.taskGroup.count,
       this.args.summary.recommendations,
       this.args.summary.excludedRecommendations
     );

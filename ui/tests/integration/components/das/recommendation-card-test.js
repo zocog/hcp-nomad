@@ -63,7 +63,7 @@ module('Integration | Component | das/recommendation-card', function(hooks) {
         ],
 
         taskGroup: {
-          allocations: [{}, {}],
+          count: 2,
           name: 'group-name',
           job: {
             name: 'job-name',
@@ -198,7 +198,7 @@ module('Integration | Component | das/recommendation-card', function(hooks) {
         ],
 
         taskGroup: {
-          allocations: [],
+          count: 1,
           reservedCPU: task1.reservedCPU,
           reservedMemory: task1.reservedMemory,
         },
@@ -238,7 +238,7 @@ module('Integration | Component | das/recommendation-card', function(hooks) {
         ],
 
         taskGroup: {
-          allocations: [],
+          count: 1,
           reservedCPU: task1.reservedCPU,
           reservedMemory: task1.reservedMemory,
         },
@@ -273,7 +273,7 @@ module('Integration | Component | das/recommendation-card', function(hooks) {
         ],
 
         taskGroup: {
-          allocations: [{}, {}],
+          count: 2,
           name: 'group-name',
           job: {
             name: 'job-name',
@@ -328,7 +328,7 @@ module('Integration | Component | das/recommendation-card', function(hooks) {
         ],
 
         taskGroup: {
-          allocations: [{}, {}],
+          count: 2,
           name: 'group-name',
           job: {
             name: 'job-name',
@@ -393,7 +393,7 @@ module('Integration | Component | das/recommendation-card', function(hooks) {
         ],
 
         taskGroup: {
-          allocations: [{}, {}],
+          count: 2,
           name: 'group-name',
           job: {
             name: 'job-name',
@@ -499,7 +499,7 @@ module('Integration | Component | das/recommendation-card', function(hooks) {
         ],
 
         taskGroup: {
-          allocations: [{}],
+          count: 1,
           name: 'group-name',
           job: {
             name: 'job-name',
