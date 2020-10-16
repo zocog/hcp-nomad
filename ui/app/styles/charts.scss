@@ -4,7 +4,9 @@
 @import './charts/recommendation-chart';
 @import './charts/tooltip';
 @import './charts/colors';
-@import './charts/chart-annotation.scss';
+@import './charts/chart-annotation';
+@import './charts/topo-viz';
+@import './charts/topo-viz-node';
 
 .inline-chart {
   height: 1.5rem;
