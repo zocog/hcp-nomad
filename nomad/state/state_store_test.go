@@ -8765,7 +8765,7 @@ func TestStateStore_UpsertJob_UpsertScalingPolicies(t *testing.T) {
 
 	out, err = state.ScalingPolicyByTargetAndType(nil, policy.Target, policy.Type)
 	newIndex = 1100
-	err = state.UpsertJob(newIndex, job)
+	err = state.UpsertJob(structs.MsgTypeTestSetup, newIndex, job)
 	require.NoError(err)
 	require.True(watchFired(ws), "watch should have fired on job upsert")
 
@@ -8792,7 +8792,7 @@ func TestStateStore_UpsertJob_UpsertScalingPolicies(t *testing.T) {
 	ws = memdb.NewWatchSet()
 	out, err = state.ScalingPolicyByTargetAndType(ws, policy.Target, policy.Type)
 	newIndex = 1200
-	err = state.UpsertJob(newIndex, job)
+	err = state.UpsertJob(structs.MsgTypeTestSetup, newIndex, job)
 	require.NoError(err)
 	require.False(watchFired(ws), "watch should not have fired on job upsert")
 	index, err = state.Index("scaling_policy")
