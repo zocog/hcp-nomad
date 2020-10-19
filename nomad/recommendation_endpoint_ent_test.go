@@ -34,7 +34,7 @@ func TestRecommendationEndpoint_GetRecommendation(t *testing.T) {
 	job := mock.Job()
 	job.Namespace = ns.Name
 	job.Version = 5
-	require.NoError(t, s1.State().UpsertJob(905, job))
+	require.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 905, job))
 	rec := mock.Recommendation(job)
 	require.NoError(t, s1.State().UpsertRecommendation(910, rec))
 
@@ -111,7 +111,7 @@ func TestRecommendationEndpoint_GetRecommendation_ACL(t *testing.T) {
 	job := mock.Job()
 	job.Namespace = ns1.Name
 	job.Version = 5
-	require.NoError(state.UpsertJob(905, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 905, job))
 	rec := mock.Recommendation(job)
 	require.NoError(state.UpsertRecommendation(910, rec))
 
@@ -229,7 +229,7 @@ func TestRecommendationEndpoint_GetRecommendation_License(t *testing.T) {
 			codec := rpcClient(t, s)
 			state := s.fsm.State()
 			job := mock.Job()
-			require.NoError(t, state.UpsertJob(905, job))
+			require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, job))
 			rec := mock.Recommendation(job)
 			require.NoError(t, state.UpsertRecommendation(910, rec))
 
@@ -273,7 +273,7 @@ func TestRecommendationEndpoint_GetRecommendation_Blocking(t *testing.T) {
 		job.TaskGroups[0].Tasks[0].Name,
 		"MemoryMB")
 
-	assert.Nil(state.UpsertJob(98, job), "UpsertJob")
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 98, job), "UpsertJob")
 
 	// Upsert a recommendation we are not interested in first.
 	time.AfterFunc(100*time.Millisecond, func() {
@@ -322,7 +322,7 @@ func TestRecommendationEndpoint_ListRecommendations(t *testing.T) {
 	job1a.TaskGroups[1].Name = "second group"
 	job1a.TaskGroups[1].Tasks = append(job1a.TaskGroups[1].Tasks, job1a.TaskGroups[1].Tasks[0].Copy())
 	job1a.TaskGroups[1].Tasks[1].Name = "second task"
-	require.NoError(t, state.UpsertJob(901, job1a))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, job1a))
 	rec1a := mock.Recommendation(job1a)
 	rec1a.ID = "aa" + rec1a.ID[2:]
 	require.NoError(t, state.UpsertRecommendation(901, rec1a))
@@ -336,13 +336,13 @@ func TestRecommendationEndpoint_ListRecommendations(t *testing.T) {
 	require.NoError(t, state.UpsertRecommendation(901, rec1a22))
 	job1b := mock.Job()
 	job1b.Namespace = ns1.Name
-	require.NoError(t, state.UpsertJob(901, job1b))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, job1b))
 	rec1b := mock.Recommendation(job1b)
 	rec1b.ID = "dd" + rec1b.ID[2:]
 	require.NoError(t, state.UpsertRecommendation(901, rec1b))
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
-	require.NoError(t, state.UpsertJob(902, job2))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 902, job2))
 	rec2 := mock.Recommendation(job2)
 	rec2.ID = "aa" + rec2.ID[2:]
 	require.NoError(t, state.UpsertRecommendation(902, rec2))
@@ -520,17 +520,17 @@ func TestRecommendationEndpoint_ListRecommendations_ACL(t *testing.T) {
 	require.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
 	job1a := mock.Job()
 	job1a.Namespace = ns1.Name
-	require.NoError(t, state.UpsertJob(901, job1a))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, job1a))
 	rec1a := mock.Recommendation(job1a)
 	require.NoError(t, state.UpsertRecommendation(901, rec1a))
 	job1b := mock.Job()
 	job1b.Namespace = ns1.Name
-	require.NoError(t, state.UpsertJob(901, job1b))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, job1b))
 	rec1b := mock.Recommendation(job1b)
 	require.NoError(t, state.UpsertRecommendation(901, rec1b))
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
-	require.NoError(t, state.UpsertJob(902, job2))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 902, job2))
 	rec2 := mock.Recommendation(job2)
 	require.NoError(t, state.UpsertRecommendation(902, rec2))
 
@@ -699,7 +699,7 @@ func TestRecommendationEndpoint_ListRecommendations_License(t *testing.T) {
 			codec := rpcClient(t, s)
 			state := s.fsm.State()
 			job := mock.Job()
-			require.NoError(t, state.UpsertJob(905, job))
+			require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, job))
 			rec := mock.Recommendation(job)
 			require.NoError(t, state.UpsertRecommendation(910, rec))
 
@@ -743,7 +743,7 @@ func TestRecommendationEndpoint_ListRecommendations_Blocking(t *testing.T) {
 		job.TaskGroups[0].Tasks[0].Name,
 		"MemoryMB")
 
-	assert.Nil(state.UpsertJob(98, job), "UpsertJob")
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 98, job), "UpsertJob")
 
 	// Upsert a recommendation we are not interested in first.
 	time.AfterFunc(100*time.Millisecond, func() {
@@ -795,7 +795,7 @@ func TestRecommendationEndpoint_Upsert(t *testing.T) {
 
 	now := time.Now().Unix()
 	var resp structs.SingleRecommendationResponse
-	require.NoError(s1.State().UpsertJob(900, job))
+	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, job))
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
 	require.NoError(err)
 
@@ -854,7 +854,7 @@ func TestRecommendationEndpoint_Upsert_License(t *testing.T) {
 			codec := rpcClient(t, s)
 			state := s.fsm.State()
 			job := mock.Job()
-			require.NoError(t, state.UpsertJob(905, job))
+			require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, job))
 			rec := mock.Recommendation(job)
 
 			req := &structs.RecommendationUpsertRequest{
@@ -945,7 +945,7 @@ func TestRecommendationEndpoint_Upsert_NamespacePrecendence(t *testing.T) {
 				},
 			}
 			var resp structs.SingleRecommendationResponse
-			require.NoError(t, s1.State().UpsertJob(900, job))
+			require.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, job))
 			err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
 			if tc.Error {
 				require.Error(t, err)
@@ -1049,7 +1049,7 @@ func TestRecommendationEndpoint_Upsert_ACL(t *testing.T) {
 				},
 			}
 			var resp structs.SingleRecommendationResponse
-			require.NoError(t, s1.State().UpsertJob(900, job))
+			require.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, job))
 			err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
 			if tc.Error {
 				require.Error(t, err)
@@ -1094,7 +1094,7 @@ func TestRecommendationEndpoint_Upsert_TargetFailures(t *testing.T) {
 
 	// Create the job
 	req.Namespace = req.Recommendation.Namespace
-	require.NoError(s1.State().UpsertJob(900, job))
+	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, job))
 
 	// Should fail because missing task group
 	req.Recommendation.Target("wrong job", "web", "CPU")
@@ -1125,7 +1125,7 @@ func TestRecommendationEndpoint_Upsert_ExistingRecByID(t *testing.T) {
 
 	// Create a recommendation
 	job := mock.Job()
-	require.NoError(s1.State().UpsertJob(900, job))
+	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, job))
 
 	originalRec := mock.Recommendation(job)
 	originalRec.Value = 500
@@ -1173,7 +1173,7 @@ func TestRecommendationEndpoint_Upsert_ExistingByPath(t *testing.T) {
 
 	// Create a recommendation
 	job := mock.Job()
-	require.NoError(s1.State().UpsertJob(900, job))
+	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, job))
 
 	originalRec := mock.Recommendation(job)
 	originalRec.Value = 500
@@ -1222,7 +1222,7 @@ func TestRecommendationEndpoint_Upsert_MultipleRecs(t *testing.T) {
 
 	// Create a recommendation
 	job := mock.Job()
-	require.NoError(s1.State().UpsertJob(900, job))
+	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, job))
 
 	rec1 := mock.Recommendation(job)
 	rec1.Value = 500
@@ -1275,7 +1275,7 @@ func TestRecommendationEndpoint_Delete_SingleRec(t *testing.T) {
 
 	// Create a recommendation
 	job := mock.Job()
-	require.NoError(s1.State().UpsertJob(900, job))
+	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, job))
 
 	rec1 := mock.Recommendation(job)
 	rec1.Value = 500
@@ -1335,7 +1335,7 @@ func TestRecommendationEndpoint_Delete_MultipleRecs(t *testing.T) {
 
 	// Create a recommendation
 	job := mock.Job()
-	require.NoError(s1.State().UpsertJob(900, job))
+	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, job))
 
 	rec1 := mock.Recommendation(job)
 	rec1.Value = 500
@@ -1424,7 +1424,7 @@ func TestRecommendationEndpoint_Delete_License(t *testing.T) {
 			state := s.fsm.State()
 
 			job := mock.Job()
-			require.NoError(t, state.UpsertJob(900, job))
+			require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
 			rec := mock.Recommendation(job)
 			require.NoError(t, state.UpsertRecommendation(950, rec))
 			var delResp structs.GenericResponse
@@ -1500,10 +1500,10 @@ func TestRecommendationEndpoint_Delete_ACL(t *testing.T) {
 
 	job1 := mock.Job()
 	job1.Namespace = ns1.Name
-	require.NoError(t, state.UpsertJob(904, job1))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 904, job1))
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
-	require.NoError(t, state.UpsertJob(905, job2))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, job2))
 	rec1 := mock.Recommendation(job1)
 	rec2 := mock.Recommendation(job2)
 
@@ -1612,7 +1612,7 @@ func TestRecommendationEndpoint_Apply_SingleRec(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC)
 
 	job := mock.Job()
-	require.NoError(s1.State().UpsertJob(900, job))
+	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, job))
 
 	rec1 := mock.Recommendation(job)
 	require.NoError(s1.State().UpsertRecommendation(910, rec1))
@@ -1673,7 +1673,7 @@ func TestRecommendationEndpoint_Apply_MultipleRecs(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC)
 
 	job := mock.Job()
-	require.NoError(s1.State().UpsertJob(900, job))
+	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, job))
 
 	rec1 := mock.Recommendation(job)
 	require.NoError(s1.State().UpsertRecommendation(910, rec1))
@@ -1734,12 +1734,12 @@ func TestRecommendationEndpoint_Apply_MultipleJobs(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC)
 
 	job1 := mock.Job()
-	require.NoError(s1.State().UpsertJob(900, job1))
+	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, job1))
 	rec1 := mock.Recommendation(job1)
 	require.NoError(s1.State().UpsertRecommendation(910, rec1))
 
 	job2 := mock.Job()
-	require.NoError(s1.State().UpsertJob(901, job2))
+	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 901, job2))
 	rec2 := mock.Recommendation(job2)
 	rec2.Target("web", "web", "MemoryMB")
 	rec2.Value = job2.TaskGroups[0].Tasks[0].Resources.MemoryMB * 2
@@ -1808,12 +1808,12 @@ func TestRecommendationEndpoint_Apply_WithRegisterErrors(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC)
 
 	job1 := mock.Job()
-	require.NoError(s1.State().UpsertJob(900, job1))
+	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, job1))
 	rec1 := mock.Recommendation(job1)
 	require.NoError(s1.State().UpsertRecommendation(910, rec1))
 
 	job2 := mock.Job()
-	require.NoError(s1.State().UpsertJob(901, job2))
+	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 901, job2))
 	rec2 := mock.Recommendation(job2)
 	rec2.Target("web", "web", "MemoryMB")
 	rec2.Value = 0 // invalid value for MemoryDB, will trigger error on Job.Register
@@ -1905,7 +1905,7 @@ func TestRecommendationEndpoint_Apply_License(t *testing.T) {
 			state := s.fsm.State()
 
 			job := mock.Job()
-			require.NoError(t, state.UpsertJob(900, job))
+			require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
 			rec := mock.Recommendation(job)
 			require.NoError(t, state.UpsertRecommendation(910, rec))
 			var applyResp structs.RecommendationApplyResponse
@@ -1939,7 +1939,7 @@ func TestRecommendationEndpoint_Apply_Errors(t *testing.T) {
 	state := s1.State()
 
 	job := mock.Job()
-	require.NoError(state.UpsertJob(900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
 	rec := mock.Recommendation(job)
 	require.NoError(state.UpsertRecommendation(900, rec))
 
@@ -2080,10 +2080,10 @@ func TestRecommendationEndpoint_Apply_ACL(t *testing.T) {
 			// cleanup  and recreate
 			job1 := mock.Job()
 			job1.Namespace = ns1.Name
-			require.NoError(t, state.UpsertJob(904, job1))
+			require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 904, job1))
 			job2 := mock.Job()
 			job2.Namespace = ns2.Name
-			require.NoError(t, state.UpsertJob(905, job2))
+			require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, job2))
 			rec1 := mock.Recommendation(job1)
 			rec1.ID = rec1ID
 			rec2 := mock.Recommendation(job2)

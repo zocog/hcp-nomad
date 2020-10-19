@@ -66,13 +66,13 @@ func TestSearch_PrefixSearch_Namespace_ACL(t *testing.T) {
 	assert.Nil(state.UpsertNamespaces(500, []*structs.Namespace{ns}))
 
 	job1 := mock.Job()
-	assert.Nil(state.UpsertJob(502, job1))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 502, job1))
 
 	job2 := mock.Job()
 	job2.Namespace = ns.Name
-	assert.Nil(state.UpsertJob(504, job2))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 504, job2))
 
-	assert.Nil(state.UpsertNode(1001, mock.Node()))
+	assert.Nil(state.UpsertNode(structs.MsgTypeTestSetup, 1001, mock.Node()))
 
 	req := &structs.SearchRequest{
 		Prefix:  "",
@@ -235,13 +235,13 @@ func TestSearch_PrefixSearch_Quota_ACL(t *testing.T) {
 	assert.Nil(state.UpsertNamespaces(500, []*structs.Namespace{ns}))
 
 	job1 := mock.Job()
-	assert.Nil(state.UpsertJob(502, job1))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 502, job1))
 
 	job2 := mock.Job()
 	job2.Namespace = ns.Name
-	assert.Nil(state.UpsertJob(504, job2))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 504, job2))
 
-	assert.Nil(state.UpsertNode(1001, mock.Node()))
+	assert.Nil(state.UpsertNode(structs.MsgTypeTestSetup, 1001, mock.Node()))
 
 	req := &structs.SearchRequest{
 		Prefix:  "",

@@ -35,13 +35,13 @@ func TestSystemSched_JobRegister_QuotaLimit(t *testing.T) {
 	// Quota Limit: (2000 CPU, 2000 MB)
 	// Should be able to place 4
 	// Quota would be (2000, 1024)
-	assert.Nil(h.State.UpsertJob(h.NextIndex(), job))
+	assert.Nil(h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), job))
 
 	// Create several node
 	var nodes []*structs.Node
 	for i := 0; i < 10; i++ {
 		nodes = append(nodes, mock.Node())
-		assert.Nil(h.State.UpsertNode(h.NextIndex(), nodes[i]))
+		assert.Nil(h.State.UpsertNode(structs.MsgTypeTestSetup, h.NextIndex(), nodes[i]))
 	}
 
 	// Create a mock evaluation to deal with drain
@@ -53,7 +53,7 @@ func TestSystemSched_JobRegister_QuotaLimit(t *testing.T) {
 		JobID:       job.ID,
 		Status:      structs.EvalStatusPending,
 	}
-	require.NoError(t, h.State.UpsertEvals(h.NextIndex(), []*structs.Evaluation{eval}))
+	require.NoError(t, h.State.UpsertEvals(structs.MsgTypeTestSetup, h.NextIndex(), []*structs.Evaluation{eval}))
 
 	// Process the evaluation
 	assert.Nil(h.Process(NewSystemScheduler, eval))

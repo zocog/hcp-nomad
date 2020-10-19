@@ -98,7 +98,7 @@ func TestStateStore_DeleteNamespaces_NonTerminalJobs(t *testing.T) {
 
 	job := mock.Job()
 	job.Namespace = ns.Name
-	assert.Nil(state.UpsertJob(1001, job))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1001, job))
 
 	// Create a watchset so we can test that delete fires the watch
 	ws := memdb.NewWatchSet()
@@ -284,8 +284,8 @@ func TestStateStore_UpsertAlloc_AllocsByNamespace(t *testing.T) {
 	alloc4.Job.Namespace = ns2.Name
 
 	assert.Nil(state.UpsertNamespaces(998, []*structs.Namespace{ns1, ns2}))
-	assert.Nil(state.UpsertJob(999, alloc1.Job))
-	assert.Nil(state.UpsertJob(1000, alloc3.Job))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 999, alloc1.Job))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1000, alloc3.Job))
 
 	// Create watchsets so we can test that update fires the watch
 	watches := []memdb.WatchSet{memdb.NewWatchSet(), memdb.NewWatchSet()}
@@ -294,7 +294,7 @@ func TestStateStore_UpsertAlloc_AllocsByNamespace(t *testing.T) {
 	_, err = state.AllocsByNamespace(watches[1], ns2.Name)
 	assert.Nil(err)
 
-	assert.Nil(state.UpsertAllocs(1001, []*structs.Allocation{alloc1, alloc2, alloc3, alloc4}))
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 1001, []*structs.Allocation{alloc1, alloc2, alloc3, alloc4}))
 	assert.True(watchFired(watches[0]))
 	assert.True(watchFired(watches[1]))
 
@@ -438,10 +438,10 @@ func TestStateStore_JobsByNamespace(t *testing.T) {
 	_, err = state.JobsByNamespace(watches[1], ns2.Name)
 	assert.Nil(err)
 
-	assert.Nil(state.UpsertJob(1001, job1))
-	assert.Nil(state.UpsertJob(1002, job2))
-	assert.Nil(state.UpsertJob(1003, job3))
-	assert.Nil(state.UpsertJob(1004, job4))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1001, job1))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1002, job2))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1003, job3))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1004, job4))
 	assert.True(watchFired(watches[0]))
 	assert.True(watchFired(watches[1]))
 
@@ -511,7 +511,7 @@ func TestStateStore_UpsertEvals_Namespace(t *testing.T) {
 	_, err = state.EvalsByNamespace(watches[1], ns2.Name)
 	assert.Nil(err)
 
-	assert.Nil(state.UpsertEvals(1001, []*structs.Evaluation{eval1, eval2, eval3, eval4}))
+	assert.Nil(state.UpsertEvals(structs.MsgTypeTestSetup, 1001, []*structs.Evaluation{eval1, eval2, eval3, eval4}))
 	assert.True(watchFired(watches[0]))
 	assert.True(watchFired(watches[1]))
 
@@ -572,7 +572,7 @@ func TestStateStore_EvalsByIDPrefix_Namespaces(t *testing.T) {
 	eval2.Namespace = ns2.Name
 
 	assert.Nil(state.UpsertNamespaces(998, []*structs.Namespace{ns1, ns2}))
-	assert.Nil(state.UpsertEvals(1000, []*structs.Evaluation{eval1, eval2}))
+	assert.Nil(state.UpsertEvals(structs.MsgTypeTestSetup, 1000, []*structs.Evaluation{eval1, eval2}))
 
 	gatherEvals := func(iter memdb.ResultIterator) []*structs.Evaluation {
 		var evals []*structs.Evaluation
@@ -675,8 +675,8 @@ func TestStateStore_JobsByIDPrefix_Namespaces(t *testing.T) {
 	job2.Namespace = ns2.Name
 
 	assert.Nil(state.UpsertNamespaces(998, []*structs.Namespace{ns1, ns2}))
-	assert.Nil(state.UpsertJob(1000, job1))
-	assert.Nil(state.UpsertJob(1001, job2))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1000, job1))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1001, job2))
 
 	gatherJobs := func(iter memdb.ResultIterator) []*structs.Job {
 		var jobs []*structs.Job
@@ -717,7 +717,7 @@ func TestStateStore_JobsByIDPrefix_Namespaces(t *testing.T) {
 	job3 := mock.Job()
 	job3.ID = "riak"
 	job3.Namespace = ns1.Name
-	assert.Nil(state.UpsertJob(1003, job3))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1003, job3))
 	assert.True(watchFired(ws))
 
 	ws = memdb.NewWatchSet()
@@ -757,7 +757,7 @@ func TestStateStore_AllocsByIDPrefix_Namespaces(t *testing.T) {
 	alloc2.Namespace = ns2.Name
 
 	assert.Nil(state.UpsertNamespaces(998, []*structs.Namespace{ns1, ns2}))
-	assert.Nil(state.UpsertAllocs(1000, []*structs.Allocation{alloc1, alloc2}))
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 1000, []*structs.Allocation{alloc1, alloc2}))
 
 	gatherAllocs := func(iter memdb.ResultIterator) []*structs.Allocation {
 		var allocs []*structs.Allocation
@@ -1068,7 +1068,7 @@ func TestStateStore_UpsertAllocs_Quota_NewAlloc(t *testing.T) {
 	a1.Namespace = ns1.Name
 	a2.Namespace = ns1.Name
 	allocs := []*structs.Allocation{a1, a2}
-	assert.Nil(state.UpsertAllocs(1002, allocs))
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 1002, allocs))
 
 	// 4. Assert that the QuotaUsage is updated.
 	usage, err := state.QuotaUsageByName(nil, qs.Name)
@@ -1113,7 +1113,7 @@ func TestStateStore_UpsertAllocs_Quota_UpdateAlloc(t *testing.T) {
 	a1.Namespace = ns1.Name
 	a2.Namespace = ns1.Name
 	allocs := []*structs.Allocation{a1, a2}
-	assert.Nil(state.UpsertAllocs(1002, allocs))
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 1002, allocs))
 
 	// 4. Get the QuotaUsage
 	usageOriginal, err := state.QuotaUsageByName(nil, qs.Name)
@@ -1135,7 +1135,7 @@ func TestStateStore_UpsertAllocs_Quota_UpdateAlloc(t *testing.T) {
 	a3.Job = j
 	a4.Job = j
 	allocs = []*structs.Allocation{a3, a4}
-	assert.Nil(state.UpsertAllocs(1003, allocs))
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 1003, allocs))
 
 	// 6. Assert that the QuotaUsage is not updated.
 	usageUpdated, err := state.QuotaUsageByName(nil, qs.Name)
@@ -1172,7 +1172,7 @@ func TestStateStore_UpsertAllocs_Quota_StopAlloc(t *testing.T) {
 	a1.Namespace = ns1.Name
 	a2.Namespace = ns1.Name
 	allocs := []*structs.Allocation{a1, a2}
-	assert.Nil(state.UpsertAllocs(1002, allocs))
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 1002, allocs))
 
 	// 4. Stop the allocs
 	a3 := a1.Copy()
@@ -1180,7 +1180,7 @@ func TestStateStore_UpsertAllocs_Quota_StopAlloc(t *testing.T) {
 	a3.DesiredStatus = structs.AllocDesiredStatusStop
 	a4.DesiredStatus = structs.AllocDesiredStatusStop
 	allocs = []*structs.Allocation{a3, a4}
-	assert.Nil(state.UpsertAllocs(1003, allocs))
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 1003, allocs))
 
 	// 5. Assert that the QuotaUsage is updated.
 	usage, err := state.QuotaUsageByName(nil, qs.Name)
@@ -1218,7 +1218,7 @@ func TestStateStore_UpdateAllocsFromClient_Quota_UpdateAlloc(t *testing.T) {
 	a1.Namespace = ns1.Name
 	a2.Namespace = ns1.Name
 	allocs := []*structs.Allocation{a1, a2}
-	assert.Nil(state.UpsertAllocs(1002, allocs))
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 1002, allocs))
 
 	// 4. Get the QuotaUsage
 	usageOriginal, err := state.QuotaUsageByName(nil, qs.Name)
@@ -1275,7 +1275,7 @@ func TestStateStore_UpdateAllocsFromClient_Quota_StopAlloc(t *testing.T) {
 	a1.Namespace = ns1.Name
 	a2.Namespace = ns1.Name
 	allocs := []*structs.Allocation{a1, a2}
-	assert.Nil(state.UpsertAllocs(1002, allocs))
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 1002, allocs))
 
 	// 4. Stop the allocs
 	a3 := a1.Copy()
@@ -1343,7 +1343,7 @@ func TestStateStore_UpsertNamespaces_NewQuota(t *testing.T) {
 	a3.ClientStatus = structs.AllocClientStatusComplete
 	a3.Namespace = ns1.Name
 	allocs = append(allocs, a1, a2, a3)
-	assert.Nil(state.UpsertAllocs(1001, allocs))
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 1001, allocs))
 
 	// 3. Create a QuotaSpec and attach it to the namespace
 	qs := mock.QuotaSpec()
@@ -1392,7 +1392,7 @@ func TestStateStore_UpsertNamespaces_RemoveQuota(t *testing.T) {
 	a1.DesiredStatus = structs.AllocDesiredStatusRun
 	a1.ClientStatus = structs.AllocClientStatusPending
 	a1.Namespace = ns1.Name
-	assert.Nil(state.UpsertAllocs(1002, []*structs.Allocation{a1}))
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 1002, []*structs.Allocation{a1}))
 
 	// 4. Create a QuotaSpec and attach it to the namespace
 	ns2 := mock.Namespace()
@@ -1441,7 +1441,7 @@ func TestStateStore_UpsertNamespaces_ChangeQuota(t *testing.T) {
 	a1.DesiredStatus = structs.AllocDesiredStatusRun
 	a1.ClientStatus = structs.AllocClientStatusPending
 	a1.Namespace = ns1.Name
-	assert.Nil(state.UpsertAllocs(1002, []*structs.Allocation{a1}))
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 1002, []*structs.Allocation{a1}))
 
 	// 4. Create a QuotaSpec and attach it to the namespace
 	ns2 := mock.Namespace()
@@ -1621,7 +1621,7 @@ func TestStateStore_UpsertQuotaSpec_Usage(t *testing.T) {
 
 		allocs = append(allocs, a1, a2, a3, a4, a5, a6, a7)
 	}
-	assert.Nil(state.UpsertAllocs(1002, allocs))
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 1002, allocs))
 
 	// Add limits to the spec
 	qs2 := mock.QuotaSpec()
@@ -1994,7 +1994,7 @@ func TestStateStore_UpsertRecommendation(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
-	require.NoError(state.UpsertJob(900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
 	rec := mock.Recommendation(job)
 
 	// Create a watchset so we can test that upsert fires the watch
@@ -2020,12 +2020,12 @@ func TestStateStore_ListRecommendationsByJob(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job1 := mock.Job()
-	require.NoError(state.UpsertJob(900, job1))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job1))
 	ns2 := mock.Namespace()
 	require.NoError(state.UpsertNamespaces(909, []*structs.Namespace{ns2}))
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
-	require.NoError(state.UpsertJob(910, job2))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 910, job2))
 
 	// Create watchsets so we can test that upsert fires the watches
 	wsList1 := memdb.NewWatchSet()
@@ -2064,15 +2064,15 @@ func TestStateStore_ListRecommendationsByNamespace(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job1 := mock.Job()
-	require.NoError(state.UpsertJob(900, job1))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job1))
 	ns2 := mock.Namespace()
 	require.NoError(state.UpsertNamespaces(909, []*structs.Namespace{ns2}))
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
-	require.NoError(state.UpsertJob(910, job2))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 910, job2))
 	job3 := mock.Job()
 	job3.Namespace = ns2.Name
-	require.NoError(state.UpsertJob(915, job3))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 915, job3))
 
 	// Create watchsets so we can test that upsert fires the watches
 	wsList1 := memdb.NewWatchSet()
@@ -2116,15 +2116,15 @@ func TestStateStore_ListAllRecommendations(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job1 := mock.Job()
-	require.NoError(state.UpsertJob(900, job1))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job1))
 	ns2 := mock.Namespace()
 	require.NoError(state.UpsertNamespaces(909, []*structs.Namespace{ns2}))
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
-	require.NoError(state.UpsertJob(910, job2))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 910, job2))
 	job3 := mock.Job()
 	job3.Namespace = ns2.Name
-	require.NoError(state.UpsertJob(915, job3))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 915, job3))
 
 	// Create watchsets so we can test that upsert fires the watches
 	wsList := memdb.NewWatchSet()
@@ -2168,7 +2168,7 @@ func TestStateStore_UpsertRecommendation_UpdateExistingPath(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
-	require.NoError(state.UpsertJob(900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
 	job.TaskGroups[0].Name = "this is a [more interesting] group name 🤣"
 	job.TaskGroups[0].Tasks[0].Name = "and this is a [more interesting] task name 🤣🤣🤣"
 
@@ -2238,7 +2238,7 @@ func TestStateStore_DeleteRecommendation(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
-	require.NoError(state.UpsertJob(900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
 	rec1 := mock.Recommendation(job)
 	rec2 := mock.Recommendation(job)
 	rec2.Target(job.TaskGroups[0].Name, job.TaskGroups[0].Tasks[0].Name, "MemoryMB")
@@ -2275,7 +2275,7 @@ func TestStateStore_DeleteJob_DeletesRecommendations(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
-	require.NoError(state.UpsertJob(900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
 	rec1 := mock.Recommendation(job)
 	rec2 := mock.Recommendation(job)
 	rec2.Target(job.TaskGroups[0].Name, job.TaskGroups[0].Tasks[0].Name, "MemoryMB")
@@ -2309,7 +2309,7 @@ func TestStateStore_UpdateJob_DeletesFixedRecommendations(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
-	require.NoError(state.UpsertJob(900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
 	rec1 := mock.Recommendation(job)
 	rec1.EnforceVersion = true
 	rec2 := mock.Recommendation(job)
@@ -2331,7 +2331,7 @@ func TestStateStore_UpdateJob_DeletesFixedRecommendations(t *testing.T) {
 	updatedJob := job.Copy()
 	updatedJob.Meta["updated"] = "true"
 	updatedJob.Version = job.Version + 1
-	require.Nil(state.UpsertJob(1020, updatedJob))
+	require.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1020, updatedJob))
 
 	out, err := state.RecommendationByID(nil, rec1.ID)
 	require.NoError(err)
@@ -2356,7 +2356,7 @@ func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteGroup(t *test
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
-	require.NoError(state.UpsertJob(900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
 	rec := mock.Recommendation(job)
 
 	require.NoError(state.UpsertRecommendation(1000, rec))
@@ -2368,7 +2368,7 @@ func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteGroup(t *test
 	updatedJob := job.Copy()
 	updatedJob.TaskGroups[0].Name = "new task group"
 	updatedJob.Version = job.Version + 1
-	require.Nil(state.UpsertJob(1020, updatedJob))
+	require.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1020, updatedJob))
 
 	out, err := state.RecommendationByID(nil, rec.ID)
 	require.NoError(err)
@@ -2388,7 +2388,7 @@ func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteTask(t *testi
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
-	require.NoError(state.UpsertJob(900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
 	rec := mock.Recommendation(job)
 
 	require.NoError(state.UpsertRecommendation(1000, rec))
@@ -2400,7 +2400,7 @@ func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteTask(t *testi
 	updatedJob := job.Copy()
 	updatedJob.TaskGroups[0].Tasks[0].Name = "new task"
 	updatedJob.Version = job.Version + 1
-	require.Nil(state.UpsertJob(1020, updatedJob))
+	require.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1020, updatedJob))
 
 	out, err := state.RecommendationByID(nil, rec.ID)
 	require.NoError(err)
@@ -2420,7 +2420,7 @@ func TestStateStore_UpdateJob_UpdateRecCurrent(t *testing.T) {
 	state := testStateStore(t)
 	job := mock.Job()
 
-	require.NoError(state.UpsertJob(900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
 	recCPU := mock.Recommendation(job)
 	recMem := mock.Recommendation(job)
 	recMem.Resource = "MemoryMB"
@@ -2441,7 +2441,7 @@ func TestStateStore_UpdateJob_UpdateRecCurrent(t *testing.T) {
 	updatedJob.TaskGroups[0].Tasks[0].Resources.CPU *= 4
 	updatedJob.TaskGroups[0].Tasks[0].Resources.MemoryMB *= 4
 	updatedJob.Version = job.Version + 1
-	require.Nil(state.UpsertJob(1020, updatedJob))
+	require.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1020, updatedJob))
 
 	require.True(watchFired(wsCPU))
 	out, err := state.RecommendationByID(nil, recCPU.ID)

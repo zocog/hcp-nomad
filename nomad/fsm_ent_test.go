@@ -328,7 +328,7 @@ func TestFSM_AllocClientUpdate_Quota(t *testing.T) {
 
 	// Create the node
 	node := mock.Node()
-	state.UpsertNode(3, node)
+	state.UpsertNode(structs.MsgTypeTestSetup, 3, node)
 
 	// Block an eval for that namespace
 	e := mock.Eval()
@@ -347,7 +347,7 @@ func TestFSM_AllocClientUpdate_Quota(t *testing.T) {
 	alloc2 := mock.Alloc()
 	alloc2.Namespace = ns.Name
 	alloc2.NodeID = node.ID
-	state.UpsertAllocs(10, []*structs.Allocation{alloc, alloc2})
+	state.UpsertAllocs(structs.MsgTypeTestSetup, 10, []*structs.Allocation{alloc, alloc2})
 
 	clientAlloc := alloc.Copy()
 	clientAlloc.ClientStatus = structs.AllocClientStatusComplete
@@ -507,7 +507,7 @@ func TestFSM_UpsertRecommdation(t *testing.T) {
 	job.Namespace = ns.Name
 	rec := mock.Recommendation(job)
 	require.NoError(fsm.State().UpsertNamespaces(1000, []*structs.Namespace{ns}))
-	require.NoError(fsm.State().UpsertJob(1010, job))
+	require.NoError(fsm.State().UpsertJob(structs.MsgTypeTestSetup, 1010, job))
 	req := structs.RecommendationUpsertRequest{
 		Recommendation: rec,
 	}
@@ -532,8 +532,8 @@ func TestFSM_DeleteRecommendations(t *testing.T) {
 	job1.Namespace = ns1.Name
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
-	require.NoError(fsm.State().UpsertJob(1001, job1))
-	require.NoError(fsm.State().UpsertJob(1002, job2))
+	require.NoError(fsm.State().UpsertJob(structs.MsgTypeTestSetup, 1001, job1))
+	require.NoError(fsm.State().UpsertJob(structs.MsgTypeTestSetup, 1002, job2))
 	rec1 := mock.Recommendation(job1)
 	rec2 := mock.Recommendation(job2)
 	require.NoError(fsm.State().UpsertRecommendation(1002, rec1))
@@ -565,8 +565,8 @@ func TestFSM_SnapshotRestore_Recommendations(t *testing.T) {
 	job2 := mock.Job()
 	rec1 := mock.Recommendation(job1)
 	rec2 := mock.Recommendation(job2)
-	state.UpsertJob(1000, job1)
-	state.UpsertJob(1001, job2)
+	state.UpsertJob(structs.MsgTypeTestSetup, 1000, job1)
+	state.UpsertJob(structs.MsgTypeTestSetup, 1001, job2)
 	state.UpsertRecommendation(1002, rec1)
 	state.UpsertRecommendation(1003, rec2)
 

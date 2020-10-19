@@ -59,7 +59,7 @@ func TestCSIPluginEndpoint_ACLNamespaceAlloc(t *testing.T) {
 	require.Equal(t, 3, len(allocs))
 	allocs[0].Namespace = ns1.Name
 
-	err := s.UpsertAllocs(1003, allocs)
+	err := s.UpsertAllocs(structs.MsgTypeTestSetup, 1003, allocs)
 	require.NoError(t, err)
 
 	req := &structs.CSIPluginGetRequest{
