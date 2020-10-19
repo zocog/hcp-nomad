@@ -6,4 +6,13 @@
   .task-group, .percent {
     color: $ui-gray-500;
   }
+
+  td {
+    vertical-align: middle;
+  }
+
+  .namespace {
+    font-size: $size-7;
+    color: $ui-gray-500;
+  }
 }

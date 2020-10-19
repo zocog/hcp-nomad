@@ -19,6 +19,7 @@ export default create({
   recommendationSummaries: collection('[data-test-recommendation-summary-row]', {
     isActive: hasClass('is-active'),
     slug: text('[data-test-slug]'),
+    namespace: text('[data-test-namespace]'),
     date: text('[data-test-date]'),
     allocationCount: text('[data-test-allocation-count]'),
     cpu: text('[data-test-cpu]'),

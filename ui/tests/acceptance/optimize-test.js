@@ -25,10 +25,13 @@ module('Acceptance | optimize', function(hooks) {
   hooks.beforeEach(async function() {
     server.create('node');
 
+    server.createList('namespace', 2);
+
     const jobs = server.createList('job', 2, {
       createRecommendations: true,
       groupsCount: 1,
       groupTaskCount: 2,
+      namespaceId: server.db.namespaces[1].id,
     });
     
     jobs.sort((jobA, jobB) => {
@@ -61,6 +64,9 @@ module('Acceptance | optimize', function(hooks) {
       Optimize.recommendationSummaries[0].slug,
       `${this.job1.name} / ${currentTaskGroup.name}`
     );
+
+    assert.equal(Optimize.recommendationSummaries[0].namespace, this.job1.namespace);
+
     assert.equal(
       Optimize.recommendationSummaries[1].slug,
       `${this.job2.name} / ${nextTaskGroup.name}`

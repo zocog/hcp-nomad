@@ -6,10 +6,15 @@
     data-test-recommendation-summary-row
     {{did-insert this.storeDiffs}}
   >
-    <td data-test-slug>
-      <span class='job'>{{@summary.taskGroup.job.name}}</span>
-      /
-      <span class='task-group'>{{@summary.taskGroup.name}}</span>
+    <td>
+      <div data-test-slug>
+        <span class='job'>{{@summary.taskGroup.job.name}}</span>
+        /
+        <span class='task-group'>{{@summary.taskGroup.name}}</span>
+      </div>
+      <div class='namespace'>
+        Namespace: <span data-test-namespace>{{@summary.job.namespace.name}}</span>
+      </div>
     </td>
     <td data-test-date>
       {{format-month-ts @summary.submitTime}}
