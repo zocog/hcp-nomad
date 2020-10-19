@@ -33,18 +33,18 @@ module('Integration | Component | das/recommendation-card', function(hooks) {
       new MockRecommendationSummary({
         recommendations: [
           {
-            resource: 'CPU',
-            stats: {},
-            task: task1,
-            value: 50,
-            currentValue: task1.reservedCPU,
-          },
-          {
             resource: 'MemoryMB',
             stats: {},
             task: task1,
             value: 192,
             currentValue: task1.reservedMemory,
+          },
+          {
+            resource: 'CPU',
+            stats: {},
+            task: task1,
+            value: 50,
+            currentValue: task1.reservedCPU,
           },
           {
             resource: 'CPU',
@@ -115,6 +115,9 @@ module('Integration | Component | das/recommendation-card', function(hooks) {
       assert.equal(RecommendedMemory.text, '192 MiB');
       assert.ok(RecommendedMemory.isIncrease);
     });
+
+    assert.equal(RecommendationCard.activeTask.charts.length, 2);
+    assert.equal(RecommendationCard.activeTask.charts[0].resource, 'CPU', 'CPU chart should be first when present');
 
     assert.ok(RecommendationCard.activeTask.cpuChart.isDecrease);
     assert.ok(RecommendationCard.activeTask.memoryChart.isIncrease);

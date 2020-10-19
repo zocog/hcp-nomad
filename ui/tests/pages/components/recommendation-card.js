@@ -39,6 +39,10 @@ export default {
     name: text('[data-test-task-name]'),
     totalsTable: totalsTableComponent(''),
 
+    charts: collection('[data-test-chart-for]', {
+      resource: text('text.resource'),
+    }),
+
     cpuChart: resourceChartComponent('[data-test-chart-for=CPU]'),
     memoryChart: resourceChartComponent('[data-test-chart-for=MemoryMB]'),
   },

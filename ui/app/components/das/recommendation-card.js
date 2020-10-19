@@ -92,14 +92,19 @@ export default class DasRecommendationCardComponent extends Component {
         taskToggleRows.push(taskToggleRow);
       }
 
-      const rowResourceProperty = recommendation.resource === 'CPU' ? 'cpu' : 'memory';
+      const isCpu = recommendation.resource === 'CPU';
+      const rowResourceProperty = isCpu ? 'cpu' : 'memory';
 
       taskToggleRow[rowResourceProperty] = {
         recommendation,
         isActive: !this.args.summary.excludedRecommendations.includes(recommendation),
       };
 
-      taskToggleRow.recommendations.push(recommendation);
+      if (isCpu) {
+        taskToggleRow.recommendations.unshift(recommendation);
+      } else {
+        taskToggleRow.recommendations.push(recommendation);
+      }
 
       return taskToggleRows;
     }, []);
