@@ -530,10 +530,9 @@ export default function() {
 
   this.get('/recommendations', function(
     { jobs, recommendations },
-    { queryParams: { job: jobId } }
+    { queryParams: { job: id, namespace } }
   ) {
-    if (jobId) {
-      const [id, namespace] = JSON.parse(jobId);
+    if (id) {
       const job = jobs.findBy({ id, namespace });
 
       if (!job) {
