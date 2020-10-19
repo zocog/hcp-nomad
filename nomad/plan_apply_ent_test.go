@@ -32,7 +32,7 @@ func TestPlanApply_EvalPlanQuota_Under(t *testing.T) {
 
 	// Create the node
 	node := mock.Node()
-	state.UpsertNode(300, node)
+	state.UpsertNode(structs.MsgTypeTestSetup, 300, node)
 
 	alloc := mock.Alloc()
 	alloc.Namespace = ns.Name
@@ -69,7 +69,7 @@ func TestPlanApply_EvalPlanQuota_Above(t *testing.T) {
 
 	// Create the node
 	node := mock.Node()
-	state.UpsertNode(300, node)
+	state.UpsertNode(structs.MsgTypeTestSetup, 300, node)
 
 	// Create an alloc that exceeds quota
 	alloc := mock.Alloc()
@@ -108,7 +108,7 @@ func TestPlanApply_EvalPlan_AboveQuota(t *testing.T) {
 
 	// Create the node
 	node := mock.Node()
-	state.UpsertNode(1000, node)
+	state.UpsertNode(structs.MsgTypeTestSetup, 1000, node)
 	snap, _ := state.Snapshot()
 
 	// Create an alloc that exceeds quota
@@ -159,7 +159,7 @@ func TestPlanApply_EvalPlanQuota_NilJob(t *testing.T) {
 
 	// Create the node
 	node := mock.Node()
-	state.UpsertNode(300, node)
+	state.UpsertNode(structs.MsgTypeTestSetup, 300, node)
 
 	alloc := mock.Alloc()
 	alloc.Namespace = ns.Name

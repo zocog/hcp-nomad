@@ -40,12 +40,12 @@ func TestClientEndpoint_GetAllocs_ACL_Pro(t *testing.T) {
 	allocOtherNS.NodeID = node.ID
 	state := s1.fsm.State()
 	assert.Nil(state.UpsertNamespaces(1, []*structs.Namespace{ns1, ns2}), "UpsertNamespaces")
-	assert.Nil(state.UpsertNode(2, node), "UpsertNode")
+	assert.Nil(state.UpsertNode(structs.MsgTypeTestSetup, 2, node), "UpsertNode")
 	assert.Nil(state.UpsertJobSummary(3, mock.JobSummary(allocDefaultNS.JobID)), "UpsertJobSummary")
 	assert.Nil(state.UpsertJobSummary(4, mock.JobSummary(allocAltNS.JobID)), "UpsertJobSummary")
 	assert.Nil(state.UpsertJobSummary(5, mock.JobSummary(allocOtherNS.JobID)), "UpsertJobSummary")
 	allocs := []*structs.Allocation{allocDefaultNS, allocAltNS, allocOtherNS}
-	assert.Nil(state.UpsertAllocs(6, allocs), "UpsertAllocs")
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 6, allocs), "UpsertAllocs")
 
 	// Create the namespace policy and tokens
 	validDefaultToken := mock.CreatePolicyAndToken(t, state, 1001, "test-default-valid", mock.NodePolicy(acl.PolicyRead)+
