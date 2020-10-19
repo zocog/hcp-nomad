@@ -3,6 +3,7 @@ import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { next } from '@ember/runloop';
 import { htmlSafe } from '@ember/string';
+import { get } from '@ember/object';
 
 import { scaleLinear } from 'd3-scale';
 import d3Format from 'd3-format';
@@ -134,13 +135,17 @@ export default class RecommendationChartComponent extends Component {
     return Math.max(this.args.currentValue, this.args.recommendedValue);
   }
 
+  get maximumX() {
+    return Math.max(this.higherValue, get(this.args.stats, 'max') || Number.MIN_SAFE_INTEGER);
+  }
+
   get lowerValue() {
     return Math.min(this.args.currentValue, this.args.recommendedValue);
   }
 
   get xScale() {
     return scaleLinear()
-      .domain([0, this.higherValue])
+      .domain([0, this.maximumX])
       .rangeRound([0, this.barWidth]);
   }
 

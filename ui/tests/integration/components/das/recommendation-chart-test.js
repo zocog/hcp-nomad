@@ -51,6 +51,29 @@ module('Integration | Component | das/recommendation-chart', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
+  test('it handles the maximum being far beyond the recommended', async function(assert) {
+    this.set('resource', 'CPU');
+    this.set('current', 1312);
+    this.set('recommended', 1919);
+    this.set('stats', {
+      max: 3000,
+    });
+
+    await render(
+      hbs`<Das::RecommendationChart
+            @resource={{resource}}
+            @currentValue={{current}}
+            @recommendedValue={{recommended}}
+            @stats={{stats}}
+          />`
+    );
+
+    const chartSvg = this.element.querySelector('.recommendation-chart svg');
+    const maxLine = chartSvg.querySelector('line.stat.max');
+
+    assert.ok(maxLine.getAttribute('x1') < chartSvg.clientWidth);
+  });
+
   test('it can be disabled and will show no delta', async function(assert) {
     this.set('resource', 'CPU');
     this.set('current', 1312);
