@@ -241,5 +241,10 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
     await recommendation.card.acceptButton.click();
 
     assert.equal(JobDetail.recommendations.length, job.taskGroups.length - 1);
+
+    await JobDetail.tabFor('definition').visit();
+    await JobDetail.tabFor('overview').visit();
+
+    assert.equal(JobDetail.recommendations.length, job.taskGroups.length - 1);
   });
 });
