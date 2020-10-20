@@ -7,7 +7,7 @@ version: 2
 jobs:
   test-nomad:
     machine:
-      image: default
+      image: ubuntu-1604:201903-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -119,7 +119,7 @@ jobs:
         path: /tmp/test-reports
   test-api:
     machine:
-      image: default
+      image: ubuntu-1604:201903-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -231,7 +231,7 @@ jobs:
         path: /tmp/test-reports
   test-exec:
     machine:
-      image: default
+      image: ubuntu-1604:201903-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -560,7 +560,7 @@ jobs:
     - PAGER: cat
   test-client:
     machine:
-      image: default
+      image: ubuntu-1604:201903-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -672,7 +672,7 @@ jobs:
         path: /tmp/test-reports
   test-shared-exec:
     machine:
-      image: default
+      image: ubuntu-1604:201903-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -1092,7 +1092,7 @@ jobs:
         name: Build Docker Image if Necessary
   test-other:
     machine:
-      image: default
+      image: ubuntu-1604:201903-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -1280,7 +1280,7 @@ jobs:
         path: /tmp/test-reports
   test-docker:
     machine:
-      image: default
+      image: circleci/classic:201808-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
@@ -1454,7 +1454,7 @@ jobs:
     - PAGER: cat
   test-32bit:
     machine:
-      image: default
+      image: ubuntu-1604:201903-01
     working_directory: ~/go/src/github.com/hashicorp/nomad
     environment:
     - GIT_PAGER: cat
