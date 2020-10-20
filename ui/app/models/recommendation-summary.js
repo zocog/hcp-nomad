@@ -13,6 +13,9 @@ export default class RecommendationSummary extends Model {
   @attr('date') submitTime;
   @attr('string') taskGroupName;
 
+  // Set in the serialiser upon saving
+  @attr('boolean', { defaultValue: false }) isProcessed;
+
   get taskGroup() {
     const taskGroups = get(this, 'job.taskGroups');
 

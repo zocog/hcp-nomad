@@ -4,7 +4,6 @@ import ResourcesDiffs from 'nomad-ui/utils/resources-diffs';
 
 export default class DasRecommendationAccordionComponent extends Component {
   @(task(function*() {
-    this.args.summary.deleteRecord();
     yield timeout(0);
   }).drop())
   proceed;
