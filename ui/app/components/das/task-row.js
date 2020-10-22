@@ -9,8 +9,12 @@ export default class DasTaskRowComponent extends Component {
     return this.height / 2;
   }
 
+  get borderCoverHeight() {
+    return this.height - 2;
+  }
+
   @action
   calculateHeight(element) {
-    this.height = element.clientHeight + 2;
+    this.height = element.clientHeight + 1;
   }
 }

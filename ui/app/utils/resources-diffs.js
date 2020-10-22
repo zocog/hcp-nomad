@@ -1,5 +1,7 @@
 import d3Format from 'd3-format';
 
+import { reduceToLargestUnit } from 'nomad-ui/helpers/format-bytes';
+
 const formatPercent = d3Format.format('+.0%');
 const sumAggregate = (total, val) => total + val;
 
@@ -75,12 +77,24 @@ class ResourceDiffs {
 
   get absoluteAggregateDiff() {
     const delta = Math.abs(this.aggregateDiff);
-    return `${delta} ${this.units}`;
+
+    if (this.units === 'MiB') {
+      if (delta === 0) {
+        return '0 MiB';
+      }
+
+      const [memory, units] = reduceToLargestUnit(delta * 1024 * 1024);
+      const formattedMemory = Number.isInteger(memory) ? memory : memory.toFixed(2);
+
+      return `${formattedMemory} ${units}`;
+    } else {
+      return `${delta} ${this.units}`;
+    }
   }
 
   get signedDiff() {
     const delta = this.aggregateDiff;
-    return `${signForDelta(delta)}${delta} ${this.units}`;
+    return `${signForDelta(delta)}${this.absoluteAggregateDiff}`;
   }
 
   get percentDiff() {
@@ -91,6 +105,8 @@ class ResourceDiffs {
 function signForDelta(delta) {
   if (delta > 0) {
     return '+';
+  } else if (delta < 0) {
+    return '-';
   }
 
   return '';

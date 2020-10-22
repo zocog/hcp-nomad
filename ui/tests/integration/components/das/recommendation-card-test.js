@@ -345,6 +345,7 @@ module('Integration | Component | das/recommendation-card', function(hooks) {
     await render(hbs`<Das::RecommendationCard @summary={{summary}} />`);
 
     assert.ok(RecommendationCard.togglesTable.toggleAllMemory.isDisabled);
+    assert.notOk(RecommendationCard.togglesTable.toggleAllMemory.isActive);
     assert.notOk(RecommendationCard.activeTask.memoryChart.isPresent);
   });
 
@@ -396,7 +397,7 @@ module('Integration | Component | das/recommendation-card', function(hooks) {
         ],
 
         taskGroup: {
-          count: 2,
+          count: 10,
           name: 'group-name',
           job: {
             name: 'job-name',
@@ -414,28 +415,28 @@ module('Integration | Component | das/recommendation-card', function(hooks) {
 
     const [cpuRec1, memRec1, cpuRec2, memRec2] = this.summary.recommendations;
 
-    assert.equal(RecommendationCard.narrative.trim(), 'Applying the selected recommendations will save an aggregate 150 MHz of CPU and add an aggregate 256 MiB of memory across 2 allocations.');
+    assert.equal(RecommendationCard.narrative.trim(), 'Applying the selected recommendations will save an aggregate 750 MHz of CPU and add an aggregate 1.25 GiB of memory across 10 allocations.');
 
     this.summary.toggleRecommendation(cpuRec1);
     await settled();
 
-    assert.equal(RecommendationCard.narrative.trim(), 'Applying the selected recommendations will add an aggregate 50 MHz of CPU and 256 MiB of memory across 2 allocations.');
+    assert.equal(RecommendationCard.narrative.trim(), 'Applying the selected recommendations will add an aggregate 250 MHz of CPU and 1.25 GiB of memory across 10 allocations.');
 
     this.summary.toggleRecommendation(memRec1);
     await settled();
 
-    assert.equal(RecommendationCard.narrative.trim(), 'Applying the selected recommendations will add an aggregate 50 MHz of CPU and 128 MiB of memory across 2 allocations.');
+    assert.equal(RecommendationCard.narrative.trim(), 'Applying the selected recommendations will add an aggregate 250 MHz of CPU and 640 MiB of memory across 10 allocations.');
 
     this.summary.toggleRecommendation(cpuRec2);
     await settled();
 
-    assert.equal(RecommendationCard.narrative.trim(), 'Applying the selected recommendations will add an aggregate 128 MiB of memory across 2 allocations.');
+    assert.equal(RecommendationCard.narrative.trim(), 'Applying the selected recommendations will add an aggregate 640 MiB of memory across 10 allocations.');
 
     this.summary.toggleRecommendation(cpuRec1);
     this.summary.toggleRecommendation(memRec2);
     await settled();
 
-    assert.equal(RecommendationCard.narrative.trim(), 'Applying the selected recommendations will save an aggregate 200 MHz of CPU across 2 allocations.');
+    assert.equal(RecommendationCard.narrative.trim(), 'Applying the selected recommendations will save an aggregate 1000 MHz of CPU across 10 allocations.');
 
     this.summary.toggleRecommendation(cpuRec1);
     await settled();
@@ -445,13 +446,13 @@ module('Integration | Component | das/recommendation-card', function(hooks) {
     this.summary.toggleRecommendation(cpuRec1);
     await settled();
 
-    assert.equal(RecommendationCard.narrative.trim(), 'Applying the selected recommendations will save an aggregate 200 MHz of CPU across 2 allocations.');
+    assert.equal(RecommendationCard.narrative.trim(), 'Applying the selected recommendations will save an aggregate 1000 MHz of CPU across 10 allocations.');
 
     this.summary.toggleRecommendation(memRec2);
     set(memRec2, 'value', 128);
     await settled();
 
-    assert.equal(RecommendationCard.narrative.trim(), 'Applying the selected recommendations will save an aggregate 200 MHz of CPU and 256 MiB of memory across 2 allocations.');
+    assert.equal(RecommendationCard.narrative.trim(), 'Applying the selected recommendations will save an aggregate 1000 MHz of CPU and 1.25 GiB of memory across 10 allocations.');
   });
 
   test('it renders diff calculations in a sentence with no aggregation for one allocatio', async function(assert) {
