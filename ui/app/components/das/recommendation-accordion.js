@@ -14,7 +14,7 @@ export default class DasRecommendationAccordionComponent extends Component {
 
     return new ResourcesDiffs(
       taskGroup,
-      taskGroup.allocations.length,
+      taskGroup.count,
       this.args.summary.recommendations,
       this.args.summary.excludedRecommendations
     );
