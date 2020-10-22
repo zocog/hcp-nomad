@@ -3,6 +3,7 @@ import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { task, timeout } from 'ember-concurrency';
 import { htmlSafe } from '@ember/template';
+import Ember from 'ember';
 import ResourcesDiffs from 'nomad-ui/utils/resources-diffs';
 
 export default class DasRecommendationAccordionComponent extends Component {
@@ -17,7 +18,7 @@ export default class DasRecommendationAccordionComponent extends Component {
     this.animationContainerStyle = htmlSafe('height: 0px');
 
     // The 2s for the animation to complete, set in CSS
-    yield timeout(2000);
+    yield timeout(Ember.testing ? 0 : 2000);
 
     this.waitingToProceed = false;
   }).drop())
