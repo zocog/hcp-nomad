@@ -212,8 +212,10 @@ export default class DasRecommendationCardComponent extends Component {
   }
 
   resetInterstitial() {
-    this.interstitialComponent = undefined;
-    this.error = undefined;
+    if (!this.args.skipReset) {
+      this.interstitialComponent = undefined;
+      this.error = undefined;
+    }
   }
 
   @action

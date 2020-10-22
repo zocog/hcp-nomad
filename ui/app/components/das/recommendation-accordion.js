@@ -2,19 +2,30 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { task, timeout } from 'ember-concurrency';
+import { htmlSafe } from '@ember/template';
 import ResourcesDiffs from 'nomad-ui/utils/resources-diffs';
 
 export default class DasRecommendationAccordionComponent extends Component {
   @tracked waitingToProceed = false;
+  @tracked animationContainerStyle = htmlSafe('');
 
   @(task(function*() {
+    this.animationContainerStyle = htmlSafe(`height: ${this.accordionElement.clientHeight}px`);
+
+    yield timeout(10);
+
+    this.animationContainerStyle = htmlSafe('height: 0px');
+
+    // The 2s for the animation to complete, set in CSS
+    yield timeout(2000);
+
     this.waitingToProceed = false;
-    yield timeout(0);
   }).drop())
   proceed;
 
   @action
-  inserted() {
+  inserted(element) {
+    this.accordionElement = element;
     this.waitingToProceed = true;
   }
 
