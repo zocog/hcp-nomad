@@ -25,10 +25,8 @@
 
     {{#if (and @active this.height)}}
       <svg width={{this.height}} height={{this.height}}>
-        <line class="border-cover" x1=0 y1=0 x2=0 y2={{this.height}} />
-
-        <line class="triangle" x1=0 y1=0 x2={{this.half}} y2={{this.half}} />
-        <line class="triangle" x1=0 y1={{this.height}} x2={{this.half}} y2={{this.half}} />
+        <rect class="border-cover" x="0" y="1" height={{this.borderCoverHeight}} />
+        <polyline class="triangle" points="1 1 {{this.half}} {{this.half}} 1 {{this.height}}" />
       </svg>
     {{/if}}
   </td>

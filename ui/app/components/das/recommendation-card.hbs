@@ -45,7 +45,7 @@
               <th class="toggle-cell">
                 <Toggle
                   data-test-cpu-toggle
-                  @isActive={{this.allCpuToggleActive}}
+                  @isActive={{and this.allCpuToggleActive (not this.allCpuToggleDisabled)}}
                   @isDisabled={{this.allCpuToggleDisabled}}
                   @onToggle={{action this.toggleAllRecommendationsForResource 'CPU'}}
                   title='Toggle CPU recommendations for all tasks'
@@ -56,7 +56,7 @@
               <th class="toggle-cell">
                 <Toggle
                   data-test-memory-toggle
-                  @isActive={{this.allMemoryToggleActive}}
+                  @isActive={{and this.allMemoryToggleActive (not this.allMemoryToggleDisabled)}}
                   @isDisabled={{this.allMemoryToggleDisabled}}
                   @onToggle={{action this.toggleAllRecommendationsForResource 'MemoryMB'}}
                   title='Toggle memory recommendations for all tasks'

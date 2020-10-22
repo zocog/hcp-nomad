@@ -185,11 +185,12 @@
         left: calc(100% - 1px); // To balance out the table width calc above
 
         .border-cover {
-          stroke: white;
-          stroke-width: 4px;
+          fill: white;
+          width: 2px;
         }
 
         .triangle {
+          fill: transparent;
           stroke: $ui-gray-200;
         }
       }

@@ -13,6 +13,7 @@ IMPROVEMENTS:
  * api: Added ?task_states=false query parameter to /v1/allocations to remove TaskStates from listings. Defaults to being included as before. [[GH-9055](https://github.com/hashicorp/nomad/issues/9055)]
  * cli: Added `scale` and `scaling-events` subcommands to the `job` command. [[GH-9023](https://github.com/hashicorp/nomad/pull/9023)]
  * cli: Added `scaling` command for interaction with the scaling API endpoint. [[GH-9025](https://github.com/hashicorp/nomad/pull/9025)]
+ * client: Batch state store writes to reduce disk IO. [[GH-9093](https://github.com/hashicorp/nomad/issues/9093)]
  * client: Use ec2 CPU perf data from AWS API [[GH-7830](https://github.com/hashicorp/nomad/issues/7830)]
  * client: Added support for Azure fingerprinting. [[GH-8979](https://github.com/hashicorp/nomad/issues/8979)]
  * client: Added support for fingerprinting the client node's Consul segment. [[GH-7214](https://github.com/hashicorp/nomad/issues/7214)]
@@ -36,10 +37,19 @@ BUG FIXES:
  * core: Fixed a bug where blocking queries would not include the query's maximum wait time when calculating whether it was safe to retry. [[GH-8921](https://github.com/hashicorp/nomad/issues/8921)]
  * config (Enterprise): Fixed default enterprise config merging. [[GH-9083](https://github.com/hashicorp/nomad/pull/9083)]
  * consul: Fixed a bug to correctly validate task when using script-checks in group-level services [[GH-8952](https://github.com/hashicorp/nomad/issues/8952)]
+ * consul: Fixed a bug where canary_meta was not being interpolated with environment variables [[GH-9096](https://github.com/hashicorp/nomad/pull/9096)]
  * consul/connect: Fixed a bug to correctly trigger updates on jobspec changes [[GH-9029](https://github.com/hashicorp/nomad/pull/9029)]
  * csi: Fixed a bug where multi-writer volumes were allowed only 1 write claim. [[GH-9040](https://github.com/hashicorp/nomad/issues/9040)]
  * csi: Fixed a bug where `nomad volume detach` would not accept prefixes for the node ID parameter. [[GH-9041](https://github.com/hashicorp/nomad/issues/9041)]
  * driver/docker: Fixed a bug where the default `image_delay` configuration was ignored if the `gc` configuration was not set. [[GH-9101](https://github.com/hashicorp/nomad/issues/9101)]
+
+## 0.12.6 (October 21, 2020)
+
+SECURITY:
+
+ * artifact: Fixed a bug where interpolation can be used in the artifact `destination` field to write artifact payloads outside the allocation directory. CVE-2020-27195 [[GH-TBD](https://github.com/hashicorp/nomad/issues/TBD)]
+ * template: Fixed a bug where interpolation can be used in the template `source` and `destination` fields to read or write files outside the allocation directory even when `disable_file_sandbox` was set to `false` (the default). CVE-2020-27195 [[GH-TBD](https://github.com/hashicorp/nomad/issues/TBD)]
+ * template: Fixed a bug where the `disable_file_sandbox` configuration was only respected for the template `file` function and not the template `source` and `destination` fields. CVE-2020-27195 [[GH-TBD](https://github.com/hashicorp/nomad/issues/TBD)]
 
 ## 0.12.5 (September 17, 2020)
 
@@ -202,6 +212,14 @@ BUG FIXES:
  * ui: The task group detail page no longer makes excessive requests to the allocation and stats endpoints. [[GH-8216](https://github.com/hashicorp/nomad/issues/8216)]
  * ui: Polling endpoints that have yet to be fetched normally works as expected (regression from 0.11.3). [[GH-8207](https://github.com/hashicorp/nomad/issues/8207)]
 
+## 0.11.5 (October 21, 2020)
+
+SECURITY:
+
+ * artifact: _Backport from v0.12.6_ - Fixed a bug where interpolation can be used in the artifact `destination` field to write artifact payloads outside the allocation directory. CVE-2020-27195 [[GH-TBD](https://github.com/hashicorp/nomad/issues/TBD)]
+ * template: _Backport from v0.12.6_ - Fixed a bug where interpolation can be used in the template `source` and `destination` fields to read or write files outside the allocation directory even when `disable_file_sandbox` was set to `false` (the default). CVE-2020-27195 [[GH-TBD](https://github.com/hashicorp/nomad/issues/TBD)]
+ * template: _Backport from v0.12.6_ - Fixed a bug where the `disable_file_sandbox` configuration was only respected for the template `file` function and not the template `source` and `destination` fields. CVE-2020-27195 [[GH-TBD](https://github.com/hashicorp/nomad/issues/TBD)]
+
 ## 0.11.4 (August 7, 2020)
 
 SECURITY:
@@ -345,6 +363,15 @@ BUG FIXES:
  * driver/docker: Fixed a bug causing docker containers to use swap memory unexpectedly [[GH-7550](https://github.com/hashicorp/nomad/issues/7550)]
  * scheduler: Fixed a bug where changes to task group `shutdown_delay` were not persisted or displayed in plan output [[GH-7618](https://github.com/hashicorp/nomad/issues/7618)]
  * ui: Fixed handling of multi-byte unicode characters in allocation log view [[GH-7470](https://github.com/hashicorp/nomad/issues/7470)] [[GH-7551](https://github.com/hashicorp/nomad/pull/7551)]
+
+
+## 0.10.6 (October 21, 2020)
+
+SECURITY:
+
+ * artifact: _Backport from v0.12.6_ - Fixed a bug where interpolation can be used in the artifact `destination` field to write artifact payloads outside the allocation directory. CVE-2020-27195 [[GH-TBD](https://github.com/hashicorp/nomad/issues/TBD)]
+ * template: _Backport from v0.12.6_ - Fixed a bug where interpolation can be used in the template `source` and `destination` fields to read or write files outside the allocation directory even when `disable_file_sandbox` was set to `false` (the default). CVE-2020-27195 [[GH-TBD](https://github.com/hashicorp/nomad/issues/TBD)]
+ * template: _Backport from v0.12.6_ - Fixed a bug where the `disable_file_sandbox` configuration was only respected for the template `file` function and not the template `source` and `destination` fields. CVE-2020-27195 [[GH-TBD](https://github.com/hashicorp/nomad/issues/TBD)]
 
 ## 0.10.5 (March 24, 2020)
 

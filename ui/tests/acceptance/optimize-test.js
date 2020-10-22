@@ -112,8 +112,8 @@ module('Acceptance | optimize', function(hooks) {
         { recCpu: 0, recMem: 0 }
       );
 
-      const cpuDiff = recCpu - currCpu;
-      const memDiff = recMem - currMem;
+      const cpuDiff = recCpu > 0 ? recCpu - currCpu : 0;
+      const memDiff = recMem > 0 ? recMem - currMem : 0;
 
       const cpuSign = cpuDiff > 0 ? '+' : '';
       const memSign = memDiff > 0 ? '+' : '';
@@ -127,16 +127,17 @@ module('Acceptance | optimize', function(hooks) {
       );
       assert.equal(
         summary.memory,
-        memDiff ? `${memSign}${memDiff} MiB ${memSign}${memDiffPercent}%` : ''
+        memDiff ? `${memSign}${formattedMemDiff(memDiff)} ${memSign}${memDiffPercent}%` : ''
       );
 
       assert.equal(
         summary.aggregateCpu,
         cpuDiff ? `${cpuSign}${cpuDiff * currentTaskGroupAllocations.length} MHz` : ''
       );
+
       assert.equal(
         summary.aggregateMemory,
-        memDiff ? `${memSign}${memDiff * currentTaskGroupAllocations.length} MiB` : ''
+        memDiff ? `${memSign}${formattedMemDiff(memDiff * currentTaskGroupAllocations.length)}` : ''
       );
     });
 
@@ -148,7 +149,19 @@ module('Acceptance | optimize', function(hooks) {
 
     const summaryMemoryBefore = Optimize.recommendationSummaries[0].memory;
 
-    await Optimize.card.togglesTable.toggleAllMemory.toggle();
+    let toggledAnything = true;
+
+    // Toggle off all memory
+    if (Optimize.card.togglesTable.toggleAllMemory.isPresent) {
+      await Optimize.card.togglesTable.toggleAllMemory.toggle();
+
+      assert.notOk(Optimize.card.togglesTable.tasks[0].memory.isActive);
+      assert.notOk(Optimize.card.togglesTable.tasks[1].memory.isActive);
+    } else if (!Optimize.card.togglesTable.tasks[0].cpu.isDisabled) {
+      await Optimize.card.togglesTable.tasks[0].memory.toggle();
+    } else {
+      toggledAnything = false;
+    }
 
     assert.equal(
       Optimize.recommendationSummaries[0].memory,
@@ -156,21 +169,21 @@ module('Acceptance | optimize', function(hooks) {
       'toggling recommendations doesn’t affect the summary table diffs'
     );
 
-    assert.notOk(Optimize.card.togglesTable.tasks[0].memory.isActive);
-    assert.notOk(Optimize.card.togglesTable.tasks[1].memory.isActive);
-
     const currentTaskIds = currentTaskGroup.tasks.models.mapBy('id');
     const taskIdFilter = task => currentTaskIds.includes(task.taskId);
 
-    const appliedIds = server.schema.recommendations
+    const cpuRecommendationIds = server.schema.recommendations
       .where({ resource: 'CPU' })
       .models.filter(taskIdFilter)
       .mapBy('id');
 
-    const dismissedIds = server.schema.recommendations
+    const memoryRecommendationIds = server.schema.recommendations
       .where({ resource: 'MemoryMB' })
       .models.filter(taskIdFilter)
       .mapBy('id');
+
+    const appliedIds = toggledAnything ? cpuRecommendationIds : memoryRecommendationIds;
+    const dismissedIds = toggledAnything ? memoryRecommendationIds : [];
 
     await Optimize.card.acceptButton.click();
 
@@ -195,9 +208,18 @@ module('Acceptance | optimize', function(hooks) {
   });
 
   test('can navigate between summaries via the table', async function(assert) {
+    server.createList('job', 10, {
+      createRecommendations: true,
+      groupsCount: 1,
+      groupTaskCount: 2,
+      namespaceId: server.db.namespaces[1].id,
+    });
+
     await Optimize.visit();
     await Optimize.recommendationSummaries[1].click();
-    assert.equal(Optimize.card.slug.jobName, this.job2.name);
+
+    assert.equal(`${Optimize.card.slug.jobName} / ${Optimize.card.slug.groupName}`, Optimize.recommendationSummaries[1].slug);
+    assert.ok(Optimize.recommendationSummaries[1].isActive);
   });
 
   test('cannot return to already-processed summaries', async function(assert) {
@@ -288,3 +310,20 @@ module('Acceptance | optimize', function(hooks) {
     assert.equal(Optimize.recommendationSummaries.length, 2);
   });
 });
+
+function formattedMemDiff(memDiff) {
+  const absMemDiff = Math.abs(memDiff);
+  const negativeSign = memDiff < 0 ? '-' : '';
+
+  if (absMemDiff >= 1024) {
+    const gibDiff = absMemDiff / 1024;
+
+    if (Number.isInteger(gibDiff)) {
+      return `${negativeSign}${gibDiff} GiB`;
+    } else {
+      return `${negativeSign}${gibDiff.toFixed(2)} GiB`;
+    }
+  } else {
+    return `${negativeSign}${absMemDiff} MiB`;
+  }
+}
