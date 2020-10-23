@@ -1,7 +1,7 @@
 .recommendation-accordion {
   .animation-container {
     overflow: hidden;
-    transition: height 2s;
+    transition: height $timing-slow;
   }
 
   .accordion-head-content {

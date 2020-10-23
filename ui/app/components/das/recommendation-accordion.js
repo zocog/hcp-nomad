@@ -17,8 +17,8 @@ export default class DasRecommendationAccordionComponent extends Component {
 
     this.animationContainerStyle = htmlSafe('height: 0px');
 
-    // The 2s for the animation to complete, set in CSS
-    yield timeout(Ember.testing ? 0 : 2000);
+    // The 450ms for the animation to complete, set in CSS as $timing-slow
+    yield timeout(Ember.testing ? 0 : 450);
 
     this.waitingToProceed = false;
   }).drop())
