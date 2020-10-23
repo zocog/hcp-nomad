@@ -1,5 +1,3 @@
-// +build ent
-
 package nomad
 
 import (

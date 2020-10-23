@@ -10,177 +10,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// enterpriseInit is used to initialize the state store with enterprise
-// objects.
-func (s *StateStore) enterpriseInit() error {
-	// Create the default namespace. This is safe to do every time we create the
-	// state store. There are two main cases, a brand new cluster in which case
-	// each server will have the same default namespace object, or a new cluster
-	// in which case if the default namespace has been modified, it will be
-	// overridden by the restore code path.
-	defaultNs := &structs.Namespace{
-		Name:        structs.DefaultNamespace,
-		Description: structs.DefaultNamespaceDescription,
-	}
-
-	if err := s.UpsertNamespaces(1, []*structs.Namespace{defaultNs}); err != nil {
-		return fmt.Errorf("inserting default namespace failed: %v", err)
-	}
-
-	return nil
-}
-
-// namespaceExists returns whether a namespace exists
-func (s *StateStore) namespaceExists(txn *txn, namespace string) (bool, error) {
-	if namespace == structs.DefaultNamespace {
-		return true, nil
-	}
-
-	existing, err := txn.First(TableNamespaces, "id", namespace)
-	if err != nil {
-		return false, fmt.Errorf("namespace lookup failed: %v", err)
-	}
-
-	return existing != nil, nil
-}
-
-// UpsertNamespace is used to register or update a set of namespaces
-func (s *StateStore) UpsertNamespaces(index uint64, namespaces []*structs.Namespace) error {
-	txn := s.db.WriteTxn(index)
-	defer txn.Abort()
-
-	for _, ns := range namespaces {
-		if err := s.upsertNamespaceImpl(index, txn, ns); err != nil {
-			return err
-		}
-	}
-
-	if err := txn.Insert("index", &IndexEntry{TableNamespaces, index}); err != nil {
-		return fmt.Errorf("index update failed: %v", err)
-	}
-
-	txn.Commit()
-	return nil
-}
-
-// DeleteNamespaces is used to remove a set of namespaces
-func (s *StateStore) DeleteNamespaces(index uint64, names []string) error {
-	txn := s.db.WriteTxn(index)
-	defer txn.Abort()
-
-	for _, name := range names {
-		// Lookup the namespace
-		existing, err := txn.First(TableNamespaces, "id", name)
-		if err != nil {
-			return fmt.Errorf("namespace lookup failed: %v", err)
-		}
-		if existing == nil {
-			return fmt.Errorf("namespace not found")
-		}
-
-		ns := existing.(*structs.Namespace)
-		if ns.Name == structs.DefaultNamespace {
-			return fmt.Errorf("default namespace can not be deleted")
-		}
-
-		// Ensure that the namespace doesn't have any non-terminal jobs
-		iter, err := s.jobsByNamespaceImpl(nil, name, txn)
-		if err != nil {
-			return err
-		}
-
-		for {
-			raw := iter.Next()
-			if raw == nil {
-				break
-			}
-			job := raw.(*structs.Job)
-
-			if job.Status != structs.JobStatusDead {
-				return fmt.Errorf("namespace %q contains at least one non-terminal job %q. "+
-					"All jobs must be terminal in namespace before it can be deleted", name, job.ID)
-			}
-		}
-
-		// Delete the namespace
-		if err := txn.Delete(TableNamespaces, existing); err != nil {
-			return fmt.Errorf("namespace deletion failed: %v", err)
-		}
-	}
-
-	if err := txn.Insert("index", &IndexEntry{TableNamespaces, index}); err != nil {
-		return fmt.Errorf("index update failed: %v", err)
-	}
-
-	txn.Commit()
-	return nil
-}
-
-// NamespaceByName is used to lookup a namespace by name
-func (s *StateStore) NamespaceByName(ws memdb.WatchSet, name string) (*structs.Namespace, error) {
-	txn := s.db.ReadTxn()
-	return s.namespaceByNameImpl(ws, txn, name)
-}
-
-// namespaceByNameImpl is used to lookup a namespace by name
-func (s *StateStore) namespaceByNameImpl(ws memdb.WatchSet, txn *txn, name string) (*structs.Namespace, error) {
-	watchCh, existing, err := txn.FirstWatch(TableNamespaces, "id", name)
-	if err != nil {
-		return nil, fmt.Errorf("namespace lookup failed: %v", err)
-	}
-	ws.Add(watchCh)
-
-	if existing != nil {
-		return existing.(*structs.Namespace), nil
-	}
-	return nil, nil
-}
-
-// NamespacesByNamePrefix is used to lookup namespaces by prefix
-func (s *StateStore) NamespacesByNamePrefix(ws memdb.WatchSet, namePrefix string) (memdb.ResultIterator, error) {
-	txn := s.db.ReadTxn()
-
-	iter, err := txn.Get(TableNamespaces, "id_prefix", namePrefix)
-	if err != nil {
-		return nil, fmt.Errorf("namespaces lookup failed: %v", err)
-	}
-	ws.Add(iter.WatchCh())
-
-	return iter, nil
-}
-
-// Namespaces returns an iterator over all the namespaces
-func (s *StateStore) Namespaces(ws memdb.WatchSet) (memdb.ResultIterator, error) {
-	txn := s.db.ReadTxn()
-
-	// Walk the entire namespace table
-	iter, err := txn.Get(TableNamespaces, "id")
-	if err != nil {
-		return nil, err
-	}
-	ws.Add(iter.WatchCh())
-	return iter, nil
-}
-
-func (s *StateStore) NamespaceNames() ([]string, error) {
-	it, err := s.Namespaces(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	nses := []string{}
-	for {
-		next := it.Next()
-		if next == nil {
-			break
-		}
-		ns := next.(*structs.Namespace)
-		nses = append(nses, ns.Name)
-	}
-
-	return nses, nil
-}
-
 // NamespacesByQuota is used to lookup namespaces by quota
 func (s *StateStore) NamespacesByQuota(ws memdb.WatchSet, quota string) (memdb.ResultIterator, error) {
 	txn := s.db.ReadTxn()
@@ -196,14 +25,6 @@ func (s *StateStore) namespacesByQuotaImpl(ws memdb.WatchSet, txn *txn, quota st
 	ws.Add(iter.WatchCh())
 
 	return iter, nil
-}
-
-// NamespaceRestore is used to restore a namespace
-func (r *StateRestore) NamespaceRestore(ns *structs.Namespace) error {
-	if err := r.txn.Insert(TableNamespaces, ns); err != nil {
-		return fmt.Errorf("namespace insert failed: %v", err)
-	}
-	return nil
 }
 
 // UpsertSentinelPolicies is used to create or update a set of Sentinel policies
@@ -404,115 +225,6 @@ func (s *StateStore) updateQuotaWithAlloc(index uint64, new, existing *structs.A
 	return nil
 }
 
-// upsertNamespaceImpl is used to upsert a namespace
-func (s *StateStore) upsertNamespaceImpl(index uint64, txn *txn, namespace *structs.Namespace) error {
-	// Ensure the namespace hash is non-nil. This should be done outside the state store
-	// for performance reasons, but we check here for defense in depth.
-	ns := namespace
-	if len(ns.Hash) == 0 {
-		ns.SetHash()
-	}
-
-	// Check if the namespace already exists
-	existing, err := txn.First(TableNamespaces, "id", ns.Name)
-	if err != nil {
-		return fmt.Errorf("namespace lookup failed: %v", err)
-	}
-
-	// Setup the indexes correctly and determine which quotas need to be
-	// reconciled
-	var oldQuota string
-	if existing != nil {
-		exist := existing.(*structs.Namespace)
-		ns.CreateIndex = exist.CreateIndex
-		ns.ModifyIndex = index
-
-		// Grab the old quota on the namespace
-		oldQuota = exist.Quota
-	} else {
-		ns.CreateIndex = index
-		ns.ModifyIndex = index
-	}
-
-	// Validate that the quota on the new namespace exists
-	if ns.Quota != "" {
-		exists, err := s.quotaSpecExists(txn, ns.Quota)
-		if err != nil {
-			return fmt.Errorf("looking up namespace quota %q failed: %v", ns.Quota, err)
-		} else if !exists {
-			return fmt.Errorf("namespace %q using non-existent quota %q", ns.Name, ns.Quota)
-		}
-	}
-
-	// Insert the namespace
-	if err := txn.Insert(TableNamespaces, ns); err != nil {
-		return fmt.Errorf("namespace insert failed: %v", err)
-	}
-
-	// Reconcile the quota usages if the namespace has changed the quota object
-	// it is accounting against.
-	//
-	// OPTIMIZATION:
-	// For now lets do the simple and safe thing and reconcile the full
-	// quota. In the future we can optimize it to just scan the allocs in
-	// the effected namespaces.
-
-	// Existing  | New       | Action
-	// "" or "a" | "" or "a" | None
-	// ""        | "a"       | Reconcile "a"
-	// "a"       | ""        | reconcile "a"
-	// "a"       | "b"       | Reconcile "a" and "b"
-	newQuota := ns.Quota
-	var reconcileQuotas []string
-
-	switch {
-	case oldQuota == newQuota:
-		// Do nothing
-	case oldQuota == "" && newQuota != "":
-		reconcileQuotas = append(reconcileQuotas, newQuota)
-	case oldQuota != "" && newQuota == "":
-		reconcileQuotas = append(reconcileQuotas, oldQuota)
-	case oldQuota != newQuota:
-		reconcileQuotas = append(reconcileQuotas, oldQuota, newQuota)
-	}
-
-	for _, q := range reconcileQuotas {
-		// Get the spec object
-		spec, err := s.quotaSpecByNameImpl(nil, txn, q)
-		if err != nil {
-			return fmt.Errorf("failed to lookup quota spec %q: %v", q, err)
-		}
-		if spec == nil {
-			return fmt.Errorf("unknown quota spec %q", q)
-		}
-
-		// Get the usage object
-		usage, err := s.quotaUsageByNameImpl(txn, nil, q)
-		if err != nil {
-			return fmt.Errorf("failed to lookup quota usage for spec %q: %v", q, err)
-		}
-		if usage == nil {
-			return fmt.Errorf("nil quota usage for spec %q", q)
-		}
-
-		opts := reconcileQuotaUsageOpts{
-			Usage:     usage,
-			Spec:      spec,
-			AllLimits: true,
-		}
-		if err := s.reconcileQuotaUsage(index, txn, opts); err != nil {
-			return fmt.Errorf("reconciling quota usage for spec %q failed: %v", q, err)
-		}
-
-		// Update the quota after reconciling
-		if err := txn.Insert(TableQuotaUsage, usage); err != nil {
-			return fmt.Errorf("upserting quota usage failed: %v", err)
-		}
-	}
-
-	return nil
-}
-
 // UpsertQuotaSpecs is used to create or update a set of quota specifications
 func (s *StateStore) UpsertQuotaSpecs(index uint64, specs []*structs.QuotaSpec) error {
 	txn := s.db.WriteTxn(index)
@@ -653,6 +365,71 @@ func (s *StateStore) quotaSpecByNameImpl(ws memdb.WatchSet, txn *txn, name strin
 func (s *StateStore) quotaSpecExists(txn *txn, name string) (bool, error) {
 	qs, err := s.quotaSpecByNameImpl(nil, txn, name)
 	return qs != nil, err
+}
+
+// quotaReconcile updates quota usage when a namespace is updated or returns an error
+func (s *StateStore) quotaReconcile(index uint64, txn *txn, newQuota, oldQuota string) error {
+	// Reconcile the quota usages if the namespace has changed the quota object
+	// it is accounting against.
+	//
+	// OPTIMIZATION:
+	// For now lets do the simple and safe thing and reconcile the full
+	// quota. In the future we can optimize it to just scan the allocs in
+	// the effected namespaces.
+
+	// Existing  | New       | Action
+	// "" or "a" | "" or "a" | None
+	// ""        | "a"       | Reconcile "a"
+	// "a"       | ""        | reconcile "a"
+	// "a"       | "b"       | Reconcile "a" and "b"
+	var reconcileQuotas []string
+
+	switch {
+	case oldQuota == newQuota:
+		// Do nothing
+	case oldQuota == "" && newQuota != "":
+		reconcileQuotas = append(reconcileQuotas, newQuota)
+	case oldQuota != "" && newQuota == "":
+		reconcileQuotas = append(reconcileQuotas, oldQuota)
+	case oldQuota != newQuota:
+		reconcileQuotas = append(reconcileQuotas, oldQuota, newQuota)
+	}
+
+	for _, q := range reconcileQuotas {
+		// Get the spec object
+		spec, err := s.quotaSpecByNameImpl(nil, txn, q)
+		if err != nil {
+			return fmt.Errorf("failed to lookup quota spec %q: %v", q, err)
+		}
+		if spec == nil {
+			return fmt.Errorf("unknown quota spec %q", q)
+		}
+
+		// Get the usage object
+		usage, err := s.quotaUsageByNameImpl(txn, nil, q)
+		if err != nil {
+			return fmt.Errorf("failed to lookup quota usage for spec %q: %v", q, err)
+		}
+		if usage == nil {
+			return fmt.Errorf("nil quota usage for spec %q", q)
+		}
+
+		opts := reconcileQuotaUsageOpts{
+			Usage:     usage,
+			Spec:      spec,
+			AllLimits: true,
+		}
+		if err := s.reconcileQuotaUsage(index, txn, opts); err != nil {
+			return fmt.Errorf("reconciling quota usage for spec %q failed: %v", q, err)
+		}
+
+		// Update the quota after reconciling
+		if err := txn.Insert(TableQuotaUsage, usage); err != nil {
+			return fmt.Errorf("upserting quota usage failed: %v", err)
+		}
+	}
+
+	return nil
 }
 
 // QuotaSpecsByNamePrefix is used to lookup quota specifications by prefix

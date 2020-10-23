@@ -28,10 +28,6 @@ func (s *HTTPServer) registerEntHandlers() {
 	s.mux.HandleFunc("/v1/quota/", s.wrap(s.QuotaSpecificRequest))
 	s.mux.HandleFunc("/v1/quota", s.wrap(s.QuotaCreateRequest))
 
-	s.mux.HandleFunc("/v1/namespaces", s.wrap(s.NamespacesRequest))
-	s.mux.HandleFunc("/v1/namespace", s.wrap(s.NamespaceCreateRequest))
-	s.mux.HandleFunc("/v1/namespace/", s.wrap(s.NamespaceSpecificRequest))
-
 	s.mux.HandleFunc("/v1/operator/license", s.wrap(s.OperatorLicenseRequest))
 
 	s.mux.HandleFunc("/v1/recommendation", s.wrap(s.RecommendationCreateRequest))

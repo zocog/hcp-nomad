@@ -5,7 +5,6 @@ package state
 import memdb "github.com/hashicorp/go-memdb"
 
 const (
-	TableNamespaces       = "namespaces"
 	TableSentinelPolicies = "sentinel_policy"
 	TableQuotaSpec        = "quota_spec"
 	TableQuotaUsage       = "quota_usage"
@@ -20,36 +19,10 @@ func init() {
 		sentinelPolicyTableSchema,
 		quotaSpecTableSchema,
 		quotaUsageTableSchema,
-		namespaceTableSchema,
 		licenseTableSchema,
 		tmpLicenseMetaSchema,
 		recommendationTableSchema,
 	}...)
-}
-
-// namespaceTableSchema returns the MemDB schema for the namespace table.
-func namespaceTableSchema() *memdb.TableSchema {
-	return &memdb.TableSchema{
-		Name: TableNamespaces,
-		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
-				AllowMissing: false,
-				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field: "Name",
-				},
-			},
-			"quota": {
-				Name:         "quota",
-				AllowMissing: true,
-				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field: "Quota",
-				},
-			},
-		},
-	}
 }
 
 // sentinelPolicyTableSchema returns the MemDB schema for the sentinel policy

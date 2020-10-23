@@ -17,19 +17,16 @@ import (
 // Offset the Nomad Pro specific values so that we don't overlap
 // the OSS/Enterprise values.
 const (
-	NamespaceSnapshot SnapshotType = (64 + iota)
-	SentinelPolicySnapshot
-	QuotaSpecSnapshot
-	QuotaUsageSnapshot
-	LicenseSnapshot
-	TmpLicenseMetaSnapshot
-	RecommendationSnapshot
+	SentinelPolicySnapshot SnapshotType = 65
+	QuotaSpecSnapshot      SnapshotType = 66
+	QuotaUsageSnapshot     SnapshotType = 67
+	LicenseSnapshot        SnapshotType = 68
+	TmpLicenseMetaSnapshot SnapshotType = 69
+	RecommendationSnapshot SnapshotType = 70
 )
 
 // registerEntLogAppliers registers all the Nomad Enterprise Raft log appliers
 func (n *nomadFSM) registerEntLogAppliers() {
-	n.enterpriseAppliers[structs.NamespaceUpsertRequestType] = n.applyNamespaceUpsert
-	n.enterpriseAppliers[structs.NamespaceDeleteRequestType] = n.applyNamespaceDelete
 	n.enterpriseAppliers[structs.SentinelPolicyUpsertRequestType] = n.applySentinelPolicyUpsert
 	n.enterpriseAppliers[structs.SentinelPolicyDeleteRequestType] = n.applySentinelPolicyDelete
 	n.enterpriseAppliers[structs.QuotaSpecUpsertRequestType] = n.applyQuotaSpecUpsert
@@ -45,71 +42,9 @@ func (n *nomadFSM) registerEntSnapshotRestorers() {
 	n.enterpriseRestorers[SentinelPolicySnapshot] = restoreSentinelPolicy
 	n.enterpriseRestorers[QuotaSpecSnapshot] = restoreQuotaSpec
 	n.enterpriseRestorers[QuotaUsageSnapshot] = restoreQuotaUsage
-	n.enterpriseRestorers[NamespaceSnapshot] = restoreNamespace
 	n.enterpriseRestorers[LicenseSnapshot] = restoreLicense
 	n.enterpriseRestorers[TmpLicenseMetaSnapshot] = restoreTmpLicenseMeta
 	n.enterpriseRestorers[RecommendationSnapshot] = restoreRecommendation
-}
-
-// applyNamespaceUpsert is used to upsert a set of namespaces
-func (n *nomadFSM) applyNamespaceUpsert(buf []byte, index uint64) interface{} {
-	defer metrics.MeasureSince([]string{"nomad", "fsm", "apply_namespace_upsert"}, time.Now())
-	var req structs.NamespaceUpsertRequest
-	if err := structs.Decode(buf, &req); err != nil {
-		panic(fmt.Errorf("failed to decode request: %v", err))
-	}
-
-	var trigger []string
-	for _, ns := range req.Namespaces {
-		old, err := n.state.NamespaceByName(nil, ns.Name)
-		if err != nil {
-			n.logger.Error("namespace lookup failed", "error", err)
-			return err
-		}
-
-		// If we are changing the quota on a namespace trigger evals for the
-		// older quota.
-		if old != nil && old.Quota != "" && old.Quota != ns.Quota {
-			trigger = append(trigger, old.Quota)
-		}
-	}
-
-	if err := n.state.UpsertNamespaces(index, req.Namespaces); err != nil {
-		n.logger.Error("UpsertNamespaces failed", "error", err)
-		return err
-	}
-
-	// Send the unblocks
-	for _, quota := range trigger {
-		n.blockedEvals.UnblockQuota(quota, index)
-	}
-
-	return nil
-}
-
-// applyNamespaceDelete is used to delete a set of namespaces
-func (n *nomadFSM) applyNamespaceDelete(buf []byte, index uint64) interface{} {
-	defer metrics.MeasureSince([]string{"nomad", "fsm", "apply_namespace_delete"}, time.Now())
-	var req structs.NamespaceDeleteRequest
-	if err := structs.Decode(buf, &req); err != nil {
-		panic(fmt.Errorf("failed to decode request: %v", err))
-	}
-
-	if err := n.state.DeleteNamespaces(index, req.Namespaces); err != nil {
-		n.logger.Error("DeleteNamespaces failed", "error", err)
-		return err
-	}
-
-	return nil
-}
-
-// restoreNamespace is used to restore a namespace snapshot
-func restoreNamespace(restore *state.StateRestore, dec *codec.Decoder) error {
-	namespace := new(structs.Namespace)
-	if err := dec.Decode(namespace); err != nil {
-		return err
-	}
-	return restore.NamespaceRestore(namespace)
 }
 
 // restoreLicense is used to restore a license snapshot
@@ -289,9 +224,6 @@ func (s *nomadSnapshot) persistEntTables(sink raft.SnapshotSink, encoder *codec.
 		sink.Cancel()
 		return err
 	}
-	if err := s.persistNamespaces(sink, encoder); err != nil {
-		return err
-	}
 	if err := s.persistLicense(sink, encoder); err != nil {
 		return err
 	}
@@ -300,34 +232,6 @@ func (s *nomadSnapshot) persistEntTables(sink raft.SnapshotSink, encoder *codec.
 	}
 	if err := s.persistRecommendations(sink, encoder); err != nil {
 		return err
-	}
-	return nil
-}
-
-// persistNamespaces persists all the namespaces.
-func (s *nomadSnapshot) persistNamespaces(sink raft.SnapshotSink, encoder *codec.Encoder) error {
-	// Get all the jobs
-	ws := memdb.NewWatchSet()
-	namespaces, err := s.snap.Namespaces(ws)
-	if err != nil {
-		return err
-	}
-
-	for {
-		// Get the next item
-		raw := namespaces.Next()
-		if raw == nil {
-			break
-		}
-
-		// Prepare the request struct
-		namespace := raw.(*structs.Namespace)
-
-		// Write out a namespace registration
-		sink.Write([]byte{byte(NamespaceSnapshot)})
-		if err := encoder.Encode(namespace); err != nil {
-			return err
-		}
 	}
 	return nil
 }
