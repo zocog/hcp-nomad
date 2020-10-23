@@ -16,7 +16,7 @@
         />
       </div>
     {{else}}
-      <a.head @buttonLabel={{if a.isOpen "Hide" "Show"}}>
+      <a.head @buttonLabel={{unless a.isOpen "Show"}}>
         <section class="left">
           {{x-icon "info-circle-fill"}}
           <span>Resource Recommendation</span>
