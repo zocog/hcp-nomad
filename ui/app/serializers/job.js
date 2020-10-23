@@ -95,7 +95,6 @@ export default class JobSerializer extends ApplicationSerializer {
       },
       recommendationSummaries: {
         links: {
-          // FIXME so confused
           related: buildURL(`/${apiNamespace}/recommendations`, { job: hash.PlainId, namespace: hash.NamespaceID || 'default' }),
         },
       },
