@@ -1,4 +1,10 @@
 .recommendation-accordion {
+  transition: margin-bottom $timing-fast ($timing-slow - $timing-fast);
+
+  &.closing {
+    margin-bottom: 0;
+  }
+
   .animation-container {
     overflow: hidden;
     transition: height $timing-slow;
