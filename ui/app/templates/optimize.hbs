@@ -1,17 +1,10 @@
 <PageLayout>
   <section class="section">
     {{#if @model}}
-      {{#if this.interstitialComponent}}
-        <section class="das-interstitial" style={{this.interstitialStyle}}>
-          {{component (concat 'das/' this.interstitialComponent) proceed=this.proceed error=this.error}}
-        </section>
-      {{else if this.activeRecommendationSummary}}
+      {{#if this.activeRecommendationSummary}}
         <Das::RecommendationCard
-          {{will-destroy this.recommendationCardDestroying}}
           @summary={{this.activeRecommendationSummary}}
-          @onProcessed={{this.onProcessed}}
-          @onDismissed={{this.onDismissed}}
-          @onError={{this.onError}}
+          @proceed={{this.proceed}}
         />
       {{/if}}
 
@@ -27,11 +20,19 @@
           <th>Agg. Mem</th>
         </t.head>
         <t.body as |row index|>
-          <Das::RecommendationRow
-            class="is-interactive {{if (eq row.model this.activeRecommendationSummary) 'is-active'}}"
-            @summary={{row.model}}
-            {{on "click" (action (mut this.recommendationSummaryIndex) index)}}
-          />
+          {{#if row.model.isProcessed}}
+            <Das::RecommendationRow
+              class="is-disabled"
+              @summary={{row.model}}
+            />
+          {{else}}
+            <Das::RecommendationRow
+              class="is-interactive {{if (eq row.model this.activeRecommendationSummary) 'is-active'}}"
+              @summary={{row.model}}
+              {{on "click" (action (mut this.recommendationSummaryIndex) index)}}
+            />
+          {{/if}}
+
         </t.body>
       </ListTable>
     {{else}}

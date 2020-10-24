@@ -529,11 +529,14 @@ export default function() {
   });
 
   this.get('/recommendations', function(
-    { jobs, recommendations },
-    { queryParams: { job: jobId } }
+    { jobs, namespaces, recommendations },
+    { queryParams: { job: id, namespace } }
   ) {
-    if (jobId) {
-      const [id, namespace] = JSON.parse(jobId);
+    if (id) {
+      if (!namespaces.all().length) {
+        namespace = null;
+      }
+
       const job = jobs.findBy({ id, namespace });
 
       if (!job) {

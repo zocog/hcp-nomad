@@ -3,12 +3,20 @@ import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
 import ResourcesDiffs from 'nomad-ui/utils/resources-diffs';
 import { htmlSafe } from '@ember/template';
+import { didCancel, task, timeout } from 'ember-concurrency';
+import Ember from 'ember';
 
 export default class DasRecommendationCardComponent extends Component {
   @tracked allCpuToggleActive = true;
   @tracked allMemoryToggleActive = true;
 
   @tracked activeTaskToggleRowIndex = 0;
+
+  @tracked cardHeight;
+  @tracked interstitialComponent;
+  @tracked error;
+
+  @tracked proceedPromiseResolve;
 
   get activeTaskToggleRow() {
     return this.taskToggleRows[this.activeTaskToggleRowIndex];
@@ -145,13 +153,74 @@ export default class DasRecommendationCardComponent extends Component {
 
   @action
   accept() {
-    this.args.summary.save().then(this.args.onProcessed, this.args.onError);
+    this.args.summary.save().then(() => this.onApplied.perform(), e => this.onError.perform(e)).catch(e => {
+      if (!didCancel(e)) {
+        throw e;
+      }
+    });
   }
 
   @action
   dismiss() {
     this.args.summary.excludedRecommendations.pushObjects(this.args.summary.recommendations);
-    this.args.summary.save().then(this.args.onDismissed, this.args.onError);
+    this.args.summary.save().then(() => this.onDismissed.perform(), e => this.onError.perform(e)).catch(e => {
+      if (!didCancel(e)) {
+        throw e;
+      }
+    });
+  }
+
+  @(task(function*() {
+    this.interstitialComponent = 'accepted';
+    yield timeout(Ember.testing ? 0 : 2000);
+
+    this.args.proceed.perform();
+    this.resetInterstitial();
+  }).drop())
+  onApplied;
+
+  @(task(function*() {
+    const { manuallyDismissed } = yield new Promise(resolve => {
+      this.proceedPromiseResolve = resolve;
+      this.interstitialComponent = 'dismissed';
+    });
+
+    if (!manuallyDismissed) {
+      yield timeout(Ember.testing ? 0 : 2000);
+    }
+
+    this.args.proceed.perform();
+    this.resetInterstitial();
+
+  }).drop())
+  onDismissed;
+
+  @(task(function*(error) {
+    yield new Promise(resolve => {
+      this.proceedPromiseResolve = resolve;
+      this.interstitialComponent = 'error';
+      this.error = error.toString();
+    });
+
+    this.args.proceed.perform();
+    this.resetInterstitial();
+  }).drop())
+  onError;
+
+  get interstitialStyle() {
+    return htmlSafe(`height: ${this.cardHeight}px`);
+  }
+
+  resetInterstitial() {
+    if (!this.args.skipReset) {
+      this.interstitialComponent = undefined;
+      this.error = undefined;
+    }
+  }
+
+  @action
+  recommendationCardDestroying(element) {
+    this.cardHeight = element.clientHeight;
   }
 }
 

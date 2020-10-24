@@ -18,6 +18,8 @@ export default create({
 
   recommendationSummaries: collection('[data-test-recommendation-summary-row]', {
     isActive: hasClass('is-active'),
+    isDisabled: hasClass('is-disabled'),
+
     slug: text('[data-test-slug]'),
     namespace: text('[data-test-namespace]'),
     date: text('[data-test-date]'),

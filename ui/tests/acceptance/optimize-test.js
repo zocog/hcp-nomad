@@ -222,6 +222,17 @@ module('Acceptance | optimize', function(hooks) {
     assert.ok(Optimize.recommendationSummaries[1].isActive);
   });
 
+  test('cannot return to already-processed summaries', async function(assert) {
+    await Optimize.visit();
+    await Optimize.card.acceptButton.click();
+
+    assert.ok(Optimize.recommendationSummaries[0].isDisabled);
+
+    await Optimize.recommendationSummaries[0].click();
+
+    assert.ok(Optimize.recommendationSummaries[1].isActive);
+  });
+
   test('can dismiss a set of recommendations', async function(assert) {
     await Optimize.visit();
 

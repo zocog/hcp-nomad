@@ -79,4 +79,15 @@ export default class RecommendationSummarySerializer extends ApplicationSerializ
       ),
     };
   }
+
+  normalizeUpdateRecordResponse(store, primaryModelClass, payload, id) {
+    return {
+      data: {
+        id,
+        attributes: {
+          isProcessed: true,
+        }
+      }
+    };
+  }
 }
