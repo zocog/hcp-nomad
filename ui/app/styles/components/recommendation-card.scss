@@ -47,7 +47,7 @@
     }
 
     &.active-task {
-      li:first-child {
+      > li:first-child {
         margin-bottom: 2em;
       }
     }

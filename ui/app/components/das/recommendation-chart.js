@@ -8,12 +8,26 @@ import { get } from '@ember/object';
 import { scaleLinear } from 'd3-scale';
 import d3Format from 'd3-format';
 
+const statsKeyToLabel = {
+  min: 'Min',
+  median: 'Median',
+  mean: 'Mean',
+  p99: '99th',
+  max: 'Max',
+  current: 'Current',
+  recommended: 'New',
+};
+
 const formatPercent = d3Format.format('+.0%');
 export default class RecommendationChartComponent extends Component {
   @tracked width;
   @tracked height;
 
   @tracked shown = false;
+
+  @tracked showLegend = false;
+  @tracked mouseX;
+  @tracked activeLegendRow;
 
   get isIncrease() {
     return this.args.currentValue < this.args.recommendedValue;
@@ -57,7 +71,7 @@ export default class RecommendationChartComponent extends Component {
 
   deltaTextY = this.edgeTickY2;
 
-  avgHeight = this.edgeTickHeight * 0.6;
+  meanHeight = this.edgeTickHeight * 0.6;
   p99Height = this.edgeTickHeight * 0.48;
   maxHeight = this.edgeTickHeight * 0.4;
 
@@ -67,42 +81,37 @@ export default class RecommendationChartComponent extends Component {
     if (this.width) {
       const maxShapes = this.shapesFor('max');
       const p99Shapes = this.shapesFor('p99');
-      const avgShapes = this.shapesFor('avg');
-  
+      const meanShapes = this.shapesFor('mean');
+
       const labelProximityThreshold = 25;
-  
+
       if (p99Shapes.text.x + labelProximityThreshold > maxShapes.text.x) {
         maxShapes.text.class = 'right';
       }
-  
-      if (avgShapes.text.x + labelProximityThreshold > p99Shapes.text.x) {
+
+      if (meanShapes.text.x + labelProximityThreshold > p99Shapes.text.x) {
         p99Shapes.text.class = 'right';
       }
-  
-      if (avgShapes.text.x + labelProximityThreshold * 2 > maxShapes.text.x) {
+
+      if (meanShapes.text.x + labelProximityThreshold * 2 > maxShapes.text.x) {
         p99Shapes.text.class = 'hidden';
       }
-  
-      return [maxShapes, p99Shapes, avgShapes];
+
+      return [maxShapes, p99Shapes, meanShapes];
     } else {
       return [];
     }
   }
 
   shapesFor(key) {
-    const statsKey = key === 'avg' ? 'mean' : key;
-    const stat = this.args.stats[statsKey];
+    const stat = this.args.stats[key];
 
     const rectWidth = this.xScale(stat);
     const rectHeight = this[`${key}Height`];
 
     const tickX = rectWidth + this.gutterWidthLeft;
 
-    const label = {
-      avg: 'Avg',
-      p99: '99th',
-      max: 'Max',
-    }[key];
+    const label = statsKeyToLabel[key];
 
     return {
       class: key,
@@ -288,6 +297,28 @@ export default class RecommendationChartComponent extends Component {
     return this.deltaText.original.y + 1;
   }
 
+  get tooltipStyle() {
+    if (this.showLegend) {
+      return htmlSafe(`left: ${this.mouseX}px`);
+    }
+
+    return undefined;
+  }
+
+  get sortedStats() {
+    if (this.args.stats) {
+      const statsWithCurrentAndRecommended = {
+        ...this.args.stats,
+        current: this.args.currentValue,
+        recommended: this.args.recommendedValue,
+      };
+
+      return Object.keys(statsWithCurrentAndRecommended).map(key => ( { label: statsKeyToLabel[key], value: statsWithCurrentAndRecommended[key] })).sortBy('value');
+    } else {
+      return [];
+    }
+  }
+
   @action
   isShown() {
     next(() => {
@@ -304,5 +335,21 @@ export default class RecommendationChartComponent extends Component {
   @action
   storeSvgElement(element) {
     this.svgElement = element;
+  }
+
+  @action
+  setLegendPosition(mouseMoveEvent) {
+    this.showLegend = true;
+    this.mouseX = mouseMoveEvent.layerX;
+  }
+
+  @action
+  setActiveLegendRow(row) {
+    this.activeLegendRow = row;
+  }
+
+  @action
+  unsetActiveLegendRow() {
+    this.activeLegendRow = undefined;
   }
 }

@@ -1,6 +1,6 @@
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
-import { render } from '@ember/test-helpers';
+import { render, triggerEvent } from '@ember/test-helpers';
 import { hbs } from 'ember-cli-htmlbars';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
 
@@ -138,5 +138,57 @@ module('Integration | Component | das/recommendation-chart', function(hooks) {
 
     assert.dom('[data-test-label=max]').hasClass('right');
     assert.dom('[data-test-label=p99]').hasClass('hidden');
+  });
+
+  test('a legend tooltip shows the sorted stats values on hover', async function(assert) {
+    this.set('resource', 'CPU');
+    this.set('current', 50);
+    this.set('recommended', 101);
+
+    this.set('stats', {
+      mean: 5,
+      p99: 99,
+      max: 100,
+      min: 1,
+      median: 55,
+    });
+
+    await render(
+      hbs`<Das::RecommendationChart
+            @resource={{resource}}
+            @currentValue={{current}}
+            @recommendedValue={{recommended}}
+            @stats={{stats}}
+          />`
+    );
+
+    assert.dom('.chart-tooltip').isNotVisible();
+
+    await triggerEvent('.recommendation-chart', 'mousemove');
+
+    assert.dom('.chart-tooltip').isVisible();
+
+    assert.dom('.chart-tooltip li:nth-child(1)').hasText('Min 1');
+    assert.dom('.chart-tooltip li:nth-child(2)').hasText('Mean 5');
+    assert.dom('.chart-tooltip li:nth-child(3)').hasText('Current 50');
+    assert.dom('.chart-tooltip li:nth-child(4)').hasText('Median 55');
+    assert.dom('.chart-tooltip li:nth-child(5)').hasText('99th 99');
+    assert.dom('.chart-tooltip li:nth-child(6)').hasText('Max 100');
+    assert.dom('.chart-tooltip li:nth-child(7)').hasText('New 101');
+
+    assert.dom('.chart-tooltip li.active').doesNotExist();
+
+    await triggerEvent('.recommendation-chart text.changes.new', 'mouseenter');
+    assert.dom('.chart-tooltip li:nth-child(7).active').exists();
+
+    await triggerEvent('.recommendation-chart line.stat.max', 'mouseenter');
+    assert.dom('.chart-tooltip li:nth-child(6).active').exists();
+
+    await triggerEvent('.recommendation-chart rect.stat.p99', 'mouseenter');
+    assert.dom('.chart-tooltip li:nth-child(5).active').exists();
+
+    await triggerEvent('.recommendation-chart', 'mouseleave');
+
+    assert.dom('.chart-tooltip').isNotVisible();
   });
 });
