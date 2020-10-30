@@ -9,6 +9,8 @@
 
   .resource {
     font-weight: $weight-semibold;
+    dominant-baseline: central;
+    text-anchor: end;
   }
 
   .icon.delta g {
@@ -145,7 +147,8 @@
       stroke: $yellow-700;
     }
 
-    &.changes:hover, &.stat:hover {
+    &.changes:hover,
+    &.stat:hover {
       stroke-width: 2px;
     }
   }
