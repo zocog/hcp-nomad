@@ -49,8 +49,9 @@ export default [
         content: ['scheduling', 'preemption'],
       },
       'consensus',
+      'filesystem',
       'gossip',
-      'security',
+      'security'
     ],
   },
   {
@@ -105,6 +106,14 @@ export default [
           'resume',
           'status',
           'unblock',
+        ],
+      },
+      {
+        category: 'event',
+        content: [
+          'sink-deregister',
+          'sink-list',
+          'sink-register',
         ],
       },
       'eval-status',
@@ -180,6 +189,7 @@ export default [
   {
     category: 'job-specification',
     content: [
+      'hcl2',
       'artifact',
       'affinity',
       'check_restart',
