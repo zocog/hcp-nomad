@@ -3,7 +3,10 @@
 package agent
 
 import (
+	"bufio"
 	"context"
+	"errors"
+	"net"
 	"net/http"
 	"time"
 
@@ -48,6 +51,14 @@ func newAuditResponseWriter(w http.ResponseWriter) *auditResponseWriter {
 func (a auditResponseWriter) WriteHeader(code int) {
 	a.statusCode = code
 	a.ResponseWriter.WriteHeader(code)
+}
+
+func (a auditResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := a.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("hijack not supported")
+	}
+	return h.Hijack()
 }
 
 func (s *HTTPServer) eventFromReq(ctx context.Context, req *http.Request, auth *audit.Auth) *audit.Event {
