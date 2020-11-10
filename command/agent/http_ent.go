@@ -62,11 +62,9 @@ func (a auditResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 }
 
 func (a auditResponseWriter) Flush() {
-	fl, ok := a.ResponseWriter.(http.Flusher)
-	if !ok {
-		return
+	if fl, ok := a.ResponseWriter.(http.Flusher); ok {
+		fl.Flush()
 	}
-	fl.Flush()
 }
 
 func (s *HTTPServer) eventFromReq(ctx context.Context, req *http.Request, auth *audit.Auth) *audit.Event {
