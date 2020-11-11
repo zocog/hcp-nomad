@@ -18,7 +18,7 @@ var (
 
 	// entContexts are the ent contexts which are searched to find matches
 	// for a given prefix
-	entContexts = []structs.Context{structs.Quotas}
+	entContexts = []structs.Context{structs.Quotas, structs.Recommendations}
 )
 
 // contextToIndex returns the index name to lookup in the state store.
@@ -26,6 +26,8 @@ func contextToIndex(ctx structs.Context) string {
 	switch ctx {
 	case structs.Quotas:
 		return state.TableQuotaSpec
+	case structs.Recommendations:
+		return state.TableRecommendations
 	default:
 		return string(ctx)
 	}
@@ -37,6 +39,8 @@ func getEnterpriseMatch(match interface{}) (id string, ok bool) {
 	switch m := match.(type) {
 	case *structs.QuotaSpec:
 		return m.Name, true
+	case *structs.Recommendation:
+		return m.ID, true
 	default:
 		return "", false
 	}
@@ -48,6 +52,8 @@ func getEnterpriseResourceIter(context structs.Context, aclObj *acl.ACL, namespa
 	switch context {
 	case structs.Quotas:
 		return state.QuotaSpecsByNamePrefix(ws, prefix)
+	case structs.Recommendations:
+		return state.RecommendationsByIDPrefixIter(ws, namespace, prefix)
 	default:
 		return nil, fmt.Errorf("context must be one of %v or 'all' for all contexts; got %q", allContexts, context)
 	}
@@ -109,6 +115,9 @@ func searchContexts(aclObj *acl.ACL, namespace string, context structs.Context) 
 	}
 
 	jobRead := aclObj.AllowNsOp(namespace, acl.NamespaceCapabilityReadJob)
+	recRead := jobRead ||
+		aclObj.AllowNsOp(namespace, acl.NamespaceCapabilitySubmitJob) ||
+		aclObj.AllowNsOp(namespace, acl.NamespaceCapabilitySubmitRecommendation)
 
 	// Filter contexts down to those the ACL grants access to
 	available := make([]structs.Context, 0, len(all))
@@ -128,6 +137,10 @@ func searchContexts(aclObj *acl.ACL, namespace string, context structs.Context) 
 			}
 		case structs.Quotas:
 			if aclObj.AllowQuotaRead() {
+				available = append(available, c)
+			}
+		case structs.Recommendations:
+			if recRead {
 				available = append(available, c)
 			}
 		}

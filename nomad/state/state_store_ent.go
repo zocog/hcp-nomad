@@ -981,8 +981,8 @@ func (s *StateStore) RecommendationsByJob(ws memdb.WatchSet, namespace string, j
 	return recs, nil
 }
 
-// RecommendationsByIDPrefix returns all recommendations in a namespace whose prefix matches the specified value
-func (s *StateStore) RecommendationsByIDPrefix(ws memdb.WatchSet, namespace string, prefix string) ([]*structs.Recommendation, error) {
+// RecommendationsByIDPrefixIter returns all recommendations in a namespace whose prefix matches the specified value
+func (s *StateStore) RecommendationsByIDPrefixIter(ws memdb.WatchSet, namespace string, prefix string) (memdb.ResultIterator, error) {
 	txn := s.db.ReadTxn()
 
 	iter, err := txn.Get(TableRecommendations, "id_prefix", prefix)
@@ -991,13 +991,18 @@ func (s *StateStore) RecommendationsByIDPrefix(ws memdb.WatchSet, namespace stri
 	}
 
 	ws.Add(iter.WatchCh())
+	return iter, nil
+}
 
+// RecommendationsByIDPrefix returns all recommendations in a namespace whose prefix matches the specified value
+func (s *StateStore) RecommendationsByIDPrefix(ws memdb.WatchSet, namespace string, prefix string) ([]*structs.Recommendation, error) {
+
+	iter, err := s.RecommendationsByIDPrefixIter(ws, namespace, prefix)
+	if err != nil {
+		return nil, err
+	}
 	recs := []*structs.Recommendation{}
-	for {
-		raw := iter.Next()
-		if raw == nil {
-			break
-		}
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
 		r := raw.(*structs.Recommendation)
 		if r.Namespace != namespace {
 			continue
@@ -1006,7 +1011,6 @@ func (s *StateStore) RecommendationsByIDPrefix(ws memdb.WatchSet, namespace stri
 	}
 
 	return recs, nil
-
 }
 
 // RecommendationsByNamespace returns all recommendations for a specific namespace

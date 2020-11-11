@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSearch_PrefixSearch_Quota(t *testing.T) {
@@ -162,4 +163,42 @@ func TestSearch_PrefixSearch_Quota_ACL(t *testing.T) {
 		assert.Len(resp.Matches[structs.Namespaces], 2)
 		assert.Len(resp.Matches[structs.Quotas], 1)
 	}
+}
+
+func TestSearch_PrefixSearch_Recommendation(t *testing.T) {
+	assert := assert.New(t)
+	t.Parallel()
+	s, cleanup := TestServer(t, func(c *Config) {
+		c.NumSchedulers = 0
+	})
+	defer cleanup()
+
+	codec := rpcClient(t, s)
+	testutil.WaitForLeader(t, s.RPC)
+	state := s.fsm.State()
+
+	job := mock.Job()
+	rec := mock.Recommendation(job)
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 1000, job))
+	require.NoError(t, state.UpsertRecommendation(1000, rec))
+
+	prefix := rec.ID[:len(rec.ID)-2]
+
+	req := &structs.SearchRequest{
+		Prefix:  prefix,
+		Context: structs.Recommendations,
+		QueryOptions: structs.QueryOptions{
+			Namespace: structs.DefaultNamespace,
+			Region:    "global",
+		},
+	}
+
+	var resp structs.SearchResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Search.PrefixSearch", req, &resp))
+
+	assert.Equal(1, len(resp.Matches[structs.Recommendations]))
+	assert.Equal(rec.ID, resp.Matches[structs.Recommendations][0])
+	assert.Equal(resp.Truncations[structs.Recommendations], false)
+
+	assert.EqualValues(uint64(1000), resp.Index)
 }
