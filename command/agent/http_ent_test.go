@@ -21,6 +21,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var _ http.Hijacker = &auditResponseWriter{}
+var _ http.Flusher = &auditResponseWriter{}
+
 func TestAuditWrapHTTPHandler(t *testing.T) {
 	t.Parallel()
 
