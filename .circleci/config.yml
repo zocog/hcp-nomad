@@ -768,7 +768,7 @@ jobs:
     - PAGER: cat
   merge-oss:
     docker:
-    - image: docker.mirror.hashicorp.services/golang:1.15.4
+    - image: docker.mirror.hashicorp.services/golang:1.15.5
     working_directory: /go/src/github.com/hashicorp/nomad
     steps:
     - run:
