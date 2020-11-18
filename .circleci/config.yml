@@ -54,9 +54,8 @@ jobs:
         name: Install golang
     - run:
         command: |
-          sudo rm -rf /usr/bin/protoc
-          sudo ./scripts/vagrant-linux-priv-protoc.sh
-        name: install protoc
+          sudo ./scripts/vagrant-linux-priv-buf.sh
+        name: install buf
     - run:
         command: |
           curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
@@ -172,9 +171,8 @@ jobs:
         name: Install golang
     - run:
         command: |
-          sudo rm -rf /usr/bin/protoc
-          sudo ./scripts/vagrant-linux-priv-protoc.sh
-        name: install protoc
+          sudo ./scripts/vagrant-linux-priv-buf.sh
+        name: install buf
     - run:
         command: |
           curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
@@ -290,9 +288,8 @@ jobs:
         name: Install golang
     - run:
         command: |
-          sudo rm -rf /usr/bin/protoc
-          sudo ./scripts/vagrant-linux-priv-protoc.sh
-        name: install protoc
+          sudo ./scripts/vagrant-linux-priv-buf.sh
+        name: install buf
     - run:
         command: |
           curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
@@ -408,9 +405,8 @@ jobs:
         name: Install golang
     - run:
         command: |
-          sudo rm -rf /usr/bin/protoc
-          sudo ./scripts/vagrant-linux-priv-protoc.sh
-        name: install protoc
+          sudo ./scripts/vagrant-linux-priv-buf.sh
+        name: install buf
     - run:
         command: |
           curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
@@ -631,9 +627,8 @@ jobs:
         name: Install golang
     - run:
         command: |
-          sudo rm -rf /usr/bin/protoc
-          sudo ./scripts/vagrant-linux-priv-protoc.sh
-        name: install protoc
+          sudo ./scripts/vagrant-linux-priv-buf.sh
+        name: install buf
     - run:
         command: |
           curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
@@ -741,9 +736,8 @@ jobs:
         command: apt-get update; apt-get install -y shellcheck sudo unzip
     - run:
         command: |
-          sudo rm -rf /usr/bin/protoc
-          sudo ./scripts/vagrant-linux-priv-protoc.sh
-        name: install protoc
+          sudo ./scripts/vagrant-linux-priv-buf.sh
+        name: install buf
     - run:
         command: "CCI_VERSION=\"0.1.5879\"\nCCI_SHA256=\"f178ea62c781aec06267017404f87983c87f171fd0e66ef3737916246ae66dd6\"\n\nURL=\"https://github.com/CircleCI-Public/circleci-cli/releases/download/v${CCI_VERSION}/circleci-cli_${CCI_VERSION}_linux_amd64.tar.gz\"\n\nmkdir -p /tmp/circleci-cli/\ncurl --fail --show-error --location \\\n  -o /tmp/circleci-cli/cli.tar.gz \"${URL}\"\n\necho \"$CCI_SHA256 /tmp/circleci-cli/cli.tar.gz\" | sha256sum -c\n\ntar -xz --strip-components=1 \\\n  -C /tmp/circleci-cli \\\n  -f /tmp/circleci-cli/cli.tar.gz \\\n  \"circleci-cli_${CCI_VERSION}_linux_amd64/circleci\" \n\nsudo cp /tmp/circleci-cli/circleci /usr/bin/circleci-local-cli\n\ncircleci-local-cli version\n"
         name: Install CircleCI CLI 0.1.5879
@@ -1036,9 +1030,8 @@ jobs:
         name: Install golang
     - run:
         command: |
-          sudo rm -rf /usr/bin/protoc
-          sudo ./scripts/vagrant-linux-priv-protoc.sh
-        name: install protoc
+          sudo ./scripts/vagrant-linux-priv-buf.sh
+        name: install buf
     - run:
         command: |
           curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
@@ -1128,9 +1121,8 @@ jobs:
         command: make deps
     - run:
         command: |
-          sudo rm -rf /usr/bin/protoc
-          sudo ./scripts/vagrant-linux-priv-protoc.sh
-        name: install protoc
+          sudo ./scripts/vagrant-linux-priv-buf.sh
+        name: install buf
     - run:
         command: |
           curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
@@ -1292,9 +1284,8 @@ jobs:
         name: Install golang
     - run:
         command: |
-          sudo rm -rf /usr/bin/protoc
-          sudo ./scripts/vagrant-linux-priv-protoc.sh
-        name: install protoc
+          sudo ./scripts/vagrant-linux-priv-buf.sh
+        name: install buf
     - run:
         command: |
           curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
@@ -1382,9 +1373,8 @@ jobs:
         command: make deps
     - run:
         command: |
-          sudo rm -rf /usr/bin/protoc
-          sudo ./scripts/vagrant-linux-priv-protoc.sh
-        name: install protoc
+          sudo ./scripts/vagrant-linux-priv-buf.sh
+        name: install buf
     - run:
         command: sudo -E PATH="$GOPATH/bin:/usr/local/go/bin:$PATH" make generate-structs
     - run:
@@ -1474,9 +1464,8 @@ jobs:
         name: Install golang
     - run:
         command: |
-          sudo rm -rf /usr/bin/protoc
-          sudo ./scripts/vagrant-linux-priv-protoc.sh
-        name: install protoc
+          sudo ./scripts/vagrant-linux-priv-buf.sh
+        name: install buf
     - run:
         command: |
           curl -SL --fail -o /tmp/consul.zip https://releases.hashicorp.com/consul/1.8.3/consul_1.8.3_linux_amd64.zip
