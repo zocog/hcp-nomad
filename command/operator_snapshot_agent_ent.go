@@ -59,7 +59,7 @@ nomad {
 
 ` + snapshotagent.FlagsHelp("nomad") + `
 General Options:
-	` + generalOptionsUsage()
+	` + generalOptionsUsage(usageOptsDefault|usageOptsNoNamespace)
 
 	return strings.TrimSpace(helpText)
 }
