@@ -65,8 +65,7 @@ func (s *StateStore) UpsertSentinelPolicies(index uint64, policies []*structs.Se
 		return fmt.Errorf("index update failed: %v", err)
 	}
 
-	txn.Commit()
-	return nil
+	return txn.Commit()
 }
 
 // DeleteSentinelPolicies deletes the policies with the given names
@@ -83,8 +82,7 @@ func (s *StateStore) DeleteSentinelPolicies(index uint64, names []string) error 
 	if err := txn.Insert("index", &IndexEntry{TableSentinelPolicies, index}); err != nil {
 		return fmt.Errorf("index update failed: %v", err)
 	}
-	txn.Commit()
-	return nil
+	return txn.Commit()
 }
 
 // SentinelPolicyByName is used to lookup a policy by name
@@ -296,8 +294,7 @@ func (s *StateStore) UpsertQuotaSpecs(index uint64, specs []*structs.QuotaSpec) 
 		return fmt.Errorf("index update failed: %v", err)
 	}
 
-	txn.Commit()
-	return nil
+	return txn.Commit()
 }
 
 // DeleteQuotaSpecs deletes the quota specifications with the given names
@@ -338,8 +335,7 @@ func (s *StateStore) DeleteQuotaSpecs(index uint64, names []string) error {
 	if err := txn.Insert("index", &IndexEntry{TableQuotaSpec, index}); err != nil {
 		return fmt.Errorf("index update failed: %v", err)
 	}
-	txn.Commit()
-	return nil
+	return txn.Commit()
 }
 
 // QuotaSpecByName is used to lookup a quota specification by name
@@ -479,8 +475,7 @@ func (s *StateStore) UpsertQuotaUsages(index uint64, usages []*structs.QuotaUsag
 		}
 	}
 
-	txn.Commit()
-	return nil
+	return txn.Commit()
 }
 
 // upsertQuotaUsageImpl is used to create or update a quota usage object and
@@ -655,8 +650,7 @@ func (s *StateStore) DeleteQuotaUsages(index uint64, names []string) error {
 	if err := txn.Insert("index", &IndexEntry{TableQuotaUsage, index}); err != nil {
 		return fmt.Errorf("index update failed: %v", err)
 	}
-	txn.Commit()
-	return nil
+	return txn.Commit()
 }
 
 // deleteQuotaUsageImpl deletes the quota usages with the given name
@@ -760,8 +754,7 @@ func (s *StateStore) UpsertLicense(index uint64, license *structs.StoredLicense)
 	if err := s.upsertLicenseImpl(index, license, txn); err != nil {
 		return err
 	}
-	txn.Commit()
-	return nil
+	return txn.Commit()
 }
 
 func (s *StateStore) upsertLicenseImpl(index uint64, license *structs.StoredLicense, txn *txn) error {
@@ -817,8 +810,7 @@ func (s *StateStore) TmpLicenseSetMeta(index uint64, meta *structs.TmpLicenseMet
 		return errors.Wrap(err, "set tmp license metadata failed")
 	}
 
-	txn.Commit()
-	return nil
+	return txn.Commit()
 }
 
 func (s *StateStore) setTmpLicenseMeta(txn *txn, meta *structs.TmpLicenseMeta) error {
@@ -856,8 +848,7 @@ func (s *StateStore) UpsertRecommendation(index uint64, rec *structs.Recommendat
 		return fmt.Errorf("index update failed: %v", err)
 	}
 
-	txn.Commit()
-	return nil
+	return txn.Commit()
 }
 
 // upsertRecommendation is used to upsert a recommendation
@@ -1077,8 +1068,7 @@ func (s *StateStore) DeleteRecommendations(index uint64, ids []string) error {
 		return nil
 	}
 
-	txn.Commit()
-	return nil
+	return txn.Commit()
 }
 
 // deleteRecommendations deletes recommendations, in a transaction
