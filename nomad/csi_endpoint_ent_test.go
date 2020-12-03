@@ -31,7 +31,7 @@ func TestCSIPluginEndpoint_ACLNamespaceAlloc(t *testing.T) {
 	require.NoError(t, s.UpsertNamespaces(1000, []*structs.Namespace{ns1}))
 
 	// Setup ACLs
-	s.BootstrapACLTokens(1, 0, mock.ACLManagementToken())
+	s.BootstrapACLTokens(structs.MsgTypeTestSetup, 1, 0, mock.ACLManagementToken())
 	srv.config.ACLEnabled = true
 	codec := rpcClient(t, srv)
 	listJob := mock.NamespacePolicy(structs.DefaultNamespace, "", []string{acl.NamespaceCapabilityReadJob})
