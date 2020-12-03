@@ -10,13 +10,13 @@ var MsgTypeEvents = map[structs.MessageType]string{
 	structs.NodeDeregisterRequestType:               structs.TypeNodeDeregistration,
 	structs.UpsertNodeEventsType:                    structs.TypeNodeEvent,
 	structs.EvalUpdateRequestType:                   structs.TypeEvalUpdated,
-	structs.AllocClientUpdateRequestType:            structs.TypeAllocUpdated,
+	structs.AllocClientUpdateRequestType:            structs.TypeAllocationUpdated,
 	structs.JobRegisterRequestType:                  structs.TypeJobRegistered,
-	structs.AllocUpdateRequestType:                  structs.TypeAllocUpdated,
+	structs.AllocUpdateRequestType:                  structs.TypeAllocationUpdated,
 	structs.NodeUpdateStatusRequestType:             structs.TypeNodeEvent,
 	structs.JobDeregisterRequestType:                structs.TypeJobDeregistered,
 	structs.JobBatchDeregisterRequestType:           structs.TypeJobBatchDeregistered,
-	structs.AllocUpdateDesiredTransitionRequestType: structs.TypeAllocUpdateDesiredStatus,
+	structs.AllocUpdateDesiredTransitionRequestType: structs.TypeAllocationUpdateDesiredStatus,
 	structs.NodeUpdateEligibilityRequestType:        structs.TypeNodeDrain,
 	structs.NodeUpdateDrainRequestType:              structs.TypeNodeDrain,
 	structs.BatchNodeUpdateDrainRequestType:         structs.TypeNodeDrain,
@@ -80,11 +80,16 @@ func eventFromChange(change memdb.Change) (structs.Event, bool) {
 			if !ok {
 				return structs.Event{}, false
 			}
+
+			// Node secret ID should not be included
+			node := before.Copy()
+			node.SecretID = ""
+
 			return structs.Event{
 				Topic: structs.TopicNode,
-				Key:   before.ID,
+				Key:   node.ID,
 				Payload: &structs.NodeStreamEvent{
-					Node: before,
+					Node: node,
 				},
 			}, true
 		}
@@ -122,15 +127,15 @@ func eventFromChange(change memdb.Change) (structs.Event, bool) {
 			return structs.Event{}, false
 		}
 		return structs.Event{
-			Topic: structs.TopicEval,
+			Topic: structs.TopicEvaluation,
 			Key:   after.ID,
 			FilterKeys: []string{
 				after.JobID,
 				after.DeploymentID,
 			},
 			Namespace: after.Namespace,
-			Payload: &structs.EvalEvent{
-				Eval: after,
+			Payload: &structs.EvaluationEvent{
+				Evaluation: after,
 			},
 		}, true
 	case "allocs":
@@ -149,12 +154,12 @@ func eventFromChange(change memdb.Change) (structs.Event, bool) {
 		alloc.Job = nil
 
 		return structs.Event{
-			Topic:      structs.TopicAlloc,
+			Topic:      structs.TopicAllocation,
 			Key:        after.ID,
 			FilterKeys: filterKeys,
 			Namespace:  after.Namespace,
-			Payload: &structs.AllocEvent{
-				Alloc: alloc,
+			Payload: &structs.AllocationEvent{
+				Allocation: alloc,
 			},
 		}, true
 	case "jobs":
@@ -175,11 +180,16 @@ func eventFromChange(change memdb.Change) (structs.Event, bool) {
 		if !ok {
 			return structs.Event{}, false
 		}
+
+		// Node secret ID should not be included
+		node := after.Copy()
+		node.SecretID = ""
+
 		return structs.Event{
 			Topic: structs.TopicNode,
-			Key:   after.ID,
+			Key:   node.ID,
 			Payload: &structs.NodeStreamEvent{
-				Node: after,
+				Node: node,
 			},
 		}, true
 	case "deployment":
