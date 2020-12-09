@@ -1356,15 +1356,6 @@ jobs:
     docker:
     - image: docker.mirror.hashicorp.services/golang:1.15.5
     working_directory: /go/src/github.com/hashicorp/nomad
-    environment:
-    - GIT_PAGER: cat
-    - GOMAXPROCS: 1
-    - GOPATH: /go
-    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
-    - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
-    - NOMAD_SLOW_TEST: 1
-    - PAGER: cat
-    - GO_TAGS: ent consulent codegen_generated ui
     steps:
     - checkout
     - run:
@@ -1385,6 +1376,14 @@ jobs:
     - store_artifacts:
         destination: /builds/nomad_linux_amd64.zip
         path: pkg/linux_amd64.zip
+    environment:
+    - GIT_PAGER: cat
+    - GOMAXPROCS: 1
+    - GOPATH: /go
+    - GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
+    - GOTESTSUM_JUNITFILE: /tmp/test-reports/results.xml
+    - NOMAD_SLOW_TEST: 1
+    - PAGER: cat
   test-e2e:
     docker:
     - image: docker.mirror.hashicorp.services/golang:1.15.5

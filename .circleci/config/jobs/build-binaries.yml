@@ -1,6 +1,4 @@
 executor: go
-environment:
-  GO_TAGS: "ent consulent codegen_generated ui"
 steps:
   - checkout
   - run: apt-get update; apt-get install -y sudo unzip zip
