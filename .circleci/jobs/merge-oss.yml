@@ -48,12 +48,12 @@ steps:
           git checkout --theirs CHANGELOG.md
           git checkout --theirs version/version.go
           git checkout --theirs command/agent/bindata_assetfs.go
+          git checkout --theirs .circleci/config.yml
           git checkout --ours   vendor/modules.txt
           git checkout --ours   go.sum
           make sync
-          # Regenerate enterprise Circle CI config to apply changes from OSS merge.
-          rm -f .circleci/config.yml
-          make sync
+
+          # Regenerate enterprise CircleCI config to apply changes from OSS merge
           make -C .circleci CIRCLECI="circleci-local-cli --skip-update-check" config.yml
 
           git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go go.sum vendor/modules.txt .circleci/config.yml
@@ -62,15 +62,6 @@ steps:
           if ! git commit -m "$message"; then
             echo "export FAIL_REASON='because git was unable to auto-merge'" >> $BASH_ENV
             exit 1
-          fi
-        else
-          # regenerate config if necessary even if it merged cleanly
-          rm -f .circleci/config.yml config.yml
-          make -C .circleci CIRCLECI="circleci-local-cli --skip-update-check" config.yml
-
-          if ! git diff --quiet .circleci/config.yml; then
-            git add .circleci/config.yml
-            git commit -m "regenerated CircleCI CI file"
           fi
         fi
 
