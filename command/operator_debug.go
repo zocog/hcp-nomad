@@ -373,9 +373,7 @@ func (c *OperatorDebugCommand) Run(args []string) int {
 			c.serverIDs = append(c.serverIDs, member.Name)
 		}
 	} else {
-		for _, id := range argNodes(serverIDs) {
-			c.serverIDs = append(c.serverIDs, id)
-		}
+		c.serverIDs = append(c.serverIDs, argNodes(serverIDs)...)
 	}
 
 	serversFound := 0
@@ -590,7 +588,7 @@ func (c *OperatorDebugCommand) collectAgentHost(path, id string, client *api.Cli
 
 		if strings.Contains(err.Error(), structs.ErrPermissionDenied.Error()) {
 			// Drop a hint to help the operator resolve the error
-			c.Ui.Warn(fmt.Sprintf("Agent host retrieval requires agent:read ACL or enable_debug=true.  See https://www.nomadproject.io/api-docs/agent#host for more information."))
+			c.Ui.Warn("Agent host retrieval requires agent:read ACL or enable_debug=true.  See https://www.nomadproject.io/api-docs/agent#host for more information.")
 		}
 		return // exit on any error
 	}
@@ -630,11 +628,12 @@ func (c *OperatorDebugCommand) collectPprof(path, id string, client *api.Client)
 			// one permission failure before we bail.
 			// But lets first drop a hint to help the operator resolve the error
 
-			c.Ui.Warn(fmt.Sprintf("Pprof retrieval requires agent:write ACL or enable_debug=true.  See https://www.nomadproject.io/api-docs/agent#agent-runtime-profiles for more information."))
+			c.Ui.Warn("Pprof retrieval requires agent:write ACL or enable_debug=true.  See https://www.nomadproject.io/api-docs/agent#agent-runtime-profiles for more information.")
 			return // only exit on 403
 		}
 	} else {
-		if err := c.writeBytes(path, "profile.prof", bs); err != nil {
+		err := c.writeBytes(path, "profile.prof", bs)
+		if err != nil {
 			c.Ui.Error(err.Error())
 		}
 	}
@@ -643,7 +642,8 @@ func (c *OperatorDebugCommand) collectPprof(path, id string, client *api.Client)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("%s: Failed to retrieve pprof trace.prof, err: %v", path, err))
 	} else {
-		if err := c.writeBytes(path, "trace.prof", bs); err != nil {
+		err := c.writeBytes(path, "trace.prof", bs)
+		if err != nil {
 			c.Ui.Error(err.Error())
 		}
 	}
@@ -652,7 +652,8 @@ func (c *OperatorDebugCommand) collectPprof(path, id string, client *api.Client)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("%s: Failed to retrieve pprof goroutine.prof, err: %v", path, err))
 	} else {
-		if err := c.writeBytes(path, "goroutine.prof", bs); err != nil {
+		err := c.writeBytes(path, "goroutine.prof", bs)
+		if err != nil {
 			c.Ui.Error(err.Error())
 		}
 	}
@@ -664,7 +665,8 @@ func (c *OperatorDebugCommand) collectPprof(path, id string, client *api.Client)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("%s: Failed to retrieve pprof goroutine-debug1.txt, err: %v", path, err))
 	} else {
-		if err := c.writeBytes(path, "goroutine-debug1.txt", bs); err != nil {
+		err := c.writeBytes(path, "goroutine-debug1.txt", bs)
+		if err != nil {
 			c.Ui.Error(err.Error())
 		}
 	}
@@ -677,7 +679,8 @@ func (c *OperatorDebugCommand) collectPprof(path, id string, client *api.Client)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("%s: Failed to retrieve pprof goroutine-debug2.txt, err: %v", path, err))
 	} else {
-		if err := c.writeBytes(path, "goroutine-debug2.txt", bs); err != nil {
+		err := c.writeBytes(path, "goroutine-debug2.txt", bs)
+		if err != nil {
 			c.Ui.Error(err.Error())
 		}
 	}
