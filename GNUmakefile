@@ -1,6 +1,7 @@
 SHELL = bash
 PROJECT_ROOT := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 THIS_OS := $(shell uname | cut -d- -f1)
+THIS_ARCH := $(shell uname -m)
 
 GIT_COMMIT := $(shell git rev-parse HEAD)
 GIT_DIRTY := $(if $(shell git status --porcelain),+CHANGES)
@@ -19,8 +20,7 @@ GOTEST_PKGS=$(shell go list ./... | sed 's/github.com\/hashicorp\/nomad/./' | eg
 endif
 
 # tag corresponding to latest release we maintain backward compatibility with
-# NOTE: using a pre-release, as buf fails to build the latest official release now
-PROTO_COMPARE_TAG ?= v1.0.0-beta3$(if $(findstring ent,$(GO_TAGS)),+ent,)
+PROTO_COMPARE_TAG ?= v1.0.0$(if $(findstring ent,$(GO_TAGS)),+ent,)
 
 default: help
 
@@ -45,6 +45,11 @@ ALL_TARGETS += linux_386 \
 	windows_386 \
 	windows_amd64
 
+endif
+
+# On s390x architecture, we only build for s390x
+ifeq (s390x,$(THIS_ARCH))
+ALL_TARGETS = linux_s390x
 endif
 
 # On MacOS, we only build for MacOS
