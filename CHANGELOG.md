@@ -1,10 +1,23 @@
-## 1.0.1 (Unreleased)
+## 1.0.2 (Unreleased)
 
 IMPROVEMENTS:
  * consul/connect: interpolate the connect, service meta, and service canary meta blocks with the task environment [[GH-9586](https://github.com/hashicorp/nomad/pull/9586)]
 
 BUG FIXES:
+ * template: Fixed a bug where dynamic secrets did not trigger the template `change_mode` after a client restart. [[GH-9636](https://github.com/hashicorp/nomad/issues/9636)]
+
+## 1.0.1 (December 16, 2020)
+
+IMPROVEMENTS:
+ * drivers/docker: Added a new syntax for specifying `mount` [[GH-9635](https://github.com/hashicorp/nomad/issues/9635)]
+
+BUG FIXES:
  * core: Fixed a bug where ACLToken and ACLPolicy changes were ignored by the event stream [[GH-9595](https://github.com/hashicorp/nomad/issues/9595)]
+ * core: Fixed a bug to honor HCL2 variables set by environment variables or variable files [[GH-9592](https://github.com/hashicorp/nomad/issues/9592)] [[GH-9623](https://github.com/hashicorp/nomad/issues/9623)]
+ * cli: Fixed a bug in the node count for the `nomad operator debug` command. [[GH-9625](https://github.com/hashicorp/nomad/pull/9625)]
+ * cni: Fixed a bug where plugins that do not set the interface sandbox value could crash the Nomad client. [[GH-9648](https://github.com/hashicorp/nomad/issues/9648)]
+ * consul/connect: Fixed a bug where client meta.connect.sidecar_image configuration was ignored [[GH-9624](https://github.com/hashicorp/nomad/pull/9624)]
+ * consul/connect: Fixed a bug where client meta.connect.proxy_concurrency was not applied to connect gateways [[GH-9611](https://github.com/hashicorp/nomad/pull/9611)]
 
 ## 1.0.0 (December 8, 2020)
 
@@ -159,6 +172,7 @@ BUG FIXES:
  * csi: Fixed a bug where querying CSI volumes would cause a panic if an allocation that claimed the volume had been garbage collected but the claim was not yet dropped. [[GH-8735](https://github.com/hashicorp/nomad/issues/8735)]
  * deployments (Enterprise): Fixed a bug where counts could not be changed in the web UI for multiregion jobs. [[GH-8685](https://github.com/hashicorp/nomad/issues/8685)]
  * deployments (Enterprise): Fixed a bug in multi-region deployments where a region that was dropped from the jobspec was not deregistered. [[GH-8763](https://github.com/hashicorp/nomad/issues/8763)]
+ * docker: Fixed a bug where configuring DNS options in `bridge` or `cni` mode would prevent the container from being created. [[GH-8600](https://github.com/hashicorp/nomad/issues/8600)]
  * exec: Fixed a bug causing escape characters to be missed in special cases [[GH-8798](https://github.com/hashicorp/nomad/issues/8798)]
  * plan: Fixed a bug where plans always included a change for the `NomadTokenID`. [[GH-8687](https://github.com/hashicorp/nomad/issues/8687)]
 
