@@ -35,6 +35,9 @@ means `""` for strings, `0` for integer or float values, and `false` for
 booleans. Since empty values are ignored you cannot disable a parameter like
 `server` mode once you've enabled it.
 
+Please note that `plugin` blocks for a given plugin always replace and
+override each other, rather than being merged.
+
 Here is an example Nomad agent configuration that runs in both client and server
 mode.
 
@@ -311,6 +314,26 @@ testing.
 - `vault` `(`[`Vault`]`: nil)` - Specifies configuration for
   connecting to Vault.
 
+## Configuration Reload
+
+You can send the Nomad process a `SIGHUP` signal to reload a limited subset of
+its configuration. The fields that currently support reloading are:
+
+- [`log_level`](#log_level): the log level is reloaded but not any other
+  logging configuration value.
+- [`tls`][tls-reload]: note this only reloads the TLS configuration between
+  Nomad agents (servers and clients), and not the TLS configuration for
+  communication with Consul or Vault.
+- [`vault`][vault-reload]: note this only reloads the TLS configuration
+  between Nomad and Vault, but not other configuration values.
+
+In order to reload any other configuration values, you must restart the Nomad
+agent.
+
+If the Nomad agent receives a `SIGHUP` during initialization, it may crash
+(see [GH-3885]). Ensure that the Nomad agent is able to receive RPC traffic
+before attempting to reload its configuration.
+
 ## Examples
 
 ### Custom Region and Datacenter
@@ -345,3 +368,6 @@ http_api_response_headers {
 [go-sockaddr/template]: https://godoc.org/github.com/hashicorp/go-sockaddr/template
 [log-api]: /api-docs/client#stream-logs
 [hcl]: https://github.com/hashicorp/hcl 'HashiCorp Configuration Language'
+[tls-reload]: /docs/configuration/tls#tls-configuration-reloads
+[vault-reload]: /docs/configuration/vault#vault-configuration-reloads
+[GH-3885]: https://github.com/hashicorp/nomad/issues/3885
