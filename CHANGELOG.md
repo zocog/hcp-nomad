@@ -7,12 +7,14 @@ IMPROVEMENTS:
 
 BUG FIXES:
  * client: Fixed a bug where clients configured with `cpu_total_compute` did not update the `cpu.totalcompute` node attribute. [[GH-9532](https://github.com/hashicorp/nomad/issues/9532)]
+ * core: Fixed a bug where an in place update dropped an allocations shared allocated resources [[GH-9736](https://github.com/hashicorp/nomad/issues/9736)]
  * consul: Fixed a bug where updating a task to include services would not work [[GH-9707](https://github.com/hashicorp/nomad/issues/9707)]
  * consul: Fixed alloc address mode port advertisement to use the mapped `to` port value [[GH-9730](https://github.com/hashicorp/nomad/issues/9730)]
  * consul/connect: Fixed a bug where absent ingress envoy proxy configuration could panic client [[GH-9669](https://github.com/hashicorp/nomad/issues/9669)]
  * consul/connect: Fixed a bug where in-place upgrade of Nomad client running Connect enabled jobs would panic [[GH-9738](https://github.com/hashicorp/nomad/issues/9738)]
  * template: Fixed multiple issues in template src/dest and artifact dest interpolation [[GH-9671](https://github.com/hashicorp/nomad/issues/9671)]
  * template: Fixed a bug where dynamic secrets did not trigger the template `change_mode` after a client restart. [[GH-9636](https://github.com/hashicorp/nomad/issues/9636)]
+ * scaling: Fixed a bug where job scaling endpoint did not enforce scaling policy min/max [[GH-9761](https://github.com/hashicorp/nomad/issues/9761)]
  * server: Fixed a bug where new servers may bootstrap prematurely when configured with `bootstrap_expect = 0`.
 
 ## 1.0.1 (December 16, 2020)
