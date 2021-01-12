@@ -3,11 +3,13 @@
 IMPROVEMENTS:
  * artifact: Added support for virtual host style AWS S3 paths. [[GH-9050](https://github.com/hashicorp/nomad/issues/9050)]
  * build: Updated to Go 1.15.6. [[GH-9686](https://github.com/hashicorp/nomad/issues/9686)]
- * consul/connect: interpolate the connect, service meta, and service canary meta blocks with the task environment [[GH-9586](https://github.com/hashicorp/nomad/pull/9586)]
+ * client: Improve support for AWS Graviton instances [[GH-7989](https://github.com/hashicorp/nomad/issues/7989)]
+ * consul/connect: Interpolate the connect, service meta, and service canary meta blocks with the task environment [[GH-9586](https://github.com/hashicorp/nomad/pull/9586)]
 
 BUG FIXES:
  * client: Fixed a bug where non-`docker` tasks with network isolation were restarted on client restart. [[GH-9757](https://github.com/hashicorp/nomad/issues/9757)]
  * client: Fixed a bug where clients configured with `cpu_total_compute` did not update the `cpu.totalcompute` node attribute. [[GH-9532](https://github.com/hashicorp/nomad/issues/9532)]
+ * client: Fixed an fingerprinter issue detecting bridge kernel module on RHEL [[GH-9776](https://github.com/hashicorp/nomad/issues/9776)]
  * core: Fixed a bug where an in place update dropped an allocations shared allocated resources [[GH-9736](https://github.com/hashicorp/nomad/issues/9736)]
  * consul: Fixed a bug where updating a task to include services would not work [[GH-9707](https://github.com/hashicorp/nomad/issues/9707)]
  * consul: Fixed alloc address mode port advertisement to use the mapped `to` port value [[GH-9730](https://github.com/hashicorp/nomad/issues/9730)]
@@ -17,6 +19,7 @@ BUG FIXES:
  * template: Fixed a bug where dynamic secrets did not trigger the template `change_mode` after a client restart. [[GH-9636](https://github.com/hashicorp/nomad/issues/9636)]
  * scaling: Fixed a bug where job scaling endpoint did not enforce scaling policy min/max [[GH-9761](https://github.com/hashicorp/nomad/issues/9761)]
  * server: Fixed a bug where new servers may bootstrap prematurely when configured with `bootstrap_expect = 0`.
+ * ui: The topology visualization will now render a subset of nodes instead of nothing when some nodes are running nomad <0.9.0 [[GH-9733](https://github.com/hashicorp/nomad/issues/9733)]
 
 ## 1.0.1 (December 16, 2020)
 
