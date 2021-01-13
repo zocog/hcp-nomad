@@ -229,13 +229,47 @@ jobs:
     - run: make deps
     - install-buf
     - run: sudo -E PATH="$GOPATH/bin:/usr/local/go/bin:$PATH" make generate-structs
-    - run: make pkg/windows_amd64.zip pkg/linux_amd64.zip
+    - run:
+        command: git log -n 1 --pretty=format:%H ui > /tmp/ui-sha
+        name: prepare ui cache
+    - restore_cache:
+        keys:
+        - v1-binary-ui-assets-linux-{{ checksum "/tmp/ui-sha" }}
+        name: restore compiled ui assets
+    - run:
+        command: |
+          if [[ -f /tmp/ui-assets/bindata_assetfs.go ]]; then
+            cp /tmp/ui-assets/bindata_assetfs.go ./command/agent/bindata_assetfs.go
+            exit 0
+          fi
+
+          ./scripts/vagrant-linux-unpriv-ui.sh
+
+          export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
+          export PATH="$GOPATH/bin:/usr/local/go/bin:$PATH"
+          . ~/.nvm/nvm.sh
+          cd ui && yarn install --frozen-lockfile && cd ..
+          JOBS=2 make ember-dist static-assets
+
+          mkdir -p /tmp/ui-assets
+          cp ./command/agent/bindata_assetfs.go /tmp/ui-assets/bindata_assetfs.go
+        name: prepare ui
+    - save_cache:
+        key: v1-binary-ui-assets-linux-{{ checksum "/tmp/ui-sha" }}
+        name: save compiled ui assets
+        paths:
+        - /tmp/ui-assets
+    - run:
+        command: |
+          export GO_TAGS="ui $(grep 'GO_TAGS ?=' ./GNUmakefile | cut -d= -f2)"
+          make pkg/windows_amd64.zip pkg/linux_amd64.zip
+        name: build binaries
     - store_artifacts:
-        destination: /builds/nomad_windows_amd64.zip
-        path: pkg/windows_amd64.zip
+        destination: /builds
+        path: pkg
     - store_artifacts:
-        destination: /builds/nomad_linux_amd64.zip
-        path: pkg/linux_amd64.zip
+        destination: /ui-assets
+        path: /tmp/ui-assets
   build-darwin-binaries:
     executor: go-macos
     steps:
@@ -249,7 +283,42 @@ jobs:
     - run: source ${BASH_ENV} && make deps
     - run: brew install protobuf
     - run: PATH="$GOPATH/bin:${HOME}/goinstall/go/bin:$PATH" make generate-structs
-    - run: source ${BASH_ENV} && make pkg/darwin_amd64.zip
+    - run:
+        command: git log -n 1 --pretty=format:%H ui > /tmp/ui-sha
+        name: prepare ui cache
+    - restore_cache:
+        keys:
+        - v1-binary-ui-assets-darwin-{{ checksum "/tmp/ui-sha" }}
+        name: restore compiled ui assets
+    - run:
+        command: |
+          if [[ -f ~/caches/ui-assets/bindata_assetfs.go ]]; then
+            cp ~/caches/ui-assets/bindata_assetfs.go ./command/agent/bindata_assetfs.go
+            exit 0
+          fi
+
+          ./scripts/vagrant-linux-unpriv-ui.sh
+
+          export PATH="$GOPATH/bin:/usr/local/go/bin:$PATH"
+          source ${BASH_ENV}
+          . ~/.nvm/nvm.sh
+          cd ui && yarn install --frozen-lockfile && cd ..
+          JOBS=2 make ember-dist static-assets
+
+          mkdir -p ~/caches/ui-assets
+          cp ./command/agent/bindata_assetfs.go ~/caches/ui-assets/bindata_assetfs.go
+        name: prepare ui
+    - save_cache:
+        key: v1-binary-ui-assets-darwin-{{ checksum "/tmp/ui-sha" }}
+        name: save compiled ui assets
+        paths:
+        - ~/caches/ui-assets
+    - run:
+        command: |
+          source ${BASH_ENV}
+          export GO_TAGS="ui $(grep 'GO_TAGS ?=' ./GNUmakefile | cut -d= -f2)"
+          make pkg/darwin_amd64.zip
+        name: build binaries
     - store_artifacts:
         destination: /builds/nomad_darwin_amd64.zip
         path: pkg/darwin_amd64.zip
