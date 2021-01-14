@@ -261,7 +261,7 @@ jobs:
         - /tmp/ui-assets
     - run:
         command: |
-          export GO_TAGS="ui $(grep 'GO_TAGS ?=' ./GNUmakefile | cut -d= -f2)"
+          export GO_TAGS="ui $(grep -e '^GO_TAGS ?=' ./GNUmakefile | cut -d= -f2)"
           make pkg/windows_amd64.zip pkg/linux_amd64.zip
         name: build binaries
     - store_artifacts:
@@ -316,7 +316,7 @@ jobs:
     - run:
         command: |
           source ${BASH_ENV}
-          export GO_TAGS="ui $(grep 'GO_TAGS ?=' ./GNUmakefile | cut -d= -f2)"
+          export GO_TAGS="ui $(grep -e '^GO_TAGS ?=' ./GNUmakefile | cut -d= -f2)"
           make pkg/darwin_amd64.zip
         name: build binaries
     - store_artifacts:
