@@ -3,10 +3,8 @@
 package scheduler
 
 import (
-	"fmt"
 	"testing"
 
-	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/stretchr/testify/assert"
@@ -77,66 +75,6 @@ func TestQuotaIterator_AboveQuota(t *testing.T) {
 	// Check that it marks the dimension that is exhausted
 	assert.Len(ctx.Metrics().QuotaExhausted, 1)
 	assert.Contains(ctx.Metrics().QuotaExhausted[0], "cpu")
-
-	// Check it marks the quota limit being reached
-	elig := ctx.Eligibility()
-	assert.NotNil(elig)
-	assert.Equal(qs.Name, elig.QuotaLimitReached())
-}
-
-func TestQuotaIterator_AboveQuotaNetwork(t *testing.T) {
-	assert := assert.New(t)
-	state, ctx := testContext(t)
-
-	// Create the quota spec
-	qs := &structs.QuotaSpec{
-		Name:        fmt.Sprintf("quota-spec-%s", uuid.Generate()),
-		Description: "quota with network",
-		Limits: []*structs.QuotaLimit{
-			{
-				Region: "global",
-				RegionLimit: &structs.Resources{
-					CPU:      2000,
-					MemoryMB: 2000,
-					Networks: structs.Networks{{
-						MBits: 100,
-					}},
-				},
-			},
-		},
-	}
-	qs.SetHash()
-	assert.Nil(state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
-
-	// Create the namespace
-	ns := mock.Namespace()
-	ns.Quota = qs.Name
-	assert.Nil(state.UpsertNamespaces(200, []*structs.Namespace{ns}))
-
-	// Create the job
-	job := mock.Job()
-	job.Namespace = ns.Name
-
-	// Bump the resource usage
-	job.TaskGroups[0].Tasks[0].Resources.Networks = structs.Networks{{
-		MBits: 3000,
-	}}
-
-	// Create the source
-	nodes := []*structs.Node{mock.Node()}
-	static := NewStaticIterator(ctx, nodes)
-
-	// Create the quota iterator
-	quota := NewQuotaIterator(ctx, static)
-	contextual := quota.(ContextualIterator)
-	contextual.SetJob(job)
-	contextual.SetTaskGroup(job.TaskGroups[0])
-	quota.Reset()
-	assert.Len(collectFeasible(quota), 0)
-
-	// Check that it marks the dimension that is exhausted
-	assert.Len(ctx.Metrics().QuotaExhausted, 1)
-	assert.Contains(ctx.Metrics().QuotaExhausted[0], "network")
 
 	// Check it marks the quota limit being reached
 	elig := ctx.Eligibility()

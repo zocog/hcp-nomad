@@ -374,8 +374,12 @@ func (q *QuotaLimit) SetHash() []byte {
 		binary.Write(hash, binary.LittleEndian, int64(q.RegionLimit.CPU))
 		binary.Write(hash, binary.LittleEndian, int64(q.RegionLimit.MemoryMB))
 
-		// If the network region limit is not set, omit it from the hash for
-		// backwards compatibility. Quotas are stored with their hashes
+		// Quotas created in version 0.12.x and prior could have a mbits resource
+		// This field was deprecated, but to keep backwards compatibility and not
+		// break the QuotaUsage hash maps with older quotas mbits must be added
+		// to the hash if set.
+		// Note that mbits would only be set by existing quotas and is no longer
+		// enforced.
 		mbits := 0
 		if len(q.RegionLimit.Networks) > 0 {
 			mbits = q.RegionLimit.Networks[0].MBits
@@ -408,18 +412,8 @@ func (q *QuotaLimit) Validate() error {
 			mErr.Errors = append(mErr.Errors, fmt.Errorf("quota can not limit disk"))
 		}
 
-		// limit Networks must have 1 element, which can only specify MBits
-		if len(q.RegionLimit.Networks) > 1 {
-			mErr.Errors = append(mErr.Errors, fmt.Errorf("only one network block per limit"))
-		} else if len(q.RegionLimit.Networks) == 1 {
-			n := q.RegionLimit.Networks[0]
-			if !(n.Device == "" &&
-				n.CIDR == "" &&
-				n.IP == "" &&
-				len(n.ReservedPorts) == 0 &&
-				len(n.DynamicPorts) == 0) {
-				mErr.Errors = append(mErr.Errors, fmt.Errorf("only network mbits may be limited"))
-			}
+		if len(q.RegionLimit.Networks) > 0 {
+			mErr.Errors = append(mErr.Errors, fmt.Errorf("quota can not limit networks"))
 		}
 	}
 
@@ -460,54 +454,12 @@ func (q *QuotaLimit) Subtract(alloc *Allocation) {
 func (q *QuotaLimit) AddResource(r *Resources) {
 	q.RegionLimit.CPU += r.CPU
 	q.RegionLimit.MemoryMB += r.MemoryMB
-
-	if len(r.Networks) == 0 {
-		return
-	}
-
-	// If bits were claimed by this resource, add them
-	bits := 0
-	for _, n := range r.Networks {
-		bits += n.MBits
-	}
-
-	if bits == 0 {
-		return
-	}
-
-	if q.RegionLimit.Networks == nil {
-		q.RegionLimit.Networks = Networks{{}}
-	}
-	q.RegionLimit.Networks[0].MBits += bits
 }
 
 // SubtractResource removes the resources to the QuotaLimit
 func (q *QuotaLimit) SubtractResource(r *Resources) {
 	q.RegionLimit.CPU -= r.CPU
 	q.RegionLimit.MemoryMB -= r.MemoryMB
-
-	if len(r.Networks) == 0 {
-		return
-	}
-
-	if q.RegionLimit.Networks == nil {
-		q.RegionLimit.Networks = Networks{{}}
-	}
-
-	bits := q.RegionLimit.Networks[0].MBits
-	for _, n := range r.Networks {
-		bits -= n.MBits
-	}
-
-	// If this limit was persisted without Networks, subtracting the bits specified in
-	// the resource here will result in negative usage. (CPU and MemoryMB don't need
-	// this check because they have always been specified in the limit and so have been
-	// added already)
-	if bits < 0 {
-		bits = 0
-	}
-
-	q.RegionLimit.Networks[0].MBits = bits
 }
 
 // Superset returns if this quota is a super set of another. This is typically
@@ -530,17 +482,6 @@ func (q *QuotaLimit) Superset(other *QuotaLimit) (bool, []string) {
 		exhausted = append(exhausted, fmt.Sprintf("memory exhausted (%d needed > 0 limit)", or.MemoryMB))
 	} else if r.MemoryMB != 0 && r.MemoryMB < or.MemoryMB {
 		exhausted = append(exhausted, fmt.Sprintf("memory exhausted (%d needed > %d limit)", or.MemoryMB, r.MemoryMB))
-	}
-
-	if len(r.Networks) > 0 && len(or.Networks) > 0 && r.Networks[0].MBits != 0 {
-		rmb := r.Networks[0].MBits
-		omb := or.Networks[0].MBits
-		if rmb < 0 {
-			rmb = 0
-		}
-		if rmb < omb {
-			exhausted = append(exhausted, fmt.Sprintf("network exhausted (%d needed > %d limit)", omb, rmb))
-		}
 	}
 
 	return len(exhausted) == 0, exhausted

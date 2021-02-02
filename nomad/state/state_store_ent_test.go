@@ -1087,7 +1087,7 @@ func TestStateStore_UpsertAllocs_Quota_NewAlloc(t *testing.T) {
 	r := mock.Alloc().Resources
 	expected.Add(r)
 	expected.Add(r)
-	expected.Networks[0] = &structs.NetworkResource{MBits: expected.Networks[0].MBits}
+	expected.Networks = nil
 	expected.DiskMB = 0
 	expected.IOPS = 0
 	assert.Equal(expected, used.RegionLimit)
@@ -1194,7 +1194,7 @@ func TestStateStore_UpsertAllocs_Quota_StopAlloc(t *testing.T) {
 	used := usage.Used[string(qs.Limits[0].Hash)]
 	assert.NotNil(used)
 	assert.Equal("global", used.Region)
-	expected := &structs.Resources{Networks: structs.Networks{{}}}
+	expected := &structs.Resources{}
 	assert.Equal(expected, used.RegionLimit)
 }
 
@@ -1297,7 +1297,7 @@ func TestStateStore_UpdateAllocsFromClient_Quota_StopAlloc(t *testing.T) {
 	used := usage.Used[string(qs.Limits[0].Hash)]
 	assert.NotNil(used)
 	assert.Equal("global", used.Region)
-	expected := &structs.Resources{Networks: structs.Networks{{}}}
+	expected := &structs.Resources{}
 	assert.Equal(expected, used.RegionLimit)
 }
 
@@ -1368,7 +1368,7 @@ func TestStateStore_UpsertNamespaces_NewQuota(t *testing.T) {
 	assert.Equal("global", used.Region)
 
 	// Clear fields unused by QuotaLimits
-	expected.Networks[0] = &structs.NetworkResource{MBits: expected.Networks[0].MBits}
+	expected.Networks = nil
 	expected.DiskMB = 0
 	expected.IOPS = 0
 	assert.Equal(expected, used.RegionLimit)
@@ -1488,7 +1488,6 @@ func TestStateStore_UpsertNamespaces_ChangeQuota(t *testing.T) {
 	expected = &structs.Resources{
 		CPU:      a1.Resources.CPU,
 		MemoryMB: a1.Resources.MemoryMB,
-		Networks: structs.Networks{{MBits: a1.Resources.Networks[0].MBits}},
 	}
 	assert.Equal(expected, used.RegionLimit)
 }
@@ -1641,7 +1640,7 @@ func TestStateStore_UpsertQuotaSpec_Usage(t *testing.T) {
 	used := usage.Used[string(limits[0].Hash)]
 	assert.NotNil(used)
 	assert.Equal("global", used.Region)
-	expected.Networks[0] = &structs.NetworkResource{MBits: expected.Networks[0].MBits}
+	expected.Networks = nil
 	expected.DiskMB = 0
 	expected.IOPS = 0
 	assert.Equal(expected, used.RegionLimit)

@@ -249,22 +249,6 @@ func TestQuotaSpec_Validate(t *testing.T) {
 			},
 		},
 		{
-			Name: "valid with network",
-			Spec: &QuotaSpec{
-				Name: "valid-with-network",
-				Limits: []*QuotaLimit{
-					{
-						Region: "foo",
-						RegionLimit: &Resources{
-							Networks: []*NetworkResource{
-								{MBits: 45},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
 			Name: "invalid network cidr",
 			Spec: &QuotaSpec{
 				Name: "invalid-network-cidr",
@@ -280,7 +264,7 @@ func TestQuotaSpec_Validate(t *testing.T) {
 				},
 			},
 			Errors: []string{
-				"only network mbits may be limited",
+				"can not limit networks",
 			},
 		},
 	}
