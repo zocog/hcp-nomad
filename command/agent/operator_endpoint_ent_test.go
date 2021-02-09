@@ -53,7 +53,7 @@ func TestOperator_GetLicense(t *testing.T) {
 			require.NoError(t, err)
 
 			resp := httptest.NewRecorder()
-			lic, err := s.Server.OperatorLicenseRequest(resp, req)
+			lic, err := s.Server.LicenseRequest(resp, req)
 			require.NoError(t, err)
 			require.Equal(t, resp.Code, 200)
 
@@ -93,7 +93,7 @@ func TestOperator_PutLicense(t *testing.T) {
 		require.NoError(t, err)
 
 		resp := httptest.NewRecorder()
-		lic, err := s.Server.OperatorLicenseRequest(resp, req)
+		lic, err := s.Server.LicenseRequest(resp, req)
 		require.Error(t, err)
 		require.Nil(t, lic)
 	})
@@ -107,7 +107,7 @@ func TestOperator_PutLicense(t *testing.T) {
 		require.NoError(t, err)
 
 		resp := httptest.NewRecorder()
-		lic, err := s.Server.OperatorLicenseRequest(resp, req)
+		lic, err := s.Server.LicenseRequest(resp, req)
 		require.Error(t, err)
 		require.Nil(t, lic)
 	})
@@ -122,7 +122,7 @@ func TestOperator_License_UnknownVerb(t *testing.T) {
 		require.NoError(t, err)
 
 		resp := httptest.NewRecorder()
-		lic, err := s.Server.OperatorLicenseRequest(resp, req)
+		lic, err := s.Server.LicenseRequest(resp, req)
 		require.Error(t, err)
 		require.Nil(t, lic)
 
