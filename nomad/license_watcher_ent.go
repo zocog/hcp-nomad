@@ -63,7 +63,7 @@ type LicenseWatcher struct {
 	// logTimes tracks the last time we sent a log message for a feature
 	logTimes map[license.Features]time.Time
 
-	establishTmpLicenseMetaFn func() (int64, error)
+	establishTmpLicenseBarrierFn func() (int64, error)
 
 	stateStoreFn stateStoreFn
 }
@@ -72,7 +72,7 @@ func NewLicenseWatcher(
 	logger hclog.InterceptLogger,
 	cfg *LicenseConfig,
 	shutdownCallback func() error,
-	tmpLicenseMetaFn func() (int64, error),
+	tmpLicenseBarrierFn func() (int64, error),
 	stateStoreFn stateStoreFn,
 ) (*LicenseWatcher, error) {
 	// Configure the setup options for the license watcher
@@ -95,15 +95,15 @@ func NewLicenseWatcher(
 	ctx, cancel := context.WithCancel(context.Background())
 
 	lw := &LicenseWatcher{
-		watcher:                   watcher,
-		shutdownCallback:          shutdownCallback,
-		expiredTmpGrace:           defaultExpiredTmpGrace,
-		monitorExpTmpCtx:          ctx,
-		monitorExpTmpCancel:       cancel,
-		logger:                    logger.Named("licensing"),
-		logTimes:                  make(map[license.Features]time.Time),
-		establishTmpLicenseMetaFn: tmpLicenseMetaFn,
-		stateStoreFn:              stateStoreFn,
+		watcher:                      watcher,
+		shutdownCallback:             shutdownCallback,
+		expiredTmpGrace:              defaultExpiredTmpGrace,
+		monitorExpTmpCtx:             ctx,
+		monitorExpTmpCancel:          cancel,
+		logger:                       logger.Named("licensing"),
+		logTimes:                     make(map[license.Features]time.Time),
+		establishTmpLicenseBarrierFn: tmpLicenseBarrierFn,
+		stateStoreFn:                 stateStoreFn,
 	}
 
 	lw.license.Store(nomadTmpLicense)
@@ -202,11 +202,11 @@ func (w *LicenseWatcher) watch(ctx context.Context) {
 	state := w.stateStoreFn()
 	stateAbandonCh := state.AbandonCh()
 
-	// Block for the temporary license metadata to be populated to raft
+	// Block for the temporary license barrier to be populated to raft
 	// This value is used to check if a temporary license is within
 	// the initial 6 hour evaluation period
-	tmpLicenseInitTime := w.getOrSetTmpLicenseMeta(ctx, state)
-	w.logger.Info("received temporary license metadata", "init time", tmpLicenseInitTime)
+	tmpLicenseInitTime := w.getOrSetTmpLicenseBarrier(ctx, state)
+	w.logger.Info("received temporary license barrier", "init time", tmpLicenseInitTime)
 
 	// paidLicense indicates if a valid, non-temporary license has been set.
 	// If true, agent should not be shutdown.
@@ -313,20 +313,20 @@ func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, 
 	}
 }
 
-func (w *LicenseWatcher) getOrSetTmpLicenseMeta(ctx context.Context, state *state.StateStore) time.Time {
+func (w *LicenseWatcher) getOrSetTmpLicenseBarrier(ctx context.Context, state *state.StateStore) time.Time {
 	interval := time.After(0 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
-			w.logger.Warn("context cancelled while waiting for temporary license metadata")
+			w.logger.Warn("context cancelled while waiting for temporary license barrier")
 			return time.Now()
 		case err := <-w.watcher.ErrorCh():
 			w.logger.Warn("received error from license watcher", "err", err)
 			return time.Now()
 		case <-interval:
-			tmpCreateTime, err := w.establishTmpLicenseMetaFn()
+			tmpCreateTime, err := w.establishTmpLicenseBarrierFn()
 			if err != nil {
-				w.logger.Info("failed to get or set temporary license metadata, retrying...", "error", err)
+				w.logger.Info("failed to get or set temporary license barrier, retrying...", "error", err)
 				interval = time.After(2 * time.Second)
 				continue
 			}

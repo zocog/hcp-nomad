@@ -5,12 +5,12 @@ package state
 import memdb "github.com/hashicorp/go-memdb"
 
 const (
-	TableSentinelPolicies = "sentinel_policy"
-	TableQuotaSpec        = "quota_spec"
-	TableQuotaUsage       = "quota_usage"
-	TableLicense          = "license"
-	TableTmpLicenseMeta   = "tmp_license"
-	TableRecommendations  = "recommendations"
+	TableSentinelPolicies  = "sentinel_policy"
+	TableQuotaSpec         = "quota_spec"
+	TableQuotaUsage        = "quota_usage"
+	TableLicense           = "license"
+	TableTmpLicenseBarrier = "tmp_license"
+	TableRecommendations   = "recommendations"
 )
 
 func init() {
@@ -20,7 +20,7 @@ func init() {
 		quotaSpecTableSchema,
 		quotaUsageTableSchema,
 		licenseTableSchema,
-		tmpLicenseMetaSchema,
+		tmpLicenseBarrierSchema,
 		recommendationTableSchema,
 	}...)
 }
@@ -105,9 +105,9 @@ func licenseTableSchema() *memdb.TableSchema {
 	}
 }
 
-func tmpLicenseMetaSchema() *memdb.TableSchema {
+func tmpLicenseBarrierSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: TableTmpLicenseMeta,
+		Name: TableTmpLicenseBarrier,
 		Indexes: map[string]*memdb.IndexSchema{
 			"id": {
 				Name:         "id",

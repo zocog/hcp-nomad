@@ -1956,35 +1956,35 @@ func TestStateStore_UpsertLicense(t *testing.T) {
 	require.Equal(t, out, stored)
 }
 
-func TestStateStore_UpsertTmpLicenseMeta(t *testing.T) {
+func TestStateStore_UpsertTmpLicenseBarrier(t *testing.T) {
 	t.Parallel()
 	state := testStateStore(t)
 
-	stored := &structs.TmpLicenseMeta{CreateTime: time.Now().UnixNano()}
+	stored := &structs.TmpLicenseBarrier{CreateTime: time.Now().UnixNano()}
 
-	assert.Nil(t, state.TmpLicenseSetMeta(1000, stored))
+	assert.Nil(t, state.TmpLicenseSetBarrier(1000, stored))
 
 	ws := memdb.NewWatchSet()
-	out, err := state.TmpLicenseMeta(ws)
+	out, err := state.TmpLicenseBarrier(ws)
 	require.NoError(t, err)
 	require.Equal(t, out, stored)
 }
 
-func TestStateStore_RestoreTmpLicenseMeta(t *testing.T) {
+func TestStateStore_RestoreTmpLicenseBarrier(t *testing.T) {
 	assert := assert.New(t)
 	state := testStateStore(t)
 
-	meta := &structs.TmpLicenseMeta{CreateTime: time.Now().UnixNano()}
+	meta := &structs.TmpLicenseBarrier{CreateTime: time.Now().UnixNano()}
 
 	restore, err := state.Restore()
 	assert.Nil(err)
 
-	err = restore.TmpLicenseMetaRestore(meta)
+	err = restore.TmpLicenseBarrierRestore(meta)
 	assert.Nil(err)
 	restore.Commit()
 
 	ws := memdb.NewWatchSet()
-	out, err := state.TmpLicenseMeta(ws)
+	out, err := state.TmpLicenseBarrier(ws)
 	assert.Nil(err)
 	assert.Equal(meta, out)
 }

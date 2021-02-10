@@ -17,12 +17,12 @@ import (
 // Offset the Nomad Pro specific values so that we don't overlap
 // the OSS/Enterprise values.
 const (
-	SentinelPolicySnapshot SnapshotType = 65
-	QuotaSpecSnapshot      SnapshotType = 66
-	QuotaUsageSnapshot     SnapshotType = 67
-	LicenseSnapshot        SnapshotType = 68
-	TmpLicenseMetaSnapshot SnapshotType = 69
-	RecommendationSnapshot SnapshotType = 70
+	SentinelPolicySnapshot    SnapshotType = 65
+	QuotaSpecSnapshot         SnapshotType = 66
+	QuotaUsageSnapshot        SnapshotType = 67
+	LicenseSnapshot           SnapshotType = 68
+	TmpLicenseBarrierSnapshot SnapshotType = 69
+	RecommendationSnapshot    SnapshotType = 70
 )
 
 // registerEntLogAppliers registers all the Nomad Enterprise Raft log appliers
@@ -32,7 +32,7 @@ func (n *nomadFSM) registerEntLogAppliers() {
 	n.enterpriseAppliers[structs.QuotaSpecUpsertRequestType] = n.applyQuotaSpecUpsert
 	n.enterpriseAppliers[structs.QuotaSpecDeleteRequestType] = n.applyQuotaSpecDelete
 	n.enterpriseAppliers[structs.LicenseUpsertRequestType] = n.applyLicenseUpsert
-	n.enterpriseAppliers[structs.TmpLicenseUpsertRequestType] = n.applyTmpLicenseMetaUpsert
+	n.enterpriseAppliers[structs.TmpLicenseUpsertRequestType] = n.applyTmpLicenseBarrierUpsert
 	n.enterpriseAppliers[structs.RecommendationUpsertRequestType] = n.applyRecommendationUpsert
 	n.enterpriseAppliers[structs.RecommendationDeleteRequestType] = n.applyRecommendationDelete
 }
@@ -43,7 +43,7 @@ func (n *nomadFSM) registerEntSnapshotRestorers() {
 	n.enterpriseRestorers[QuotaSpecSnapshot] = restoreQuotaSpec
 	n.enterpriseRestorers[QuotaUsageSnapshot] = restoreQuotaUsage
 	n.enterpriseRestorers[LicenseSnapshot] = restoreLicense
-	n.enterpriseRestorers[TmpLicenseMetaSnapshot] = restoreTmpLicenseMeta
+	n.enterpriseRestorers[TmpLicenseBarrierSnapshot] = restoreTmpLicenseBarrier
 	n.enterpriseRestorers[RecommendationSnapshot] = restoreRecommendation
 }
 
@@ -56,12 +56,12 @@ func restoreLicense(restore *state.StateRestore, dec *codec.Decoder) error {
 	return restore.LicenseRestore(license)
 }
 
-func restoreTmpLicenseMeta(restore *state.StateRestore, dec *codec.Decoder) error {
-	meta := new(structs.TmpLicenseMeta)
+func restoreTmpLicenseBarrier(restore *state.StateRestore, dec *codec.Decoder) error {
+	meta := new(structs.TmpLicenseBarrier)
 	if err := dec.Decode(meta); err != nil {
 		return err
 	}
-	return restore.TmpLicenseMetaRestore(meta)
+	return restore.TmpLicenseBarrierRestore(meta)
 }
 
 // applySentinelPolicyUpsert is used to upsert a set of policies
@@ -169,14 +169,14 @@ func (n *nomadFSM) applyLicenseUpsert(buf []byte, index uint64) interface{} {
 	return nil
 }
 
-func (n *nomadFSM) applyTmpLicenseMetaUpsert(buf []byte, index uint64) interface{} {
-	defer metrics.MeasureSince([]string{"nomad", "fsm", "apply_tmp_license_meta_upsert"}, time.Now())
-	var req structs.TmpLicenseMeta
+func (n *nomadFSM) applyTmpLicenseBarrierUpsert(buf []byte, index uint64) interface{} {
+	defer metrics.MeasureSince([]string{"nomad", "fsm", "apply_tmp_license_barrier_upsert"}, time.Now())
+	var req structs.TmpLicenseBarrier
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
-	if err := n.state.TmpLicenseSetMeta(index, &req); err != nil {
+	if err := n.state.TmpLicenseSetBarrier(index, &req); err != nil {
 		n.logger.Error("UpsertLicense failed", "error", err)
 		return err
 	}
@@ -227,7 +227,7 @@ func (s *nomadSnapshot) persistEntTables(sink raft.SnapshotSink, encoder *codec.
 	if err := s.persistLicense(sink, encoder); err != nil {
 		return err
 	}
-	if err := s.persistTmpLicenseMeta(sink, encoder); err != nil {
+	if err := s.persistTmpLicenseBarrier(sink, encoder); err != nil {
 		return err
 	}
 	if err := s.persistRecommendations(sink, encoder); err != nil {
@@ -339,9 +339,9 @@ func (s *nomadSnapshot) persistLicense(sink raft.SnapshotSink, enc *codec.Encode
 	return nil
 }
 
-func (s *nomadSnapshot) persistTmpLicenseMeta(sink raft.SnapshotSink, enc *codec.Encoder) error {
+func (s *nomadSnapshot) persistTmpLicenseBarrier(sink raft.SnapshotSink, enc *codec.Encoder) error {
 	ws := memdb.NewWatchSet()
-	meta, err := s.snap.TmpLicenseMeta(ws)
+	meta, err := s.snap.TmpLicenseBarrier(ws)
 	if err != nil {
 		return err
 	}
@@ -349,7 +349,7 @@ func (s *nomadSnapshot) persistTmpLicenseMeta(sink raft.SnapshotSink, enc *codec
 		return nil
 	}
 
-	sink.Write([]byte{byte(TmpLicenseMetaSnapshot)})
+	sink.Write([]byte{byte(TmpLicenseBarrierSnapshot)})
 	if err := enc.Encode(meta); err != nil {
 		return err
 	}

@@ -50,8 +50,8 @@ const (
 	SentinelScopeSubmitJob = "submit-job"
 )
 
-// TmpLicenseMeta tracks the create time for the first temporary license
-type TmpLicenseMeta struct {
+// TmpLicenseBarrier tracks the create time for the first temporary license
+type TmpLicenseBarrier struct {
 	CreateTime int64
 }
 

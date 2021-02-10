@@ -404,20 +404,20 @@ func TestFSM_SnapshotRestore_License(t *testing.T) {
 	assert.Equal(stored, out1)
 }
 
-func TestFSM_SnapshotRestore_TmpLicenseMeta(t *testing.T) {
+func TestFSM_SnapshotRestore_TmpLicenseBarrier(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
 	// Add some state
 	fsm := testFSM(t)
 	state := fsm.State()
-	stored := &structs.TmpLicenseMeta{CreateTime: time.Now().UnixNano()}
-	assert.Nil(state.TmpLicenseSetMeta(1000, stored))
+	stored := &structs.TmpLicenseBarrier{CreateTime: time.Now().UnixNano()}
+	assert.Nil(state.TmpLicenseSetBarrier(1000, stored))
 
 	// Verify the contents
 	fsm2 := testSnapshotRestore(t, fsm)
 	state2 := fsm2.State()
-	out1, _ := state2.TmpLicenseMeta(nil)
+	out1, _ := state2.TmpLicenseBarrier(nil)
 	assert.NotNil(t, out1)
 	assert.Equal(stored, out1)
 }

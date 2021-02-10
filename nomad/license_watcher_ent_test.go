@@ -314,7 +314,7 @@ func TestLicenseWatcher_Init_LoadRaft(t *testing.T) {
 	lw := s1.EnterpriseState.licenseWatcher
 
 	// Set the tmp license create time in the past
-	err := state.TmpLicenseSetMeta(10, &structs.TmpLicenseMeta{
+	err := state.TmpLicenseSetBarrier(10, &structs.TmpLicenseBarrier{
 		CreateTime: time.Now().Add(-24 * time.Hour).UnixNano()})
 	require.NoError(t, err)
 
@@ -367,7 +367,7 @@ func TestLicenseWatcher_Init_ExpiredTemp_Shutdown(t *testing.T) {
 	lw.expiredTmpGrace = 50 * time.Millisecond
 
 	// Set the tmp license create time in the past
-	err := state.TmpLicenseSetMeta(10, &structs.TmpLicenseMeta{
+	err := state.TmpLicenseSetBarrier(10, &structs.TmpLicenseBarrier{
 		CreateTime: time.Now().Add(-24 * time.Hour).UnixNano()})
 	require.NoError(t, err)
 
@@ -404,7 +404,7 @@ func TestLicenseWatcher_Init_ExpiredTemp_Shutdown_Cancelled(t *testing.T) {
 	lw.expiredTmpGrace = 2 * time.Second
 
 	// Set the tmp license create time in the past
-	err := state.TmpLicenseSetMeta(10, &structs.TmpLicenseMeta{
+	err := state.TmpLicenseSetBarrier(10, &structs.TmpLicenseBarrier{
 		CreateTime: time.Now().Add(-24 * time.Hour).UnixNano()})
 	require.NoError(t, err)
 
@@ -550,17 +550,17 @@ func TestTempLicense_Cluster_LicenseMeta(t *testing.T) {
 
 	// No servers should have tmp metadata before leadership
 	// Servers should have features / temporary license while waiting
-	s1Meta, err := s1s.TmpLicenseMeta(nil)
+	s1Meta, err := s1s.TmpLicenseBarrier(nil)
 	require.NoError(t, err)
 	require.Nil(t, s1Meta)
 	require.True(t, lw1.hasFeature(license.FeatureAuditLogging))
 
-	s2Meta, err := s2s.TmpLicenseMeta(nil)
+	s2Meta, err := s2s.TmpLicenseBarrier(nil)
 	require.NoError(t, err)
 	require.Nil(t, s2Meta)
 	require.True(t, lw2.hasFeature(license.FeatureAuditLogging))
 
-	s3Meta, err := s3s.TmpLicenseMeta(nil)
+	s3Meta, err := s3s.TmpLicenseBarrier(nil)
 	require.NoError(t, err)
 	require.Nil(t, s3Meta)
 	require.True(t, lw3.hasFeature(license.FeatureAuditLogging))
@@ -571,11 +571,11 @@ func TestTempLicense_Cluster_LicenseMeta(t *testing.T) {
 
 	var t1, t2, t3 int64
 	testutil.WaitForResult(func() (bool, error) {
-		meta, err := s1.State().TmpLicenseMeta(nil)
+		meta, err := s1.State().TmpLicenseBarrier(nil)
 		require.NoError(t, err)
 
 		if meta == nil {
-			return false, fmt.Errorf("expected tmp license meta")
+			return false, fmt.Errorf("expected tmp license barrier")
 		}
 		t1 = meta.CreateTime
 		return true, nil
@@ -584,11 +584,11 @@ func TestTempLicense_Cluster_LicenseMeta(t *testing.T) {
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		meta, err := s2.State().TmpLicenseMeta(nil)
+		meta, err := s2.State().TmpLicenseBarrier(nil)
 		require.NoError(t, err)
 
 		if meta == nil {
-			return false, fmt.Errorf("expected tmp license meta")
+			return false, fmt.Errorf("expected tmp license barrier")
 		}
 		t2 = meta.CreateTime
 		return true, nil
@@ -597,11 +597,11 @@ func TestTempLicense_Cluster_LicenseMeta(t *testing.T) {
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		meta, err := s3.State().TmpLicenseMeta(nil)
+		meta, err := s3.State().TmpLicenseBarrier(nil)
 		require.NoError(t, err)
 
 		if meta == nil {
-			return false, fmt.Errorf("expected tmp license meta")
+			return false, fmt.Errorf("expected tmp license barrier")
 		}
 		t3 = meta.CreateTime
 		return true, nil
@@ -648,11 +648,11 @@ func TestLicenseWatcher_StateRestore(t *testing.T) {
 	lw.expiredTmpGrace = 1 * time.Second
 
 	// Set the tmp license create time in the past
-	err := s1State.TmpLicenseSetMeta(10, &structs.TmpLicenseMeta{
+	err := s1State.TmpLicenseSetBarrier(10, &structs.TmpLicenseBarrier{
 		CreateTime: time.Now().Add(-24 * time.Hour).UnixNano()})
 	require.NoError(t, err)
 
-	err = s2State.TmpLicenseSetMeta(10, &structs.TmpLicenseMeta{
+	err = s2State.TmpLicenseSetBarrier(10, &structs.TmpLicenseBarrier{
 		CreateTime: time.Now().Add(-24 * time.Hour).UnixNano()})
 	require.NoError(t, err)
 
