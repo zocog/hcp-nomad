@@ -36,27 +36,12 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 		l.srv.logger.Warn("cannot set license until all servers are above minimum version", "min_version", minLicenseMetaVersion)
 		return fmt.Errorf("all servers do not meet minimum version requirement: %s", minLicenseMetaVersion)
 	}
-
-	// Validate license pre-upsert
-	if _, err := l.srv.EnterpriseState.licenseWatcher.ValidateLicense(args.License.Signed); err != nil {
-		return structs.NewErrRPCCoded(400, fmt.Sprintf("error validating license: %s", err.Error()))
-	}
-
 	defer metrics.MeasureSince([]string{"nomad", "license", "upsert_license"}, time.Now())
 
-	// Update via Raft
-	out, index, err := l.srv.raftApply(structs.LicenseUpsertRequestType, args)
+	_, err := l.srv.EnterpriseState.licenseWatcher.SetLicense(args.License.Signed)
 	if err != nil {
-		return err
+		return fmt.Errorf("error setting license: %w", err)
 	}
-
-	// Check if there was an error when applying
-	if err, ok := out.(error); ok && err != nil {
-		return err
-	}
-
-	// Update the index
-	reply.Index = index
 
 	return nil
 }

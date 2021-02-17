@@ -508,19 +508,19 @@ func TestLicenseWatcher_Init_ExpiredValid_License(t *testing.T) {
 
 func TestTempLicenseTooOld(t *testing.T) {
 	c1 := time.Now()
-	require.False(t, tempLicenseTooOld(c1))
+	require.False(t, tmpLicenseTooOld(c1))
 
 	// cluster 10 min old
 	c2 := time.Now().Add(-10 * time.Minute)
-	require.False(t, tempLicenseTooOld(c2))
+	require.False(t, tmpLicenseTooOld(c2))
 
 	// cluster near expired
 	c3 := time.Now().Add(-temporaryLicenseTimeLimit).Add(1 * time.Minute)
-	require.False(t, tempLicenseTooOld(c3))
+	require.False(t, tmpLicenseTooOld(c3))
 
 	// cluster too old
 	c4 := time.Now().Add(-24 * time.Hour)
-	require.True(t, tempLicenseTooOld(c4))
+	require.True(t, tmpLicenseTooOld(c4))
 }
 
 func TestTempLicense_Cluster_LicenseMeta(t *testing.T) {

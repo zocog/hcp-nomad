@@ -5,15 +5,13 @@ package nomad
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/lib"
-
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-licensing"
-	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/nomad/state"
 )
@@ -34,6 +32,20 @@ var (
 )
 
 type stateStoreFn func() *state.StateStore
+
+// LicenseConfig allows for tunable licensing config
+// primarily used for enterprise testing
+type LicenseConfig struct {
+	LicenseFileEnv  string
+	LicenseFilePath string
+
+	AdditionalPubKeys []string
+
+	PropagateFn func(*license.License, string) error
+
+	// preventStart is used for testing to control when to start watcher
+	preventStart bool
+}
 
 type LicenseWatcher struct {
 	// once ensures watch is only invoked once
@@ -66,6 +78,8 @@ type LicenseWatcher struct {
 	establishTmpLicenseBarrierFn func() (int64, error)
 
 	stateStoreFn stateStoreFn
+
+	propagateFn func(*license.License, string) error
 }
 
 func NewLicenseWatcher(
@@ -75,27 +89,33 @@ func NewLicenseWatcher(
 	tmpLicenseBarrierFn func() (int64, error),
 	stateStoreFn stateStoreFn,
 ) (*LicenseWatcher, error) {
-	// Configure the setup options for the license watcher
-	tmpLicense, opts, err := watcherStartupOpts(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed setting up license watcher options: %w", err)
+
+	// Check for file license
+	var initLicense string
+	if cfg.LicenseFileEnv != "" {
+		initLicense = cfg.LicenseFileEnv
+	} else if cfg.LicenseFilePath != "" {
+		licRaw, err := ioutil.ReadFile(cfg.LicenseFilePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read license file %w", err)
+		}
+		initLicense = string(licRaw)
 	}
 
-	nomadTmpLicense, err := license.NewLicense(tmpLicense)
+	_, tmpSigned, tmpPubKey, err := temporaryLicenseInfo()
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert temporary license: %w", err)
+		return nil, fmt.Errorf("failed creating temporary license: %w", err)
 	}
+	cfg.AdditionalPubKeys = append(cfg.AdditionalPubKeys, tmpPubKey)
 
-	// Create the new watcher with options
-	watcher, _, err := licensing.NewWatcher(opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed creating license watcher: %w", err)
+	// If initLicense was not set by a file license, start with a temporary license
+	if initLicense == "" {
+		initLicense = tmpSigned
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	lw := &LicenseWatcher{
-		watcher:                      watcher,
 		shutdownCallback:             shutdownCallback,
 		expiredTmpGrace:              defaultExpiredTmpGrace,
 		monitorExpTmpCtx:             ctx,
@@ -103,10 +123,35 @@ func NewLicenseWatcher(
 		logger:                       logger.Named("licensing"),
 		logTimes:                     make(map[license.Features]time.Time),
 		establishTmpLicenseBarrierFn: tmpLicenseBarrierFn,
+		propagateFn:                  cfg.PropagateFn,
 		stateStoreFn:                 stateStoreFn,
 	}
 
-	lw.license.Store(nomadTmpLicense)
+	opts := &licensing.WatcherOptions{
+		ProductName:          license.ProductName,
+		InitLicense:          initLicense,
+		AdditionalPublicKeys: cfg.AdditionalPubKeys,
+		CallbackFunc:         lw.watcherCallback,
+	}
+
+	// Create the new watcher with options
+	watcher, _, err := licensing.NewWatcher(opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed creating license watcher: %w", err)
+	}
+	lw.watcher = watcher
+
+	startUpLicense, err := lw.watcher.License()
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve startup license: %w", err)
+	}
+
+	nomadLicense, err := license.NewLicense(startUpLicense)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert license: %w", err)
+	}
+
+	lw.license.Store(nomadLicense)
 
 	return lw, nil
 }
@@ -177,14 +222,14 @@ func (w *LicenseWatcher) hasFeature(feature license.Features) bool {
 }
 
 func watcherStartupOpts(cfg *LicenseConfig) (*licensing.License, *licensing.WatcherOptions, error) {
-	tempLicense, signed, pubKey, err := temporaryLicenseInfo()
+	tempLicense, licenseBytes, pubKey, err := temporaryLicenseInfo()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed creating temporary license: %w", err)
 	}
 
 	return tempLicense, &licensing.WatcherOptions{
 		ProductName:          license.ProductName,
-		InitLicense:          signed,
+		InitLicense:          licenseBytes,
 		AdditionalPublicKeys: append(cfg.AdditionalPubKeys, pubKey),
 		CallbackFunc:         nil,
 	}, nil
@@ -195,6 +240,7 @@ func watcherStartupOpts(cfg *LicenseConfig) (*licensing.License, *licensing.Watc
 func (w *LicenseWatcher) start(ctx context.Context) {
 	w.once.Do(func() {
 		go w.watch(ctx)
+		go w.temporaryLicenseMonitor(ctx)
 	})
 }
 
@@ -202,18 +248,12 @@ func (w *LicenseWatcher) watch(ctx context.Context) {
 	state := w.stateStoreFn()
 	stateAbandonCh := state.AbandonCh()
 
-	// Block for the temporary license barrier to be populated to raft
-	// This value is used to check if a temporary license is within
-	// the initial 6 hour evaluation period
-	tmpLicenseInitTime := w.getOrSetTmpLicenseBarrier(ctx, state)
-	w.logger.Info("received temporary license barrier", "init time", tmpLicenseInitTime)
-
 	// paidLicense indicates if a valid, non-temporary license has been set.
 	// If true, agent should not be shutdown.
 	var paidLicense bool
 
 	// signed tracks the latest known license watcher signed license blob
-	var signed string
+	// var signed string
 
 	for {
 		// Check if we should exit
@@ -230,86 +270,135 @@ func (w *LicenseWatcher) watch(ctx context.Context) {
 
 		// Add the current state's abandonCh to watchset to signal if the given
 		// state store has been abandoned.
-		watchSet := memdb.NewWatchSet()
-		watchSet.Add(stateAbandonCh)
+		// watchSet := memdb.NewWatchSet()
+		// watchSet.Add(stateAbandonCh)
 
-		stored, err := state.License(watchSet)
-		if err != nil {
-			w.logger.Error("failed fetching license from state store", "error", err)
-			time.Sleep(lib.RandomStagger(1 * time.Second))
-			continue
-		}
-		if stored != nil && stored.Signed != "" && stored.Signed != signed {
-			paidLicense = true
-			signed = stored.Signed
-			if _, err := w.watcher.SetLicense(stored.Signed); err != nil {
-				w.logger.Error("failed setting license", "error", err)
+		// stored, err := state.License(watchSet)
+		// if err != nil {
+		// 	w.logger.Error("failed fetching license from state store", "error", err)
+		// 	time.Sleep(lib.RandomStagger(1 * time.Second))
+		// 	continue
+		// }
+		// if stored != nil && stored.Signed != "" && stored.Signed != signed {
+		// 	paidLicense = true
+		// 	signed = stored.Signed
+		// 	if _, err := w.watcher.SetLicense(stored.Signed); err != nil {
+		// 		w.logger.Error("failed setting license", "error", err)
+		// 	}
+		// }
+		// TODO(drew) check license.temporary instead
+		// TODO test
+		// if !paidLicense && !w.License().Temporary {
+		// 	paidLicense = true
+		// }
+		// if !paidLicense && tempLicenseTooOld(tmpLicenseInitTime) {
+		// 	// The server is not brand new, the cluster age is too old
+		// 	// for a temporary license, track that it is replaced soon
+		// 	w.monitorExpiredTmpLicense(ctx)
+		// }
+
+		select {
+		// Handle updated license from the watcher
+		case lic := <-w.watcher.UpdateCh():
+			// TODO this is probably where we should update raft instead
+			w.logger.Info("received update from license manager")
+
+			// Check if watcher has a license and if it needs to be updated
+			watcherLicense := w.License()
+			if watcherLicense == nil || !watcherLicense.Equal(lic) {
+				// Update license
+				nomadLicense, err := license.NewLicense(lic)
+				if err == nil {
+					w.license.Store(nomadLicense)
+					w.monitorExpTmpCancel()
+				} else {
+					w.logger.Error("error loading Nomad license", "error", err)
+				}
 			}
-		}
-		if !paidLicense && w.License().LicenseID == permanentLicenseID {
-			paidLicense = true
-		}
-		if !paidLicense && tempLicenseTooOld(tmpLicenseInitTime) {
-			// The server is not brand new, the cluster age is too old
-			// for a temporary license, track that it is replaced soon
-			w.monitorExpiredTmpLicense(ctx)
-		}
 
-		w.watchSet(ctx, watchSet, paidLicense)
+		// Check for licensing errors, primarily expirations.
+		case err := <-w.watcher.ErrorCh():
+			w.logger.Error("received error from watcher", "error", err)
+
+			// If a paid license has not been set, we close the server.
+			if !paidLicense {
+				w.logger.Error("temporary license expired; shutting down server")
+				// Call agent shutdown func asyncronously
+				w.watcher.Stop()
+				go w.shutdownCallback()
+				return
+			}
+			w.logger.Error("license expired") //TODO: more info
+
+		case warnLicense := <-w.watcher.WarningCh():
+			w.logger.Warn("license expiring", "time_left", time.Until(warnLicense.ExpirationTime).Truncate(time.Second))
+		case <-ctx.Done():
+		}
 	}
 }
 
-func (w *LicenseWatcher) watchSet(ctx context.Context, watchSet memdb.WatchSet, paidLicense bool) {
-	// Create a context and cancelFunc scoped to the watchSet
-	wsCtx, wsCancel := context.WithCancel(ctx)
-	wsCh := watchSet.WatchCh(wsCtx)
-	defer wsCancel()
+func (w *LicenseWatcher) temporaryLicenseMonitor(ctx context.Context) {
+	state := w.stateStoreFn()
 
-	select {
-	// If watchSetCh returns a nil error, there is a new license. If it returns an actual error,
-	// the context is canceled, and the function can exit.
-	case err := <-wsCh:
-		if err == nil {
-			w.logger.Info("received notification from license watch channel, querying license..")
-		} else {
-			w.logger.Error("received from license watchset", "error", err)
-		}
+	// Block for the temporary license barrier to be populated to raft
+	// This value is used to check if a temporary license is within
+	// the initial 6 hour evaluation period
+	tmpLicenseBarrier := w.getOrSetTmpLicenseBarrier(ctx, state)
+	w.logger.Info("received temporary license barrier", "init time", tmpLicenseBarrier)
 
-	// Handle updated license from the watcher
-	case lic := <-w.watcher.UpdateCh():
-		w.logger.Info("received update from license manager")
+	for {
+		tmpLicenseTooOld := time.Now().After(tmpLicenseBarrier.Add(temporaryLicenseTimeLimit))
+		license := w.License()
 
-		// Check if watcher has a license and if it needs to be updated
-		watcherLicense := w.License()
-		if watcherLicense == nil || !watcherLicense.Equal(lic) {
-			// Update license
-			nomadLicense, err := license.NewLicense(lic)
-			if err == nil {
-				w.license.Store(nomadLicense)
-				w.monitorExpTmpCancel()
-			} else {
-				w.logger.Error("error loading Nomad license", "error", err)
-			}
-		}
-
-	// Check for licensing errors, primarily expirations.
-	case err := <-w.watcher.ErrorCh():
-		w.logger.Error("received error from watcher", "error", err)
-
-		// If a paid license has not been set, we close the server.
-		if !paidLicense {
-			w.logger.Error("temporary license expired; shutting down server")
-			// Call agent shutdown func asyncronously
-			w.watcher.Stop()
-			go w.shutdownCallback()
+		// Paid license, stop temporary license monitor
+		if license != nil && !license.Temporary {
 			return
 		}
-		w.logger.Error("license expired") //TODO: more info
 
-	case warnLicense := <-w.watcher.WarningCh():
-		w.logger.Warn("license expiring", "time_left", time.Until(warnLicense.ExpirationTime).Truncate(time.Second))
-	case <-wsCtx.Done():
+		if license != nil && license.Temporary && tmpLicenseTooOld {
+			w.monitorExpiredTmpLicense(ctx)
+		}
+
+		exp := tmpLicenseBarrier.Add(temporaryLicenseTimeLimit)
+		select {
+		case <-time.After(exp.Sub(time.Now())):
+			continue
+		case <-ctx.Done():
+			return
+		}
+	}
+
+}
+
+func (w *LicenseWatcher) monitorExpiredTmpLicense(ctx context.Context) {
+	w.logger.Warn("temporary license too old for evaluation period, beginning expired enterprise evaluation monitor")
+	// Grace period for server and raft to initialize
+	select {
 	case <-ctx.Done():
+		return
+	case <-w.monitorExpTmpCtx.Done():
+		w.logger.Info("received license update, stopping temporary license monitor")
+		return
+	case <-time.After(w.expiredTmpGrace):
+		// A license was never applied
+		if w.License().Temporary {
+			w.logger.Error("cluster age is greater than temporary license lifespan. Please apply a valid license")
+			w.logger.Error("cluster will shutdown soon. Please apply a valid license")
+		} else {
+			// This shouldn't happen but being careful to prevent bad shutdown
+			w.logger.Error("never received monitor ctx cancellation update but license is no longer temporary")
+			return
+		}
+	}
+
+	// Wait once more for valid license to be applied before shutting down
+	select {
+	case <-w.monitorExpTmpCtx.Done():
+		w.logger.Info("license applied, cancelling expired temporary license shutdown")
+	case <-time.After(w.expiredTmpGrace):
+		w.logger.Error("temporary license grace period expired. shutting down")
+		go w.shutdownCallback()
+		return
 	}
 }
 
@@ -335,42 +424,51 @@ func (w *LicenseWatcher) getOrSetTmpLicenseBarrier(ctx context.Context, state *s
 	}
 }
 
-func (w *LicenseWatcher) monitorExpiredTmpLicense(ctx context.Context) {
-	go func() {
-		w.logger.Warn("temporary license too old for evaluation period, beginning expired enterprise evaluation monitor")
-		// Grace period for server and raft to initialize
-		select {
-		case <-ctx.Done():
-			return
-		case <-w.monitorExpTmpCtx.Done():
-			w.logger.Info("received license update, stopping temporary license monitor")
-			return
-		case <-time.After(w.expiredTmpGrace):
-			// A license was never applied
-			if w.License().Temporary {
-				w.logger.Error("cluster age is greater than temporary license lifespan. Please apply a valid license")
-				w.logger.Error("cluster will shutdown soon. Please apply a valid license")
-			} else {
-				// This shouldn't happen but being careful to prevent bad shutdown
-				w.logger.Error("never received monitor ctx cancellation update but license is no longer temporary")
-				return
-			}
-		}
+func (w *LicenseWatcher) watcherCallback(lic *licensing.License, signed string) error {
+	nomadLicense, err := license.NewLicense(lic)
+	if err != nil {
+		return err
+	}
 
-		// Wait once more for valid license to be applied before shutting down
-		select {
-		case <-w.monitorExpTmpCtx.Done():
-			w.logger.Info("license applied, cancelling expired temporary license shutdown")
-		case <-time.After(w.expiredTmpGrace):
-			w.logger.Error("temporary license grace period expired. shutting down")
-			go w.shutdownCallback()
-			return
-		}
-	}()
+	if !nomadLicense.Temporary && w.propagateFn != nil {
+		return w.propagateFn(nomadLicense, signed)
+	}
+
+	// TODO(drew) consul sets signed.Store here
+
+	return nil
 }
 
 // tempLicenseTooOld checks if the cluster age is older than the temporary
 // license time limit
-func tempLicenseTooOld(originalTmpCreate time.Time) bool {
+func tmpLicenseTooOld(originalTmpCreate time.Time) bool {
 	return time.Now().After(originalTmpCreate.Add(temporaryLicenseTimeLimit))
 }
+
+//
+
+// Server Starts Up no previous temporary license barrier in raft
+// - checks for license in raft
+
+// Server starts up with previous temporary license
+// - tmp license expired
+// - tmp license
+
+// Server starts up with no license file on disk
+// - no raft license
+// - raft license
+
+// Server starts up with license file on disk
+// - file license has expired
+// - file license is valid
+
+// - no raft license
+
+// - raft license
+//   - Take whichever has a longer expiration
+
+// After some time a license appears in Raft
+
+// I have 3 servers with some old license files
+// - I put license with feature/module
+// Some server X gets restarted, still expect latest license to be used

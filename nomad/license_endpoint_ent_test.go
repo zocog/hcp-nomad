@@ -90,9 +90,6 @@ func TestLicenseEndpoint_UpsertLicense_Invalid(t *testing.T) {
 	var resp structs.GenericResponse
 	err = msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", req, &resp)
 	require.Error(t, err)
-	code, _, ok := structs.CodeFromRPCCodedErr(err)
-	require.True(t, ok)
-	require.Equal(t, 400, code)
 }
 
 func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
@@ -210,7 +207,6 @@ func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {
 	{
 		var resp structs.GenericResponse
 		assert.Nil(msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", req, &resp))
-		assert.NotEqual(uint64(0), resp.Index)
 
 		// Check we created the namespaces
 		out, err := s1.fsm.State().License(nil)
