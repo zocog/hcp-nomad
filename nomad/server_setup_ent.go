@@ -59,15 +59,16 @@ func (s *Server) setupEnterprise(config *Config) error {
 
 	s.setupEnterpriseAutopilot(config)
 
+	// Set License config options
 	config.LicenseConfig.PropagateFn = s.propagateLicense
+	config.LicenseConfig.LicenseFileEnv = config.LicenseFileEnv
+	config.LicenseConfig.LicenseFilePath = config.LicenseFilePath
+
 	licenseWatcher, err := NewLicenseWatcher(s.logger, config.LicenseConfig, config.AgentShutdown, s.establishTemporaryLicenseMetadata, s.State)
 	if err != nil {
 		return fmt.Errorf("failed to create a new license watcher: %w", err)
 	}
 	s.EnterpriseState.licenseWatcher = licenseWatcher
-	if !config.LicenseConfig.preventStart {
-		s.EnterpriseState.licenseWatcher.start(s.shutdownCtx)
-	}
 	return nil
 }
 
@@ -78,7 +79,9 @@ func (s *Server) startEnterpriseBackground() {
 		go s.gcSentinelPolicies(s.shutdownCh)
 	}
 
-	go s.licenseMonitor()
+	if !s.config.LicenseConfig.preventStart {
+		s.EnterpriseState.licenseWatcher.start(s.shutdownCtx)
+	}
 }
 
 func (s *Server) entVaultDelegate() *VaultEntDelegate {

@@ -23,6 +23,18 @@ func previousID(t *testing.T, lw *LicenseWatcher) string {
 	return lw.License().LicenseID
 }
 
+func waitForLicense(t *testing.T, lw *LicenseWatcher, previousID string) {
+	testutil.WaitForResult(func() (bool, error) {
+		l := lw.License()
+		if l.LicenseID == previousID {
+			return false, fmt.Errorf("expected updated license")
+		}
+		return true, nil
+	}, func(err error) {
+		require.FailNow(t, err.Error())
+	})
+}
+
 func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
 	t.Parallel()
 
@@ -94,10 +106,6 @@ func TestLicenseWatcher_Validate(t *testing.T) {
 	}
 	newLicense := license.NewTestLicense(invalidFlags)
 
-	// It can be a valid go-licensing license
-	_, err := lw.watcher.ValidateLicense(newLicense.Signed)
-	require.NoError(t, err)
-
 	// Ensure it is not a valid nomad license
 	lic, err := lw.ValidateLicense(newLicense.Signed)
 	require.Error(t, err)
@@ -130,18 +138,6 @@ func TestLicenseWatcher_UpdateCh_Platform(t *testing.T) {
 	require.NotEqual(t, uint64(lw.License().Features), uint64(0))
 	require.False(t, lw.hasFeature(license.FeatureAuditLogging))
 	require.True(t, lw.hasFeature(license.FeatureReadScalability))
-}
-
-func waitForLicense(t *testing.T, lw *LicenseWatcher, previousID string) {
-	testutil.WaitForResult(func() (bool, error) {
-		l := lw.License()
-		if l.LicenseID == previousID {
-			return false, fmt.Errorf("expected updated license")
-		}
-		return true, nil
-	}, func(err error) {
-		require.FailNow(t, err.Error())
-	})
 }
 
 func TestLicenseWatcher_FeatureCheck(t *testing.T) {

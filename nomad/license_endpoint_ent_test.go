@@ -126,7 +126,6 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 	}
 	var resp structs.GenericResponse
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", req, &resp))
-	assert.NotEqual(uint64(0), resp.Index)
 
 	// Check we created the license
 	out, err := s1.fsm.State().License(nil)
