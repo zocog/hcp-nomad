@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/nomad-licensing/license"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/helper/uuid"
-	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
 
@@ -701,12 +700,10 @@ func TestLicenseWatcher_start(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		desc              string
-		licenseEnv        string
-		licenseFileBytes  string
-		raftInitFn        func(t *testing.T, s *state.StateStore)
-		raftPostStartFn   func()
+		envLicense        string
+		fileLicense       string
+		raftLicense       string
 		expectedLicenseID string
-		licenseAssert     func(t *testing.T, lic *nomadLicense.License)
 	}{
 		{
 			desc:              "temporary license - newly initialized cluster",
@@ -714,37 +711,30 @@ func TestLicenseWatcher_start(t *testing.T) {
 		},
 		{
 			desc:              "file license loaded from file",
-			licenseFileBytes:  licenseFile("some-id", time.Now(), time.Now().Add(1*time.Hour)),
-			expectedLicenseID: "some-id",
+			fileLicense:       licenseFile("file-id", time.Now(), time.Now().Add(1*time.Hour)),
+			expectedLicenseID: "file-id",
 		},
 		{
 			desc:              "file license loaded from env",
-			licenseEnv:        licenseFile("env-file-id", time.Now(), time.Now().Add(1*time.Hour)),
-			expectedLicenseID: "env-file-id",
+			envLicense:        licenseFile("env-id", time.Now(), time.Now().Add(1*time.Hour)),
+			expectedLicenseID: "env-id",
 		},
 		{
 			desc:              "env and file chooses env",
-			licenseFileBytes:  licenseFile("some-id", time.Now(), time.Now().Add(1*time.Hour)),
-			licenseEnv:        licenseFile("env-file-id", time.Now(), time.Now().Add(1*time.Hour)),
-			expectedLicenseID: "env-file-id",
+			fileLicense:       licenseFile("file-id", time.Now(), time.Now().Add(1*time.Hour)),
+			envLicense:        licenseFile("env-id", time.Now(), time.Now().Add(1*time.Hour)),
+			expectedLicenseID: "env-id",
 		},
 		{
-			desc:             "raft license with newer issue date is used over file license with older issue date",
-			licenseFileBytes: licenseFile("some-id", time.Now().Add(-24*time.Hour), time.Now().Add(1*time.Hour)),
-			raftInitFn: func(t *testing.T, s *state.StateStore) {
-				license := licenseFile("raft-id", time.Now(), time.Now().Add(2*time.Hour))
-				require.NoError(t, s.UpsertLicense(1000, &structs.StoredLicense{Signed: license}))
-			},
+			desc:              "raft license with newer issue date is used over file license with older issue date",
+			fileLicense:       licenseFile("file-id", time.Now().Add(-24*time.Hour), time.Now().Add(1*time.Hour)),
+			raftLicense:       licenseFile("raft-id", time.Now(), time.Now().Add(2*time.Hour)),
 			expectedLicenseID: "raft-id",
 		},
-		// TODO ensure this is consistently the case, it will be file initially, raft must lose
 		{
-			desc:             "raft license with older issue date is ignored over file license with newer issue date",
-			licenseFileBytes: licenseFile("file-id", time.Now(), time.Now().Add(2*time.Hour)),
-			raftInitFn: func(t *testing.T, s *state.StateStore) {
-				license := licenseFile("raft-id", time.Now().Add(-24*time.Hour), time.Now().Add(1*time.Hour))
-				require.NoError(t, s.UpsertLicense(1000, &structs.StoredLicense{Signed: license}))
-			},
+			desc:              "raft license with older issue date is ignored over file license with newer issue date",
+			fileLicense:       licenseFile("file-id", time.Now(), time.Now().Add(2*time.Hour)),
+			raftLicense:       licenseFile("raft-id", time.Now().Add(-24*time.Hour), time.Now().Add(1*time.Hour)),
 			expectedLicenseID: "file-id",
 		},
 	}
@@ -752,10 +742,10 @@ func TestLicenseWatcher_start(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
 			var tempfilePath string
-			if tc.licenseFileBytes != "" {
+			if tc.fileLicense != "" {
 				f, err := ioutil.TempFile("", "licensewatcher")
 				require.NoError(t, err)
-				_, err = io.WriteString(f, tc.licenseFileBytes)
+				_, err = io.WriteString(f, tc.fileLicense)
 				require.NoError(t, err)
 				require.NoError(t, f.Close())
 
@@ -763,39 +753,40 @@ func TestLicenseWatcher_start(t *testing.T) {
 				tempfilePath = f.Name()
 			}
 
-			s1, cleanupS1 := TestServer(t, func(c *Config) {
-				c.LicenseFileEnv = tc.licenseEnv
+			server, cleanup := TestServer(t, func(c *Config) {
+				c.LicenseFileEnv = tc.envLicense
 				c.LicenseFilePath = tempfilePath
 				c.LicenseConfig = &LicenseConfig{
 					AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
 				}
 			})
-			defer cleanupS1()
+			defer cleanup()
 
-			state := s1.State()
-			require.NotNil(t, state)
-
-			if tc.raftInitFn != nil {
-				tc.raftInitFn(t, state)
+			if tc.raftLicense != "" {
+				state := server.State()
+				require.NotNil(t, state)
+				require.NoError(t, state.UpsertLicense(1000, &structs.StoredLicense{Signed: tc.raftLicense}))
 			}
 
-			timeout := time.After(1 * time.Second)
-			interval := 100 * time.Millisecond
-			for {
-				license := s1.EnterpriseState.licenseWatcher.License()
-				if tc.expectedLicenseID == license.LicenseID {
-					if license.LicenseID == "temporary-license" {
-						require.True(t, license.Temporary)
+			require.Eventually(t, func() bool {
+				license := server.EnterpriseState.licenseWatcher.License()
+				return tc.expectedLicenseID == license.LicenseID
+			}, time.Second, 10*time.Millisecond, fmt.Sprintf("Expected license ID to equal %s", tc.expectedLicenseID))
+
+			if tc.raftLicense != "" {
+				timeout := time.After(500 * time.Millisecond)
+			OUT:
+				for {
+					select {
+					case <-timeout:
+						break OUT
+					case <-time.After(100 * time.Millisecond):
+						license := server.EnterpriseState.licenseWatcher.License()
+						require.Equal(t, tc.expectedLicenseID, license.LicenseID)
 					}
-					break
-				}
-				select {
-				case <-timeout:
-					require.Equal(t, tc.expectedLicenseID, license.LicenseID)
-					break
-				case <-time.After(interval):
 				}
 			}
+
 		})
 	}
 }
