@@ -4,8 +4,10 @@ package agent
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/api"
@@ -80,8 +82,20 @@ func (s *HTTPServer) operatorPutLicense(resp http.ResponseWriter, req *http.Requ
 		return nil, err
 	}
 
+	params := req.URL.Query()
+	forceRaw := params.Get("force")
+	var force bool
+	if forceRaw != "" {
+		f, err := strconv.ParseBool(forceRaw)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing force parameter: %w", err)
+		}
+		force = f
+	}
+
 	args.License = &structs.StoredLicense{
 		Signed: buf.String(),
+		Force:  force,
 	}
 
 	var reply structs.GenericResponse

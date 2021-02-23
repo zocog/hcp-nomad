@@ -18,10 +18,6 @@ func (s *Server) propagateLicense(lic *license.License, signedBlob string) error
 		return err
 	}
 
-	if lic.Temporary {
-		return nil
-	}
-
 	if !s.IsLeader() {
 		s.logger.Debug("server is not leader, ignoring attempt to upsert license to raft")
 		return nil

@@ -691,3 +691,37 @@ func TestLicenseWatcher_StateRestore(t *testing.T) {
 		// Pass
 	}
 }
+
+func TestLicenseWatcher_start(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		desc            string
+		cfg             *LicenseConfig
+		raftInitFn      func()
+		raftPostStartFn func()
+		expectedLicense *nomadLicense.License
+		licenseAssert   func(t *testing.T, lic *nomadLicense.License)
+	}{
+		{
+			desc: "temporary license - newly initialized cluster",
+			licenseAssert: func(t *testing.T, lic *nomadLicense.License) {
+				require.Equal(t, "temporary-license", lic.LicenseID)
+				require.True(t, lic.Temporary)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.desc, func(t *testing.T) {
+
+			s1, cleanupS1 := TestServer(t, func(c *Config) {
+				c.LicenseConfig = &LicenseConfig{
+					AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+				}
+			})
+			defer cleanupS1()
+
+			tc.licenseAssert(t, s1.EnterpriseState.licenseWatcher.License())
+		})
+	}
+}

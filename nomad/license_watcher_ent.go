@@ -241,6 +241,7 @@ func (w *LicenseWatcher) start(ctx context.Context) {
 	})
 }
 
+// TODO(drew) rename
 func (w *LicenseWatcher) watch(ctx context.Context) {
 	for {
 		select {
@@ -275,6 +276,7 @@ func (w *LicenseWatcher) watch(ctx context.Context) {
 }
 
 func (w *LicenseWatcher) monitorRaft(ctx context.Context) {
+	// TODO(Drew) use config settings for limiter
 	limiter := rate.NewLimiter(rate.Limit(1), 1)
 
 	var lastSigned string
@@ -324,7 +326,7 @@ func (w *LicenseWatcher) waitForLicenseUpdate(ctx context.Context, lastSigned st
 	ws := state.NewWatchSet()
 	ws.Add(ctx.Done())
 
-	// Perform initial query
+	// Perform initial query, attaching watchset
 	lic, err := state.License(ws)
 	if err != nil {
 		return false, nil, err
