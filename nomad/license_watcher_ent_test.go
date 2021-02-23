@@ -1,4 +1,4 @@
-// build +ent
+// +build ent
 
 package nomad
 
@@ -7,12 +7,17 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-licensing"
 	"github.com/hashicorp/nomad-licensing/license"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/helper/uuid"
+	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
 
@@ -695,33 +700,119 @@ func TestLicenseWatcher_StateRestore(t *testing.T) {
 func TestLicenseWatcher_start(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		desc            string
-		cfg             *LicenseConfig
-		raftInitFn      func()
-		raftPostStartFn func()
-		expectedLicense *nomadLicense.License
-		licenseAssert   func(t *testing.T, lic *nomadLicense.License)
+		desc              string
+		licenseEnv        string
+		licenseFileBytes  string
+		raftInitFn        func(t *testing.T, s *state.StateStore)
+		raftPostStartFn   func()
+		expectedLicenseID string
+		licenseAssert     func(t *testing.T, lic *nomadLicense.License)
 	}{
 		{
-			desc: "temporary license - newly initialized cluster",
-			licenseAssert: func(t *testing.T, lic *nomadLicense.License) {
-				require.Equal(t, "temporary-license", lic.LicenseID)
-				require.True(t, lic.Temporary)
+			desc:              "temporary license - newly initialized cluster",
+			expectedLicenseID: "temporary-license",
+		},
+		{
+			desc:              "file license loaded from file",
+			licenseFileBytes:  licenseFile("some-id", time.Now(), time.Now().Add(1*time.Hour)),
+			expectedLicenseID: "some-id",
+		},
+		{
+			desc:              "file license loaded from env",
+			licenseEnv:        licenseFile("env-file-id", time.Now(), time.Now().Add(1*time.Hour)),
+			expectedLicenseID: "env-file-id",
+		},
+		{
+			desc:              "env and file chooses env",
+			licenseFileBytes:  licenseFile("some-id", time.Now(), time.Now().Add(1*time.Hour)),
+			licenseEnv:        licenseFile("env-file-id", time.Now(), time.Now().Add(1*time.Hour)),
+			expectedLicenseID: "env-file-id",
+		},
+		{
+			desc:             "raft license with newer issue date is used over file license with older issue date",
+			licenseFileBytes: licenseFile("some-id", time.Now().Add(-24*time.Hour), time.Now().Add(1*time.Hour)),
+			raftInitFn: func(t *testing.T, s *state.StateStore) {
+				license := licenseFile("raft-id", time.Now(), time.Now().Add(2*time.Hour))
+				require.NoError(t, s.UpsertLicense(1000, &structs.StoredLicense{Signed: license}))
 			},
+			expectedLicenseID: "raft-id",
+		},
+		// TODO ensure this is consistently the case, it will be file initially, raft must lose
+		{
+			desc:             "raft license with older issue date is ignored over file license with newer issue date",
+			licenseFileBytes: licenseFile("file-id", time.Now(), time.Now().Add(2*time.Hour)),
+			raftInitFn: func(t *testing.T, s *state.StateStore) {
+				license := licenseFile("raft-id", time.Now().Add(-24*time.Hour), time.Now().Add(1*time.Hour))
+				require.NoError(t, s.UpsertLicense(1000, &structs.StoredLicense{Signed: license}))
+			},
+			expectedLicenseID: "file-id",
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
+			var tempfilePath string
+			if tc.licenseFileBytes != "" {
+				f, err := ioutil.TempFile("", "licensewatcher")
+				require.NoError(t, err)
+				_, err = io.WriteString(f, tc.licenseFileBytes)
+				require.NoError(t, err)
+				require.NoError(t, f.Close())
+
+				defer os.Remove(f.Name())
+				tempfilePath = f.Name()
+			}
 
 			s1, cleanupS1 := TestServer(t, func(c *Config) {
+				c.LicenseFileEnv = tc.licenseEnv
+				c.LicenseFilePath = tempfilePath
 				c.LicenseConfig = &LicenseConfig{
 					AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
 				}
 			})
 			defer cleanupS1()
 
-			tc.licenseAssert(t, s1.EnterpriseState.licenseWatcher.License())
+			state := s1.State()
+			require.NotNil(t, state)
+
+			if tc.raftInitFn != nil {
+				tc.raftInitFn(t, state)
+			}
+
+			timeout := time.After(1 * time.Second)
+			interval := 100 * time.Millisecond
+			for {
+				license := s1.EnterpriseState.licenseWatcher.License()
+				if tc.expectedLicenseID == license.LicenseID {
+					if license.LicenseID == "temporary-license" {
+						require.True(t, license.Temporary)
+					}
+					break
+				}
+				select {
+				case <-timeout:
+					require.Equal(t, tc.expectedLicenseID, license.LicenseID)
+					break
+				case <-time.After(interval):
+				}
+			}
 		})
 	}
+}
+
+func licenseFile(id string, issue, exp time.Time) string {
+	l := &licensing.License{
+		LicenseID:       id,
+		CustomerID:      "test customer id",
+		InstallationID:  "*",
+		Product:         "nomad",
+		IssueTime:       issue,
+		StartTime:       issue,
+		ExpirationTime:  exp,
+		TerminationTime: exp,
+		Flags:           map[string]interface{}{},
+	}
+	signed, _ := l.SignedString(nomadLicense.TestPrivateKey)
+	return signed
+
 }
