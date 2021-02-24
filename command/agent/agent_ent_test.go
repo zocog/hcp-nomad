@@ -3,14 +3,10 @@
 package agent
 
 import (
-	"io"
 	"io/ioutil"
 	"os"
 	"testing"
-	"time"
 
-	"github.com/hashicorp/go-licensing"
-	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/helper"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/structs/config"
@@ -99,75 +95,4 @@ func TestEntReloadEventer(t *testing.T) {
 	require.NoError(t, err)
 
 	require.False(t, a.auditor.Enabled())
-}
-
-func TestServer_Reload_License(t *testing.T) {
-	t.Parallel()
-
-	// write license
-	issue := time.Now().Add(-time.Hour)
-	exp := issue.Add(time.Hour)
-	l := &licensing.License{
-		LicenseID:       "some-license",
-		CustomerID:      "some-customer",
-		InstallationID:  "*",
-		Product:         "nomad",
-		IssueTime:       issue,
-		StartTime:       issue,
-		ExpirationTime:  exp,
-		TerminationTime: exp,
-		Flags:           map[string]interface{}{},
-	}
-
-	licenseString, err := l.SignedString(nomadLicense.TestPrivateKey)
-	require.NoError(t, err)
-	f, err := ioutil.TempFile("", "license.hclic")
-	require.NoError(t, err)
-	_, err = io.WriteString(f, licenseString)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
-
-	defer os.Remove(f.Name())
-
-	agent := NewTestAgent(t, t.Name(), func(c *Config) {
-		c.Server = &ServerConfig{
-			Enabled:     true,
-			LicensePath: f.Name(),
-		}
-	})
-
-	defer agent.Shutdown()
-
-	require.Eventually(t, func() bool {
-		return agent.server != nil
-	}, 5*time.Second, 10*time.Millisecond, "Expected agent.server not to be nil")
-
-	origLicense := agent.server.EnterpriseState.License()
-	require.Equal(t, origLicense.LicenseID, "some-license")
-
-	// write updated license
-	l.LicenseID = "some-new-license"
-	licenseString, err = l.SignedString(nomadLicense.TestPrivateKey)
-	require.NoError(t, err)
-
-	f, err = os.OpenFile(f.Name(), os.O_WRONLY|os.O_TRUNC, 0700)
-	require.NoError(t, err)
-
-	_, err = io.WriteString(f, licenseString)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
-
-	newConfig := &Config{
-		Server: &ServerConfig{
-			Enabled: true,
-			// path is unchanged; contents were changed
-			LicensePath: f.Name(),
-		},
-	}
-
-	err = agent.Reload(newConfig)
-	require.NoError(t, err)
-
-	newLicense := agent.server.EnterpriseState.License()
-	require.Equal(t, newLicense.LicenseID, "some-new-license")
 }
