@@ -176,6 +176,17 @@ func licenseFromLicenseConfig(cfg *LicenseConfig) (string, error) {
 	return "", nil
 }
 
+// Reload updates the license from the config
+func (w *LicenseWatcher) Reload(cfg *LicenseConfig) error {
+	blob, err := licenseFromLicenseConfig(cfg)
+	if err != nil {
+		return err
+	}
+
+	_, err = w.SetLicense(blob)
+	return err
+}
+
 // License atomically returns the license watchers stored license
 func (w *LicenseWatcher) License() *nomadLicense.License {
 	return w.license.Load().(*nomadLicense.License)

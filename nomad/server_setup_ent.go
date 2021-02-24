@@ -43,6 +43,17 @@ func (es *EnterpriseState) License() *license.License {
 	return es.licenseWatcher.License()
 }
 
+func (es *EnterpriseState) ReloadLicense(cfg *Config) error {
+	if es.licenseWatcher == nil {
+		return nil
+	}
+	licenseConfig := &LicenseConfig{
+		LicenseFileEnv:  cfg.LicenseFileEnv,
+		LicenseFilePath: cfg.LicenseFilePath,
+	}
+	return es.licenseWatcher.Reload(licenseConfig)
+}
+
 // setupEnterprise is used for Enterprise specific setup
 func (s *Server) setupEnterprise(config *Config) error {
 	// Enable the standard lib, except the HTTP import.
