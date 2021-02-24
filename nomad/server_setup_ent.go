@@ -34,6 +34,15 @@ func (es *EnterpriseState) Features() uint64 {
 	return uint64(es.licenseWatcher.Features())
 }
 
+// License returns the current license
+func (es *EnterpriseState) License() *license.License {
+	if es.licenseWatcher == nil {
+		// everything is licensed while the watcher starts up
+		return nil
+	}
+	return es.licenseWatcher.License()
+}
+
 // setupEnterprise is used for Enterprise specific setup
 func (s *Server) setupEnterprise(config *Config) error {
 	// Enable the standard lib, except the HTTP import.
