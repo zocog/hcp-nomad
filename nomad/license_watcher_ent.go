@@ -101,15 +101,9 @@ func NewLicenseWatcher(
 ) (*LicenseWatcher, error) {
 
 	// Check for file license
-	var initLicense string
-	if cfg.LicenseFileEnv != "" {
-		initLicense = cfg.LicenseFileEnv
-	} else if cfg.LicenseFilePath != "" {
-		licRaw, err := ioutil.ReadFile(cfg.LicenseFilePath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read license file %w", err)
-		}
-		initLicense = string(licRaw)
+	initLicense, err := licenseFromLicenseConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read license from config: %w", err)
 	}
 
 	_, tmpSigned, tmpPubKey, err := temporaryLicenseInfo()
@@ -164,6 +158,22 @@ func NewLicenseWatcher(
 	lw.license.Store(license)
 
 	return lw, nil
+}
+
+func licenseFromLicenseConfig(cfg *LicenseConfig) (string, error) {
+	if cfg.LicenseFileEnv != "" {
+		return cfg.LicenseFileEnv, nil
+	}
+
+	if cfg.LicenseFilePath != "" {
+		licRaw, err := ioutil.ReadFile(cfg.LicenseFilePath)
+		if err != nil {
+			return "", fmt.Errorf("failed to read license file %w", err)
+		}
+		return string(licRaw), nil
+	}
+
+	return "", nil
 }
 
 // License atomically returns the license watchers stored license
