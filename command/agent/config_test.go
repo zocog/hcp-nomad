@@ -140,6 +140,7 @@ func TestConfig_Merge(t *testing.T) {
 			UpgradeVersion:         "foo",
 			EnableEventBroker:      helper.BoolToPtr(false),
 			EventBufferSize:        helper.IntToPtr(0),
+			LicensePath:            "/tmp/licensefile1",
 		},
 		ACL: &ACLConfig{
 			Enabled:          true,
@@ -332,6 +333,7 @@ func TestConfig_Merge(t *testing.T) {
 			UpgradeVersion:         "bar",
 			EnableEventBroker:      helper.BoolToPtr(true),
 			EventBufferSize:        helper.IntToPtr(100),
+			LicensePath:            "/tmp/licensefile2",
 		},
 		ACL: &ACLConfig{
 			Enabled:          true,
