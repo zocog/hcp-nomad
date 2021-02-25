@@ -183,7 +183,7 @@ func (w *LicenseWatcher) Reload(cfg *LicenseConfig) error {
 		return err
 	}
 
-	_, err = w.SetLicense(blob)
+	_, err = w.SetLicense(blob, false)
 	return err
 }
 
@@ -206,8 +206,32 @@ func (w *LicenseWatcher) ValidateLicense(blob string) (*nomadLicense.License, er
 	return nLic, nil
 }
 
-func (w *LicenseWatcher) SetLicense(blob string) (*licensing.License, error) {
+func (w *LicenseWatcher) SetLicense(blob string, force bool) (*licensing.License, error) {
+	if force {
+		return w.watcher.SetLicense(blob)
+	}
+
+	newLicense, err := w.watcher.ValidateLicense(blob)
+	if err != nil {
+		return nil, err
+	}
+
+	newNomadLic, err := nomadLicense.NewLicense(newLicense)
+	if err != nil {
+		return nil, err
+	}
+
+	current := w.License()
+	if current == nil {
+		return w.watcher.SetLicense(blob)
+	}
+
+	if !newNomadLic.IssueTime.After(current.IssueTime) {
+		return nil, fmt.Errorf("requested license is older than current one, use force to override")
+	}
+
 	return w.watcher.SetLicense(blob)
+
 }
 
 func (w *LicenseWatcher) Features() nomadLicense.Features {
@@ -317,26 +341,13 @@ func (w *LicenseWatcher) monitorRaft(ctx context.Context) {
 		}
 
 		if update {
-			// check if this license should be set
-			// Force == true or license is newer
-			nomadLic, err := w.ValidateLicense(lic.Signed)
-			if err != nil {
-				w.logger.Error("failed to validate license from update", "error", err)
-				continue
-			}
-
 			// Update this server's license if it is newer or if it should be
 			// overridden
-			current := w.License()
-			if current.Temporary ||
-				nomadLic.IssueTime.After(current.IssueTime) ||
-				lic.Force {
-				_, err := w.SetLicense(lic.Signed)
-				if err != nil {
-					w.logger.Error("failed to set license from update", "error", err)
-				} else {
-					lastSigned = lic.Signed
-				}
+			_, err = w.SetLicense(lic.Signed, false)
+			if err != nil {
+				w.logger.Error("failed to set license from update", "error", err)
+			} else {
+				lastSigned = lic.Signed
 			}
 		}
 	}

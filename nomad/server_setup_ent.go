@@ -30,6 +30,15 @@ func (es *EnterpriseState) FeatureCheck(feature license.Features, emitLog bool) 
 	return es.licenseWatcher.FeatureCheck(feature, emitLog)
 }
 
+func (es *EnterpriseState) SetLicense(blob string, force bool) error {
+	if es.licenseWatcher == nil {
+		return fmt.Errorf("license watcher unable to set license")
+	}
+
+	_, err := es.licenseWatcher.SetLicense(blob, force)
+	return err
+}
+
 func (es *EnterpriseState) Features() uint64 {
 	return uint64(es.licenseWatcher.Features())
 }

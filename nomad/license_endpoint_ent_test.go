@@ -28,7 +28,7 @@ func TestLicenseEndpoint_GetLicense(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC)
 
 	l := nomadLicense.NewTestLicense(nomadLicense.TestGovernancePolicyFlags())
-	_, err := s1.EnterpriseState.licenseWatcher.SetLicense(l.Signed)
+	err := s1.EnterpriseState.SetLicense(l.Signed, false)
 	require.NoError(t, err)
 
 	// There is some time between SetLicense and the watchers updateCh

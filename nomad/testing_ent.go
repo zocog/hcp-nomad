@@ -25,7 +25,7 @@ func licensedServer(t *testing.T, signedLicense string) (*Server, func()) {
 		licenseCallback(c)
 	})
 	testutil.WaitForLeader(t, s.RPC)
-	_, err := s.EnterpriseState.licenseWatcher.SetLicense(signedLicense)
+	err := s.EnterpriseState.SetLicense(signedLicense, false)
 	require.NoError(t, err)
 	testutil.WaitForResult(func() (bool, error) {
 		out := s.EnterpriseState.licenseWatcher.License()

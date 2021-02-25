@@ -38,8 +38,7 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 	}
 	defer metrics.MeasureSince([]string{"nomad", "license", "upsert_license"}, time.Now())
 
-	_, err := l.srv.EnterpriseState.licenseWatcher.SetLicense(args.License.Signed)
-	if err != nil {
+	if err := l.srv.EnterpriseState.SetLicense(args.License.Signed, args.License.Force); err != nil {
 		return fmt.Errorf("error setting license: %w", err)
 	}
 
@@ -62,7 +61,7 @@ func (l *License) GetLicense(args *structs.LicenseGetRequest, reply *structs.Lic
 	defer metrics.MeasureSince([]string{"nomad", "license", "get_license"}, time.Now())
 
 	// Fetch license existing in Watcher
-	out := l.srv.EnterpriseState.licenseWatcher.License()
+	out := l.srv.EnterpriseState.License()
 	reply.NomadLicense = out
 	return nil
 }

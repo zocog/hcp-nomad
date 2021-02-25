@@ -8,14 +8,19 @@ import (
 	"time"
 
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/nomad-licensing/license"
+	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
 
-func (s *Server) propagateLicense(lic *license.License, signedBlob string) error {
+func (s *Server) propagateLicense(lic *nomadLicense.License, signedBlob string) error {
 	stored, err := s.fsm.State().License(nil)
 	if err != nil {
 		return err
+	}
+
+	if lic.Temporary {
+		s.logger.Debug("license is temporary, not propagating to raft")
+		return nil
 	}
 
 	if !s.IsLeader() {
