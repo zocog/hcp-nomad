@@ -35,8 +35,7 @@ func (es *EnterpriseState) SetLicense(blob string, force bool) error {
 		return fmt.Errorf("license watcher unable to set license")
 	}
 
-	_, err := es.licenseWatcher.SetLicense(blob, force)
-	return err
+	return es.licenseWatcher.SetLicense(blob, force)
 }
 
 func (es *EnterpriseState) Features() uint64 {
@@ -57,8 +56,8 @@ func (es *EnterpriseState) ReloadLicense(cfg *Config) error {
 		return nil
 	}
 	licenseConfig := &LicenseConfig{
-		LicenseFileEnv:  cfg.LicenseFileEnv,
-		LicenseFilePath: cfg.LicenseFilePath,
+		LicenseEnvBytes: cfg.LicenseFileEnv,
+		LicensePath:     cfg.LicenseFilePath,
 	}
 	return es.licenseWatcher.Reload(licenseConfig)
 }
@@ -90,8 +89,8 @@ func (s *Server) setupEnterprise(config *Config) error {
 
 	// Set License config options
 	config.LicenseConfig.PropagateFn = s.propagateLicense
-	config.LicenseConfig.LicenseFileEnv = config.LicenseFileEnv
-	config.LicenseConfig.LicenseFilePath = config.LicenseFilePath
+	config.LicenseConfig.LicenseEnvBytes = config.LicenseFileEnv
+	config.LicenseConfig.LicensePath = config.LicenseFilePath
 
 	licenseWatcher, err := NewLicenseWatcher(s.logger, config.LicenseConfig, config.AgentShutdown, s.establishTemporaryLicenseMetadata, s.State)
 	if err != nil {

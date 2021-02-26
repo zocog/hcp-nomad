@@ -429,7 +429,7 @@ func TestLicenseWatcher_Init_ExpiredTemp_Shutdown_Cancelled(t *testing.T) {
 	success := make(chan struct{})
 	go func() {
 		select {
-		case <-lw.monitorExpTmpCtx.Done():
+		case <-lw.monitorTmpExpCtx.Done():
 			close(success)
 			// properly avoided shutdown
 		case <-executed:

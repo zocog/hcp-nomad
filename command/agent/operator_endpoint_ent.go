@@ -84,6 +84,7 @@ func (s *HTTPServer) operatorPutLicense(resp http.ResponseWriter, req *http.Requ
 
 	params := req.URL.Query()
 	forceRaw := params.Get("force")
+
 	var force bool
 	if forceRaw != "" {
 		f, err := strconv.ParseBool(forceRaw)
