@@ -171,7 +171,7 @@ jobs:
     - store_artifacts:
         name: "oss: marking repo as artifact"
         path: /tmp/artifacts/nomad-OSS-artifacts.tar.gz
-        
+
     - store_artifacts:
         name: "oss: marking binaries as artifact"
         path: /tmp/artifacts/nomad-OSS-artifacts/repo/pkg
@@ -196,7 +196,7 @@ jobs:
             git checkout --theirs version/version.go
             git checkout --theirs command/agent/bindata_assetfs.go
             git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go
-            git commit -m "merge latest OSS master ${OSS_HEAD}"
+            git commit -m "merge latest OSS main ${OSS_HEAD}"
           fi
 
     - run:
@@ -206,7 +206,7 @@ jobs:
           PRERELEASE_TARGET: prerelease
           RELEASE_TARGET: release
         path: ~/nomad-ent
-        command: *build_linux 
+        command: *build_linux
 
     - run:
         name: "ent: inspect changes"
@@ -243,7 +243,7 @@ jobs:
     - store_artifacts:
         name: "ent: marking repo as artifact"
         path: /tmp/artifacts/nomad-ENT-artifacts.tar.gz
-        
+
     - store_artifacts:
         name: "ent: marking binaries as artifact"
         path: /tmp/artifacts/nomad-ENT-artifacts/repo/pkg
@@ -264,7 +264,7 @@ jobs:
           PRERELEASE_TARGET: help # prerelease is a NOOP
           RELEASE_TARGET: prorelease
         path: ~/nomad-pro
-        command: *build_linux 
+        command: *build_linux
 
     - run:
         name: "pro: inspect changes"
@@ -301,7 +301,7 @@ jobs:
     - store_artifacts:
         name: "pro: marking repo as artifact"
         path: /tmp/artifacts/nomad-PRO-artifacts.tar.gz
-        
+
     - store_artifacts:
         name: "pro: marking binaries as artifact"
         path: /tmp/artifacts/nomad-PRO-artifacts/repo/pkg

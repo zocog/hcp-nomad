@@ -20,7 +20,7 @@ readonly nomad_sha="$1"
 
 readonly script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 echo $script_dir
-readonly project_url=https://circleci.hashicorp.engineering/api/v1.1/project/github/hashicorp/nomad-enterprise/tree/master
+readonly project_url=https://circleci.hashicorp.engineering/api/v1.1/project/github/hashicorp/nomad-enterprise/tree/main
 echo $project_url
 
 curl --fail --silent --show-error \
