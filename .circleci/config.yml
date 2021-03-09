@@ -767,13 +767,13 @@ workflows:
             - merge-oss:
                 filters:
                     branches:
-                        only: master
+                        only: main
         triggers:
             - schedule:
                 cron: 0 4 * * 1-5
                 filters:
                     branches:
-                        only: master
+                        only: main
     website:
         jobs:
             - website-docker-image:
