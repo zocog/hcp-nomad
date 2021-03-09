@@ -3,10 +3,10 @@ executor: go
 parameters:
   origin_branch:
     type: string
-    default: master
+    default: main
   dest_branch:
     type: string
-    default: master
+    default: main
 steps:
   - run:
       name: prepare initial failing reason
@@ -34,7 +34,7 @@ steps:
         # fetch latest destination branch - to support oss->ent propagation through rebuilds
         git pull origin << parameters.dest_branch >>
 
-        # Merge OSS master branch to Enterprise merge branch
+        # Merge OSS main branch to Enterprise merge branch
         git remote add oss https://github.com/hashicorp/nomad.git
         git fetch oss
         git_merge_branch="ci/oss-merge-<< parameters.origin_branch >>-$(date +%Y%m%d%H%M%S)"
