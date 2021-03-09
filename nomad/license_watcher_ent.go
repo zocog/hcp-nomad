@@ -61,6 +61,14 @@ type LicenseConfig struct {
 
 	PropagateFn func(*nomadLicense.License, string) error
 
+	ShutdownCallback func() error
+
+	InitTmpLicenseBarrier func() (int64, error)
+
+	StateStore stateFn
+
+	Logger hclog.InterceptLogger
+
 	// preventStart is used for testing to control when to start watcher
 	preventStart bool
 }
@@ -105,13 +113,7 @@ type LicenseWatcher struct {
 	propagateFn func(*nomadLicense.License, string) error
 }
 
-func NewLicenseWatcher(
-	logger hclog.InterceptLogger,
-	cfg *LicenseConfig,
-	shutdownCallback func() error,
-	tmpLicenseBarrierFn func() (int64, error),
-	stateStoreFn stateFn,
-) (*LicenseWatcher, error) {
+func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 
 	// Check for file license
 	initLicense, err := licenseFromLicenseConfig(cfg)
@@ -133,15 +135,15 @@ func NewLicenseWatcher(
 	ctx, cancel := context.WithCancel(context.Background())
 
 	lw := &LicenseWatcher{
-		shutdownCallback:             shutdownCallback,
+		shutdownCallback:             cfg.ShutdownCallback,
 		expiredTmpGrace:              defaultExpiredTmpGrace,
 		monitorTmpExpCtx:             ctx,
 		monitorTmpExpCancel:          cancel,
-		logger:                       logger.Named("licensing"),
+		logger:                       cfg.Logger.Named("licensing"),
 		logTimes:                     make(map[nomadLicense.Features]time.Time),
-		establishTmpLicenseBarrierFn: tmpLicenseBarrierFn,
+		establishTmpLicenseBarrierFn: cfg.InitTmpLicenseBarrier,
 		propagateFn:                  cfg.PropagateFn,
-		stateStoreFn:                 stateStoreFn,
+		stateStoreFn:                 cfg.StateStore,
 	}
 
 	opts := &licensing.WatcherOptions{
@@ -193,6 +195,10 @@ func (w *LicenseWatcher) Reload(cfg *LicenseConfig) error {
 	blob, err := licenseFromLicenseConfig(cfg)
 	if err != nil {
 		return err
+	}
+
+	if blob == "" {
+		return nil
 	}
 
 	return w.SetLicense(blob, false)

@@ -17,10 +17,6 @@ type EnterpriseState struct {
 	licenseWatcher *LicenseWatcher
 }
 
-func (es *EnterpriseState) ReloadLicense(_ *Config) error {
-	return nil
-}
-
 func (es *EnterpriseState) FeatureCheck(feature license.Features, emitLog bool) error {
 	if es.licenseWatcher == nil {
 		// everything is licensed while the watcher starts up
@@ -87,12 +83,21 @@ func (s *Server) setupEnterprise(config *Config) error {
 
 	s.setupEnterpriseAutopilot(config)
 
+	// AdditionalPubKeys may be set prior to this step, mainly in tests
+	additionalPubKeys := config.LicenseConfig.AdditionalPubKeys
 	// Set License config options
-	config.LicenseConfig.PropagateFn = s.propagateLicense
-	config.LicenseConfig.LicenseEnvBytes = config.LicenseFileEnv
-	config.LicenseConfig.LicensePath = config.LicenseFilePath
+	config.LicenseConfig = &LicenseConfig{
+		AdditionalPubKeys:     additionalPubKeys,
+		InitTmpLicenseBarrier: s.initTmpLicenseBarrier,
+		LicenseEnvBytes:       config.LicenseFileEnv,
+		LicensePath:           config.LicenseFilePath,
+		Logger:                s.logger,
+		PropagateFn:           s.propagateLicense,
+		ShutdownCallback:      config.AgentShutdown,
+		StateStore:            s.State,
+	}
 
-	licenseWatcher, err := NewLicenseWatcher(s.logger, config.LicenseConfig, config.AgentShutdown, s.establishTemporaryLicenseMetadata, s.State)
+	licenseWatcher, err := NewLicenseWatcher(config.LicenseConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create a new license watcher: %w", err)
 	}

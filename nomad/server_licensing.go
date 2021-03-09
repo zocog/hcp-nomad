@@ -8,9 +8,51 @@ import (
 	"time"
 
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/nomad-licensing/license"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
+
+func (es *EnterpriseState) FeatureCheck(feature license.Features, emitLog bool) error {
+	if es.licenseWatcher == nil {
+		// everything is licensed while the watcher starts up
+		return nil
+	}
+
+	return es.licenseWatcher.FeatureCheck(feature, emitLog)
+}
+
+func (es *EnterpriseState) SetLicense(blob string, force bool) error {
+	if es.licenseWatcher == nil {
+		return fmt.Errorf("license watcher unable to set license")
+	}
+
+	return es.licenseWatcher.SetLicense(blob, force)
+}
+
+func (es *EnterpriseState) Features() uint64 {
+	return uint64(es.licenseWatcher.Features())
+}
+
+// License returns the current license
+func (es *EnterpriseState) License() *license.License {
+	if es.licenseWatcher == nil {
+		// everything is licensed while the watcher starts up
+		return nil
+	}
+	return es.licenseWatcher.License()
+}
+
+func (es *EnterpriseState) ReloadLicense(cfg *Config) error {
+	if es.licenseWatcher == nil {
+		return nil
+	}
+	licenseConfig := &LicenseConfig{
+		LicenseEnvBytes: cfg.LicenseFileEnv,
+		LicensePath:     cfg.LicenseFilePath,
+	}
+	return es.licenseWatcher.Reload(licenseConfig)
+}
 
 func (s *Server) propagateLicense(lic *nomadLicense.License, signedBlob string) error {
 	stored, err := s.fsm.State().License(nil)
@@ -24,7 +66,7 @@ func (s *Server) propagateLicense(lic *nomadLicense.License, signedBlob string) 
 	}
 
 	if !s.IsLeader() {
-		s.logger.Debug("server is not leader, ignoring attempt to upsert license to raft")
+		s.logger.Debug("server is not leader, not propagating to raft")
 		return nil
 	}
 
@@ -40,7 +82,7 @@ func (s *Server) propagateLicense(lic *nomadLicense.License, signedBlob string) 
 
 var minLicenseMetaVersion = version.Must(version.NewVersion("0.12.1"))
 
-func (s *Server) establishTemporaryLicenseMetadata() (int64, error) {
+func (s *Server) initTmpLicenseBarrier() (int64, error) {
 	if !ServersMeetMinimumVersion(s.Members(), minLicenseMetaVersion, false) {
 		s.logger.Named("core").Debug("cannot initialize temporary license barrier until all servers are above minimum version", "min_version", minLicenseMetaVersion)
 		return 0, fmt.Errorf("temporary license barrier cannot be created until all servers are above minimum version %s", minLicenseMetaVersion)

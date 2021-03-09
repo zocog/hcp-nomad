@@ -791,6 +791,101 @@ func TestLicenseWatcher_start(t *testing.T) {
 	}
 }
 
+func TestLicenseWatcher_Reload_EmptyConfig(t *testing.T) {
+	t.Parallel()
+
+	server, cleanup := TestServer(t, func(c *Config) {
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
+	})
+	defer cleanup()
+
+	initLicense := server.EnterpriseState.License()
+	require.NotNil(t, initLicense)
+	require.True(t, initLicense.Temporary)
+
+	reloadCfg := &LicenseConfig{}
+
+	require.NoError(t, server.EnterpriseState.licenseWatcher.Reload(reloadCfg))
+
+	lic := server.EnterpriseState.License()
+	require.NotNil(t, lic)
+	require.True(t, lic.Temporary)
+}
+
+func TestLicenseWatcher_Reload_FileNewer(t *testing.T) {
+	t.Parallel()
+
+	server, cleanup := TestServer(t, func(c *Config) {
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
+	})
+	defer cleanup()
+
+	initLicense := server.EnterpriseState.License()
+	require.NotNil(t, initLicense)
+	require.True(t, initLicense.Temporary)
+
+	file := licenseFile("reload-id", time.Now(), time.Now().Add(1*time.Hour))
+	f, err := ioutil.TempFile("", "licensewatcher")
+	require.NoError(t, err)
+	_, err = io.WriteString(f, file)
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	defer os.Remove(f.Name())
+
+	reloadCfg := &LicenseConfig{
+		LicensePath: f.Name(),
+	}
+
+	require.NoError(t, server.EnterpriseState.licenseWatcher.Reload(reloadCfg))
+
+	require.Eventually(t, func() bool {
+		license := server.EnterpriseState.licenseWatcher.License()
+		return "reload-id" == license.LicenseID
+	}, time.Second, 10*time.Millisecond, fmt.Sprintf("Expected license ID to equal %s", "reload-id"))
+}
+
+func TestLicenseWatcher_Reload_RaftNewer(t *testing.T) {
+	t.Parallel()
+
+	server, cleanup := TestServer(t, func(c *Config) {
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
+	})
+	defer cleanup()
+
+	initLicense := server.EnterpriseState.License()
+	require.NotNil(t, initLicense)
+	require.True(t, initLicense.Temporary)
+
+	raftLicense := licenseFile("raft-id", time.Now(), time.Now().Add(1*time.Hour))
+	envLicense := licenseFile("reload-id", time.Now().Add(-2*time.Hour), time.Now().Add(1*time.Hour))
+
+	state := server.State()
+	require.NotNil(t, state)
+	require.NoError(t, state.UpsertLicense(1000, &structs.StoredLicense{Signed: raftLicense}))
+
+	require.Eventually(t, func() bool {
+		license := server.EnterpriseState.licenseWatcher.License()
+		return "raft-id" == license.LicenseID
+	}, time.Second, 10*time.Millisecond, fmt.Sprintf("Expected license ID to equal %s", "raft-id"))
+
+	reloadCfg := &LicenseConfig{
+		LicenseEnvBytes: envLicense,
+	}
+
+	// Reload should error
+	require.Error(t, server.EnterpriseState.licenseWatcher.Reload(reloadCfg))
+
+	license := server.EnterpriseState.licenseWatcher.License()
+	require.Equal(t, "raft-id", license.LicenseID)
+}
+
 func licenseFile(id string, issue, exp time.Time) string {
 	l := &licensing.License{
 		LicenseID:       id,
