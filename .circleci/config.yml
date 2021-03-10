@@ -362,38 +362,11 @@ jobs:
                     git config --global user.email "hashicorp-ci@users.noreply.github.com"
                     git config --global user.name "hashicorp-ci"
 
-                    # fetch latest destination branch - to support oss->ent propagation through rebuilds
-                    git pull origin << parameters.dest_branch >>
+                    export GIT_TMP_MERGE_BRANCH="ci/oss-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
 
-                    # Merge OSS main branch to Enterprise merge branch
-                    git remote add oss https://github.com/hashicorp/nomad.git
-                    git fetch oss
-                    git_merge_branch="ci/oss-merge-<< parameters.origin_branch >>-$(date +%Y%m%d%H%M%S)"
-
-                    git checkout -b "${git_merge_branch}"
-                    latest_oss_commit="$(git rev-parse oss/<< parameters.origin_branch >>)"
-                    message="Merge Nomad OSS branch '<< parameters.origin_branch >>' at commit ${latest_oss_commit}"
-                    if ! git merge -m "$message" oss/<< parameters.origin_branch >>; then
-                      # try to merge common conflicting files
-                      git status
-                      git checkout --theirs CHANGELOG.md
-                      git checkout --theirs version/version.go
-                      git checkout --theirs command/agent/bindata_assetfs.go
-                      git checkout --theirs .circleci/config.yml
-                      git checkout --ours   vendor/modules.txt
-                      git checkout --ours   go.sum
-                      make sync
-
-                      # Regenerate enterprise CircleCI config to apply changes from OSS merge
-                      make -C .circleci CIRCLECI="circleci-local-cli --skip-update-check" config.yml
-
-                      git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go go.sum vendor/modules.txt .circleci/config.yml
-
-                      # attempt merging again
-                      if ! git commit -m "$message"; then
-                        echo "export FAIL_REASON='because git was unable to auto-merge'" >> $BASH_ENV
-                        exit 1
-                      fi
+                    if ! ./scripts/enterprise/merge-oss.sh; then
+                      echo "export FAIL_REASON='because git was unable to auto-merge'" >> $BASH_ENV
+                      exit 1
                     fi
 
                     # quick check - do basic compile build

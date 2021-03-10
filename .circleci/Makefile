@@ -18,6 +18,7 @@ default: help
 
 help:
 	@echo "Usage:"
+	@echo "  make config.yml: generate that config.yml"
 	@echo "  make ci-verify: validate that config.yml for correctness"
 	@echo
 	@echo "Diagnostics:"
