@@ -357,14 +357,16 @@ jobs:
             - run:
                 command: |
                     set -eux -o pipefail
-                    #
+
                     # Configure Git
                     git config --global user.email "hashicorp-ci@users.noreply.github.com"
                     git config --global user.name "hashicorp-ci"
 
-                    export GIT_TMP_MERGE_BRANCH="ci/oss-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
+                    origin_branch="<< parameters.origin_branch >>"
+                    dest_branch="<< parameters.dest_branch >>"
+                    tmp_branch="ci/oss-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
 
-                    if ! ./scripts/enterprise/merge-oss.sh; then
+                    if ! ./scripts/enterprise/merge-oss.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}"; then
                       echo "export FAIL_REASON='because git was unable to auto-merge'" >> $BASH_ENV
                       exit 1
                     fi
@@ -376,9 +378,9 @@ jobs:
                     fi
 
                     # now merge and push
-                    git checkout << parameters.dest_branch >>
+                    git checkout ${dest_branch}
                     git merge "${git_merge_branch}"
-                    git push origin << parameters.dest_branch >>
+                    git push origin ${dest_branch}
                 name: Merge OSS branch
             - slack/status:
                 fail_only: true

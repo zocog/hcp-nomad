@@ -5,10 +5,10 @@ set -e
 
 origin_branch="${1:-main}"
 dest_branch="${2:-main}"
-GIT_TMP_MERGE_BRANCH="${3:-}"
+tmp_branch="${3:-}"
 
-if [ -z "${GIT_TMP_MERGE_BRANCH}" ]; then
-    GIT_TMP_MERGE_BRANCH="oss-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
+if [ -z "${tmp_branch}" ]; then
+    tmp_branch="oss-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
 fi
 
 git pull origin "${dest_branch}"
@@ -20,7 +20,7 @@ fi
 
 git fetch oss "${origin_branch}"
 
-git checkout -b "${GIT_TMP_MERGE_BRANCH}"
+git checkout -b "${tmp_branch}"
 latest_oss_commit="$(git rev-parse "oss/${origin_branch}")"
 message="Merge Nomad OSS branch '${origin_branch}' at commit ${latest_oss_commit}"
 
@@ -52,6 +52,6 @@ fi
 if [[ -z "${CI:-}" ]]; then
     echo
     echo "push branch and open a PR"
-    echo "   git push origin ${GIT_TMP_MERGE_BRANCH}"
+    echo "   git push origin ${tmp_branch}"
 fi
 
