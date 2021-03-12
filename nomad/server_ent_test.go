@@ -44,7 +44,7 @@ func TestServer_Reload_License(t *testing.T) {
 	defer os.Remove(f.Name())
 
 	server, cleanup := TestServer(t, func(c *Config) {
-		c.LicenseFilePath = f.Name()
+		c.LicensePath = f.Name()
 		c.LicenseConfig = &LicenseConfig{
 			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
 		}
@@ -69,7 +69,7 @@ func TestServer_Reload_License(t *testing.T) {
 
 	newConfig := DefaultConfig()
 	// path is unchanged; contents were changed
-	newConfig.LicenseFilePath = f.Name()
+	newConfig.LicensePath = f.Name()
 
 	err = server.Reload(newConfig)
 	require.NoError(t, err)

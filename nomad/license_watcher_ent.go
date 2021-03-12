@@ -73,12 +73,18 @@ type LicenseConfig struct {
 	preventStart bool
 }
 
+// ServerLicense contains an expanded license and its corresponding blob
+type ServerLicense struct {
+	license *nomadLicense.License
+	blob    string
+}
+
 type LicenseWatcher struct {
 	// once ensures watch is only invoked once
 	once sync.Once
 
-	// license is the watchers atomically stored license
-	license atomic.Value
+	// license is the watchers atomically stored ServerLicense
+	licenseInfo atomic.Value
 
 	// shutdownFunc is a callback invoked when temporary license expires and server should shutdown
 	shutdownCallback func() error
@@ -169,7 +175,11 @@ func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 		return nil, fmt.Errorf("failed to convert license: %w", err)
 	}
 
-	lw.license.Store(license)
+	// Store the expanded license and the corresponding blob
+	lw.licenseInfo.Store(&ServerLicense{
+		license: license,
+		blob:    initLicense,
+	})
 
 	return lw, nil
 }
@@ -206,7 +216,11 @@ func (w *LicenseWatcher) Reload(cfg *LicenseConfig) error {
 
 // License atomically returns the license watchers stored license
 func (w *LicenseWatcher) License() *nomadLicense.License {
-	return w.license.Load().(*nomadLicense.License)
+	return w.licenseInfo.Load().(*ServerLicense).license
+}
+
+func (w *LicenseWatcher) LicenseBlob() string {
+	return w.licenseInfo.Load().(*ServerLicense).blob
 }
 
 // ValidateLicense validates that the given blob is a valid go-licensing
@@ -263,17 +277,23 @@ func (w *LicenseWatcher) setLicense(blob string, lic *nomadLicense.License) erro
 		return err
 	}
 
+	w.licenseInfo.Store(&ServerLicense{
+		license: lic,
+		blob:    blob,
+	})
+
 	if !lic.Temporary && w.propagateFn != nil {
 		err := w.propagateFn(lic, blob)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
 func (w *LicenseWatcher) Features() nomadLicense.Features {
-	lic := w.license.Load().(*nomadLicense.License)
+	lic := w.License()
 	if lic == nil {
 		return nomadLicense.FeatureNone
 	}
@@ -318,36 +338,29 @@ func (w *LicenseWatcher) hasFeature(feature nomadLicense.Features) bool {
 // for ensuring it is shut down properly
 func (w *LicenseWatcher) start(ctx context.Context) {
 	w.once.Do(func() {
-		go w.watch(ctx)
+		go w.monitorWatcher(ctx)
 		go w.temporaryLicenseMonitor(ctx)
 		go w.monitorRaft(ctx)
 	})
 }
 
-// TODO(drew) rename
-func (w *LicenseWatcher) watch(ctx context.Context) {
+// monitorWatcher monitors the LicenseWatchers go-licensing watcher
+//
+// Nomad uses the go licensing watcher channels mostly to log, and to stop the
+// temporaryLicenseMonitor when a valid license has been applied.  Since Nomad
+// does not shut down when a license has expired the ErrorCh simply logs.
+func (w *LicenseWatcher) monitorWatcher(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
 			w.watcher.Stop()
 			return
 		// Handle updated license from the watcher
-		case lic := <-w.watcher.UpdateCh():
+		case <-w.watcher.UpdateCh():
 			w.logger.Debug("received update from license manager")
 
-			// Check if watcher has a license and if it needs to be updated
-			watcherLicense := w.License()
-			if watcherLicense == nil || !watcherLicense.Equal(lic) {
-				// Update license
-				nomadLicense, err := nomadLicense.NewLicense(lic)
-				if err == nil {
-					w.license.Store(nomadLicense)
-					w.monitorTmpExpCancel()
-				} else {
-					w.logger.Error("error loading Nomad license", "error", err)
-				}
-			}
-
+			// Stop the temporaryLicenseMonitor now that we have a valid license
+			w.monitorTmpExpCancel()
 		// Handle licensing watcher errors, primarily expirations.
 		case err := <-w.watcher.ErrorCh():
 			w.logger.Error("license expired, please update license", "error", err) //TODO: more info

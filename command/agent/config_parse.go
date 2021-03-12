@@ -63,12 +63,6 @@ func ParseConfigFile(path string) (*Config, error) {
 		{"telemetry.collection_interval", &c.Telemetry.collectionInterval, &c.Telemetry.CollectionInterval},
 	}
 
-	// convert strings to time.Durations
-	err = durations(tds)
-	if err != nil {
-		return nil, err
-	}
-
 	// Add enterprise audit sinks for time.Duration parsing
 	for i, sink := range c.Audit.Sinks {
 		tds = append(tds, td{

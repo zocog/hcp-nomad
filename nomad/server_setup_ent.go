@@ -89,8 +89,8 @@ func (s *Server) setupEnterprise(config *Config) error {
 	config.LicenseConfig = &LicenseConfig{
 		AdditionalPubKeys:     additionalPubKeys,
 		InitTmpLicenseBarrier: s.initTmpLicenseBarrier,
-		LicenseEnvBytes:       config.LicenseFileEnv,
-		LicensePath:           config.LicenseFilePath,
+		LicenseEnvBytes:       config.LicenseEnv,
+		LicensePath:           config.LicensePath,
 		Logger:                s.logger,
 		PropagateFn:           s.propagateLicense,
 		ShutdownCallback:      config.AgentShutdown,

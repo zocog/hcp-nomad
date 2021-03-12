@@ -43,15 +43,56 @@ func (es *EnterpriseState) License() *license.License {
 	return es.licenseWatcher.License()
 }
 
+// ReloadLicense reloads the server's file license if the supplied license cfg
+// is newer than the one currently in use
 func (es *EnterpriseState) ReloadLicense(cfg *Config) error {
 	if es.licenseWatcher == nil {
 		return nil
 	}
 	licenseConfig := &LicenseConfig{
-		LicenseEnvBytes: cfg.LicenseFileEnv,
-		LicensePath:     cfg.LicenseFilePath,
+		LicenseEnvBytes: cfg.LicenseEnv,
+		LicensePath:     cfg.LicensePath,
 	}
 	return es.licenseWatcher.Reload(licenseConfig)
+}
+
+func (s *Server) syncLeaderLicense() {
+	lic := s.EnterpriseState.License()
+	if lic == nil || lic.Temporary {
+		return
+	}
+
+	blob := s.EnterpriseState.licenseWatcher.LicenseBlob()
+
+	stored, err := s.fsm.State().License(nil)
+	if err != nil {
+		s.logger.Error("received error retrieving raft license, syncing leader license")
+	}
+
+	// If raft already has the current license or one that was forcibly set
+	// nothing to do
+	if stored != nil && (stored.Signed == blob || stored.Force) {
+		return
+	}
+
+	var raftLicense *nomadLicense.License
+	if stored != nil {
+		raftLicense, err = s.EnterpriseState.licenseWatcher.ValidateLicense(stored.Signed)
+		if err != nil {
+			s.logger.Error("received error validating current raft license, syncing leader license")
+		}
+	}
+
+	// If the raft license is newer than current license nothing to do
+	if raftLicense != nil && raftLicense.IssueTime.After(lic.IssueTime) {
+		return
+	}
+
+	// Server license is newer than the one in raft, propagate.
+	if err := s.propagateLicense(lic, blob); err != nil {
+		s.logger.Error("unable to sync current leader license to raft", "err", err)
+	}
+
 }
 
 func (s *Server) propagateLicense(lic *nomadLicense.License, signedBlob string) error {

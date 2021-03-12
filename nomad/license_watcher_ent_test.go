@@ -696,6 +696,8 @@ func TestLicenseWatcher_StateRestore(t *testing.T) {
 	}
 }
 
+// TestLicenseWatcher_start checks that the expected license is used when the
+// license watcher first starts.
 func TestLicenseWatcher_start(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -754,8 +756,8 @@ func TestLicenseWatcher_start(t *testing.T) {
 			}
 
 			server, cleanup := TestServer(t, func(c *Config) {
-				c.LicenseFileEnv = tc.envLicense
-				c.LicenseFilePath = tempfilePath
+				c.LicenseEnv = tc.envLicense
+				c.LicensePath = tempfilePath
 				c.LicenseConfig = &LicenseConfig{
 					AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
 				}
@@ -791,6 +793,8 @@ func TestLicenseWatcher_start(t *testing.T) {
 	}
 }
 
+// TestLicenseWatcher_Reload_EmptyConfig asserts that reloading the license
+// watcher with an empty config no-ops
 func TestLicenseWatcher_Reload_EmptyConfig(t *testing.T) {
 	t.Parallel()
 
@@ -812,8 +816,13 @@ func TestLicenseWatcher_Reload_EmptyConfig(t *testing.T) {
 	lic := server.EnterpriseState.License()
 	require.NotNil(t, lic)
 	require.True(t, lic.Temporary)
+
+	// Ensure the license did not change
+	require.Equal(t, initLicense, lic)
 }
 
+// TestLicenseWatcher_Reload_FileNewer ensures that when reloading a newer file
+// license is used
 func TestLicenseWatcher_Reload_FileNewer(t *testing.T) {
 	t.Parallel()
 
@@ -849,6 +858,8 @@ func TestLicenseWatcher_Reload_FileNewer(t *testing.T) {
 	}, time.Second, 10*time.Millisecond, fmt.Sprintf("Expected license ID to equal %s", "reload-id"))
 }
 
+// TestLicenseWatcher_Reload_RaftNewer ensures that reloading the license
+// watcher with an older file license does not replace the newer one in raft.
 func TestLicenseWatcher_Reload_RaftNewer(t *testing.T) {
 	t.Parallel()
 
