@@ -48,7 +48,7 @@ steps:
 
         # now merge and push
         git checkout ${dest_branch}
-        git merge "${git_merge_branch}"
+        git merge "${tmp_branch}"
         git push origin ${dest_branch}
 
   - slack/status:
