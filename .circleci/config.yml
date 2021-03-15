@@ -366,6 +366,9 @@ jobs:
                     dest_branch="<< parameters.dest_branch >>"
                     tmp_branch="ci/oss-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
 
+                    # protect against dest_branch being different from current branch
+                    git checkout "${dest_branch}"
+
                     if ! ./scripts/enterprise/merge-oss.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}"; then
                       echo "export FAIL_REASON='because git was unable to auto-merge'" >> $BASH_ENV
                       exit 1
