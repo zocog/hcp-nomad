@@ -239,9 +239,6 @@ func (s *Server) establishLeadership(stopCh chan struct{}) error {
 	// Initialize scheduler configuration
 	s.getOrCreateSchedulerConfig()
 
-	// Propagate the servers license if it is newer
-	s.syncLeaderLicense()
-
 	// Initialize the ClusterID
 	_, _ = s.ClusterID()
 	// todo: use cluster ID for stuff, later!
