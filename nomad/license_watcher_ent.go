@@ -80,9 +80,6 @@ type ServerLicense struct {
 }
 
 type LicenseWatcher struct {
-	// once ensures watch is only invoked once
-	once sync.Once
-
 	// license is the watchers atomically stored ServerLicense
 	licenseInfo atomic.Value
 
@@ -337,11 +334,9 @@ func (w *LicenseWatcher) hasFeature(feature nomadLicense.Features) bool {
 // start the license watching process in a goroutine. Callers are responsible
 // for ensuring it is shut down properly
 func (w *LicenseWatcher) start(ctx context.Context) {
-	w.once.Do(func() {
-		go w.monitorWatcher(ctx)
-		go w.temporaryLicenseMonitor(ctx)
-		go w.monitorRaft(ctx)
-	})
+	go w.monitorWatcher(ctx)
+	go w.temporaryLicenseMonitor(ctx)
+	go w.monitorRaft(ctx)
 }
 
 // monitorWatcher monitors the LicenseWatchers go-licensing watcher
