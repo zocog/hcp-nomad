@@ -27,7 +27,7 @@ $(CONFIG): $(CONFIG_PACKED)
 $(CONFIG_PACKED):
 	@cp $(CONFIG) @$(CONFIG)
 	@echo "$$GENERATED_FILE_HEADER" > $(CONFIG_PACKED)
-	@$(CIRCLECI) config pack . >> $(CONFIG_PACKED)
+	@$(CIRCLECI_CLI) config pack . >> $(CONFIG_PACKED)
 	@rm -f @$(CONFIG)
 
 .PHONY: config-up-to-date
