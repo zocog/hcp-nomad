@@ -107,9 +107,8 @@ func TestSyncLeaderLicense_RaftForciblySet(t *testing.T) {
 	require.Equal(t, "raft-id", s2Lic.LicenseID)
 }
 
-// TestSyncLeaderLicense_RaftForciblySet ensures that the license in raft is
-// not overwritten during syncLeaderLicense if the raft license was forcibly
-// set
+// TestSyncLeaderLicense_EventualConsistency asserts that two servers
+// eventually get the same license through leadership syncing
 func TestSyncLeaderLicense_EventualConsistency(t *testing.T) {
 	t.Parallel()
 

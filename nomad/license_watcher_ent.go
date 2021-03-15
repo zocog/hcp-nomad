@@ -59,10 +59,16 @@ type LicenseConfig struct {
 	// AdditionalPubKeys is a set of public keys to
 	AdditionalPubKeys []string
 
+	// PropagateFn is the function to be invoked when propagating a license to raft
 	PropagateFn func(*nomadLicense.License, string) error
 
+	// ShutdownCallback is the function to be invoked when a temporary license
+	// has expired and the server should be shutdown
 	ShutdownCallback func() error
 
+	// InitTmpLicenseBarrier establishes a barrier in raft for when a temporary
+	// license first started. It is referenced to ensure that a server only
+	// operates for the duration of a temporary license
 	InitTmpLicenseBarrier func() (int64, error)
 
 	StateStore stateFn
@@ -113,6 +119,8 @@ type LicenseWatcher struct {
 
 	stateStoreFn stateFn
 
+	preventStart bool
+
 	propagateFn func(*nomadLicense.License, string) error
 }
 
@@ -124,15 +132,14 @@ func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 		return nil, fmt.Errorf("failed to read license from config: %w", err)
 	}
 
-	_, tmpSigned, tmpPubKey, err := temporaryLicenseInfo()
-	if err != nil {
-		return nil, fmt.Errorf("failed creating temporary license: %w", err)
-	}
-	cfg.AdditionalPubKeys = append(cfg.AdditionalPubKeys, tmpPubKey)
-
 	// If initLicense was not set by a file license, start with a temporary license
 	if initLicense == "" {
+		_, tmpSigned, tmpPubKey, err := temporaryLicenseInfo()
+		if err != nil {
+			return nil, fmt.Errorf("failed creating temporary license: %w", err)
+		}
 		initLicense = tmpSigned
+		cfg.AdditionalPubKeys = append(cfg.AdditionalPubKeys, tmpPubKey)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -241,18 +248,16 @@ func (w *LicenseWatcher) ValidateLicense(blob string) (*nomadLicense.License, er
 func (w *LicenseWatcher) SetLicense(blob string, force bool) error {
 	newLicense, err := w.watcher.ValidateLicense(blob)
 	if err != nil {
-		return err
+		return fmt.Errorf("error validating license: %w", err)
 	}
 
 	newNomadLic, err := nomadLicense.NewLicense(newLicense)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create nomad specific license: %w", err)
 	}
 
 	current := w.License()
-	if current == nil {
-		return w.setLicense(blob, newNomadLic)
-	} else if force {
+	if current == nil || force || time.Now().After(current.TerminationTime) {
 		return w.setLicense(blob, newNomadLic)
 	}
 
@@ -334,6 +339,10 @@ func (w *LicenseWatcher) hasFeature(feature nomadLicense.Features) bool {
 // start the license watching process in a goroutine. Callers are responsible
 // for ensuring it is shut down properly
 func (w *LicenseWatcher) start(ctx context.Context) {
+	if w.preventStart {
+		return
+	}
+
 	go w.monitorWatcher(ctx)
 	go w.temporaryLicenseMonitor(ctx)
 	go w.monitorRaft(ctx)
@@ -443,7 +452,8 @@ func (w *LicenseWatcher) temporaryLicenseMonitor(ctx context.Context) {
 		}
 
 		if license != nil && license.Temporary && tmpLicenseTooOld {
-			w.monitorExpiredTmpLicense(ctx)
+			go w.monitorExpiredTmpLicense(ctx)
+			return
 		}
 
 		exp := tmpLicenseBarrier.Add(temporaryLicenseTimeLimit)
@@ -458,7 +468,7 @@ func (w *LicenseWatcher) temporaryLicenseMonitor(ctx context.Context) {
 }
 
 func (w *LicenseWatcher) monitorExpiredTmpLicense(ctx context.Context) {
-	w.logger.Warn("temporary license too old for evaluation period, beginning expired enterprise evaluation monitor")
+	w.logger.Warn("temporary license too old for evaluation period. Nomad will wait %v minutes for valid Enterprise license to be applied before shutting down", w.expiredTmpGrace)
 	// Grace period for server and raft to initialize
 	select {
 	case <-ctx.Done():
@@ -480,12 +490,13 @@ func (w *LicenseWatcher) monitorExpiredTmpLicense(ctx context.Context) {
 
 	// Wait once more for valid license to be applied before shutting down
 	select {
+	case <-ctx.Done():
+		return
 	case <-w.monitorTmpExpCtx.Done():
 		w.logger.Info("license applied, cancelling expired temporary license shutdown")
 	case <-time.After(w.expiredTmpGrace):
 		w.logger.Error("temporary license grace period expired. shutting down")
 		go w.shutdownCallback()
-		return
 	}
 }
 
@@ -516,20 +527,3 @@ func (w *LicenseWatcher) getOrSetTmpLicenseBarrier(ctx context.Context, state *s
 func tmpLicenseTooOld(originalTmpCreate time.Time) bool {
 	return time.Now().After(originalTmpCreate.Add(temporaryLicenseTimeLimit))
 }
-
-//
-
-// Server starts up with license file on disk
-// - file license has expired
-// - file license is valid
-
-// - no raft license
-
-// - raft license
-//   - Take whichever has a longer expiration
-
-// After some time a license appears in Raft
-
-// I have 3 servers with some old license files
-// - I put license with feature/module
-// Some server X gets restarted, still expect latest license to be used

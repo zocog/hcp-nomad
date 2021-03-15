@@ -897,6 +897,35 @@ func TestLicenseWatcher_Reload_RaftNewer(t *testing.T) {
 	require.Equal(t, "raft-id", license.LicenseID)
 }
 
+// TestLicenseWatcher_ExpiredLicense_SetOlderValidLicense ensures that a server
+// with an expired license can set an older, valid license
+func TestLicenseWatcher_ExpiredLicense_SetOlderValidLicense(t *testing.T) {
+	t.Parallel()
+
+	envLicense := licenseFile("env-id", time.Now().Add(-1*time.Hour), time.Now().Add(1*time.Second))
+	server, cleanup := TestServer(t, func(c *Config) {
+		c.LicenseEnv = envLicense
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
+	})
+	defer cleanup()
+
+	lic := server.EnterpriseState.License()
+	require.Equal(t, "env-id", lic.LicenseID)
+
+	// Ensure the license is expired and no features available
+	require.Eventually(t, func() bool {
+		return server.EnterpriseState.Features() == uint64(0)
+	}, time.Second, 10*time.Millisecond, fmt.Sprintf("Expected license to expire"))
+
+	oldButValid := licenseFile("old-id", time.Now().Add(-1*24*365*time.Hour), time.Now().Add(5*time.Hour))
+
+	require.NoError(t, server.EnterpriseState.SetLicense(oldButValid, false))
+
+	require.Equal(t, "old-id", server.EnterpriseState.License().LicenseID)
+}
+
 func licenseFile(id string, issue, exp time.Time) string {
 	l := &licensing.License{
 		LicenseID:       id,

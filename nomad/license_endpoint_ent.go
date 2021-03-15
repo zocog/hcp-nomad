@@ -23,6 +23,7 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 	if done, err := l.srv.forward("License.UpsertLicense", args, args, reply); done {
 		return err
 	}
+	defer metrics.MeasureSince([]string{"nomad", "license", "upsert_license"}, time.Now())
 
 	// Check OperatorWrite permissions
 	if aclObj, err := l.srv.ResolveToken(args.AuthToken); err != nil {
@@ -36,7 +37,6 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 		l.srv.logger.Warn("cannot set license until all servers are above minimum version", "min_version", minLicenseMetaVersion)
 		return fmt.Errorf("all servers do not meet minimum version requirement: %s", minLicenseMetaVersion)
 	}
-	defer metrics.MeasureSince([]string{"nomad", "license", "upsert_license"}, time.Now())
 
 	if err := l.srv.EnterpriseState.SetLicense(args.License.Signed, args.License.Force); err != nil {
 		return fmt.Errorf("error setting license: %w", err)

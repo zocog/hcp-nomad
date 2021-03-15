@@ -112,9 +112,7 @@ func (s *Server) startEnterpriseBackground() {
 		go s.gcSentinelPolicies(s.shutdownCh)
 	}
 
-	if !s.config.LicenseConfig.preventStart {
-		s.EnterpriseState.licenseWatcher.start(s.shutdownCtx)
-	}
+	s.EnterpriseState.licenseWatcher.start(s.shutdownCtx)
 }
 
 func (s *Server) entVaultDelegate() *VaultEntDelegate {
