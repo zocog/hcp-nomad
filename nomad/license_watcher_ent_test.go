@@ -4,7 +4,6 @@ package nomad
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -177,10 +176,6 @@ func TestLicenseWatcher_FeatureCheck(t *testing.T) {
 			state := s1.State()
 			lw := s1.EnterpriseState.licenseWatcher
 
-			ctx, cancel := context.WithCancel(context.Background())
-			lw.start(ctx)
-			defer cancel()
-
 			flags := map[string]interface{}{
 				"features": map[string]interface{}{
 					"add": tc.licenseFeatures,
@@ -291,10 +286,6 @@ func TestLicenseWatcher_InitLicense(t *testing.T) {
 	})
 	defer cleanupS1()
 	lw := s1.EnterpriseState.licenseWatcher
-
-	ctx, cancel := context.WithCancel(context.Background())
-	lw.start(ctx)
-	defer cancel()
 
 	require.True(t, lw.License().Temporary)
 }

@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -399,7 +400,10 @@ func (w *LicenseWatcher) monitorRaft(ctx context.Context) {
 			err = w.SetLicense(lic.Signed, lic.Force)
 			if err != nil && err != ErrOlderLicense {
 				w.logger.Error("failed to set license from update", "error", err)
-				continue
+				// Only retry if license in raft is still potentially valid
+				if !strings.Contains(err.Error(), "license is no longer valid") {
+					continue
+				}
 			}
 			lastSigned = lic.Signed
 		}
