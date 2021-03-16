@@ -4,12 +4,14 @@ package nomad
 
 import (
 	"encoding/base64"
+	"fmt"
 	"testing"
 	"time"
 
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -139,13 +141,24 @@ func TestSyncLeaderLicense_EventualConsistency(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC)
 	testutil.WaitForLeader(t, s2.RPC)
 
-	out, err := s1.State().License(nil)
-	require.NoError(t, err)
-	require.NotNil(t, out)
+	testutil.WaitForResult(func() (bool, error) {
+		out, err := s1.State().License(nil)
+		require.NoError(t, err)
+		if out == nil {
+			return false, fmt.Errorf("expected s1 raft license, got nil")
+		}
 
-	out2, err := s2.State().License(nil)
-	require.NoError(t, err)
-	require.NotNil(t, out)
+		out2, err := s2.State().License(nil)
+		require.NoError(t, err)
+		if out2 == nil {
+			return false, fmt.Errorf("expected s2 raft license, got nil")
+		}
 
-	require.Equal(t, out, out2)
+		if ok := assert.Equal(t, out, out2); !ok {
+			return false, fmt.Errorf("expected s1 and s2 to be equal got %v, %v", out, out2)
+		}
+		return true, nil
+	}, func(err error) {
+		require.Fail(t, err.Error())
+	})
 }

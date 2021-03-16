@@ -4,6 +4,7 @@ package nomad
 
 import (
 	"encoding/base64"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/hashicorp/go-licensing"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
+	"github.com/hashicorp/nomad/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -57,6 +59,7 @@ func TestServer_Reload_License(t *testing.T) {
 
 	// write updated license
 	l.LicenseID = "some-new-license"
+	l.IssueTime = time.Now()
 	licenseString, err = l.SignedString(nomadLicense.TestPrivateKey)
 	require.NoError(t, err)
 
@@ -74,11 +77,14 @@ func TestServer_Reload_License(t *testing.T) {
 	err = server.Reload(newConfig)
 	require.NoError(t, err)
 
-	require.Eventually(t, func() bool {
+	testutil.WaitForResult(func() (bool, error) {
 		license := server.EnterpriseState.licenseWatcher.License()
-		return license.LicenseID == "some-new-license"
-	}, time.Second, 10*time.Millisecond, "Expected license ID to equal 'some-new-license'")
+		if license.LicenseID == "some-new-license" {
+			return true, nil
+		}
+		return false, fmt.Errorf("expected license ID to equal 'some-new-license' got: %s", license.LicenseID)
+	}, func(err error) {
+		require.Fail(t, err.Error())
+	})
 
-	newLicense := server.EnterpriseState.License()
-	require.Equal(t, "some-new-license", newLicense.LicenseID)
 }

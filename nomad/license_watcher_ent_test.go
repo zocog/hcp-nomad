@@ -337,6 +337,7 @@ func TestLicenseWatcher_Init_LoadRaft(t *testing.T) {
 
 	prev := lw.License().LicenseID
 	// start license watcher
+	lw.preventStart = false
 	lw.start(s1.shutdownCtx)
 
 	waitForLicense(t, lw, prev)
@@ -371,6 +372,8 @@ func TestLicenseWatcher_Init_ExpiredTemp_Shutdown(t *testing.T) {
 		CreateTime: time.Now().Add(-24 * time.Hour).UnixNano()})
 	require.NoError(t, err)
 
+	// Allow watcher to start
+	lw.preventStart = false
 	lw.start(s1.shutdownCtx)
 
 	select {
@@ -408,6 +411,7 @@ func TestLicenseWatcher_Init_ExpiredTemp_Shutdown_Cancelled(t *testing.T) {
 		CreateTime: time.Now().Add(-24 * time.Hour).UnixNano()})
 	require.NoError(t, err)
 
+	lw.preventStart = false
 	lw.start(s1.shutdownCtx)
 
 	// apply a new license
@@ -460,6 +464,7 @@ func TestLicenseWatcher_Init_ExpiredValid_License(t *testing.T) {
 	state := s1.State()
 	lw := s1.EnterpriseState.licenseWatcher
 
+	lw.preventStart = false
 	lw.start(s1.shutdownCtx)
 
 	// Set expiration time
@@ -657,12 +662,13 @@ func TestLicenseWatcher_StateRestore(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start the license watcher
+	lw.preventStart = false
 	lw.start(s1.shutdownCtx)
 
 	// Store a valid license on s2
-	newLicense := license.NewTestLicense(license.TestGovernancePolicyFlags())
+	newLicense := licenseFile("new-license", time.Now(), time.Now().Add(1*time.Hour))
 	stored := &structs.StoredLicense{
-		Signed:      newLicense.Signed,
+		Signed:      newLicense,
 		CreateIndex: uint64(1000),
 	}
 	s2State.UpsertLicense(1001, stored)
@@ -684,9 +690,9 @@ func TestLicenseWatcher_StateRestore(t *testing.T) {
 	err = s1.fsm.Restore(sink)
 	require.NoError(t, err)
 
-	waitForLicense(t, lw, previousID(t, lw))
+	waitForLicense(t, lw, "temporary-license")
 
-	require.Equal(t, lw.License().LicenseID, "new-temp-license")
+	require.Equal(t, lw.License().LicenseID, "new-license")
 
 	select {
 	case <-executed:

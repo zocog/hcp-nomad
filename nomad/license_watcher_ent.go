@@ -154,6 +154,7 @@ func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 		establishTmpLicenseBarrierFn: cfg.InitTmpLicenseBarrier,
 		propagateFn:                  cfg.PropagateFn,
 		stateStoreFn:                 cfg.StateStore,
+		preventStart:                 cfg.preventStart,
 	}
 
 	opts := &licensing.WatcherOptions{
