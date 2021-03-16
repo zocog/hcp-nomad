@@ -363,6 +363,12 @@ func (w *LicenseWatcher) monitorWatcher(ctx context.Context) {
 			return
 		// Handle updated license from the watcher
 		case <-w.watcher.UpdateCh():
+			// Check if server is shutting down
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 			w.logger.Debug("received update from license manager")
 
 			// Stop the temporaryLicenseMonitor now that we have a valid license
@@ -453,9 +459,11 @@ func (w *LicenseWatcher) temporaryLicenseMonitor(ctx context.Context) {
 		// Paid license, stop temporary license monitor
 		if license != nil && !license.Temporary {
 			w.logger.Debug("license is not temporary, temporary license monitor exiting")
+			w.monitorTmpExpCancel()
 			return
 		}
 
+		// Temporary license is too old, start monitoring expired temp license
 		if license != nil && license.Temporary && tmpLicenseTooOld {
 			go w.monitorExpiredTmpLicense(ctx)
 			return
@@ -474,6 +482,7 @@ func (w *LicenseWatcher) temporaryLicenseMonitor(ctx context.Context) {
 
 func (w *LicenseWatcher) monitorExpiredTmpLicense(ctx context.Context) {
 	w.logger.Warn("temporary license too old for evaluation period. Nomad will wait %v minutes for valid Enterprise license to be applied before shutting down", w.expiredTmpGrace)
+	defer w.monitorTmpExpCancel()
 	// Grace period for server and raft to initialize
 	select {
 	case <-ctx.Done():

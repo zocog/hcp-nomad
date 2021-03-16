@@ -210,7 +210,7 @@ func TestLicenseWatcher_PeriodicLogging(t *testing.T) {
 	// Create license without any added features
 	flags := map[string]interface{}{}
 
-	previousID := previousID(t, lw)
+	previousID := previousID(t, s1.EnterpriseState.licenseWatcher)
 	newLicense := license.NewTestLicense(flags)
 
 	stored := &structs.StoredLicense{
@@ -914,7 +914,7 @@ func TestLicenseWatcher_ExpiredLicense_SetOlderValidLicense(t *testing.T) {
 	// Ensure the license is expired and no features available
 	require.Eventually(t, func() bool {
 		return server.EnterpriseState.Features() == uint64(0)
-	}, time.Second, 10*time.Millisecond, fmt.Sprintf("Expected license to expire"))
+	}, 2*time.Second, 100*time.Millisecond, fmt.Sprintf("Expected license to expire"))
 
 	oldButValid := licenseFile("old-id", time.Now().Add(-1*24*365*time.Hour), time.Now().Add(5*time.Hour))
 
