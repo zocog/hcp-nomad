@@ -15,8 +15,7 @@ import (
 
 func (es *EnterpriseState) FeatureCheck(feature license.Features, emitLog bool) error {
 	if es.licenseWatcher == nil {
-		// everything is licensed while the watcher starts up
-		return nil
+		return fmt.Errorf("license not initialized")
 	}
 
 	return es.licenseWatcher.FeatureCheck(feature, emitLog)

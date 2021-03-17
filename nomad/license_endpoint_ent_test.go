@@ -106,11 +106,11 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 	exp := 1 * time.Hour
 	// Create a new license to upsert
 	putLicense := &licensing.License{
-		LicenseID:       "new-temp-license",
+		LicenseID:       "first-license",
 		CustomerID:      "temporary license customer",
 		InstallationID:  "*",
 		Product:         nomadLicense.ProductName,
-		IssueTime:       now,
+		IssueTime:       now.Add(-1 * time.Second),
 		StartTime:       now,
 		ExpirationTime:  now.Add(exp),
 		TerminationTime: now.Add(exp),
@@ -132,6 +132,31 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 	out, err := s1.fsm.State().License(nil)
 	require.NoError(t, err)
 	assert.Equal(out.Signed, putSigned)
+
+	// Ensure the index changes and we can read our writes
+	putLicense2 := &licensing.License{
+		LicenseID:       "second-license",
+		CustomerID:      "c96a78d6-6d52-4920-aa21-6a3492254466",
+		InstallationID:  "*",
+		Product:         nomadLicense.ProductName,
+		IssueTime:       now,
+		StartTime:       now,
+		ExpirationTime:  now.Add(exp),
+		TerminationTime: now.Add(exp),
+		Flags:           nomadLicense.TestGovernancePolicyFlags(),
+	}
+
+	putSigned2, err := putLicense2.SignedString(nomadLicense.TestPrivateKey)
+	require.NoError(t, err)
+
+	req2 := &structs.LicenseUpsertRequest{
+		License:      &structs.StoredLicense{Signed: putSigned2},
+		WriteRequest: structs.WriteRequest{Region: "global"},
+	}
+	var resp2 structs.GenericResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", req2, &resp2))
+	require.Greater(t, resp2.Index, resp.Index)
+
 }
 
 func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {

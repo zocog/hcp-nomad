@@ -42,7 +42,7 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 		return fmt.Errorf("error setting license: %w", err)
 	}
 
-	// Get the modify index
+	// Get the modify index, SetLicense will propagate through raft synchronously
 	out, err := l.srv.State().License(nil)
 	if err != nil {
 		return fmt.Errorf("error retrieving license info: %w", err)
