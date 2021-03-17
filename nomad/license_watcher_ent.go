@@ -481,7 +481,11 @@ func (w *LicenseWatcher) temporaryLicenseMonitor(ctx context.Context) {
 }
 
 func (w *LicenseWatcher) monitorExpiredTmpLicense(ctx context.Context) {
-	w.logger.Warn("temporary license too old for evaluation period. Nomad will wait %v minutes for valid Enterprise license to be applied before shutting down", w.expiredTmpGrace)
+	w.logger.Warn(
+		`temporary license too old for evaluation period. Nomad will
+	wait an additional grace period for valid Enterprise license to be applied
+	before shutting down`, "grace period", w.expiredTmpGrace,
+	)
 	defer w.monitorTmpExpCancel()
 	// Grace period for server and raft to initialize
 	select {

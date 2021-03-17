@@ -878,10 +878,10 @@ func TestLicenseWatcher_Reload_RaftNewer(t *testing.T) {
 	require.NotNil(t, state)
 	require.NoError(t, state.UpsertLicense(1000, &structs.StoredLicense{Signed: raftLicense}))
 
-	require.Eventually(t, func() bool {
+	require.Never(t, func() bool {
 		license := server.EnterpriseState.licenseWatcher.License()
-		return "raft-id" == license.LicenseID
-	}, time.Second, 10*time.Millisecond, fmt.Sprintf("Expected license ID to equal %s", "raft-id"))
+		return "reload-id" == license.LicenseID
+	}, time.Second, 10*time.Millisecond, fmt.Sprintf("Expected license ID to not equal %s", "reload-id"))
 
 	reloadCfg := &LicenseConfig{
 		LicenseEnvBytes: envLicense,

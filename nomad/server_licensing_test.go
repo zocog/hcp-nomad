@@ -5,13 +5,13 @@ package nomad
 import (
 	"encoding/base64"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,13 +47,31 @@ func TestSyncLeaderLicense_NewFile(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC)
 	testutil.WaitForLeader(t, s2.RPC)
 
-	out, err := s1.State().License(nil)
-	require.NoError(t, err)
-	require.Equal(t, fileLicense, out.Signed)
+	testutil.WaitForResult(func() (bool, error) {
+		out, err := s1.State().License(nil)
+		require.NoError(t, err)
+		if out == nil {
+			return false, fmt.Errorf("expected s1 raft license, got nil")
+		}
 
-	out, err = s2.State().License(nil)
-	require.NoError(t, err)
-	require.Equal(t, fileLicense, out.Signed)
+		if fileLicense != out.Signed {
+			return false, fmt.Errorf("expected s1 license to equal %v,  got %v", fileLicense, out.Signed)
+		}
+
+		out2, err := s2.State().License(nil)
+		require.NoError(t, err)
+		if out2 == nil {
+			return false, fmt.Errorf("expected s2 raft license, got nil")
+		}
+
+		if fileLicense != out2.Signed {
+			return false, fmt.Errorf("expected s2 license to equal %v,  got %v", fileLicense, out2.Signed)
+		}
+
+		return true, nil
+	}, func(err error) {
+		require.Fail(t, err.Error())
+	})
 }
 
 // TestSyncLeaderLicense_RaftForciblySet ensures that the license in raft is
@@ -154,7 +172,7 @@ func TestSyncLeaderLicense_EventualConsistency(t *testing.T) {
 			return false, fmt.Errorf("expected s2 raft license, got nil")
 		}
 
-		if ok := assert.Equal(t, out, out2); !ok {
+		if !reflect.DeepEqual(out, out2) {
 			return false, fmt.Errorf("expected s1 and s2 to be equal got %v, %v", out, out2)
 		}
 		return true, nil

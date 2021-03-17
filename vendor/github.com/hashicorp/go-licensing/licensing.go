@@ -130,6 +130,9 @@ func (l *License) SignedStringV2(signer ed25519.PrivateKey, ia *IntermediateAuth
 		return "", err
 	}
 	intSig, err := signer.Sign(rand.Reader, b, crypto.Hash(0))
+	if err != nil {
+		return "", err
+	}
 	sigEnc := ia.v2SigEncode(intSig)
 	sigStr := base64.StdEncoding.EncodeToString(sigEnc)
 	return EncodeLicense(base64.StdEncoding.EncodeToString(b), sigStr, 2), nil
