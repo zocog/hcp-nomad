@@ -80,6 +80,11 @@ func (s *Server) syncLeaderLicense() {
 		if err != nil {
 			s.logger.Error("received error validating current raft license, syncing leader license")
 		}
+
+		if stored.Force {
+			s.logger.Debug("current raft license forcibly set, not syncing leader license")
+			return
+		}
 	}
 
 	// If the raft license is newer than current license nothing to do
@@ -88,13 +93,13 @@ func (s *Server) syncLeaderLicense() {
 	}
 
 	// Server license is newer than the one in raft, propagate.
-	if err := s.propagateLicense(lic, blob); err != nil {
+	if err := s.propagateLicense(lic, blob, false); err != nil {
 		s.logger.Error("unable to sync current leader license to raft", "err", err)
 	}
 
 }
 
-func (s *Server) propagateLicense(lic *nomadLicense.License, signedBlob string) error {
+func (s *Server) propagateLicense(lic *nomadLicense.License, signedBlob string, force bool) error {
 	stored, err := s.fsm.State().License(nil)
 	if err != nil {
 		return err
@@ -111,7 +116,10 @@ func (s *Server) propagateLicense(lic *nomadLicense.License, signedBlob string) 
 	}
 
 	if stored == nil || stored.Signed != signedBlob {
-		newLicense := structs.StoredLicense{Signed: signedBlob}
+		newLicense := structs.StoredLicense{
+			Signed: signedBlob,
+			Force:  force,
+		}
 		req := structs.LicenseUpsertRequest{License: &newLicense}
 		if _, _, err := s.raftApply(structs.LicenseUpsertRequestType, &req); err != nil {
 			return err

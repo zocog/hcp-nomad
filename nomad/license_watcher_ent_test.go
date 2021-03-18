@@ -923,6 +923,72 @@ func TestLicenseWatcher_ExpiredLicense_SetOlderValidLicense(t *testing.T) {
 	require.Equal(t, "old-id", server.EnterpriseState.License().LicenseID)
 }
 
+// TestLicenseWatcher_SetLicense_Propagation ensures that a license and its
+// force field are properly propagated
+func TestLicenseWatcher_SetLicense_Propagation(t *testing.T) {
+	t.Parallel()
+
+	fileLic := licenseFile("start-id", time.Now(), time.Now().Add(1*time.Hour))
+	forceLic := licenseFile("force-id", time.Now().Add(-1*time.Minute), time.Now().Add(1*time.Hour))
+
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.BootstrapExpect = 2
+		c.LicenseEnv = fileLic
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
+	})
+	defer cleanupS1()
+
+	// s2 will be used to store license and create a snapshot for s1 to restore from
+	s2, cleanupS2 := TestServer(t, func(c *Config) {
+		c.BootstrapExpect = 2
+		c.LicenseEnv = fileLic
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
+	})
+	defer cleanupS2()
+
+	TestJoin(t, s1, s2)
+	testutil.WaitForLeader(t, s1.RPC)
+	testutil.WaitForLeader(t, s2.RPC)
+
+	require.Equal(t, "start-id", s1.EnterpriseState.License().LicenseID)
+	require.Equal(t, "start-id", s2.EnterpriseState.License().LicenseID)
+
+	if s1.IsLeader() {
+		require.NoError(t, s1.EnterpriseState.SetLicense(forceLic, true))
+	} else if s2.IsLeader() {
+		require.NoError(t, s2.EnterpriseState.SetLicense(forceLic, true))
+	} else {
+		require.FailNow(t, "expected there to be a leader")
+	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		out1, err := s1.State().License(nil)
+		require.NoError(t, err)
+
+		if forceLic != out1.Signed {
+			return false, fmt.Errorf("expected s1 license to update want %v got %v", forceLic, out1.Signed)
+		}
+		require.True(t, out1.Force)
+
+		out2, err := s2.State().License(nil)
+		require.NoError(t, err)
+
+		if forceLic != out2.Signed {
+			return false, fmt.Errorf("expected s2 license to update, want %v got %v", forceLic, out2.Signed)
+		}
+		require.True(t, out2.Force)
+
+		return true, nil
+	}, func(err error) {
+		require.Fail(t, err.Error())
+	})
+
+}
+
 func licenseFile(id string, issue, exp time.Time) string {
 	l := &licensing.License{
 		LicenseID:       id,

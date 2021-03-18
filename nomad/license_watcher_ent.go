@@ -61,7 +61,7 @@ type LicenseConfig struct {
 	AdditionalPubKeys []string
 
 	// PropagateFn is the function to be invoked when propagating a license to raft
-	PropagateFn func(*nomadLicense.License, string) error
+	PropagateFn func(*nomadLicense.License, string, bool) error
 
 	// ShutdownCallback is the function to be invoked when a temporary license
 	// has expired and the server should be shutdown
@@ -122,7 +122,7 @@ type LicenseWatcher struct {
 
 	preventStart bool
 
-	propagateFn func(*nomadLicense.License, string) error
+	propagateFn func(*nomadLicense.License, string, bool) error
 }
 
 func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
@@ -167,7 +167,7 @@ func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 	// Create the new watcher with options
 	watcher, _, err := licensing.NewWatcher(opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed creating license watcher: %w", err)
+		return nil, fmt.Errorf("failed to initialize nomad license: %w", err)
 	}
 	lw.watcher = watcher
 
@@ -260,7 +260,7 @@ func (w *LicenseWatcher) SetLicense(blob string, force bool) error {
 
 	current := w.License()
 	if current == nil || force || time.Now().After(current.TerminationTime) {
-		return w.setLicense(blob, newNomadLic)
+		return w.setLicense(blob, newNomadLic, force)
 	}
 
 	if current.Equal(newNomadLic.License) {
@@ -271,11 +271,11 @@ func (w *LicenseWatcher) SetLicense(blob string, force bool) error {
 		return ErrOlderLicense
 	}
 
-	return w.setLicense(blob, newNomadLic)
+	return w.setLicense(blob, newNomadLic, force)
 
 }
 
-func (w *LicenseWatcher) setLicense(blob string, lic *nomadLicense.License) error {
+func (w *LicenseWatcher) setLicense(blob string, lic *nomadLicense.License, force bool) error {
 	_, err := w.watcher.SetLicense(blob)
 	if err != nil {
 		return err
@@ -287,7 +287,7 @@ func (w *LicenseWatcher) setLicense(blob string, lic *nomadLicense.License) erro
 	})
 
 	if !lic.Temporary && w.propagateFn != nil {
-		err := w.propagateFn(lic, blob)
+		err := w.propagateFn(lic, blob, force)
 		if err != nil {
 			return err
 		}
