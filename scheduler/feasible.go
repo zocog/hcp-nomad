@@ -227,23 +227,30 @@ func (c *CSIVolumeChecker) SetNamespace(namespace string) {
 	c.namespace = namespace
 }
 
-func (c *CSIVolumeChecker) SetVolumes(volumes map[string]*structs.VolumeRequest) {
+func (c *CSIVolumeChecker) SetVolumes(allocName string, volumes map[string]*structs.VolumeRequest) {
+
 	xs := make(map[string]*structs.VolumeRequest)
+
 	// Filter to only CSI Volumes
 	for alias, req := range volumes {
 		if req.Type != structs.VolumeTypeCSI {
 			continue
 		}
-
-		xs[alias] = req
+		if req.PerAlloc {
+			// provide a unique volume source per allocation
+			copied := req.Copy()
+			copied.Source = copied.Source + structs.AllocSuffix(allocName)
+			xs[alias] = copied
+		} else {
+			xs[alias] = req
+		}
 	}
 	c.volumes = xs
 }
 
 func (c *CSIVolumeChecker) Feasible(n *structs.Node) bool {
-	hasPlugins, failReason := c.hasPlugins(n)
-
-	if hasPlugins {
+	ok, failReason := c.isFeasible(n)
+	if ok {
 		return true
 	}
 
@@ -251,7 +258,7 @@ func (c *CSIVolumeChecker) Feasible(n *structs.Node) bool {
 	return false
 }
 
-func (c *CSIVolumeChecker) hasPlugins(n *structs.Node) (bool, string) {
+func (c *CSIVolumeChecker) isFeasible(n *structs.Node) (bool, string) {
 	// We can mount the volume if
 	// - if required, a healthy controller plugin is running the driver
 	// - the volume has free claims, or this job owns the claims
@@ -266,7 +273,7 @@ func (c *CSIVolumeChecker) hasPlugins(n *structs.Node) (bool, string) {
 
 	// Find the count per plugin for this node, so that can enforce MaxVolumes
 	pluginCount := map[string]int64{}
-	iter, err := c.ctx.State().CSIVolumesByNodeID(ws, n.ID)
+	iter, err := c.ctx.State().CSIVolumesByNodeID(ws, "", n.ID)
 	if err != nil {
 		return false, FilterConstraintCSIVolumesLookupFailed
 	}
