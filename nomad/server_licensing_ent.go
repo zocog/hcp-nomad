@@ -50,6 +50,23 @@ func (es *EnterpriseState) License() *license.License {
 	return es.licenseWatcher.License()
 }
 
+// FileLicense returns the file license used to initialize the
+// server. It may not be set or may not be the license currently in use.
+func (es *EnterpriseState) FileLicenseOutdated() bool {
+	if es.licenseWatcher == nil {
+		// everything is licensed while the watcher starts up
+		return false
+	}
+
+	fileLic := es.licenseWatcher.FileLicense()
+	if fileLic == "" {
+		return false
+	}
+
+	currentBlob := es.licenseWatcher.LicenseBlob()
+	return fileLic != currentBlob
+}
+
 // ReloadLicense reloads the server's file license if the supplied license cfg
 // is newer than the one currently in use
 func (es *EnterpriseState) ReloadLicense(cfg *Config) error {

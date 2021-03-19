@@ -90,6 +90,8 @@ type LicenseWatcher struct {
 	// license is the watchers atomically stored ServerLicense
 	licenseInfo atomic.Value
 
+	fileLicense string
+
 	// shutdownFunc is a callback invoked when temporary license expires and server should shutdown
 	shutdownCallback func() error
 
@@ -126,12 +128,13 @@ type LicenseWatcher struct {
 }
 
 func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
-
 	// Check for file license
 	initLicense, err := licenseFromLicenseConfig(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read license from config: %w", err)
 	}
+
+	fileLicense := initLicense
 
 	// If initLicense was not set by a file license, start with a temporary license
 	if initLicense == "" {
@@ -146,6 +149,7 @@ func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	lw := &LicenseWatcher{
+		fileLicense:                  fileLicense,
 		shutdownCallback:             cfg.ShutdownCallback,
 		expiredTmpGrace:              defaultExpiredTmpGrace,
 		monitorTmpExpCtx:             ctx,
@@ -200,7 +204,7 @@ func licenseFromLicenseConfig(cfg *LicenseConfig) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to read license file %w", err)
 		}
-		return string(licRaw), nil
+		return strings.TrimRight(string(licRaw), "\r\n"), nil
 	}
 
 	return "", nil
@@ -217,6 +221,9 @@ func (w *LicenseWatcher) Reload(cfg *LicenseConfig) error {
 		return nil
 	}
 
+	// Update the watchers fileLicense reference
+	w.fileLicense = blob
+
 	return w.SetLicense(blob, false)
 }
 
@@ -227,6 +234,13 @@ func (w *LicenseWatcher) License() *nomadLicense.License {
 
 func (w *LicenseWatcher) LicenseBlob() string {
 	return w.licenseInfo.Load().(*ServerLicense).blob
+}
+
+// FileLicense returns the watchers file license that was used to initialize
+// the server. It is not necessarily the license that the server is currently using
+// if a newer license was added via raft or manual API invocation
+func (w *LicenseWatcher) FileLicense() string {
+	return w.fileLicense
 }
 
 // ValidateLicense validates that the given blob is a valid go-licensing

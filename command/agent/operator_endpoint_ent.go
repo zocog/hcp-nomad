@@ -38,7 +38,8 @@ func (s *HTTPServer) operatorGetLicense(resp http.ResponseWriter, req *http.Requ
 	}
 
 	return api.LicenseReply{
-		License: convertToAPILicense(reply.NomadLicense),
+		License:        convertToAPILicense(reply.NomadLicense),
+		ConfigOutdated: reply.ConfigOutdated,
 		QueryMeta: api.QueryMeta{
 			LastIndex:   reply.QueryMeta.Index,
 			LastContact: reply.QueryMeta.LastContact,

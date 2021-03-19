@@ -82,7 +82,8 @@ type LicenseGetRequest struct {
 
 // LicenseGetResponse is used to respond to a request for a parsed License
 type LicenseGetResponse struct {
-	NomadLicense *license.License
+	NomadLicense   *license.License
+	ConfigOutdated bool
 	QueryMeta
 }
 

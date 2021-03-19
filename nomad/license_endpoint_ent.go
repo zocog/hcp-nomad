@@ -43,6 +43,7 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 	}
 
 	// Get the modify index, SetLicense will propagate through raft synchronously
+	// TODO plumb index back through apply
 	out, err := l.srv.State().License(nil)
 	if err != nil {
 		return fmt.Errorf("error retrieving license info: %w", err)
@@ -68,8 +69,9 @@ func (l *License) GetLicense(args *structs.LicenseGetRequest, reply *structs.Lic
 
 	defer metrics.MeasureSince([]string{"nomad", "license", "get_license"}, time.Now())
 
-	// Fetch license existing in Watcher
 	out := l.srv.EnterpriseState.License()
 	reply.NomadLicense = out
+	reply.ConfigOutdated = l.srv.EnterpriseState.FileLicenseOutdated()
+
 	return nil
 }

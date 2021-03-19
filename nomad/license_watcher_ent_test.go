@@ -1029,6 +1029,10 @@ func TestLicenseWatcher_SetLicense_Propagation(t *testing.T) {
 
 }
 
+func TestLicenseFromLicenseConfig(t *testing.T) {
+	// TODO drew test different license file combos
+}
+
 func licenseFile(id string, issue, exp time.Time) string {
 	l := &licensing.License{
 		LicenseID:       id,
