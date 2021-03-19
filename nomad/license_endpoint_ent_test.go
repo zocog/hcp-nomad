@@ -104,6 +104,7 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 
 	now := time.Now()
 	exp := 1 * time.Hour
+
 	// Create a new license to upsert
 	putLicense := &licensing.License{
 		LicenseID:       "first-license",
@@ -133,13 +134,13 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(out.Signed, putSigned)
 
-	// Ensure the index changes and we can read our writes
+	// Forcibly set an older license
 	putLicense2 := &licensing.License{
 		LicenseID:       "second-license",
 		CustomerID:      "c96a78d6-6d52-4920-aa21-6a3492254466",
 		InstallationID:  "*",
 		Product:         nomadLicense.ProductName,
-		IssueTime:       now,
+		IssueTime:       now.Add(-24 * time.Hour),
 		StartTime:       now,
 		ExpirationTime:  now.Add(exp),
 		TerminationTime: now.Add(exp),
@@ -150,13 +151,41 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 	require.NoError(t, err)
 
 	req2 := &structs.LicenseUpsertRequest{
-		License:      &structs.StoredLicense{Signed: putSigned2},
+		License: &structs.StoredLicense{
+			Signed: putSigned2,
+			Force:  true,
+		},
 		WriteRequest: structs.WriteRequest{Region: "global"},
 	}
 	var resp2 structs.GenericResponse
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", req2, &resp2))
 	require.Greater(t, resp2.Index, resp.Index)
 
+	// Set a newer license without having to forcibly set
+	putLicense3 := &licensing.License{
+		LicenseID:       "second-license",
+		CustomerID:      "c96a78d6-6d52-4920-aa21-6a3492254466",
+		InstallationID:  "*",
+		Product:         nomadLicense.ProductName,
+		IssueTime:       now.Add(-1 * time.Hour),
+		StartTime:       now,
+		ExpirationTime:  now.Add(exp),
+		TerminationTime: now.Add(exp),
+		Flags:           nomadLicense.TestGovernancePolicyFlags(),
+	}
+
+	putSigned3, err := putLicense3.SignedString(nomadLicense.TestPrivateKey)
+	require.NoError(t, err)
+
+	req3 := &structs.LicenseUpsertRequest{
+		License: &structs.StoredLicense{
+			Signed: putSigned3,
+		},
+		WriteRequest: structs.WriteRequest{Region: "global"},
+	}
+	var resp3 structs.GenericResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", req3, &resp3))
+	require.Greater(t, resp3.Index, resp2.Index)
 }
 
 func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {

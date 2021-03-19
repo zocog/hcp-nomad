@@ -894,6 +894,46 @@ func TestLicenseWatcher_Reload_RaftNewer(t *testing.T) {
 	require.Equal(t, "raft-id", license.LicenseID)
 }
 
+// TestLicenseWatcher_Reload_RaftSetForcibly ensures that reloading the license
+// watcher with a newer file license does not replace the older one in raft if
+// it was forcibly set.
+func TestLicenseWatcher_Reload_RaftSetForcibly(t *testing.T) {
+	t.Parallel()
+
+	server, cleanup := TestServer(t, func(c *Config) {
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
+	})
+	defer cleanup()
+
+	initLicense := server.EnterpriseState.License()
+	require.NotNil(t, initLicense)
+	require.True(t, initLicense.Temporary)
+
+	raftLicense := licenseFile("raft-id", time.Now().Add(-2*time.Hour), time.Now().Add(1*time.Hour))
+	envLicense := licenseFile("reload-id", time.Now(), time.Now().Add(1*time.Hour))
+
+	state := server.State()
+	require.NotNil(t, state)
+	require.NoError(t, state.UpsertLicense(1000, &structs.StoredLicense{Signed: raftLicense, Force: true}))
+
+	require.Never(t, func() bool {
+		license := server.EnterpriseState.licenseWatcher.License()
+		return "reload-id" == license.LicenseID
+	}, time.Second, 10*time.Millisecond, fmt.Sprintf("Expected license ID to not equal %s", "reload-id"))
+
+	reloadCfg := &LicenseConfig{
+		LicenseEnvBytes: envLicense,
+	}
+
+	// Reload should error
+	require.Error(t, server.EnterpriseState.licenseWatcher.Reload(reloadCfg))
+
+	license := server.EnterpriseState.licenseWatcher.License()
+	require.Equal(t, "raft-id", license.LicenseID)
+}
+
 // TestLicenseWatcher_ExpiredLicense_SetOlderValidLicense ensures that a server
 // with an expired license can set an older, valid license
 func TestLicenseWatcher_ExpiredLicense_SetOlderValidLicense(t *testing.T) {

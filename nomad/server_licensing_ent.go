@@ -29,6 +29,14 @@ func (es *EnterpriseState) SetLicense(blob string, force bool) error {
 	return es.licenseWatcher.SetLicense(blob, force)
 }
 
+func (es *EnterpriseState) SetLicenseRequest(blob string, force bool) error {
+	if es.licenseWatcher == nil {
+		return fmt.Errorf("license watcher unable to set license")
+	}
+
+	return es.licenseWatcher.SetLicenseRequest(blob, force)
+}
+
 func (es *EnterpriseState) Features() uint64 {
 	return uint64(es.licenseWatcher.Features())
 }
@@ -55,6 +63,8 @@ func (es *EnterpriseState) ReloadLicense(cfg *Config) error {
 	return es.licenseWatcher.Reload(licenseConfig)
 }
 
+// syncLeaderLicense propagates its in-memory license to raft if the proper
+// conditions are met.
 func (s *Server) syncLeaderLicense() {
 	lic := s.EnterpriseState.License()
 	if lic == nil || lic.Temporary {
@@ -81,6 +91,7 @@ func (s *Server) syncLeaderLicense() {
 			s.logger.Error("received error validating current raft license, syncing leader license")
 		}
 
+		// The raft license was forcibly set, nothing to do
 		if stored.Force {
 			s.logger.Debug("current raft license forcibly set, not syncing leader license")
 			return
@@ -89,6 +100,7 @@ func (s *Server) syncLeaderLicense() {
 
 	// If the raft license is newer than current license nothing to do
 	if raftLicense != nil && raftLicense.IssueTime.After(lic.IssueTime) {
+		s.logger.Debug("current raft license is newer than ")
 		return
 	}
 

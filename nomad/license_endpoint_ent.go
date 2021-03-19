@@ -38,7 +38,7 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 		return fmt.Errorf("all servers do not meet minimum version requirement: %s", minLicenseMetaVersion)
 	}
 
-	if err := l.srv.EnterpriseState.SetLicense(args.License.Signed, args.License.Force); err != nil {
+	if err := l.srv.EnterpriseState.SetLicenseRequest(args.License.Signed, args.License.Force); err != nil {
 		return fmt.Errorf("error setting license: %w", err)
 	}
 
