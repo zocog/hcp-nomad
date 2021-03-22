@@ -55,7 +55,6 @@ func OutputLicenseReply(ui cli.Ui, resp *api.LicenseReply) int {
 		return 1
 	}
 	return 0
-
 }
 
 func outputLicenseInfo(ui cli.Ui, lic *api.License, expired bool) {
