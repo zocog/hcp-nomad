@@ -61,7 +61,7 @@ type LicenseConfig struct {
 	AdditionalPubKeys []string
 
 	// PropagateFn is the function to be invoked when propagating a license to raft
-	PropagateFn func(*nomadLicense.License, string, bool) error
+	PropagateFn func(*nomadLicense.License, string, bool) (uint64, error)
 
 	// ShutdownCallback is the function to be invoked when a temporary license
 	// has expired and the server should be shutdown
@@ -124,7 +124,7 @@ type LicenseWatcher struct {
 
 	preventStart bool
 
-	propagateFn func(*nomadLicense.License, string, bool) error
+	propagateFn func(*nomadLicense.License, string, bool) (uint64, error)
 }
 
 func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
@@ -262,7 +262,8 @@ func (w *LicenseWatcher) ValidateLicense(blob string) (*nomadLicense.License, er
 // The license will only be set if the passed license issue date is newer than
 // the current license, or if the force flag is set.
 func (w *LicenseWatcher) SetLicense(blob string, force bool) error {
-	return w.setLicense(blob, force, false)
+	_, err := w.setLicense(blob, force, false)
+	return err
 }
 
 // SetLicenseRequest is used to set the server's license when a operator has
@@ -270,19 +271,19 @@ func (w *LicenseWatcher) SetLicense(blob string, force bool) error {
 // does not check if the current license in raft was forcibly set. Allowing the
 // Operator to set a newer license ontop of a forcibly set license without
 // using the force flag
-func (w *LicenseWatcher) SetLicenseRequest(blob string, force bool) error {
+func (w *LicenseWatcher) SetLicenseRequest(blob string, force bool) (uint64, error) {
 	return w.setLicense(blob, force, true)
 }
 
-func (w *LicenseWatcher) setLicense(blob string, force, userReq bool) error {
+func (w *LicenseWatcher) setLicense(blob string, force, userReq bool) (uint64, error) {
 	newLicense, err := w.watcher.ValidateLicense(blob)
 	if err != nil {
-		return fmt.Errorf("error validating license: %w", err)
+		return 0, fmt.Errorf("error validating license: %w", err)
 	}
 
 	newNomadLic, err := nomadLicense.NewLicense(newLicense)
 	if err != nil {
-		return fmt.Errorf("unable to create nomad specific license: %w", err)
+		return 0, fmt.Errorf("unable to create nomad specific license: %w", err)
 	}
 
 	// If we are forcibly setting, the current license is expired or nil just
@@ -293,11 +294,11 @@ func (w *LicenseWatcher) setLicense(blob string, force, userReq bool) error {
 	}
 
 	if current.Equal(newNomadLic.License) {
-		return nil
+		return 0, nil
 	}
 
 	if !current.Temporary && !newNomadLic.IssueTime.After(current.IssueTime) {
-		return ErrOlderLicense
+		return 0, ErrOlderLicense
 	}
 
 	// If the current raft license was forcibly set and force was not set for
@@ -310,21 +311,23 @@ func (w *LicenseWatcher) setLicense(blob string, force, userReq bool) error {
 
 		if stored != nil && stored.Force && !force {
 			w.logger.Debug("stored license forcibly set, ignoring non-force set request")
-			return fmt.Errorf("stored license forcibly set, must use force to override again")
+			return 0, fmt.Errorf("stored license forcibly set, must use force to override again")
 		}
 	}
 
 SET_LICENSE:
 	_, err = w.watcher.SetLicense(blob)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
+	var index uint64
 	if !newNomadLic.Temporary && w.propagateFn != nil {
-		err := w.propagateFn(newNomadLic, blob, force)
+		modifyIdx, err := w.propagateFn(newNomadLic, blob, force)
 		if err != nil {
-			return err
+			return 0, err
 		}
+		index = modifyIdx
 	}
 
 	w.licenseInfo.Store(&ServerLicense{
@@ -332,7 +335,7 @@ SET_LICENSE:
 		blob:    blob,
 	})
 
-	return nil
+	return index, nil
 }
 
 func (w *LicenseWatcher) Features() nomadLicense.Features {

@@ -38,18 +38,12 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 		return fmt.Errorf("all servers do not meet minimum version requirement: %s", minLicenseMetaVersion)
 	}
 
-	if err := l.srv.EnterpriseState.SetLicenseRequest(args.License.Signed, args.License.Force); err != nil {
+	index, err := l.srv.EnterpriseState.SetLicenseRequest(args.License.Signed, args.License.Force)
+	if err != nil {
 		return fmt.Errorf("error setting license: %w", err)
 	}
 
-	// Get the modify index, SetLicense will propagate through raft synchronously
-	// TODO plumb index back through apply
-	out, err := l.srv.State().License(nil)
-	if err != nil {
-		return fmt.Errorf("error retrieving license info: %w", err)
-	}
-
-	reply.Index = out.ModifyIndex
+	reply.Index = index
 
 	return nil
 }

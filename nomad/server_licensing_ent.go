@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/structs"
 )
 
+// FeatureCheck checks if a requested feature is licensed or not
 func (es *EnterpriseState) FeatureCheck(feature license.Features, emitLog bool) error {
 	if es.licenseWatcher == nil {
 		return fmt.Errorf("license not initialized")
@@ -21,6 +22,8 @@ func (es *EnterpriseState) FeatureCheck(feature license.Features, emitLog bool) 
 	return es.licenseWatcher.FeatureCheck(feature, emitLog)
 }
 
+// SetLicense sets the server license. It is called internally by the server
+// and will only override a newer license if the force flag is set
 func (es *EnterpriseState) SetLicense(blob string, force bool) error {
 	if es.licenseWatcher == nil {
 		return fmt.Errorf("license watcher unable to set license")
@@ -29,9 +32,12 @@ func (es *EnterpriseState) SetLicense(blob string, force bool) error {
 	return es.licenseWatcher.SetLicense(blob, force)
 }
 
-func (es *EnterpriseState) SetLicenseRequest(blob string, force bool) error {
+// SetLicenseRequest allows an operator to set the server license. It differse
+// from SetLicense in that it does not require the force flag to set a newer
+// license
+func (es *EnterpriseState) SetLicenseRequest(blob string, force bool) (uint64, error) {
 	if es.licenseWatcher == nil {
-		return fmt.Errorf("license watcher unable to set license")
+		return 0, fmt.Errorf("license watcher unable to set license")
 	}
 
 	return es.licenseWatcher.SetLicenseRequest(blob, force)
@@ -122,39 +128,42 @@ func (s *Server) syncLeaderLicense() {
 	}
 
 	// Server license is newer than the one in raft, propagate.
-	if err := s.propagateLicense(lic, blob, false); err != nil {
+	if _, err := s.propagateLicense(lic, blob, false); err != nil {
 		s.logger.Error("unable to sync current leader license to raft", "err", err)
 	}
 
 }
 
-func (s *Server) propagateLicense(lic *nomadLicense.License, signedBlob string, force bool) error {
+func (s *Server) propagateLicense(lic *nomadLicense.License, signedBlob string, force bool) (uint64, error) {
 	stored, err := s.fsm.State().License(nil)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if lic.Temporary {
 		s.logger.Debug("license is temporary, not propagating to raft")
-		return nil
+		return 0, nil
 	}
 
 	if !s.IsLeader() {
 		s.logger.Debug("server is not leader, not propagating to raft")
-		return nil
+		return 0, nil
 	}
 
+	var index uint64
 	if stored == nil || stored.Signed != signedBlob {
 		newLicense := structs.StoredLicense{
 			Signed: signedBlob,
 			Force:  force,
 		}
 		req := structs.LicenseUpsertRequest{License: &newLicense}
-		if _, _, err := s.raftApply(structs.LicenseUpsertRequestType, &req); err != nil {
-			return err
+		_, modify, err := s.raftApply(structs.LicenseUpsertRequestType, &req)
+		if err != nil {
+			return 0, err
 		}
+		index = modify
 	}
-	return nil
+	return index, nil
 }
 
 var minLicenseMetaVersion = version.Must(version.NewVersion("0.12.1"))
