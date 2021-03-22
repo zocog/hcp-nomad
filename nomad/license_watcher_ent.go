@@ -276,6 +276,9 @@ func (w *LicenseWatcher) SetLicenseRequest(blob string, force bool) (uint64, err
 }
 
 func (w *LicenseWatcher) setLicense(blob string, force, userReq bool) (uint64, error) {
+	// Remove any newlines from the license
+	blob = strings.TrimRight(blob, "\r\n")
+
 	newLicense, err := w.watcher.ValidateLicense(blob)
 	if err != nil {
 		return 0, fmt.Errorf("error validating license: %w", err)
