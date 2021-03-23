@@ -182,6 +182,7 @@ func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 				// one is in raft. If it's invalid, error out
 				return nil, fmt.Errorf("a file license was configured but the license is invalid: %w", err)
 			}
+			lw.logger.Warn("Configured enterprise license file is expired! Falling back to temporary license. Please update, or remove license configuration if setting the license via CLI/API")
 		} else {
 			// update the initLicense if license was set
 			initLicense = fileLicense
