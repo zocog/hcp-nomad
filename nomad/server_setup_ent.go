@@ -30,6 +30,10 @@ type EnterpriseState struct {
 	licenseWatcher *LicenseWatcher
 }
 
+func (es *EnterpriseState) ReloadLicense(_ *Config) error {
+	return nil
+}
+
 func (es *EnterpriseState) FeatureCheck(feature license.Features, emitLog bool) error {
 	if es.licenseWatcher == nil {
 		// everything is licensed while the watcher starts up
