@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-licensing"
 	"github.com/hashicorp/nomad-licensing/license"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
@@ -736,6 +737,12 @@ func TestLicenseWatcher_start(t *testing.T) {
 			raftLicense:       licenseFile("raft-id", time.Now().Add(-24*time.Hour), time.Now().Add(1*time.Hour)),
 			expectedLicenseID: "file-id",
 		},
+		{
+			desc:              "file license expired - valid raft license",
+			fileLicense:       licenseFile("file-id", time.Now().Add(-1*time.Hour), time.Now().Add(-1*time.Hour)),
+			raftLicense:       licenseFile("raft-id", time.Now().Add(-24*time.Hour), time.Now().Add(1*time.Hour)),
+			expectedLicenseID: "raft-id",
+		},
 	}
 
 	for _, tc := range cases {
@@ -788,6 +795,18 @@ func TestLicenseWatcher_start(t *testing.T) {
 
 		})
 	}
+}
+
+func TestLicenseWatcher_NewLicenseWatcher_InvalidFileLicense(t *testing.T) {
+	cfg := &LicenseConfig{
+		LicenseEnvBytes: "invalid-license-bytes",
+		Logger:          hclog.NewInterceptLogger(nil),
+	}
+
+	lw, err := NewLicenseWatcher(cfg)
+	require.Nil(t, lw)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "a file license was configured but the license is invalid")
 }
 
 // TestLicenseWatcher_Reload_EmptyConfig asserts that reloading the license
