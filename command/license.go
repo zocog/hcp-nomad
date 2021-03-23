@@ -50,7 +50,7 @@ func (l *LicenseCommand) Run(args []string) int {
 func OutputLicenseReply(ui cli.Ui, resp *api.LicenseReply) int {
 	now := time.Now()
 	expired := resp.License.ExpirationTime.Before(now)
-	outputLicenseInfo(ui, resp.License, exit == 1)
+	outputLicenseInfo(ui, resp.License, expired)
 	if expired {
 		return 1
 	}

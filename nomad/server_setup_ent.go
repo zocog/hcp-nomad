@@ -5,7 +5,6 @@ package nomad
 import (
 	"fmt"
 
-	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/sentinel/sentinel"
 )
 
@@ -15,47 +14,6 @@ type EnterpriseState struct {
 
 	//licenseWatcher is used to manage the lifecycle for enterprise licenses
 	licenseWatcher *LicenseWatcher
-}
-
-func (es *EnterpriseState) FeatureCheck(feature license.Features, emitLog bool) error {
-	if es.licenseWatcher == nil {
-		// everything is licensed while the watcher starts up
-		return nil
-	}
-
-	return es.licenseWatcher.FeatureCheck(feature, emitLog)
-}
-
-func (es *EnterpriseState) SetLicense(blob string, force bool) error {
-	if es.licenseWatcher == nil {
-		return fmt.Errorf("license watcher unable to set license")
-	}
-
-	return es.licenseWatcher.SetLicense(blob, force)
-}
-
-func (es *EnterpriseState) Features() uint64 {
-	return uint64(es.licenseWatcher.Features())
-}
-
-// License returns the current license
-func (es *EnterpriseState) License() *license.License {
-	if es.licenseWatcher == nil {
-		// everything is licensed while the watcher starts up
-		return nil
-	}
-	return es.licenseWatcher.License()
-}
-
-func (es *EnterpriseState) ReloadLicense(cfg *Config) error {
-	if es.licenseWatcher == nil {
-		return nil
-	}
-	licenseConfig := &LicenseConfig{
-		LicenseEnvBytes: cfg.LicenseFileEnv,
-		LicensePath:     cfg.LicenseFilePath,
-	}
-	return es.licenseWatcher.Reload(licenseConfig)
 }
 
 // setupEnterprise is used for Enterprise specific setup
