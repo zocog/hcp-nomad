@@ -28,7 +28,7 @@ func TestLicenseEndpoint_GetLicense(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC)
 
 	l := nomadLicense.NewTestLicense(nomadLicense.TestGovernancePolicyFlags())
-	_, err := s1.EnterpriseState.licenseWatcher.SetLicense(l.Signed)
+	err := s1.EnterpriseState.SetLicense(l.Signed, false)
 	require.NoError(t, err)
 
 	// There is some time between SetLicense and the watchers updateCh
@@ -90,9 +90,6 @@ func TestLicenseEndpoint_UpsertLicense_Invalid(t *testing.T) {
 	var resp structs.GenericResponse
 	err = msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", req, &resp)
 	require.Error(t, err)
-	code, _, ok := structs.CodeFromRPCCodedErr(err)
-	require.True(t, ok)
-	require.Equal(t, 400, code)
 }
 
 func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
@@ -107,13 +104,14 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 
 	now := time.Now()
 	exp := 1 * time.Hour
+
 	// Create a new license to upsert
 	putLicense := &licensing.License{
-		LicenseID:       "new-temp-license",
+		LicenseID:       "first-license",
 		CustomerID:      "temporary license customer",
 		InstallationID:  "*",
 		Product:         nomadLicense.ProductName,
-		IssueTime:       now,
+		IssueTime:       now.Add(-1 * time.Second),
 		StartTime:       now,
 		ExpirationTime:  now.Add(exp),
 		TerminationTime: now.Add(exp),
@@ -129,12 +127,65 @@ func TestLicenseEndpoint_UpsertLicense(t *testing.T) {
 	}
 	var resp structs.GenericResponse
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", req, &resp))
-	assert.NotEqual(uint64(0), resp.Index)
+	require.NotEqual(t, uint64(0), resp.Index)
 
 	// Check we created the license
 	out, err := s1.fsm.State().License(nil)
 	require.NoError(t, err)
 	assert.Equal(out.Signed, putSigned)
+
+	// Forcibly set an older license
+	putLicense2 := &licensing.License{
+		LicenseID:       "second-license",
+		CustomerID:      "c96a78d6-6d52-4920-aa21-6a3492254466",
+		InstallationID:  "*",
+		Product:         nomadLicense.ProductName,
+		IssueTime:       now.Add(-24 * time.Hour),
+		StartTime:       now,
+		ExpirationTime:  now.Add(exp),
+		TerminationTime: now.Add(exp),
+		Flags:           nomadLicense.TestGovernancePolicyFlags(),
+	}
+
+	putSigned2, err := putLicense2.SignedString(nomadLicense.TestPrivateKey)
+	require.NoError(t, err)
+
+	req2 := &structs.LicenseUpsertRequest{
+		License: &structs.StoredLicense{
+			Signed: putSigned2,
+			Force:  true,
+		},
+		WriteRequest: structs.WriteRequest{Region: "global"},
+	}
+	var resp2 structs.GenericResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", req2, &resp2))
+	require.Greater(t, resp2.Index, resp.Index)
+
+	// Set a newer license without having to forcibly set
+	putLicense3 := &licensing.License{
+		LicenseID:       "second-license",
+		CustomerID:      "c96a78d6-6d52-4920-aa21-6a3492254466",
+		InstallationID:  "*",
+		Product:         nomadLicense.ProductName,
+		IssueTime:       now.Add(-1 * time.Hour),
+		StartTime:       now,
+		ExpirationTime:  now.Add(exp),
+		TerminationTime: now.Add(exp),
+		Flags:           nomadLicense.TestGovernancePolicyFlags(),
+	}
+
+	putSigned3, err := putLicense3.SignedString(nomadLicense.TestPrivateKey)
+	require.NoError(t, err)
+
+	req3 := &structs.LicenseUpsertRequest{
+		License: &structs.StoredLicense{
+			Signed: putSigned3,
+		},
+		WriteRequest: structs.WriteRequest{Region: "global"},
+	}
+	var resp3 structs.GenericResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", req3, &resp3))
+	require.Greater(t, resp3.Index, resp2.Index)
 }
 
 func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {
@@ -210,7 +261,7 @@ func TestLicenseEndpoint_UpsertLicenses_ACL(t *testing.T) {
 	{
 		var resp structs.GenericResponse
 		assert.Nil(msgpackrpc.CallWithCodec(codec, "License.UpsertLicense", req, &resp))
-		assert.NotEqual(uint64(0), resp.Index)
+		require.NotEqual(t, uint64(0), resp.Index)
 
 		// Check we created the namespaces
 		out, err := s1.fsm.State().License(nil)

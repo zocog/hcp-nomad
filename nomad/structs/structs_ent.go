@@ -60,6 +60,10 @@ type TmpLicenseBarrier struct {
 type StoredLicense struct {
 	Signed string
 
+	// Force is used to signal that the license should be used even if it is
+	// older than the currently installed license
+	Force bool
+
 	// Raft Indexes
 	CreateIndex uint64
 	ModifyIndex uint64
@@ -78,7 +82,8 @@ type LicenseGetRequest struct {
 
 // LicenseGetResponse is used to respond to a request for a parsed License
 type LicenseGetResponse struct {
-	NomadLicense *license.License
+	NomadLicense   *license.License
+	ConfigOutdated bool
 	QueryMeta
 }
 

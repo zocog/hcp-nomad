@@ -3,24 +3,10 @@
 package nomad
 
 import (
-	"errors"
 	"fmt"
-	"time"
 
-	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/nomad-licensing/license"
-	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/sentinel/sentinel"
 )
-
-// LicenseConfig allows for tunable licensing config
-// primarily used for enterprise testing
-type LicenseConfig struct {
-	AdditionalPubKeys []string
-
-	// preventStart is used for testing to control when to start watcher
-	preventStart bool
-}
 
 type EnterpriseState struct {
 	// sentinel is a shared instance of the policy engine
@@ -28,23 +14,6 @@ type EnterpriseState struct {
 
 	//licenseWatcher is used to manage the lifecycle for enterprise licenses
 	licenseWatcher *LicenseWatcher
-}
-
-func (es *EnterpriseState) ReloadLicense(_ *Config) error {
-	return nil
-}
-
-func (es *EnterpriseState) FeatureCheck(feature license.Features, emitLog bool) error {
-	if es.licenseWatcher == nil {
-		// everything is licensed while the watcher starts up
-		return nil
-	}
-
-	return es.licenseWatcher.FeatureCheck(feature, emitLog)
-}
-
-func (es *EnterpriseState) Features() uint64 {
-	return uint64(es.licenseWatcher.Features())
 }
 
 // setupEnterprise is used for Enterprise specific setup
@@ -72,14 +41,27 @@ func (s *Server) setupEnterprise(config *Config) error {
 
 	s.setupEnterpriseAutopilot(config)
 
-	licenseWatcher, err := NewLicenseWatcher(s.logger, config.LicenseConfig, config.AgentShutdown, s.establishTemporaryLicenseMetadata, s.State)
+	// AdditionalPubKeys and preventStart may be set prior to this step, mainly in tests
+	additionalPubKeys := config.LicenseConfig.AdditionalPubKeys
+	preventStart := config.LicenseConfig.preventStart
+	// Set License config options
+	config.LicenseConfig = &LicenseConfig{
+		AdditionalPubKeys:     additionalPubKeys,
+		InitTmpLicenseBarrier: s.initTmpLicenseBarrier,
+		LicenseEnvBytes:       config.LicenseEnv,
+		LicensePath:           config.LicensePath,
+		Logger:                s.logger,
+		PropagateFn:           s.propagateLicense,
+		ShutdownCallback:      config.AgentShutdown,
+		StateStore:            s.State,
+		preventStart:          preventStart,
+	}
+
+	licenseWatcher, err := NewLicenseWatcher(config.LicenseConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create a new license watcher: %w", err)
 	}
 	s.EnterpriseState.licenseWatcher = licenseWatcher
-	if !config.LicenseConfig.preventStart {
-		s.EnterpriseState.licenseWatcher.start(s.shutdownCtx)
-	}
 	return nil
 }
 
@@ -89,40 +71,8 @@ func (s *Server) startEnterpriseBackground() {
 	if s.config.ACLEnabled {
 		go s.gcSentinelPolicies(s.shutdownCh)
 	}
-}
 
-var minLicenseMetaVersion = version.Must(version.NewVersion("0.12.1"))
-
-func (s *Server) establishTemporaryLicenseMetadata() (int64, error) {
-	if !ServersMeetMinimumVersion(s.Members(), minLicenseMetaVersion, false) {
-		s.logger.Named("core").Debug("cannot initialize temporary license until all servers are above minimum version", "min_version", minLicenseMetaVersion)
-		return 0, fmt.Errorf("temporary license barrier cannot be created until all servers are above minimum version %s", minLicenseMetaVersion)
-	}
-
-	fsmState := s.fsm.State()
-	existingMeta, err := fsmState.TmpLicenseBarrier(nil)
-	if err != nil {
-		s.logger.Named("core").Error("failed to get temporary license barrier", "error", err)
-		return 0, err
-	}
-
-	// If tmp license barrier already exists nothing to do
-	if existingMeta != nil {
-		return existingMeta.CreateTime, nil
-	}
-
-	if !s.IsLeader() {
-		return 0, errors.New("server is not current leader, cannot create temporary license barrier")
-	}
-
-	// Apply temporary license timestamp
-	timestamp := time.Now().UnixNano()
-	req := structs.TmpLicenseBarrier{CreateTime: timestamp}
-	if _, _, err := s.raftApply(structs.TmpLicenseUpsertRequestType, req); err != nil {
-		s.logger.Error("failed to initialize temporary license barrier", "error", err)
-		return 0, err
-	}
-	return timestamp, nil
+	s.EnterpriseState.licenseWatcher.start(s.shutdownCtx)
 }
 
 func (s *Server) entVaultDelegate() *VaultEntDelegate {

@@ -4,6 +4,7 @@ package agent
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -36,7 +37,8 @@ func (s *HTTPServer) operatorGetLicense(resp http.ResponseWriter, req *http.Requ
 	}
 
 	return api.LicenseReply{
-		License: convertToAPILicense(reply.NomadLicense),
+		License:        convertToAPILicense(reply.NomadLicense),
+		ConfigOutdated: reply.ConfigOutdated,
 		QueryMeta: api.QueryMeta{
 			LastIndex:   reply.QueryMeta.Index,
 			LastContact: reply.QueryMeta.LastContact,
@@ -82,6 +84,15 @@ func (s *HTTPServer) operatorPutLicense(resp http.ResponseWriter, req *http.Requ
 
 	args.License = &structs.StoredLicense{
 		Signed: buf.String(),
+	}
+
+	force, err := parseBool(req, "force")
+	if err != nil {
+		return nil, fmt.Errorf("error parsing force parameter: %w", err)
+	}
+
+	if force != nil {
+		args.License.Force = *force
 	}
 
 	var reply structs.GenericResponse

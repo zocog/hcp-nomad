@@ -20,13 +20,13 @@ type FlagsOptions struct {
 // Module represents a combinations of features
 type Module struct {
 	Name        string    `json:"name"`
-	Description string    `json:"description"`
+	Description string    `json:"description,omitempty"`
 	Features    []Feature `json:"features"`
 }
 
 type Feature struct {
 	Name        string `json:"name"`
-	Description string `json:"description"`
+	Description string `json:"description,omitempty"`
 }
 
 // Limit represents a scalar limit enforced by the product and

@@ -23,6 +23,7 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 	if done, err := l.srv.forward("License.UpsertLicense", args, args, reply); done {
 		return err
 	}
+	defer metrics.MeasureSince([]string{"nomad", "license", "upsert_license"}, time.Now())
 
 	// Check OperatorWrite permissions
 	if aclObj, err := l.srv.ResolveToken(args.AuthToken); err != nil {
@@ -37,25 +38,11 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 		return fmt.Errorf("all servers do not meet minimum version requirement: %s", minLicenseMetaVersion)
 	}
 
-	// Validate license pre-upsert
-	if _, err := l.srv.EnterpriseState.licenseWatcher.ValidateLicense(args.License.Signed); err != nil {
-		return structs.NewErrRPCCoded(400, fmt.Sprintf("error validating license: %s", err.Error()))
-	}
-
-	defer metrics.MeasureSince([]string{"nomad", "license", "upsert_license"}, time.Now())
-
-	// Update via Raft
-	out, index, err := l.srv.raftApply(structs.LicenseUpsertRequestType, args)
+	index, err := l.srv.EnterpriseState.SetLicenseRequest(args.License.Signed, args.License.Force)
 	if err != nil {
-		return err
+		return fmt.Errorf("error setting license: %w", err)
 	}
 
-	// Check if there was an error when applying
-	if err, ok := out.(error); ok && err != nil {
-		return err
-	}
-
-	// Update the index
 	reply.Index = index
 
 	return nil
@@ -76,8 +63,9 @@ func (l *License) GetLicense(args *structs.LicenseGetRequest, reply *structs.Lic
 
 	defer metrics.MeasureSince([]string{"nomad", "license", "get_license"}, time.Now())
 
-	// Fetch license existing in Watcher
-	out := l.srv.EnterpriseState.licenseWatcher.License()
+	out := l.srv.EnterpriseState.License()
 	reply.NomadLicense = out
+	reply.ConfigOutdated = l.srv.EnterpriseState.FileLicenseOutdated()
+
 	return nil
 }

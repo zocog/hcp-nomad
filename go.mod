@@ -150,7 +150,7 @@ require (
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0
 	github.com/hashicorp/eventlogger v0.0.0-20200503125528-e0cd2ba137df
-	github.com/hashicorp/go-licensing v1.3.6
+	github.com/hashicorp/go-licensing v1.3.8
 	github.com/hashicorp/nomad-licensing v0.0.10
 	github.com/hashicorp/raft-snapshotagent v0.0.0-20200831014059-4352e54f37b3
 	github.com/hashicorp/sentinel v0.15.5

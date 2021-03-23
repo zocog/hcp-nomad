@@ -1,15 +1,18 @@
-// build +ent
+// +build ent
 
 package nomad
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-licensing"
 	"github.com/hashicorp/nomad-licensing/license"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/helper/uuid"
@@ -21,6 +24,18 @@ import (
 
 func previousID(t *testing.T, lw *LicenseWatcher) string {
 	return lw.License().LicenseID
+}
+
+func waitForLicense(t *testing.T, lw *LicenseWatcher, previousID string) {
+	testutil.WaitForResult(func() (bool, error) {
+		l := lw.License()
+		if l.LicenseID == previousID {
+			return false, fmt.Errorf("expected updated license")
+		}
+		return true, nil
+	}, func(err error) {
+		require.FailNow(t, err.Error())
+	})
 }
 
 func TestLicenseWatcher_UpdatingWatcher(t *testing.T) {
@@ -94,10 +109,6 @@ func TestLicenseWatcher_Validate(t *testing.T) {
 	}
 	newLicense := license.NewTestLicense(invalidFlags)
 
-	// It can be a valid go-licensing license
-	_, err := lw.watcher.ValidateLicense(newLicense.Signed)
-	require.NoError(t, err)
-
 	// Ensure it is not a valid nomad license
 	lic, err := lw.ValidateLicense(newLicense.Signed)
 	require.Error(t, err)
@@ -130,18 +141,6 @@ func TestLicenseWatcher_UpdateCh_Platform(t *testing.T) {
 	require.NotEqual(t, uint64(lw.License().Features), uint64(0))
 	require.False(t, lw.hasFeature(license.FeatureAuditLogging))
 	require.True(t, lw.hasFeature(license.FeatureReadScalability))
-}
-
-func waitForLicense(t *testing.T, lw *LicenseWatcher, previousID string) {
-	testutil.WaitForResult(func() (bool, error) {
-		l := lw.License()
-		if l.LicenseID == previousID {
-			return false, fmt.Errorf("expected updated license")
-		}
-		return true, nil
-	}, func(err error) {
-		require.FailNow(t, err.Error())
-	})
 }
 
 func TestLicenseWatcher_FeatureCheck(t *testing.T) {
@@ -177,10 +176,6 @@ func TestLicenseWatcher_FeatureCheck(t *testing.T) {
 			state := s1.State()
 			lw := s1.EnterpriseState.licenseWatcher
 
-			ctx, cancel := context.WithCancel(context.Background())
-			lw.start(ctx)
-			defer cancel()
-
 			flags := map[string]interface{}{
 				"features": map[string]interface{}{
 					"add": tc.licenseFeatures,
@@ -215,7 +210,7 @@ func TestLicenseWatcher_PeriodicLogging(t *testing.T) {
 	// Create license without any added features
 	flags := map[string]interface{}{}
 
-	previousID := previousID(t, lw)
+	previousID := previousID(t, s1.EnterpriseState.licenseWatcher)
 	newLicense := license.NewTestLicense(flags)
 
 	stored := &structs.StoredLicense{
@@ -292,10 +287,6 @@ func TestLicenseWatcher_InitLicense(t *testing.T) {
 	defer cleanupS1()
 	lw := s1.EnterpriseState.licenseWatcher
 
-	ctx, cancel := context.WithCancel(context.Background())
-	lw.start(ctx)
-	defer cancel()
-
 	require.True(t, lw.License().Temporary)
 }
 
@@ -337,6 +328,7 @@ func TestLicenseWatcher_Init_LoadRaft(t *testing.T) {
 
 	prev := lw.License().LicenseID
 	// start license watcher
+	lw.preventStart = false
 	lw.start(s1.shutdownCtx)
 
 	waitForLicense(t, lw, prev)
@@ -371,6 +363,8 @@ func TestLicenseWatcher_Init_ExpiredTemp_Shutdown(t *testing.T) {
 		CreateTime: time.Now().Add(-24 * time.Hour).UnixNano()})
 	require.NoError(t, err)
 
+	// Allow watcher to start
+	lw.preventStart = false
 	lw.start(s1.shutdownCtx)
 
 	select {
@@ -408,6 +402,7 @@ func TestLicenseWatcher_Init_ExpiredTemp_Shutdown_Cancelled(t *testing.T) {
 		CreateTime: time.Now().Add(-24 * time.Hour).UnixNano()})
 	require.NoError(t, err)
 
+	lw.preventStart = false
 	lw.start(s1.shutdownCtx)
 
 	// apply a new license
@@ -429,7 +424,7 @@ func TestLicenseWatcher_Init_ExpiredTemp_Shutdown_Cancelled(t *testing.T) {
 	success := make(chan struct{})
 	go func() {
 		select {
-		case <-lw.monitorExpTmpCtx.Done():
+		case <-lw.monitorTmpExpCtx.Done():
 			close(success)
 			// properly avoided shutdown
 		case <-executed:
@@ -460,6 +455,7 @@ func TestLicenseWatcher_Init_ExpiredValid_License(t *testing.T) {
 	state := s1.State()
 	lw := s1.EnterpriseState.licenseWatcher
 
+	lw.preventStart = false
 	lw.start(s1.shutdownCtx)
 
 	// Set expiration time
@@ -508,19 +504,19 @@ func TestLicenseWatcher_Init_ExpiredValid_License(t *testing.T) {
 
 func TestTempLicenseTooOld(t *testing.T) {
 	c1 := time.Now()
-	require.False(t, tempLicenseTooOld(c1))
+	require.False(t, tmpLicenseTooOld(c1))
 
 	// cluster 10 min old
 	c2 := time.Now().Add(-10 * time.Minute)
-	require.False(t, tempLicenseTooOld(c2))
+	require.False(t, tmpLicenseTooOld(c2))
 
 	// cluster near expired
 	c3 := time.Now().Add(-temporaryLicenseTimeLimit).Add(1 * time.Minute)
-	require.False(t, tempLicenseTooOld(c3))
+	require.False(t, tmpLicenseTooOld(c3))
 
 	// cluster too old
 	c4 := time.Now().Add(-24 * time.Hour)
-	require.True(t, tempLicenseTooOld(c4))
+	require.True(t, tmpLicenseTooOld(c4))
 }
 
 func TestTempLicense_Cluster_LicenseMeta(t *testing.T) {
@@ -657,12 +653,13 @@ func TestLicenseWatcher_StateRestore(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start the license watcher
+	lw.preventStart = false
 	lw.start(s1.shutdownCtx)
 
 	// Store a valid license on s2
-	newLicense := license.NewTestLicense(license.TestGovernancePolicyFlags())
+	newLicense := licenseFile("new-license", time.Now(), time.Now().Add(1*time.Hour))
 	stored := &structs.StoredLicense{
-		Signed:      newLicense.Signed,
+		Signed:      newLicense,
 		CreateIndex: uint64(1000),
 	}
 	s2State.UpsertLicense(1001, stored)
@@ -684,9 +681,9 @@ func TestLicenseWatcher_StateRestore(t *testing.T) {
 	err = s1.fsm.Restore(sink)
 	require.NoError(t, err)
 
-	waitForLicense(t, lw, previousID(t, lw))
+	waitForLicense(t, lw, "temporary-license")
 
-	require.Equal(t, lw.License().LicenseID, "new-temp-license")
+	require.Equal(t, lw.License().LicenseID, "new-license")
 
 	select {
 	case <-executed:
@@ -694,4 +691,361 @@ func TestLicenseWatcher_StateRestore(t *testing.T) {
 	default:
 		// Pass
 	}
+}
+
+// TestLicenseWatcher_start checks that the expected license is used when the
+// license watcher first starts.
+func TestLicenseWatcher_start(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		desc              string
+		envLicense        string
+		fileLicense       string
+		raftLicense       string
+		expectedLicenseID string
+	}{
+		{
+			desc:              "temporary license - newly initialized cluster",
+			expectedLicenseID: "temporary-license",
+		},
+		{
+			desc:              "file license loaded from file",
+			fileLicense:       licenseFile("file-id", time.Now(), time.Now().Add(1*time.Hour)),
+			expectedLicenseID: "file-id",
+		},
+		{
+			desc:              "file license loaded from env",
+			envLicense:        licenseFile("env-id", time.Now(), time.Now().Add(1*time.Hour)),
+			expectedLicenseID: "env-id",
+		},
+		{
+			desc:              "env and file chooses env",
+			fileLicense:       licenseFile("file-id", time.Now(), time.Now().Add(1*time.Hour)),
+			envLicense:        licenseFile("env-id", time.Now(), time.Now().Add(1*time.Hour)),
+			expectedLicenseID: "env-id",
+		},
+		{
+			desc:              "raft license with newer issue date is used over file license with older issue date",
+			fileLicense:       licenseFile("file-id", time.Now().Add(-24*time.Hour), time.Now().Add(1*time.Hour)),
+			raftLicense:       licenseFile("raft-id", time.Now(), time.Now().Add(2*time.Hour)),
+			expectedLicenseID: "raft-id",
+		},
+		{
+			desc:              "raft license with older issue date is ignored over file license with newer issue date",
+			fileLicense:       licenseFile("file-id", time.Now(), time.Now().Add(2*time.Hour)),
+			raftLicense:       licenseFile("raft-id", time.Now().Add(-24*time.Hour), time.Now().Add(1*time.Hour)),
+			expectedLicenseID: "file-id",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.desc, func(t *testing.T) {
+			var tempfilePath string
+			if tc.fileLicense != "" {
+				f, err := ioutil.TempFile("", "licensewatcher")
+				require.NoError(t, err)
+				_, err = io.WriteString(f, tc.fileLicense)
+				require.NoError(t, err)
+				require.NoError(t, f.Close())
+
+				defer os.Remove(f.Name())
+				tempfilePath = f.Name()
+			}
+
+			server, cleanup := TestServer(t, func(c *Config) {
+				c.LicenseEnv = tc.envLicense
+				c.LicensePath = tempfilePath
+				c.LicenseConfig = &LicenseConfig{
+					AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+				}
+			})
+			defer cleanup()
+
+			if tc.raftLicense != "" {
+				state := server.State()
+				require.NotNil(t, state)
+				require.NoError(t, state.UpsertLicense(1000, &structs.StoredLicense{Signed: tc.raftLicense}))
+			}
+
+			require.Eventually(t, func() bool {
+				license := server.EnterpriseState.licenseWatcher.License()
+				return tc.expectedLicenseID == license.LicenseID
+			}, time.Second, 10*time.Millisecond, fmt.Sprintf("Expected license ID to equal %s", tc.expectedLicenseID))
+
+			if tc.raftLicense != "" {
+				timeout := time.After(500 * time.Millisecond)
+			OUT:
+				for {
+					select {
+					case <-timeout:
+						break OUT
+					case <-time.After(100 * time.Millisecond):
+						license := server.EnterpriseState.licenseWatcher.License()
+						require.Equal(t, tc.expectedLicenseID, license.LicenseID)
+					}
+				}
+			}
+
+		})
+	}
+}
+
+// TestLicenseWatcher_Reload_EmptyConfig asserts that reloading the license
+// watcher with an empty config no-ops
+func TestLicenseWatcher_Reload_EmptyConfig(t *testing.T) {
+	t.Parallel()
+
+	server, cleanup := TestServer(t, func(c *Config) {
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
+	})
+	defer cleanup()
+
+	initLicense := server.EnterpriseState.License()
+	require.NotNil(t, initLicense)
+	require.True(t, initLicense.Temporary)
+
+	reloadCfg := &LicenseConfig{}
+
+	require.NoError(t, server.EnterpriseState.licenseWatcher.Reload(reloadCfg))
+
+	lic := server.EnterpriseState.License()
+	require.NotNil(t, lic)
+	require.True(t, lic.Temporary)
+
+	// Ensure the license did not change
+	require.Equal(t, initLicense, lic)
+}
+
+// TestLicenseWatcher_Reload_FileNewer ensures that when reloading a newer file
+// license is used
+func TestLicenseWatcher_Reload_FileNewer(t *testing.T) {
+	t.Parallel()
+
+	server, cleanup := TestServer(t, func(c *Config) {
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
+	})
+	defer cleanup()
+
+	initLicense := server.EnterpriseState.License()
+	require.NotNil(t, initLicense)
+	require.True(t, initLicense.Temporary)
+
+	file := licenseFile("reload-id", time.Now(), time.Now().Add(1*time.Hour))
+	f, err := ioutil.TempFile("", "licensewatcher")
+	require.NoError(t, err)
+	_, err = io.WriteString(f, file)
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	defer os.Remove(f.Name())
+
+	reloadCfg := &LicenseConfig{
+		LicensePath: f.Name(),
+	}
+
+	require.NoError(t, server.EnterpriseState.licenseWatcher.Reload(reloadCfg))
+
+	require.Eventually(t, func() bool {
+		license := server.EnterpriseState.licenseWatcher.License()
+		return "reload-id" == license.LicenseID
+	}, time.Second, 10*time.Millisecond, fmt.Sprintf("Expected license ID to equal %s", "reload-id"))
+}
+
+// TestLicenseWatcher_Reload_RaftNewer ensures that reloading the license
+// watcher with an older file license does not replace the newer one in raft.
+func TestLicenseWatcher_Reload_RaftNewer(t *testing.T) {
+	t.Parallel()
+
+	server, cleanup := TestServer(t, func(c *Config) {
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
+	})
+	defer cleanup()
+
+	initLicense := server.EnterpriseState.License()
+	require.NotNil(t, initLicense)
+	require.True(t, initLicense.Temporary)
+
+	raftLicense := licenseFile("raft-id", time.Now(), time.Now().Add(1*time.Hour))
+	envLicense := licenseFile("reload-id", time.Now().Add(-2*time.Hour), time.Now().Add(1*time.Hour))
+
+	state := server.State()
+	require.NotNil(t, state)
+	require.NoError(t, state.UpsertLicense(1000, &structs.StoredLicense{Signed: raftLicense}))
+
+	require.Never(t, func() bool {
+		license := server.EnterpriseState.licenseWatcher.License()
+		return "reload-id" == license.LicenseID
+	}, time.Second, 10*time.Millisecond, fmt.Sprintf("Expected license ID to not equal %s", "reload-id"))
+
+	reloadCfg := &LicenseConfig{
+		LicenseEnvBytes: envLicense,
+	}
+
+	// Reload should error
+	require.Error(t, server.EnterpriseState.licenseWatcher.Reload(reloadCfg))
+
+	license := server.EnterpriseState.licenseWatcher.License()
+	require.Equal(t, "raft-id", license.LicenseID)
+}
+
+// TestLicenseWatcher_Reload_RaftSetForcibly ensures that reloading the license
+// watcher with a newer file license does not replace the older one in raft if
+// it was forcibly set.
+func TestLicenseWatcher_Reload_RaftSetForcibly(t *testing.T) {
+	t.Parallel()
+
+	server, cleanup := TestServer(t, func(c *Config) {
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
+	})
+	defer cleanup()
+
+	initLicense := server.EnterpriseState.License()
+	require.NotNil(t, initLicense)
+	require.True(t, initLicense.Temporary)
+
+	raftLicense := licenseFile("raft-id", time.Now().Add(-2*time.Hour), time.Now().Add(1*time.Hour))
+	envLicense := licenseFile("reload-id", time.Now(), time.Now().Add(1*time.Hour))
+
+	state := server.State()
+	require.NotNil(t, state)
+	require.NoError(t, state.UpsertLicense(1000, &structs.StoredLicense{Signed: raftLicense, Force: true}))
+
+	require.Never(t, func() bool {
+		license := server.EnterpriseState.licenseWatcher.License()
+		return "reload-id" == license.LicenseID
+	}, time.Second, 10*time.Millisecond, fmt.Sprintf("Expected license ID to not equal %s", "reload-id"))
+
+	reloadCfg := &LicenseConfig{
+		LicenseEnvBytes: envLicense,
+	}
+
+	// Reload should error
+	require.Error(t, server.EnterpriseState.licenseWatcher.Reload(reloadCfg))
+
+	license := server.EnterpriseState.licenseWatcher.License()
+	require.Equal(t, "raft-id", license.LicenseID)
+}
+
+// TestLicenseWatcher_ExpiredLicense_SetOlderValidLicense ensures that a server
+// with an expired license can set an older, valid license
+func TestLicenseWatcher_ExpiredLicense_SetOlderValidLicense(t *testing.T) {
+	t.Parallel()
+
+	envLicense := licenseFile("env-id", time.Now().Add(-1*time.Hour), time.Now().Add(1*time.Second))
+	server, cleanup := TestServer(t, func(c *Config) {
+		c.LicenseEnv = envLicense
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
+	})
+	defer cleanup()
+
+	lic := server.EnterpriseState.License()
+	require.Equal(t, "env-id", lic.LicenseID)
+
+	// Ensure the license is expired and no features available
+	require.Eventually(t, func() bool {
+		return server.EnterpriseState.Features() == uint64(0)
+	}, 2*time.Second, 100*time.Millisecond, fmt.Sprintf("Expected license to expire"))
+
+	oldButValid := licenseFile("old-id", time.Now().Add(-1*24*365*time.Hour), time.Now().Add(5*time.Hour))
+
+	require.NoError(t, server.EnterpriseState.SetLicense(oldButValid, false))
+
+	require.Equal(t, "old-id", server.EnterpriseState.License().LicenseID)
+}
+
+// TestLicenseWatcher_SetLicense_Propagation ensures that a license and its
+// force field are properly propagated
+func TestLicenseWatcher_SetLicense_Propagation(t *testing.T) {
+	t.Parallel()
+
+	fileLic := licenseFile("start-id", time.Now(), time.Now().Add(1*time.Hour))
+	forceLic := licenseFile("force-id", time.Now().Add(-1*time.Minute), time.Now().Add(1*time.Hour))
+
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.BootstrapExpect = 2
+		c.LicenseEnv = fileLic
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
+	})
+	defer cleanupS1()
+
+	// s2 will be used to store license and create a snapshot for s1 to restore from
+	s2, cleanupS2 := TestServer(t, func(c *Config) {
+		c.BootstrapExpect = 2
+		c.LicenseEnv = fileLic
+		c.LicenseConfig = &LicenseConfig{
+			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
+		}
+	})
+	defer cleanupS2()
+
+	TestJoin(t, s1, s2)
+	testutil.WaitForLeader(t, s1.RPC)
+	testutil.WaitForLeader(t, s2.RPC)
+
+	require.Equal(t, "start-id", s1.EnterpriseState.License().LicenseID)
+	require.Equal(t, "start-id", s2.EnterpriseState.License().LicenseID)
+
+	if s1.IsLeader() {
+		require.NoError(t, s1.EnterpriseState.SetLicense(forceLic, true))
+	} else if s2.IsLeader() {
+		require.NoError(t, s2.EnterpriseState.SetLicense(forceLic, true))
+	} else {
+		require.FailNow(t, "expected there to be a leader")
+	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		out1, err := s1.State().License(nil)
+		require.NoError(t, err)
+
+		if forceLic != out1.Signed {
+			return false, fmt.Errorf("expected s1 license to update want %v got %v", forceLic, out1.Signed)
+		}
+		require.True(t, out1.Force)
+
+		out2, err := s2.State().License(nil)
+		require.NoError(t, err)
+
+		if forceLic != out2.Signed {
+			return false, fmt.Errorf("expected s2 license to update, want %v got %v", forceLic, out2.Signed)
+		}
+		require.True(t, out2.Force)
+
+		return true, nil
+	}, func(err error) {
+		require.Fail(t, err.Error())
+	})
+
+}
+
+func TestLicenseFromLicenseConfig(t *testing.T) {
+	// TODO drew test different license file combos
+}
+
+func licenseFile(id string, issue, exp time.Time) string {
+	l := &licensing.License{
+		LicenseID:       id,
+		CustomerID:      "test customer id",
+		InstallationID:  "*",
+		Product:         "nomad",
+		IssueTime:       issue,
+		StartTime:       issue,
+		ExpirationTime:  exp,
+		TerminationTime: exp,
+		Flags:           map[string]interface{}{},
+	}
+	signed, _ := l.SignedString(nomadLicense.TestPrivateKey)
+	return signed
+
 }
