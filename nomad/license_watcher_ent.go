@@ -24,7 +24,6 @@ var (
 )
 
 const (
-
 	// expiredTmpGrace is the grace period after a server is restarted with an expired
 	// license to allow for a new valid license to be applied.
 	// The value should be short enough to inconvenience unlicensed users,
@@ -44,6 +43,8 @@ const (
 
 	// Temporary Nomad-Enterprise licenses should operate for six hours
 	temporaryLicenseTimeLimit = 6 * time.Hour
+
+	licenseExpired = "license is no longer valid"
 )
 
 type stateFn func() *state.StateStore
@@ -90,6 +91,8 @@ type LicenseWatcher struct {
 	// license is the watchers atomically stored ServerLicense
 	licenseInfo atomic.Value
 
+	// fileLicense is the license loaded from the server's license path or env
+	// it is set when the LicenseWatcher is initialized and when Reloaded.
 	fileLicense string
 
 	// shutdownFunc is a callback invoked when temporary license expires and server should shutdown
@@ -129,22 +132,17 @@ type LicenseWatcher struct {
 
 func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 	// Check for file license
-	initLicense, err := licenseFromLicenseConfig(cfg)
+	fileLicense, err := licenseFromLicenseConfig(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read license from config: %w", err)
 	}
 
-	fileLicense := initLicense
-
-	// If initLicense was not set by a file license, start with a temporary license
-	if initLicense == "" {
-		_, tmpSigned, tmpPubKey, err := temporaryLicenseInfo()
-		if err != nil {
-			return nil, fmt.Errorf("failed creating temporary license: %w", err)
-		}
-		initLicense = tmpSigned
-		cfg.AdditionalPubKeys = append(cfg.AdditionalPubKeys, tmpPubKey)
+	// Initialize temporary license
+	_, tmpSigned, tmpPubKey, err := temporaryLicenseInfo()
+	if err != nil {
+		return nil, fmt.Errorf("failed creating temporary license: %w", err)
 	}
+	cfg.AdditionalPubKeys = append(cfg.AdditionalPubKeys, tmpPubKey)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -164,7 +162,7 @@ func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 
 	opts := &licensing.WatcherOptions{
 		ProductName:          nomadLicense.ProductName,
-		InitLicense:          initLicense,
+		InitLicense:          tmpSigned,
 		AdditionalPublicKeys: cfg.AdditionalPubKeys,
 	}
 
@@ -175,6 +173,22 @@ func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 	}
 	lw.watcher = watcher
 
+	// Try to set the file license
+	initLicense := tmpSigned
+	if fileLicense != "" {
+		if _, err := lw.watcher.SetLicense(fileLicense); err != nil {
+			if !strings.Contains(err.Error(), licenseExpired) {
+				// If the error is an expired license, continue on in case a valid
+				// one is in raft. If it's invalid, error out
+				return nil, fmt.Errorf("a file license was configured but the license is invalid: %w", err)
+			}
+			lw.logger.Warn("Configured enterprise license file is expired! Falling back to temporary license. Please update, or remove license configuration if setting the license via CLI/API")
+		} else {
+			// update the initLicense if license was set
+			initLicense = fileLicense
+		}
+	}
+
 	startUpLicense, err := lw.watcher.License()
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve startup license: %w", err)
@@ -182,7 +196,7 @@ func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 
 	license, err := nomadLicense.NewLicense(startUpLicense)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert license: %w", err)
+		return nil, fmt.Errorf("failed to convert startup license: %w", err)
 	}
 
 	// Store the expanded license and the corresponding blob
@@ -192,22 +206,6 @@ func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 	})
 
 	return lw, nil
-}
-
-func licenseFromLicenseConfig(cfg *LicenseConfig) (string, error) {
-	if cfg.LicenseEnvBytes != "" {
-		return cfg.LicenseEnvBytes, nil
-	}
-
-	if cfg.LicensePath != "" {
-		licRaw, err := ioutil.ReadFile(cfg.LicensePath)
-		if err != nil {
-			return "", fmt.Errorf("failed to read license file %w", err)
-		}
-		return strings.TrimRight(string(licRaw), "\r\n"), nil
-	}
-
-	return "", nil
 }
 
 // Reload updates the license from the config
@@ -584,6 +582,22 @@ func (w *LicenseWatcher) getOrSetTmpLicenseBarrier(ctx context.Context, state *s
 			return time.Unix(0, tmpCreateTime)
 		}
 	}
+}
+
+func licenseFromLicenseConfig(cfg *LicenseConfig) (string, error) {
+	if cfg.LicenseEnvBytes != "" {
+		return cfg.LicenseEnvBytes, nil
+	}
+
+	if cfg.LicensePath != "" {
+		licRaw, err := ioutil.ReadFile(cfg.LicensePath)
+		if err != nil {
+			return "", fmt.Errorf("failed to read license file %w", err)
+		}
+		return strings.TrimRight(string(licRaw), "\r\n"), nil
+	}
+
+	return "", nil
 }
 
 // tempLicenseTooOld checks if the cluster age is older than the temporary

@@ -59,7 +59,7 @@ func (s *Server) setupEnterprise(config *Config) error {
 
 	licenseWatcher, err := NewLicenseWatcher(config.LicenseConfig)
 	if err != nil {
-		return fmt.Errorf("failed to create a new license watcher: %w", err)
+		return fmt.Errorf("failed to initialize enterprise licensing: %w", err)
 	}
 	s.EnterpriseState.licenseWatcher = licenseWatcher
 	return nil
