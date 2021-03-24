@@ -450,7 +450,7 @@ func (w *LicenseWatcher) monitorRaft(ctx context.Context) {
 			if err != nil && err != ErrOlderLicense {
 				w.logger.Error("failed to set license from update", "error", err)
 				// Only retry if license in raft is still potentially valid
-				if !strings.Contains(err.Error(), "license is no longer valid") {
+				if !strings.Contains(err.Error(), licenseExpired) {
 					continue
 				}
 			}
