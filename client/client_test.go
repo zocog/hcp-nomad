@@ -622,7 +622,7 @@ func TestClient_SaveRestoreState(t *testing.T) {
 	c1.config.PluginLoader = catalog.TestPluginLoaderWithOptions(t, "", c1.config.Options, nil)
 	c1.config.PluginSingletonLoader = singleton.NewSingletonLoader(logger, c1.config.PluginLoader)
 
-	c2, err := NewClient(c1.config, consulCatalog, nil, mockService)
+	c2, err := NewClient(c1.config, consulCatalog, nil, mockService, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1487,7 +1487,8 @@ func TestClient_getAllocatedResources(t *testing.T) {
 				ReservedCores: []uint16{},
 			},
 			Memory: structs.AllocatedMemoryResources{
-				MemoryMB: 768,
+				MemoryMB:    768,
+				MemoryMaxMB: 768,
 			},
 			Networks: nil,
 		},
