@@ -774,6 +774,60 @@ type CSIVolumeUnpublishResponse struct {
 	QueryMeta
 }
 
+// CSISnapshot is the storage provider's view of a volume snapshot
+type CSISnapshot struct {
+	// These fields map to those returned by the storage provider plugin
+	ID                     string // storage provider's ID
+	ExternalSourceVolumeID string // storage provider's ID for volume
+	SizeBytes              int64
+	CreateTime             int64
+	IsReady                bool
+
+	// These fields are controlled by Nomad
+	SourceVolumeID string
+	PluginID       string
+
+	// These field are only used during snapshot creation and will not be
+	// populated when the snapshot is returned
+	Name       string
+	Secrets    CSISecrets
+	Parameters map[string]string
+}
+
+type CSISnapshotCreateRequest struct {
+	Snapshots []*CSISnapshot
+	WriteRequest
+}
+
+type CSISnapshotCreateResponse struct {
+	Snapshots []*CSISnapshot
+	QueryMeta
+}
+
+type CSISnapshotDeleteRequest struct {
+	Snapshots []*CSISnapshot
+	WriteRequest
+}
+
+type CSISnapshotDeleteResponse struct {
+	QueryMeta
+}
+
+// CSISnapshotListRequest is a request to a controller plugin to list all the
+// snapshot known to the the storage provider. This request is paginated by
+// the plugin and accepts the QueryOptions.PerPage and QueryOptions.NextToken
+// fields
+type CSISnapshotListRequest struct {
+	PluginID string
+	QueryOptions
+}
+
+type CSISnapshotListResponse struct {
+	Snapshots []*CSISnapshot
+	NextToken string
+	QueryMeta
+}
+
 // CSIPlugin collects fingerprint info context for the plugin for clients
 type CSIPlugin struct {
 	ID                 string
@@ -898,6 +952,24 @@ const (
 	CSIControllerSupportsGet CSIControllerCapability = 11
 )
 
+type CSINodeCapability byte
+
+const (
+
+	// CSINodeSupportsStageVolume indicates whether the client should
+	// Stage/Unstage volumes on this node.
+	CSINodeSupportsStageVolume CSINodeCapability = 0
+
+	// CSINodeSupportsStats indicates plugin support for GET_VOLUME_STATS
+	CSINodeSupportsStats CSINodeCapability = 1
+
+	// CSINodeSupportsExpand indicates plugin support for EXPAND_VOLUME
+	CSINodeSupportsExpand CSINodeCapability = 2
+
+	// CSINodeSupportsCondition indicates plugin support for VOLUME_CONDITION
+	CSINodeSupportsCondition CSINodeCapability = 3
+)
+
 func (p *CSIPlugin) HasControllerCapability(cap CSIControllerCapability) bool {
 	if len(p.Controllers) < 1 {
 		return false
@@ -930,6 +1002,29 @@ func (p *CSIPlugin) HasControllerCapability(cap CSIControllerCapability) bool {
 			return c.ControllerInfo.SupportsCondition
 		case CSIControllerSupportsGet:
 			return c.ControllerInfo.SupportsGet
+		default:
+			return false
+		}
+	}
+	return false
+}
+
+func (p *CSIPlugin) HasNodeCapability(cap CSINodeCapability) bool {
+	if len(p.Nodes) < 1 {
+		return false
+	}
+	// we're picking the first node because they should be uniform
+	// across the same version of the plugin
+	for _, c := range p.Nodes {
+		switch cap {
+		case CSINodeSupportsStageVolume:
+			return c.NodeInfo.RequiresNodeStageVolume
+		case CSINodeSupportsStats:
+			return c.NodeInfo.SupportsStats
+		case CSINodeSupportsExpand:
+			return c.NodeInfo.SupportsExpand
+		case CSINodeSupportsCondition:
+			return c.NodeInfo.SupportsCondition
 		default:
 			return false
 		}

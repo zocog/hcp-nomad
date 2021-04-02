@@ -385,6 +385,22 @@ export default function() {
     return new Response(403, {}, null);
   });
 
+  this.post('/acl/token/onetime/exchange', function({ tokens }, { requestBody }) {
+    const { OneTimeSecretID } = JSON.parse(requestBody);
+
+    const tokenForSecret = tokens.findBy({ oneTimeSecret: OneTimeSecretID });
+
+    // Return the token if it exists
+    if (tokenForSecret) {
+      return {
+        Token: this.serialize(tokenForSecret),
+      };
+    }
+
+    // Forbidden error if it doesn't
+    return new Response(403, {}, null);
+  });
+
   this.get('/acl/policy/:id', function({ policies, tokens }, req) {
     const policy = policies.find(req.params.id);
     const secret = req.requestHeaders['X-Nomad-Token'];
@@ -423,7 +439,7 @@ export default function() {
       return {
         License: {
           Features: records.models.mapBy('name'),
-        }
+        },
       };
     }
 
