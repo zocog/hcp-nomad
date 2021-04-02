@@ -12,8 +12,8 @@ ON_PREM_MODULES_GO_TAGS ?= ent on_prem_modules consulent
 ON_PREM_PLATFORM_GO_TAGS ?= ent on_prem_platform consulent
 ifeq ($(CI),true)
 GO_TAGS := codegen_generated $(GO_TAGS)
-ON_PREM_MODULES_GO_TAGS  := codegen_generated $(ON_PREM_MODULES_GO_TAGS  )
-ON_PREM_PLATFORM_GO_TAGS  := codegen_generated $(ON_PREM_PLATFORM_GO_TAGS  )
+ON_PREM_MODULES_GO_TAGS  := codegen_generated $(ON_PREM_MODULES_GO_TAGS)
+ON_PREM_PLATFORM_GO_TAGS  := codegen_generated $(ON_PREM_PLATFORM_GO_TAGS)
 endif
 
 GO_TEST_CMD = $(if $(shell command -v gotestsum 2>/dev/null),gotestsum --,go test)
