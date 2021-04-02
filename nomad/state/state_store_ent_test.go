@@ -1090,6 +1090,7 @@ func TestStateStore_UpsertAllocs_Quota_NewAlloc(t *testing.T) {
 	expected.Networks = nil
 	expected.DiskMB = 0
 	expected.IOPS = 0
+	expected.MemoryMaxMB = 0
 	assert.Equal(expected, used.RegionLimit)
 }
 
@@ -1371,6 +1372,7 @@ func TestStateStore_UpsertNamespaces_NewQuota(t *testing.T) {
 	expected.Networks = nil
 	expected.DiskMB = 0
 	expected.IOPS = 0
+	expected.MemoryMaxMB = 0
 	assert.Equal(expected, used.RegionLimit)
 
 }
@@ -1643,6 +1645,7 @@ func TestStateStore_UpsertQuotaSpec_Usage(t *testing.T) {
 	expected.Networks = nil
 	expected.DiskMB = 0
 	expected.IOPS = 0
+	expected.MemoryMaxMB = 0
 	assert.Equal(expected, used.RegionLimit)
 }
 
