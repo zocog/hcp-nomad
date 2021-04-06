@@ -1,6 +1,5 @@
 ## 1.1.0 (Unreleased)
 
-=======
 FEATURES:
  * **Consul Namespaces (Enterprise)**: Adds support for Consul Namespaces [[GH-10235](https://github.com/hashicorp/nomad/pull/10235)]
  * **Licensing (Enterprise)**: Support loading Enterprise license from disk or environment. [[GH-10216](https://github.com/hashicorp/nomad/issues/10216)]
