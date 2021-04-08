@@ -122,7 +122,7 @@ func (c *VolumeSnapshotListCommand) Run(args []string) int {
 		resp, _, err := client.CSIVolumes().ListSnapshots(pluginID, q)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(
-				"Error querying CSI external volumes for plugin %q: %s", pluginID, err))
+				"Error querying CSI external snapshots for plugin %q: %s", pluginID, err))
 			return 1
 		}
 		if len(resp.Snapshots) > 0 {
@@ -147,14 +147,14 @@ func csiFormatSnapshots(snapshots []*api.CSISnapshot, verbose bool) string {
 	if verbose {
 		length = 30
 	}
-	for i, v := range snapshots {
-		rows[i+1] = fmt.Sprintf("%s|%s|%s|%s|%v",
+	for _, v := range snapshots {
+		rows = append(rows, fmt.Sprintf("%s|%s|%s|%s|%v",
 			limit(v.ID, length),
 			limit(v.ExternalSourceVolumeID, length),
 			humanize.IBytes(uint64(v.SizeBytes)),
 			formatUnixNanoTime(v.CreateTime),
 			v.IsReady,
-		)
+		))
 	}
 	return formatList(rows)
 }

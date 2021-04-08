@@ -377,7 +377,6 @@ func (v *CSIVolume) Claim(args *structs.CSIVolumeClaimRequest, reply *structs.CS
 
 	isNewClaim := args.Claim != structs.CSIVolumeClaimGC &&
 		args.State == structs.CSIVolumeClaimStateTaken
-
 	// COMPAT(1.0): the NodeID field was added after 0.11.0 and so we
 	// need to ensure it's been populated during upgrades from 0.11.0
 	// to later patch versions. Remove this block in 1.0
@@ -470,8 +469,8 @@ func (v *CSIVolume) controllerPublishVolume(req *structs.CSIVolumeClaimRequest, 
 	cReq := &cstructs.ClientCSIControllerAttachVolumeRequest{
 		VolumeID:        vol.RemoteID(),
 		ClientCSINodeID: externalNodeID,
-		AttachmentMode:  vol.AttachmentMode,
-		AccessMode:      vol.AccessMode,
+		AttachmentMode:  req.AttachmentMode,
+		AccessMode:      req.AccessMode,
 		ReadOnly:        req.Claim == structs.CSIVolumeClaimRead,
 		Secrets:         vol.Secrets,
 		VolumeContext:   vol.Context,
@@ -1027,6 +1026,9 @@ func (v *CSIVolume) ListExternal(args *structs.CSIVolumeExternalListRequest, rep
 	}
 	if plugin == nil {
 		return fmt.Errorf("no such plugin")
+	}
+	if !plugin.HasControllerCapability(structs.CSIControllerSupportsListVolumes) {
+		return fmt.Errorf("unimplemented for this plugin")
 	}
 
 	method := "ClientCSI.ControllerListVolumes"
