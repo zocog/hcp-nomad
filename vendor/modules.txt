@@ -385,7 +385,7 @@ github.com/hashicorp/consul/sdk/testutil/retry
 # github.com/hashicorp/cronexpr v1.1.1
 ## explicit
 github.com/hashicorp/cronexpr
-# github.com/hashicorp/errwrap v1.0.0
+# github.com/hashicorp/errwrap v1.1.0
 ## explicit
 github.com/hashicorp/errwrap
 # github.com/hashicorp/eventlogger v0.0.0-20200503125528-e0cd2ba137df
@@ -447,7 +447,7 @@ github.com/hashicorp/go-memdb
 # github.com/hashicorp/go-msgpack v1.1.5
 ## explicit
 github.com/hashicorp/go-msgpack/codec
-# github.com/hashicorp/go-multierror v1.1.0
+# github.com/hashicorp/go-multierror v1.1.1
 ## explicit
 github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-plugin v1.0.2-0.20191004171845-809113480b55
@@ -512,7 +512,7 @@ github.com/hashicorp/memberlist
 # github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
 ## explicit
 github.com/hashicorp/net-rpc-msgpackrpc
-# github.com/hashicorp/nomad-licensing v0.0.10
+# github.com/hashicorp/nomad-licensing v0.0.11
 ## explicit
 github.com/hashicorp/nomad-licensing/license
 # github.com/hashicorp/nomad/api v0.0.0-20200529203653-c4416b26d3eb => ./api
@@ -647,7 +647,7 @@ github.com/mitchellh/cli
 # github.com/mitchellh/colorstring v0.0.0-20150917214807-8631ce90f286
 ## explicit
 github.com/mitchellh/colorstring
-# github.com/mitchellh/copystructure v1.0.0
+# github.com/mitchellh/copystructure v1.1.1
 ## explicit
 github.com/mitchellh/copystructure
 # github.com/mitchellh/go-homedir v1.1.0

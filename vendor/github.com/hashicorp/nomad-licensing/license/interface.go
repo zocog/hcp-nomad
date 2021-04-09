@@ -42,21 +42,6 @@ func (nf *NomadFlags) Parse(flgs map[string]interface{}) (interface{}, error) {
 	return flags, nil
 }
 
-func getFlagFeatures() []flags.Feature {
-	features := allFeatures().List()
-	ifaceFeatures := make([]flags.Feature, len(features))
-	for x, f := range features {
-		ifaceFeatures[x] = flags.Feature{
-			Name: f.String(),
-		}
-	}
-	return ifaceFeatures
-}
-
-func getFlagModules() []flags.Module {
-	return nil
-}
-
 // DescribeFlags returns a type that describes all available
 // options for a nomad-specific flags configuration
 func (nf *NomadFlags) DescribeFlags() flags.FlagsOptions {
@@ -70,7 +55,18 @@ func (nf *NomadFlags) DescribeFlags() flags.FlagsOptions {
 	// Load modules
 	modules := make([]flags.Module, numOfModules)
 	for i := 0; i < numOfModules; i++ {
-		modules[i] = flags.Module{Name: Module(i + 1).String()}
+		module := Module(i + 1)
+		featList := module.Features().StringList()
+		flagFeats := make([]flags.Feature, len(featList))
+		for i, f := range featList {
+			flagFeats[i] = flags.Feature{
+				Name: f,
+			}
+		}
+		modules[i] = flags.Module{
+			Name:     module.String(),
+			Features: flagFeats,
+		}
 	}
 
 	// Load features
