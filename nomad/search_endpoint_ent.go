@@ -59,9 +59,20 @@ func getEnterpriseResourceIter(context structs.Context, aclObj *acl.ACL, namespa
 	}
 }
 
-// anySearchPerms returns true if the provided ACL has access to any
-// capabilities required for prefix searching. Returns true if aclObj is nil.
-func anySearchPerms(aclObj *acl.ACL, namespace string, context structs.Context) bool {
+// getEnterpriseFuzzyResourceIter is used to retrieve an iterator over an enterprise
+// only table.
+func getEnterpriseFuzzyResourceIter(context structs.Context, aclObj *acl.ACL, namespace string, ws memdb.WatchSet, state *state.StateStore) (memdb.ResultIterator, error) {
+	// Currently no enterprise objects are fuzzy searchable, deferring to prefix search.
+	// If we do add fuzzy searchable enterprise objects, be sure to follow the wildcard
+	// pattern to get filtering iterators in getFuzzyResourceIterator.
+	return nil, fmt.Errorf("context must be one of %v or 'all' for all contexts; got %q", allContexts, context)
+}
+
+// sufficientSearchPerms returns true if the provided ACL has access to any
+// capabilities required for prefix searching.
+//
+// Returns true if aclObj is nil.
+func sufficientSearchPerms(aclObj *acl.ACL, namespace string, context structs.Context) bool {
 	if aclObj == nil {
 		return true
 	}
@@ -96,9 +107,9 @@ func anySearchPerms(aclObj *acl.ACL, namespace string, context structs.Context) 
 	return true
 }
 
-// searchContexts returns the contexts the aclObj is valid for. If aclObj is
+// filteredSearchContexts returns the contexts the aclObj is valid for. If aclObj is
 // nil all contexts are returned.
-func searchContexts(aclObj *acl.ACL, namespace string, context structs.Context) []structs.Context {
+func filteredSearchContexts(aclObj *acl.ACL, namespace string, context structs.Context) []structs.Context {
 	var all []structs.Context
 
 	switch context {
