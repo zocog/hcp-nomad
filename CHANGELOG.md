@@ -14,6 +14,7 @@ IMPROVEMENTS:
  * api: Removed unimplemented `CSIVolumes.PluginList` API. [[GH-10158](https://github.com/hashicorp/nomad/issues/10158)]
  * cli: Update defaults for `nomad operator debug` flags `-interval` and `-server-id` to match common usage. [[GH-10121](https://github.com/hashicorp/nomad/issues/10121)]
  * cli: Added `nomad ui -authenticate` flag to generate a one-time token for authenticating to the web UI when ACLs are enabled. [[GH-10097](https://github.com/hashicorp/nomad/issues/10097)]
+ * client/config: Enable sockaddr templating for `network-interface` attribute. [[GH-10404](https://github.com/hashicorp/nomad/issues/10404)]
  * client/fingerprint: Added support multiple host network aliases for the same interface. [[GH-10104](https://github.com/hashicorp/nomad/issues/10104)]
  * consul: Allow setting `body` field on service/check Consul health checks. [[GH-10186](https://github.com/hashicorp/nomad/issues/10186)]
  * consul/connect: Enable setting `local_bind_address` field on connect upstreams [[GH-6248](https://github.com/hashicorp/nomad/issues/6248)]
@@ -24,6 +25,7 @@ IMPROVEMENTS:
  * networking: Added support for user-defined iptables rules on the NOMAD-ADMIN chain. [[GH-10181](https://github.com/hashicorp/nomad/issues/10181)]
  * networking: Added support for interpolating host network names with node attributes. [[GH-10196](https://github.com/hashicorp/nomad/issues/10196)]
  * nomad/structs: Removed deprecated Node.Drain field, added API extensions to restore it [[GH-10202](https://github.com/hashicorp/nomad/issues/10202)]
+ * ui: Added a job reversion button [[GH-10336](https://github.com/hashicorp/nomad/pull/10336)]
 
 BUG FIXES:
  * core (Enterprise): Update licensing library to v0.0.11 to include race condition fix. [[GH-10253](https://github.com/hashicorp/nomad/issues/10253)]
