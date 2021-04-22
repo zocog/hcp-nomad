@@ -17,8 +17,8 @@ steps:
 
   - add_ssh_keys:
       fingerprints:
-      # "CircleCI SSH Checkout" SSH key associated with hashicorp-ci GitHub user
-      - "c6:96:98:82:dc:04:6c:39:dd:ac:83:05:e3:15:1c:98"
+      # "CircleCI SSH Checkout" SSH key associated with hc-github-team-nomad-core GitHub user
+      - "f0:d5:f2:c7:f2:76:3a:50:ec:8e:d4:50:57:c6:04:5d"
   - checkout
   - run: apt-get update; apt-get install -y sudo
   - install-circleci-local-cli
@@ -28,8 +28,8 @@ steps:
         set -eux -o pipefail
 
         # Configure Git
-        git config --global user.email "hashicorp-ci@users.noreply.github.com"
-        git config --global user.name "hashicorp-ci"
+        git config --global user.email "github-team-nomad-core@hashicorp.com"
+        git config --global user.name "hc-github-team-nomad-core"
 
         origin_branch="<< parameters.origin_branch >>"
         dest_branch="<< parameters.dest_branch >>"
