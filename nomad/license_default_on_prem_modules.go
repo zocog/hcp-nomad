@@ -4,24 +4,17 @@ package nomad
 
 import (
 	"crypto/ed25519"
-	"crypto/rand"
 	"encoding/base64"
+	"math/rand"
 	"time"
 
-	"github.com/hashicorp/go-licensing"
+	licensing "github.com/hashicorp/go-licensing"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 )
 
-func temporaryFlags() map[string]interface{} {
-	return map[string]interface{}{
-		"modules": []string{
-			nomadLicense.ModuleGovernancePolicy.String(),
-			nomadLicense.ModuleMulticlusterAndEfficiency.String(),
-		},
-	}
-}
-
-func temporaryLicenseInfo() (l *licensing.License, signed, pubKey string, err error) {
+// defaultEnterpriseLicense returns a signed license blob and sets any
+// required public key on the configuration
+func defaultEnterpriseLicense(cfg *LicenseConfig) (string, error) {
 	now := time.Now()
 	l = &licensing.License{
 		LicenseID:       permanentLicenseID,
@@ -32,17 +25,24 @@ func temporaryLicenseInfo() (l *licensing.License, signed, pubKey string, err er
 		StartTime:       now,
 		ExpirationTime:  now.Add(30 * 365 * 24 * time.Hour),
 		TerminationTime: now.Add(30 * 365 * 24 * time.Hour),
-		Flags:           temporaryFlags(),
+		Flags: map[string]interface{}{
+			"modules": []string{
+				nomadLicense.ModuleGovernancePolicy.String(),
+				nomadLicense.ModuleMulticlusterAndEfficiency.String(),
+			},
+		},
 	}
 
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
-		return nil, "", "", err
+		return "", err
 	}
 	signed, err = l.SignedString(priv)
 	if err != nil {
-		return nil, "", "", err
+		return "", err
 	}
 	pubKey = base64.StdEncoding.EncodeToString(pub)
-	return l, signed, pubKey, nil
+	cfg.AdditionalPubKeys = append(cfg.AdditionalPubKeys, pubKey)
+
+	return signed, nil
 }

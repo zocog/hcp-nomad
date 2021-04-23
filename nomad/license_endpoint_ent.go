@@ -3,11 +3,10 @@
 package nomad
 
 import (
-	"fmt"
+	"errors"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
 
@@ -16,36 +15,10 @@ type License struct {
 	srv *Server
 }
 
-var minLicenseSetVersion = version.Must(version.NewVersion("0.12.0"))
-
+// COMPAT: License.UpsertLicense was deprecated in Nomad 1.1.0
 // UpsertLicense is used to set an enterprise license
 func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *structs.GenericResponse) error {
-	if done, err := l.srv.forward("License.UpsertLicense", args, args, reply); done {
-		return err
-	}
-	defer metrics.MeasureSince([]string{"nomad", "license", "upsert_license"}, time.Now())
-
-	// Check OperatorWrite permissions
-	if aclObj, err := l.srv.ResolveToken(args.AuthToken); err != nil {
-		return err
-	} else if aclObj != nil && !aclObj.AllowOperatorWrite() {
-		return structs.ErrPermissionDenied
-	}
-
-	// Ensure all servers meet minimum requirements
-	if !ServersMeetMinimumVersion(l.srv.Members(), minLicenseSetVersion, false) {
-		l.srv.logger.Warn("cannot set license until all servers are above minimum version", "min_version", minLicenseMetaVersion)
-		return fmt.Errorf("all servers do not meet minimum version requirement: %s", minLicenseMetaVersion)
-	}
-
-	index, err := l.srv.EnterpriseState.SetLicenseRequest(args.License.Signed, args.License.Force)
-	if err != nil {
-		return fmt.Errorf("error setting license: %w", err)
-	}
-
-	reply.Index = index
-
-	return nil
+	return errors.New("License.UpsertLicense is deprecated")
 }
 
 // GetLicense is used to retrieve an enterprise license
@@ -54,14 +27,14 @@ func (l *License) GetLicense(args *structs.LicenseGetRequest, reply *structs.Lic
 		return err
 	}
 
+	defer metrics.MeasureSince([]string{"nomad", "license", "get_license"}, time.Now())
+
 	// Check OperatorRead permissions
 	if aclObj, err := l.srv.ResolveToken(args.AuthToken); err != nil {
 		return err
 	} else if aclObj != nil && !aclObj.AllowOperatorRead() {
 		return structs.ErrPermissionDenied
 	}
-
-	defer metrics.MeasureSince([]string{"nomad", "license", "get_license"}, time.Now())
 
 	out := l.srv.EnterpriseState.License()
 	reply.NomadLicense = out

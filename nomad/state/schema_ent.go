@@ -87,6 +87,7 @@ func quotaUsageTableSchema() *memdb.TableSchema {
 	}
 }
 
+// COMPAT: StoredLicense was deprecated in Nomad 1.1.0
 // licenseTableSchema returns the MemDB schema for the license table.
 // This table is used to store the enterprise license.
 func licenseTableSchema() *memdb.TableSchema {
@@ -105,6 +106,7 @@ func licenseTableSchema() *memdb.TableSchema {
 	}
 }
 
+// COMPAT: TmpLicenseBarrier was deprecated in Nomad 1.1.0
 func tmpLicenseBarrierSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: TableTmpLicenseBarrier,

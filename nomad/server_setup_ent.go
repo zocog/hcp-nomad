@@ -41,20 +41,12 @@ func (s *Server) setupEnterprise(config *Config) error {
 
 	s.setupEnterpriseAutopilot(config)
 
-	// AdditionalPubKeys and preventStart may be set prior to this step, mainly in tests
-	additionalPubKeys := config.LicenseConfig.AdditionalPubKeys
-	preventStart := config.LicenseConfig.preventStart
 	// Set License config options
 	config.LicenseConfig = &LicenseConfig{
-		AdditionalPubKeys:     additionalPubKeys,
-		InitTmpLicenseBarrier: s.initTmpLicenseBarrier,
-		LicenseEnvBytes:       config.LicenseEnv,
-		LicensePath:           config.LicensePath,
-		Logger:                s.logger,
-		PropagateFn:           s.propagateLicense,
-		ShutdownCallback:      config.AgentShutdown,
-		StateStore:            s.State,
-		preventStart:          preventStart,
+		AdditionalPubKeys: config.LicenseConfig.AdditionalPubKeys,
+		LicenseEnvBytes:   config.LicenseEnv,
+		LicensePath:       config.LicensePath,
+		Logger:            s.logger,
 	}
 
 	licenseWatcher, err := NewLicenseWatcher(config.LicenseConfig)

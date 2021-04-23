@@ -47,6 +47,7 @@ func TestServer_Reload_License(t *testing.T) {
 
 	server, cleanup := TestServer(t, func(c *Config) {
 		c.LicensePath = f.Name()
+		c.LicenseEnv = ""
 		c.LicenseConfig = &LicenseConfig{
 			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
 		}

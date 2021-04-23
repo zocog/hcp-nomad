@@ -20,8 +20,8 @@ const (
 	SentinelPolicySnapshot    SnapshotType = 65
 	QuotaSpecSnapshot         SnapshotType = 66
 	QuotaUsageSnapshot        SnapshotType = 67
-	LicenseSnapshot           SnapshotType = 68
-	TmpLicenseBarrierSnapshot SnapshotType = 69
+	LicenseSnapshot           SnapshotType = 68 // deprecated
+	TmpLicenseBarrierSnapshot SnapshotType = 69 // deprecated
 	RecommendationSnapshot    SnapshotType = 70
 )
 
@@ -154,6 +154,7 @@ func (n *nomadFSM) allocQuota(allocID string) (string, error) {
 	return ns.Quota, nil
 }
 
+// COMPAT: StoredLicense was deprecated in Nomad 1.1.0
 // applyLicenseUpsert is used to upsert a new license
 func (n *nomadFSM) applyLicenseUpsert(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSince([]string{"nomad", "fsm", "apply_license_upsert"}, time.Now())
@@ -169,6 +170,7 @@ func (n *nomadFSM) applyLicenseUpsert(buf []byte, index uint64) interface{} {
 	return nil
 }
 
+// COMPAT: TmpLicenseBarrier was deprecated in Nomad 1.1.0
 func (n *nomadFSM) applyTmpLicenseBarrierUpsert(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSince([]string{"nomad", "fsm", "apply_tmp_license_barrier_upsert"}, time.Now())
 	var req structs.TmpLicenseBarrier

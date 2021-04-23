@@ -17,7 +17,9 @@ import (
 
 func TestSentinelEndpoint_GetPolicy(t *testing.T) {
 	t.Parallel()
-	s1, root, cleanupS1 := TestACLServer(t, nil)
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForGovernance().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -52,7 +54,9 @@ func TestSentinelEndpoint_GetPolicy(t *testing.T) {
 
 func TestSentinelEndpoint_GetPolicy_Blocking(t *testing.T) {
 	t.Parallel()
-	s1, root, cleanupS1 := TestACLServer(t, nil)
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForGovernance().Signed
+	})
 	defer cleanupS1()
 	state := s1.fsm.State()
 	codec := rpcClient(t, s1)
@@ -131,7 +135,9 @@ func TestSentinelEndpoint_GetPolicy_Blocking(t *testing.T) {
 
 func TestSentinelEndpoint_GetPolicies(t *testing.T) {
 	t.Parallel()
-	s1, root, cleanupS1 := TestACLServer(t, nil)
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForGovernance().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -170,7 +176,9 @@ func TestSentinelEndpoint_GetPolicies(t *testing.T) {
 
 func TestSentinelEndpoint_GetPolicies_Blocking(t *testing.T) {
 	t.Parallel()
-	s1, root, cleanupS1 := TestACLServer(t, nil)
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForGovernance().Signed
+	})
 	defer cleanupS1()
 	state := s1.fsm.State()
 	codec := rpcClient(t, s1)
@@ -249,7 +257,9 @@ func TestSentinelEndpoint_GetPolicies_Blocking(t *testing.T) {
 
 func TestSentinelEndpoint_ListPolicies(t *testing.T) {
 	t.Parallel()
-	s1, root, cleanupS1 := TestACLServer(t, nil)
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForGovernance().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -294,7 +304,9 @@ func TestSentinelEndpoint_ListPolicies(t *testing.T) {
 
 func TestSentinelEndpoint_ListPolicies_Blocking(t *testing.T) {
 	t.Parallel()
-	s1, root, cleanupS1 := TestACLServer(t, nil)
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForGovernance().Signed
+	})
 	defer cleanupS1()
 	state := s1.fsm.State()
 	codec := rpcClient(t, s1)
@@ -354,7 +366,9 @@ func TestSentinelEndpoint_ListPolicies_Blocking(t *testing.T) {
 
 func TestSentinelEndpoint_DeletePolicies(t *testing.T) {
 	t.Parallel()
-	s1, root, cleanupS1 := TestACLServer(t, nil)
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForGovernance().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -380,7 +394,9 @@ func TestSentinelEndpoint_DeletePolicies(t *testing.T) {
 
 func TestSentinelEndpoint_UpsertPolicies(t *testing.T) {
 	t.Parallel()
-	s1, root, cleanupS1 := TestACLServer(t, nil)
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForGovernance().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -410,7 +426,9 @@ func TestSentinelEndpoint_UpsertPolicies(t *testing.T) {
 
 func TestSentinelEndpoint_UpsertPolicies_Invalid(t *testing.T) {
 	t.Parallel()
-	s1, root, cleanupS1 := TestACLServer(t, nil)
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForGovernance().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)

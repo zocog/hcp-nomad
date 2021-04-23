@@ -3,9 +3,6 @@
 package agent
 
 import (
-	"bytes"
-	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/hashicorp/nomad-licensing/license"
@@ -17,8 +14,6 @@ func (s *HTTPServer) LicenseRequest(resp http.ResponseWriter, req *http.Request)
 	switch req.Method {
 	case "GET":
 		return s.operatorGetLicense(resp, req)
-	case "PUT":
-		return s.operatorPutLicense(resp, req)
 	default:
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
@@ -71,33 +66,4 @@ func convertToAPILicense(l *license.License) *api.License {
 		Modules:         modules,
 		Features:        l.Features.StringList(),
 	}
-}
-
-func (s *HTTPServer) operatorPutLicense(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var args structs.LicenseUpsertRequest
-	s.parseWriteRequest(req, &args.WriteRequest)
-
-	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, req.Body); err != nil {
-		return nil, err
-	}
-
-	args.License = &structs.StoredLicense{
-		Signed: buf.String(),
-	}
-
-	force, err := parseBool(req, "force")
-	if err != nil {
-		return nil, fmt.Errorf("error parsing force parameter: %w", err)
-	}
-
-	if force != nil {
-		args.License.Force = *force
-	}
-
-	var reply structs.GenericResponse
-	if err := s.agent.RPC("License.UpsertLicense", &args, &reply); err != nil {
-		return nil, err
-	}
-	return reply, nil
 }

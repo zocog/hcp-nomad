@@ -32,9 +32,6 @@ func (s *Server) establishEnterpriseLeadership(stopCh chan struct{}) error {
 	// Periodically publish recommendation metrics
 	go s.publishRecommendationMetrics(stopCh)
 
-	// Propagate the servers license if it is newer
-	s.syncLeaderLicense()
-
 	return nil
 }
 

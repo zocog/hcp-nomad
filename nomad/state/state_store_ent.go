@@ -718,6 +718,7 @@ func (r *StateRestore) QuotaUsageRestore(usage *structs.QuotaUsage) error {
 	return nil
 }
 
+// COMPAT: StoredLicense was deprecated in Nomad 1.1.0
 // License is used when restoring from a snapshot.
 func (r *StateRestore) LicenseRestore(license *structs.StoredLicense) error {
 	if err := r.txn.Insert(TableLicense, license); err != nil {
@@ -727,6 +728,7 @@ func (r *StateRestore) LicenseRestore(license *structs.StoredLicense) error {
 	return nil
 }
 
+// COMPAT: StoredLicense was deprecated in Nomad 1.1.0
 // License is used to lookup the stored enterprise license
 func (s *StateStore) License(ws memdb.WatchSet) (*structs.StoredLicense, error) {
 	txn := s.db.ReadTxn()
@@ -747,6 +749,7 @@ func (s *StateStore) License(ws memdb.WatchSet) (*structs.StoredLicense, error) 
 	return lic, nil
 }
 
+// COMPAT: StoredLicense was deprecated in Nomad 1.1.0
 // UpsertLicense is used to store the current license blob
 func (s *StateStore) UpsertLicense(index uint64, license *structs.StoredLicense) error {
 	txn := s.db.WriteTxn(index)
@@ -757,6 +760,7 @@ func (s *StateStore) UpsertLicense(index uint64, license *structs.StoredLicense)
 	return txn.Commit()
 }
 
+// COMPAT: StoredLicense was deprecated in Nomad 1.1.0
 func (s *StateStore) upsertLicenseImpl(index uint64, license *structs.StoredLicense, txn *txn) error {
 	// Check for an existing license
 	existing, err := txn.First("license", "id")
@@ -778,6 +782,7 @@ func (s *StateStore) upsertLicenseImpl(index uint64, license *structs.StoredLice
 	return nil
 }
 
+// COMPAT: TmpLicenseBarrier was deprecated in Nomad 1.1.0
 func (s *StateStore) TmpLicenseBarrier(ws memdb.WatchSet) (*structs.TmpLicenseBarrier, error) {
 	txn := s.db.ReadTxn()
 	defer txn.Abort()
@@ -794,6 +799,7 @@ func (s *StateStore) TmpLicenseBarrier(ws memdb.WatchSet) (*structs.TmpLicenseBa
 	return nil, nil
 }
 
+// COMPAT: TmpLicenseBarrier was deprecated in Nomad 1.1.0
 func (r *StateRestore) TmpLicenseBarrierRestore(meta *structs.TmpLicenseBarrier) error {
 	if err := r.txn.Insert(TableTmpLicenseBarrier, meta); err != nil {
 		return fmt.Errorf("inserting tmp license barrier failed: %s", err)
@@ -802,6 +808,7 @@ func (r *StateRestore) TmpLicenseBarrierRestore(meta *structs.TmpLicenseBarrier)
 	return nil
 }
 
+// COMPAT: TmpLicenseBarrier was deprecated in Nomad 1.1.0
 func (s *StateStore) TmpLicenseSetBarrier(index uint64, meta *structs.TmpLicenseBarrier) error {
 	txn := s.db.WriteTxn(index)
 	defer txn.Abort()
@@ -813,6 +820,7 @@ func (s *StateStore) TmpLicenseSetBarrier(index uint64, meta *structs.TmpLicense
 	return txn.Commit()
 }
 
+// COMPAT: TmpLicenseBarrier was deprecated in Nomad 1.1.0
 func (s *StateStore) setTmpLicenseBarrier(txn *txn, meta *structs.TmpLicenseBarrier) error {
 	// Check for an existing config, if it exists, sanity check the cluster ID matches
 	existing, err := txn.First(TableTmpLicenseBarrier, "id")

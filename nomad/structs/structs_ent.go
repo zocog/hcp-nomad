@@ -26,9 +26,9 @@ const (
 	SentinelPolicyDeleteRequestType MessageType = 67
 	QuotaSpecUpsertRequestType      MessageType = 68
 	QuotaSpecDeleteRequestType      MessageType = 69
-	LicenseUpsertRequestType        MessageType = 70
-	LicenseDeleteRequestType        MessageType = 71
-	TmpLicenseUpsertRequestType     MessageType = 72
+	LicenseUpsertRequestType        MessageType = 70 // deprecated
+	LicenseDeleteRequestType        MessageType = 71 // deprecated
+	TmpLicenseUpsertRequestType     MessageType = 72 // deprecated
 	RecommendationUpsertRequestType MessageType = 73
 	RecommendationDeleteRequestType MessageType = 74
 )
@@ -50,11 +50,13 @@ const (
 	SentinelScopeSubmitJob = "submit-job"
 )
 
+// COMPAT: TmpLicenseBarrier was deprecated in Nomad 1.1.0
 // TmpLicenseBarrier tracks the create time for the first temporary license
 type TmpLicenseBarrier struct {
 	CreateTime int64
 }
 
+// COMPAT: StoredLicense was deprecated in Nomad 1.1.0
 // StoredLicense is used to store and retrieve the signed license blob
 // used for checking enterprise features
 type StoredLicense struct {

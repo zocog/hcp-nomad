@@ -200,6 +200,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 		c.AuthoritativeRegion = "west"
 		c.ACLEnabled = true
 		c.NumSchedulers = 1
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupWest()
 
@@ -210,6 +211,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 		c.ReplicationBackoff = 20 * time.Millisecond
 		c.ReplicationToken = root.SecretID
 		c.NumSchedulers = 1
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupEast()
 
@@ -221,6 +223,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 		c.ReplicationBackoff = 20 * time.Millisecond
 		c.ReplicationToken = root.SecretID
 		c.NumSchedulers = 1
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupNorth()
 
@@ -352,6 +355,7 @@ func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {
 		c.AuthoritativeRegion = "west"
 		c.ACLEnabled = true
 		c.NumSchedulers = 1
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupWest()
 
@@ -362,6 +366,7 @@ func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {
 		c.ReplicationBackoff = 20 * time.Millisecond
 		c.ReplicationToken = root.SecretID
 		c.NumSchedulers = 1
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupEast()
 
@@ -495,6 +500,7 @@ func TestJobEndpoint_Deregister_Multiregion(t *testing.T) {
 		c.AuthoritativeRegion = "west"
 		c.ACLEnabled = true
 		c.NumSchedulers = 1
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupWest()
 
@@ -505,6 +511,7 @@ func TestJobEndpoint_Deregister_Multiregion(t *testing.T) {
 		c.ReplicationBackoff = 20 * time.Millisecond
 		c.ReplicationToken = root.SecretID
 		c.NumSchedulers = 1
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupEast()
 
@@ -515,6 +522,7 @@ func TestJobEndpoint_Deregister_Multiregion(t *testing.T) {
 		c.ReplicationBackoff = 20 * time.Millisecond
 		c.ReplicationToken = root.SecretID
 		c.NumSchedulers = 1
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupNorth()
 

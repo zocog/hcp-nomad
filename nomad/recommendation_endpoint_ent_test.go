@@ -23,7 +23,10 @@ import (
 
 func TestRecommendationEndpoint_GetRecommendation(t *testing.T) {
 	t.Parallel()
-	s1, cleanupS1 := TestServer(t, nil)
+
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -92,7 +95,9 @@ func TestRecommendationEndpoint_GetRecommendation(t *testing.T) {
 func TestRecommendationEndpoint_GetRecommendation_ACL(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
-	s1, root, cleanupS1 := TestACLServer(t, nil)
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -224,7 +229,9 @@ func TestRecommendationEndpoint_GetRecommendation_License(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Label, func(t *testing.T) {
-			s, cleanup := licensedServer(t, tc.License.Signed)
+			s, cleanup := TestServer(t, func(c *Config) {
+				c.LicenseEnv = tc.License.Signed
+			})
 			defer cleanup()
 			codec := rpcClient(t, s)
 			state := s.fsm.State()
@@ -257,7 +264,9 @@ func TestRecommendationEndpoint_GetRecommendation_License(t *testing.T) {
 func TestRecommendationEndpoint_GetRecommendation_Blocking(t *testing.T) {
 	t.Parallel()
 
-	s1, cleanupS1 := TestServer(t, nil)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -306,7 +315,9 @@ func TestRecommendationEndpoint_GetRecommendation_Blocking(t *testing.T) {
 
 func TestRecommendationEndpoint_ListRecommendations(t *testing.T) {
 	t.Parallel()
-	s1, cleanupS1 := TestServer(t, nil)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -491,7 +502,9 @@ func TestRecommendationEndpoint_ListRecommendations(t *testing.T) {
 
 func TestRecommendationEndpoint_ListRecommendations_ACL(t *testing.T) {
 	t.Parallel()
-	s1, root, cleanupS1 := TestACLServer(t, nil)
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -694,7 +707,9 @@ func TestRecommendationEndpoint_ListRecommendations_License(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Label, func(t *testing.T) {
-			s, cleanup := licensedServer(t, tc.License.Signed)
+			s, cleanup := TestServer(t, func(c *Config) {
+				c.LicenseEnv = tc.License.Signed
+			})
 			defer cleanup()
 			codec := rpcClient(t, s)
 			state := s.fsm.State()
@@ -727,7 +742,9 @@ func TestRecommendationEndpoint_ListRecommendations_License(t *testing.T) {
 func TestRecommendationEndpoint_ListRecommendations_Blocking(t *testing.T) {
 	t.Parallel()
 
-	s1, cleanupS1 := TestServer(t, nil)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -776,7 +793,9 @@ func TestRecommendationEndpoint_ListRecommendations_Blocking(t *testing.T) {
 func TestRecommendationEndpoint_Upsert(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
-	s1, cleanupS1 := TestServer(t, nil)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -849,7 +868,9 @@ func TestRecommendationEndpoint_Upsert_License(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Label, func(t *testing.T) {
-			s, cleanup := licensedServer(t, tc.License.Signed)
+			s, cleanup := TestServer(t, func(c *Config) {
+				c.LicenseEnv = tc.License.Signed
+			})
 			defer cleanup()
 			codec := rpcClient(t, s)
 			state := s.fsm.State()
@@ -880,7 +901,9 @@ func TestRecommendationEndpoint_Upsert_License(t *testing.T) {
 
 func TestRecommendationEndpoint_Upsert_NamespacePrecendence(t *testing.T) {
 	t.Parallel()
-	s1, cleanupS1 := TestServer(t, nil)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -960,7 +983,9 @@ func TestRecommendationEndpoint_Upsert_NamespacePrecendence(t *testing.T) {
 
 func TestRecommendationEndpoint_Upsert_ACL(t *testing.T) {
 	t.Parallel()
-	s1, root, cleanupS1 := TestACLServer(t, nil)
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -1064,7 +1089,9 @@ func TestRecommendationEndpoint_Upsert_ACL(t *testing.T) {
 func TestRecommendationEndpoint_Upsert_TargetFailures(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
-	s1, cleanupS1 := TestServer(t, nil)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -1118,7 +1145,9 @@ func TestRecommendationEndpoint_Upsert_TargetFailures(t *testing.T) {
 func TestRecommendationEndpoint_Upsert_ExistingRecByID(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
-	s1, cleanupS1 := TestServer(t, nil)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -1166,7 +1195,9 @@ func TestRecommendationEndpoint_Upsert_ExistingRecByID(t *testing.T) {
 func TestRecommendationEndpoint_Upsert_ExistingByPath(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
-	s1, cleanupS1 := TestServer(t, nil)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -1215,7 +1246,9 @@ func TestRecommendationEndpoint_Upsert_ExistingByPath(t *testing.T) {
 func TestRecommendationEndpoint_Upsert_MultipleRecs(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
-	s1, cleanupS1 := TestServer(t, nil)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -1268,7 +1301,9 @@ func TestRecommendationEndpoint_Upsert_MultipleRecs(t *testing.T) {
 func TestRecommendationEndpoint_Delete_SingleRec(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
-	s1, cleanupS1 := TestServer(t, nil)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -1328,7 +1363,9 @@ func TestRecommendationEndpoint_Delete_SingleRec(t *testing.T) {
 func TestRecommendationEndpoint_Delete_MultipleRecs(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
-	s1, cleanupS1 := TestServer(t, nil)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -1418,7 +1455,9 @@ func TestRecommendationEndpoint_Delete_License(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Label, func(t *testing.T) {
-			s, cleanup := licensedServer(t, tc.License.Signed)
+			s, cleanup := TestServer(t, func(c *Config) {
+				c.LicenseEnv = tc.License.Signed
+			})
 			defer cleanup()
 			codec := rpcClient(t, s)
 			state := s.fsm.State()
@@ -1448,7 +1487,9 @@ func TestRecommendationEndpoint_Delete_License(t *testing.T) {
 func TestRecommendationEndpoint_Delete_Errors(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
-	s1, cleanupS1 := TestServer(t, nil)
+	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
@@ -1472,7 +1513,9 @@ func TestRecommendationEndpoint_Delete_Errors(t *testing.T) {
 
 func TestRecommendationEndpoint_Delete_ACL(t *testing.T) {
 	t.Parallel()
-	s, root, cleanupS1 := TestACLServer(t, nil)
+	s, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
 	defer cleanupS1()
 	codec := rpcClient(t, s)
 	testutil.WaitForLeader(t, s.RPC)
@@ -1605,6 +1648,7 @@ func TestRecommendationEndpoint_Apply_SingleRec(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
 	defer cleanupS1()
@@ -1666,6 +1710,7 @@ func TestRecommendationEndpoint_Apply_MultipleRecs(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
 	defer cleanupS1()
@@ -1727,6 +1772,7 @@ func TestRecommendationEndpoint_Apply_MultipleJobs(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
 	defer cleanupS1()
@@ -1801,6 +1847,7 @@ func TestRecommendationEndpoint_Apply_WithRegisterErrors(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
 	defer cleanupS1()
@@ -1899,7 +1946,9 @@ func TestRecommendationEndpoint_Apply_License(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Label, func(t *testing.T) {
-			s, cleanup := licensedServer(t, tc.License.Signed)
+			s, cleanup := TestServer(t, func(c *Config) {
+				c.LicenseEnv = tc.License.Signed
+			})
 			defer cleanup()
 			codec := rpcClient(t, s)
 			state := s.fsm.State()
@@ -1931,6 +1980,7 @@ func TestRecommendationEndpoint_Apply_Errors(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
 	defer cleanupS1()
@@ -1996,6 +2046,7 @@ func TestRecommendationEndpoint_Apply_Errors(t *testing.T) {
 func TestRecommendationEndpoint_Apply_ACL(t *testing.T) {
 	t.Parallel()
 	s, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
 	defer cleanupS1()
