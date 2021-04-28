@@ -23,10 +23,6 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 
 // GetLicense is used to retrieve an enterprise license
 func (l *License) GetLicense(args *structs.LicenseGetRequest, reply *structs.LicenseGetResponse) error {
-	if done, err := l.srv.forward("License.GetLicense", args, args, reply); done {
-		return err
-	}
-
 	defer metrics.MeasureSince([]string{"nomad", "license", "get_license"}, time.Now())
 
 	// Check OperatorRead permissions
