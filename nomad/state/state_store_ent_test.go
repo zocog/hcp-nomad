@@ -1090,7 +1090,6 @@ func TestStateStore_UpsertAllocs_Quota_NewAlloc(t *testing.T) {
 	expected.Networks = nil
 	expected.DiskMB = 0
 	expected.IOPS = 0
-	expected.MemoryMaxMB = 0
 	assert.Equal(expected, used.RegionLimit)
 }
 
@@ -1372,7 +1371,6 @@ func TestStateStore_UpsertNamespaces_NewQuota(t *testing.T) {
 	expected.Networks = nil
 	expected.DiskMB = 0
 	expected.IOPS = 0
-	expected.MemoryMaxMB = 0
 	assert.Equal(expected, used.RegionLimit)
 
 }
@@ -1488,8 +1486,9 @@ func TestStateStore_UpsertNamespaces_ChangeQuota(t *testing.T) {
 	assert.Equal("global", used.Region)
 	expected.Networks = a1.Resources.Networks
 	expected = &structs.Resources{
-		CPU:      a1.Resources.CPU,
-		MemoryMB: a1.Resources.MemoryMB,
+		CPU:         a1.Resources.CPU,
+		MemoryMB:    a1.Resources.MemoryMB,
+		MemoryMaxMB: a1.Resources.MemoryMB,
 	}
 	assert.Equal(expected, used.RegionLimit)
 }
@@ -1645,7 +1644,6 @@ func TestStateStore_UpsertQuotaSpec_Usage(t *testing.T) {
 	expected.Networks = nil
 	expected.DiskMB = 0
 	expected.IOPS = 0
-	expected.MemoryMaxMB = 0
 	assert.Equal(expected, used.RegionLimit)
 }
 

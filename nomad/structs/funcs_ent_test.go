@@ -18,8 +18,9 @@ func TestUpdateUsageFromPlan(t *testing.T) {
 			"foo": {
 				Region: "global",
 				RegionLimit: &Resources{
-					CPU:      2000,
-					MemoryMB: 1000,
+					CPU:         2000,
+					MemoryMB:    1000,
+					MemoryMaxMB: 3000,
 				},
 			},
 		},
@@ -37,8 +38,9 @@ func TestUpdateUsageFromPlan(t *testing.T) {
 	add := &Allocation{
 		TaskResources: map[string]*Resources{
 			"web": {
-				CPU:      101,
-				MemoryMB: 202,
+				CPU:         101,
+				MemoryMB:    202,
+				MemoryMaxMB: 202,
 			},
 			"web 2": {
 				CPU:      303,
@@ -85,8 +87,9 @@ func TestUpdateUsageFromPlan(t *testing.T) {
 	expected := &QuotaLimit{
 		Region: "global",
 		RegionLimit: &Resources{
-			CPU:      1964,
-			MemoryMB: 946,
+			CPU:         1964,
+			MemoryMB:    946,
+			MemoryMaxMB: 2946,
 		},
 	}
 	assert.Equal(expected, effected[0])

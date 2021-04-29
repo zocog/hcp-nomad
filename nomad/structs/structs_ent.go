@@ -394,6 +394,11 @@ func (q *QuotaLimit) SetHash() []byte {
 		if mbits > 0 {
 			binary.Write(hash, binary.LittleEndian, int64(mbits))
 		}
+
+		if q.RegionLimit.MemoryMaxMB > 0 {
+			binary.Write(hash, binary.LittleEndian, int64(q.RegionLimit.MemoryMaxMB))
+		}
+
 	}
 
 	// Finalize the hash
@@ -411,16 +416,21 @@ func (q *QuotaLimit) Validate() error {
 		mErr.Errors = append(mErr.Errors, err)
 	}
 
-	if q.RegionLimit == nil {
+	rl := q.RegionLimit
+	if rl == nil {
 		err := fmt.Errorf("must provide a region limit")
 		mErr.Errors = append(mErr.Errors, err)
 	} else {
-		if q.RegionLimit.DiskMB != 0 {
+		if rl.DiskMB != 0 {
 			mErr.Errors = append(mErr.Errors, fmt.Errorf("quota can not limit disk"))
 		}
 
-		if len(q.RegionLimit.Networks) > 0 {
+		if len(rl.Networks) > 0 {
 			mErr.Errors = append(mErr.Errors, fmt.Errorf("quota can not limit networks"))
+		}
+
+		if rl.MemoryMaxMB > 0 && rl.MemoryMB > 0 && rl.MemoryMaxMB < rl.MemoryMB {
+			mErr.Errors = append(mErr.Errors, fmt.Errorf("quota memory_max (%v) cannot be lower than memory (%v)", rl.MemoryMaxMB, rl.MemoryMB))
 		}
 	}
 
@@ -461,12 +471,22 @@ func (q *QuotaLimit) Subtract(alloc *Allocation) {
 func (q *QuotaLimit) AddResource(r *Resources) {
 	q.RegionLimit.CPU += r.CPU
 	q.RegionLimit.MemoryMB += r.MemoryMB
+	if r.MemoryMaxMB > 0 {
+		q.RegionLimit.MemoryMaxMB += r.MemoryMaxMB
+	} else {
+		q.RegionLimit.MemoryMaxMB += r.MemoryMB
+	}
 }
 
 // SubtractResource removes the resources to the QuotaLimit
 func (q *QuotaLimit) SubtractResource(r *Resources) {
 	q.RegionLimit.CPU -= r.CPU
 	q.RegionLimit.MemoryMB -= r.MemoryMB
+	if r.MemoryMaxMB > 0 {
+		q.RegionLimit.MemoryMaxMB -= r.MemoryMaxMB
+	} else {
+		q.RegionLimit.MemoryMaxMB -= r.MemoryMB
+	}
 }
 
 // Superset returns if this quota is a super set of another. This is typically
@@ -489,6 +509,13 @@ func (q *QuotaLimit) Superset(other *QuotaLimit) (bool, []string) {
 		exhausted = append(exhausted, fmt.Sprintf("memory exhausted (%d needed > 0 limit)", or.MemoryMB))
 	} else if r.MemoryMB != 0 && r.MemoryMB < or.MemoryMB {
 		exhausted = append(exhausted, fmt.Sprintf("memory exhausted (%d needed > %d limit)", or.MemoryMB, r.MemoryMB))
+	}
+
+	// If MemoryMaxMB is disabled, tasks may still use memory, but not exceed their MemoryMB
+	if r.MemoryMaxMB < 0 && (or.MemoryMaxMB > 0 && or.MemoryMaxMB != or.MemoryMB) {
+		exhausted = append(exhausted, "memory_max exhausted (tasks may not declare memory_max)")
+	} else if r.MemoryMaxMB > 0 && r.MemoryMaxMB < or.MemoryMaxMB {
+		exhausted = append(exhausted, fmt.Sprintf("memory_max exhausted (%d needed > %d limit)", or.MemoryMaxMB, r.MemoryMaxMB))
 	}
 
 	return len(exhausted) == 0, exhausted
