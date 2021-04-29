@@ -8,6 +8,7 @@ FEATURES:
 
 __BACKWARDS INCOMPATIBILITIES:__
  * csi: The `attachment_mode` and `access_mode` field are required for `volume` blocks in job specifications. Registering a volume requires at least one `capability` block with the `attachment_mode` and `access_mode` fields set. [[GH-10330](https://github.com/hashicorp/nomad/issues/10330)]
+ * licensing: Enterprise licenses are no longer stored in raft or synced between servers. Loading the Enterprise license from disk or environment is required. The `nomad license put` command has been removed. [[GH-10458](https://github.com/hashicorp/nomad/issues/10458)]
 
 IMPROVEMENTS:
  * api: Added an API endpoint for fuzzy search queries [[GH-10184](https://github.com/hashicorp/nomad/pull/10184)]
@@ -28,6 +29,8 @@ IMPROVEMENTS:
  * networking: Added support for interpolating host network names with node attributes. [[GH-10196](https://github.com/hashicorp/nomad/issues/10196)]
  * nomad/structs: Removed deprecated Node.Drain field, added API extensions to restore it [[GH-10202](https://github.com/hashicorp/nomad/issues/10202)]
  * ui: Added a job reversion button [[GH-10336](https://github.com/hashicorp/nomad/pull/10336)]
+ * ui: Added memory maximum to task group ribbon [[GH-10459](https://github.com/hashicorp/nomad/pull/10459)]
+ * ui: Updated global search to use fuzzy search API [[GH-10412](https://github.com/hashicorp/nomad/pull/10412)]
 
 BUG FIXES:
  * core (Enterprise): Update licensing library to v0.0.11 to include race condition fix. [[GH-10253](https://github.com/hashicorp/nomad/issues/10253)]
