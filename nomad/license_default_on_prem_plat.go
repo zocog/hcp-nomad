@@ -4,8 +4,8 @@ package nomad
 
 import (
 	"crypto/ed25519"
+	"crypto/rand"
 	"encoding/base64"
-	"math/rand"
 	"time"
 
 	licensing "github.com/hashicorp/go-licensing"
@@ -16,7 +16,7 @@ import (
 // required public key on the configuration
 func defaultEnterpriseLicense(cfg *LicenseConfig) (string, error) {
 	now := time.Now()
-	l = &licensing.License{
+	l := &licensing.License{
 		LicenseID:       permanentLicenseID,
 		CustomerID:      permanentLicenseID,
 		InstallationID:  "*",
@@ -32,11 +32,11 @@ func defaultEnterpriseLicense(cfg *LicenseConfig) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	signed, err = l.SignedString(priv)
+	signed, err := l.SignedString(priv)
 	if err != nil {
 		return "", err
 	}
-	pubKey = base64.StdEncoding.EncodeToString(pub)
+	pubKey := base64.StdEncoding.EncodeToString(pub)
 	cfg.AdditionalPubKeys = append(cfg.AdditionalPubKeys, pubKey)
 
 	return signed, nil
