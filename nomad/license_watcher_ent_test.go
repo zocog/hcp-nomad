@@ -29,7 +29,7 @@ func TestLicenseWatcher_Init_MissingLicenseFile(t *testing.T) {
 	lw, err := NewLicenseWatcher(cfg)
 	require.Nil(t, lw)
 	require.Error(t, err)
-	require.EqualError(t, err, "failed to read license: license is missing")
+	require.EqualError(t, err, "failed to read license: license is missing. To add a license, configure \"license_path\" in your server configuration file, use the NOMAD_LICENSE environment variable, or use the NOMAD_LICENSE_PATH environment variable.")
 }
 
 // TestLicenseWatcher_Init_InvalidLicenseFileFormat verifies that during startup an
