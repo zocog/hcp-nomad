@@ -196,8 +196,26 @@ func TestQuotaSpec_Validate(t *testing.T) {
 					{
 						Region: "global",
 						RegionLimit: &Resources{
-							CPU:      5000,
-							MemoryMB: 2000,
+							CPU:         5000,
+							MemoryMB:    2000,
+							MemoryMaxMB: 3000,
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "valid, with inf limits",
+			Spec: &QuotaSpec{
+				Name:        "foo",
+				Description: "limit foo",
+				Limits: []*QuotaLimit{
+					{
+						Region: "global",
+						RegionLimit: &Resources{
+							CPU:         5000,
+							MemoryMB:    -1,
+							MemoryMaxMB: -1,
 						},
 					},
 				},
@@ -246,6 +264,26 @@ func TestQuotaSpec_Validate(t *testing.T) {
 			},
 			Errors: []string{
 				"limit disk",
+			},
+		},
+		{
+			Name: "bad limit: too low max memory",
+			Spec: &QuotaSpec{
+				Name:        "foo",
+				Description: "limit foo",
+				Limits: []*QuotaLimit{
+					{
+						Region: "global",
+						RegionLimit: &Resources{
+							CPU:         5000,
+							MemoryMB:    3000,
+							MemoryMaxMB: 2000,
+						},
+					},
+				},
+			},
+			Errors: []string{
+				"quota memory_max (2000) cannot be lower than memory (3000)",
 			},
 		},
 		{
@@ -487,37 +525,140 @@ func TestQuotaUsage_Diff(t *testing.T) {
 }
 
 func TestQuotaLimit_Superset(t *testing.T) {
-	l1 := &QuotaLimit{
+	quota := &QuotaLimit{
 		Region: "foo",
 		RegionLimit: &Resources{
-			CPU:      1000,
-			MemoryMB: 1000,
+			CPU:         1000,
+			MemoryMB:    1000,
+			MemoryMaxMB: 2000,
 		},
 	}
-	l2 := l1.Copy()
-	l3 := l1.Copy()
-	l3.RegionLimit.CPU++
-	l3.RegionLimit.MemoryMB++
+	noMemMaxQuota := &QuotaLimit{
+		Region: "foo",
+		RegionLimit: &Resources{
+			CPU:         1000,
+			MemoryMB:    1000,
+			MemoryMaxMB: -1,
+		},
+	}
 
-	superset, _ := l1.Superset(l2)
-	assert.True(t, superset)
+	cases := []struct {
+		name  string
+		quota *QuotaLimit
+		usage *Resources
 
-	superset, dimensions := l1.Superset(l3)
-	assert.False(t, superset)
-	assert.Len(t, dimensions, 2)
+		eSuperset   bool
+		eDimensions []string
+	}{
+		{
+			name:  "under limit",
+			quota: quota,
+			usage: &Resources{
+				CPU:         500,
+				MemoryMB:    1000,
+				MemoryMaxMB: 1500,
+			},
+			eSuperset:   true,
+			eDimensions: nil,
+		},
+		{
+			name: "unlimited",
+			quota: &QuotaLimit{
+				Region: "foo",
+				RegionLimit: &Resources{
+					CPU:         1000,
+					MemoryMB:    0,
+					MemoryMaxMB: 0,
+				},
+			},
+			usage: &Resources{
+				CPU:         500,
+				MemoryMB:    1000,
+				MemoryMaxMB: 4000,
+			},
+			eSuperset:   true,
+			eDimensions: nil,
+		},
+		{
+			name:  "over: cpu",
+			quota: quota,
+			usage: &Resources{
+				CPU:      1500,
+				MemoryMB: 1000,
+			},
+			eSuperset:   false,
+			eDimensions: []string{"cpu"},
+		},
+		{
+			name:  "over: memory",
+			quota: quota,
+			usage: &Resources{
+				CPU:      500,
+				MemoryMB: 2000,
+			},
+			eSuperset:   false,
+			eDimensions: []string{"memory"},
+		},
+		{
+			name:  "over: memory_max",
+			quota: quota,
+			usage: &Resources{
+				CPU:         500,
+				MemoryMB:    1000,
+				MemoryMaxMB: 4000,
+			},
+			eSuperset:   false,
+			eDimensions: []string{"memory_max"},
+		},
+		{
+			name:  "without memory_max: under limit",
+			quota: noMemMaxQuota,
+			usage: &Resources{
+				CPU:         500,
+				MemoryMB:    1000,
+				MemoryMaxMB: 1000,
+			},
+			eSuperset:   true,
+			eDimensions: nil,
+		},
+		{
+			name:  "without memory_max: over",
+			quota: noMemMaxQuota,
+			usage: &Resources{
+				CPU:         500,
+				MemoryMB:    1000,
+				MemoryMaxMB: 2000,
+			},
+			eSuperset:   false,
+			eDimensions: []string{"memory_max"},
+		},
+	}
 
-	l4 := l1.Copy()
-	l4.RegionLimit.MemoryMB = 0
-	l4.RegionLimit.CPU = 0
-	superset, _ = l4.Superset(l3)
-	assert.True(t, superset)
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			u := c.quota.Copy()
+			u.RegionLimit = c.usage
 
-	l5 := l1.Copy()
-	l5.RegionLimit.MemoryMB = -1
-	l5.RegionLimit.CPU = -1
-	superset, dimensions = l5.Superset(l3)
-	assert.False(t, superset)
-	assert.Len(t, dimensions, 2)
+			superset, dimensions := c.quota.Superset(u)
+
+			found := []string{}
+			for _, d := range dimensions {
+				if parts := strings.Split(d, " "); len(parts) != 0 {
+					found = append(found, parts[0])
+				} else {
+					found = append(found, d)
+				}
+			}
+			sort.Strings(found)
+
+			if len(c.eDimensions) == 0 {
+				require.Emptyf(t, found, "found: %v", dimensions)
+			} else {
+				require.Equalf(t, c.eDimensions, found, "found: %v", dimensions)
+			}
+			require.Equal(t, c.eSuperset, superset)
+		})
+	}
 }
 
 // TestQuotaUsageSerialization tests that custom json
