@@ -74,7 +74,7 @@ func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 		return nil, err
 	}
 	if blob == "" {
-		return nil, errors.New("failed to read license: license is missing. To add a license, configure \"license_path\" in your server configuration file, use the NOMAD_LICENSE environment variable, or use the NOMAD_LICENSE_PATH environment variable.")
+		return nil, errors.New("failed to read license: license is missing. To add a license, configure \"license_path\" in your server configuration file, use the NOMAD_LICENSE environment variable, or use the NOMAD_LICENSE_PATH environment variable. For a trial license of Nomad Enterprise, visit https://nomadproject.io/trial.")
 	}
 
 	lw := &LicenseWatcher{
