@@ -461,12 +461,17 @@ jobs:
     - run: sudo -E -H -u circleci PATH=${PATH} make e2e-test
   test-machine:
     environment:
+      ENABLE_RACE: <<# parameters.enable_race_testing >>TRUE<</ parameters.enable_race_testing
+        >>
       GOTEST_MOD: << parameters.test_module >>
       GOTEST_PKGS: << parameters.test_packages >>
       GOTEST_PKGS_EXCLUDE: << parameters.exclude_packages >>
       GOTESTARCH: << parameters.goarch >>
     executor: << parameters.executor >>
     parameters:
+      enable_race_testing:
+        default: false
+        type: boolean
       exclude_packages:
         default: ""
         type: string
@@ -692,6 +697,7 @@ workflows:
         name: test-nomad
         test_packages: ./nomad/...
     - test-machine:
+        enable_race_testing: true
         filters:
           branches:
             ignore:

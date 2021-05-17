@@ -551,7 +551,6 @@ func (c *OperatorDebugCommand) startMonitor(path, idKey, nodeID string, client *
 				continue
 			}
 			fh.Write(out.Data)
-			fh.WriteString("\n")
 
 		case err := <-errCh:
 			fh.WriteString(fmt.Sprintf("monitor: %s\n", err.Error()))
@@ -1064,6 +1063,10 @@ func (e *external) addr(defaultAddr string) string {
 		if strings.HasPrefix(e.addrVal, "http:") {
 			return e.addrVal
 		}
+		if strings.HasPrefix(e.addrVal, "https:") {
+			// Mismatch: e.ssl=false but addrVal is https
+			return strings.ReplaceAll(e.addrVal, "https://", "http://")
+		}
 		return "http://" + e.addrVal
 	}
 
@@ -1072,7 +1075,8 @@ func (e *external) addr(defaultAddr string) string {
 	}
 
 	if strings.HasPrefix(e.addrVal, "http:") {
-		return "https:" + e.addrVal[5:]
+		// Mismatch: e.ssl=true but addrVal is http
+		return strings.ReplaceAll(e.addrVal, "http://", "https://")
 	}
 
 	return "https://" + e.addrVal
