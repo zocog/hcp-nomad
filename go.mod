@@ -65,7 +65,7 @@ require (
 	github.com/hashicorp/go-immutable-radix v1.3.0
 	github.com/hashicorp/go-memdb v1.3.0
 	github.com/hashicorp/go-msgpack v1.1.5
-	github.com/hashicorp/go-multierror v1.1.0
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.0.2-0.20191004171845-809113480b55
 	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/hashicorp/go-syslog v1.0.0
@@ -93,7 +93,7 @@ require (
 	github.com/mattn/go-colorable v0.1.6
 	github.com/mitchellh/cli v1.1.0
 	github.com/mitchellh/colorstring v0.0.0-20150917214807-8631ce90f286
-	github.com/mitchellh/copystructure v1.0.0
+	github.com/mitchellh/copystructure v1.1.1
 	github.com/mitchellh/go-ps v0.0.0-20190716172923-621e5597135b
 	github.com/mitchellh/go-testing-interface v1.0.3
 	github.com/mitchellh/hashstructure v1.0.0
@@ -148,10 +148,10 @@ replace github.com/hashicorp/consul => github.com/hashicorp/consul-enterprise v1
 
 require (
 	github.com/google/go-querystring v1.0.0 // indirect
-	github.com/hashicorp/errwrap v1.0.0
+	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/eventlogger v0.0.0-20200503125528-e0cd2ba137df
-	github.com/hashicorp/go-licensing v1.3.6
-	github.com/hashicorp/nomad-licensing v0.0.10
+	github.com/hashicorp/go-licensing v1.3.8
+	github.com/hashicorp/nomad-licensing v0.0.11
 	github.com/hashicorp/raft-snapshotagent v0.0.0-20200831014059-4352e54f37b3
 	github.com/hashicorp/sentinel v0.15.5
 )

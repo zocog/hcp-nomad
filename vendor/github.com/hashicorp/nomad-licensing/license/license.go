@@ -64,11 +64,6 @@ func (l *License) HasFeature(feature Features) bool {
 	return l.Features.HasFeature(feature)
 }
 
-type featureFlags struct {
-	Add    []string `json:"add"`
-	Remove []string `json:"remove"`
-}
-
 type flagsRaw struct {
 	Modules   []string  `json:"modules"`
 	Features  *features `json:"features"`

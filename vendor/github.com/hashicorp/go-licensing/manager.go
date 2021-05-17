@@ -100,13 +100,11 @@ func (l *LicenseManager) Validate(license string) (*License, error) {
 // known public keys with the provided signature.
 func (l *LicenseManager) validateBytes(blob, sigBytes []byte) error {
 	for _, pubKey := range l.pubKeys {
-		switch pubKey.(type) {
+		switch pubkey := pubKey.(type) {
 		case ed25519.PublicKey:
-			// Validate the signature and return when it's valid
-			if ed25519.Verify(pubKey.(ed25519.PublicKey), blob, sigBytes) {
+			if ed25519.Verify(pubkey, blob, sigBytes) {
 				return nil
 			}
-
 		default:
 			return fmt.Errorf("unsupported key type")
 		}
@@ -206,7 +204,7 @@ func (l *LicenseManager) registerLicense(license *License) error {
 	l.expirationTicker = time.NewTicker(l.expirationCheckInterval)
 	l.stopCh = make(chan struct{})
 
-	go l.watchTiming()
+	go l.watchTiming(l.expirationTicker, l.stopCh)
 
 	l.notifyWatchers()
 
@@ -262,17 +260,11 @@ func (l *LicenseManager) notifyWatchers() {
 }
 
 // watchTiming watches for expiration of the license
-func (l *LicenseManager) watchTiming() {
-	// Resolving locally allows us to nil and/or reset the global value without
-	// risking a panic, but we need to read lock.
-	l.l.RLock()
-	expirationTicker := l.expirationTicker
-	stopCh := l.stopCh
-	l.l.RUnlock()
+func (l *LicenseManager) watchTiming(expiration *time.Ticker, stopCh chan struct{}) {
 
 	for {
 		select {
-		case <-expirationTicker.C:
+		case <-expiration.C:
 			now := time.Now()
 			l.l.Lock()
 
