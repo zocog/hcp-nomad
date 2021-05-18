@@ -10,6 +10,9 @@ for. Ensure that this license is treated like a secret, do not commit it to
 any public repos as there is no way to track it and it will be valid until the
 license expires.
 
+**NOTE**: A learn [tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=nomad/enterprise) 
+is available for instructions on how to install the enterprise license.
+
 ## Generating a license
 
 - go to https://license.hashicorp.services/ log in
