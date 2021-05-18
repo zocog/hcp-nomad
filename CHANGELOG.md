@@ -13,6 +13,7 @@ FEATURES:
 
 __BACKWARDS INCOMPATIBILITIES:__
  * csi: The `attachment_mode` and `access_mode` field are required for `volume` blocks in job specifications. Registering a volume requires at least one `capability` block with the `attachment_mode` and `access_mode` fields set. [[GH-10330](https://github.com/hashicorp/nomad/issues/10330)]
+ * drivers/exec+java: Reduce set of linux capabilities enabled by default [[GH-10600](https://github.com/hashicorp/nomad/pull/10600)]
  * licensing: Enterprise licenses are no longer stored in raft or synced between servers. Loading the Enterprise license from disk or environment is required. The `nomad license put` command has been removed. [[GH-10458](https://github.com/hashicorp/nomad/issues/10458)]
 
 SECURITY:
@@ -67,8 +68,11 @@ BUG FIXES:
  * consul/connect: Fixed a bug where HTTP ingress gateways could not use wildcard names. [[GH-10457](https://github.com/hashicorp/nomad/pull/10457)]
  * cni: Fallback to an interface with an IP address if sandbox interface lacks one. [[GH-9895](https://github.com/hashicorp/nomad/issues/9895)]
  * csi: Fixed a bug where volume with IDs that are a substring prefix of another volume could use the wrong volume for feasibility checking. [[GH-10158](https://github.com/hashicorp/nomad/issues/10158)]
+ * drivers/docker: Fixed a bug where Dockerfile `STOPSIGNAL` was not honored. [[GH-10441](https://github.com/hashicorp/nomad/issues/10441)]
+ * drivers/raw_exec: Fixed a bug where exit codes could be dropped and return a spurious error. [[GH-10494](https://github.com/hashicorp/nomad/issues/10494)]
  * scheduler: Fixed a bug where Nomad reports negative or incorrect running children counts for periodic jobs. [[GH-10145](https://github.com/hashicorp/nomad/issues/10145)]
  * scheduler: Fixed a bug where jobs requesting multiple CSI volumes could be incorrectly scheduled if only one of the volumes passed feasibility checking. [[GH-10143](https://github.com/hashicorp/nomad/issues/10143)]
+ * service: Fixed a bug where new script checks would not be added on job updates. [[GH-10403](https://github.com/hashicorp/nomad/issues/10403)]
  * server: Fixed a bug affecting periodic job summary counts [[GH-10145](https://github.com/hashicorp/nomad/issues/10145)]
  * server: Fixed a bug where draining a node may fail to migrate its allocations [[GH-10411](https://github.com/hashicorp/nomad/issues/10411)]
  * server: Fixed a bug where jobs may not run if submitted with ParentID field set [[GH-10424](https://github.com/hashicorp/nomad/issues/10424)]
@@ -93,11 +97,15 @@ BUG FIXES:
  * client: Added handling for cgroup-v2 memory metrics [[GH-10286](https://github.com/hashicorp/nomad/issues/10286)]
  * client: Only publish measured allocation memory metrics [[GH-10376](https://github.com/hashicorp/nomad/issues/10376)]
  * client: Fixed a bug where small files would be assigned the wrong content type. [[GH-10348](https://github.com/hashicorp/nomad/pull/10348)]
+ * consul/connect: Fixed a bug where job plan always different when using expose checks. [[GH-10492](https://github.com/hashicorp/nomad/pull/10492)]
  * consul/connect: Fixed a bug where HTTP ingress gateways could not use wildcard names. [[GH-10457](https://github.com/hashicorp/nomad/pull/10457)]
  * cni: Fallback to an interface with an IP address if sandbox interface lacks one. [[GH-9895](https://github.com/hashicorp/nomad/issues/9895)]
  * csi: Fixed a bug where volume with IDs that are a substring prefix of another volume could use the wrong volume for feasibility checking. [[GH-10158](https://github.com/hashicorp/nomad/issues/10158)]
+ * drivers/docker: Fixed a bug where Dockerfile `STOPSIGNAL` was not honored. [[GH-10441](https://github.com/hashicorp/nomad/issues/10441)]
+ * drivers/raw_exec: Fixed a bug where exit codes could be dropped and return a spurious error. [[GH-10494](https://github.com/hashicorp/nomad/issues/10494)]
  * scheduler: Fixed a bug where Nomad reports negative or incorrect running children counts for periodic jobs. [[GH-10145](https://github.com/hashicorp/nomad/issues/10145)]
  * scheduler: Fixed a bug where jobs requesting multiple CSI volumes could be incorrectly scheduled if only one of the volumes passed feasibility checking. [[GH-10143](https://github.com/hashicorp/nomad/issues/10143)]
+ * service: Fixed a bug where new script checks would not be added on job updates. [[GH-10403](https://github.com/hashicorp/nomad/issues/10403)]
  * server: Fixed a bug affecting periodic job summary counts [[GH-10145](https://github.com/hashicorp/nomad/issues/10145)]
  * server: Fixed a bug where draining a node may fail to migrate its allocations [[GH-10411](https://github.com/hashicorp/nomad/issues/10411)]
  * server: Fixed a bug where jobs may not run if submitted with ParentID field set [[GH-10424](https://github.com/hashicorp/nomad/issues/10424)]
