@@ -68,7 +68,7 @@ periodically. Merging the OSS `main` branch into Enterprise is automated via the
 
 Though, Manual merging is necessary sometimes, due to merge conflicts in `main`
 or for syncing backported release branches. Here, the
-[`./scripts/enterprise/merge-oss.sh`](scripts/enterprise/merge-oss.sh`) is
+[`./scripts/enterprise/merge-oss.sh`](scripts/enterprise/merge-oss.sh) is
 handy, as it handles most common conflicts.
 
 To update a branch:
