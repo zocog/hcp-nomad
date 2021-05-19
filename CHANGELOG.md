@@ -1,4 +1,6 @@
-## 1.1.0 (Unreleased)
+## 1.1.1 (Unreleased)
+
+## 1.1.0 (May 18, 2021)
 
 FEATURES:
  * **Memory oversubscription**: Improve cluster efficiency by allowing applications,  whether containerized or non-containerized, to use memory in excess of their scheduled amount.
@@ -17,7 +19,7 @@ __BACKWARDS INCOMPATIBILITIES:__
  * licensing: Enterprise licenses are no longer stored in raft or synced between servers. Loading the Enterprise license from disk or environment is required. The `nomad license put` command has been removed. [[GH-10458](https://github.com/hashicorp/nomad/issues/10458)]
 
 SECURITY:
- * drivers/docker+exec+java: Disable `CAP_NET_RAW` linux capability by default to prevent ARP spoofing. CVE-2021-32575 [GH-10568](https://github.com/hashicorp/nomad/issues/10568)
+ * drivers/docker+exec+java: Disable `CAP_NET_RAW` linux capability by default to prevent ARP spoofing. CVE-2021-32575 [[GH-10568](https://github.com/hashicorp/nomad/issues/10568)](https://github.com/hashicorp/nomad/issues/10568)
 
 IMPROVEMENTS:
  * api: Added an API endpoint for fuzzy search queries [[GH-10184](https://github.com/hashicorp/nomad/pull/10184)]
@@ -79,7 +81,7 @@ BUG FIXES:
  * server: Fixed a panic that may arise on submission of jobs containing invalid service checks [[GH-10154](https://github.com/hashicorp/nomad/issues/10154)]
  * ui: Fixed the rendering of interstitial components shown after processing a dynamic application sizing recommendation. [[GH-10094](https://github.com/hashicorp/nomad/pull/10094)]
 
-## 1.0.6 (Unreleased)
+## 1.0.6 (May 18, 2021)
 
 BUG FIXES:
  * core (Enterprise): Update licensing library to v0.0.11 to include race condition fix. [[GH-10253](https://github.com/hashicorp/nomad/issues/10253)]
@@ -115,7 +117,7 @@ BUG FIXES:
 ## 1.0.5 (May 11, 2021)
 
 SECURITY:
- * drivers/docker+exec+java: Disable `CAP_NET_RAW` linux capability by default to prevent ARP spoofing. CVE-2021-32575 [GH-10568](https://github.com/hashicorp/nomad/issues/10568)
+ * drivers/docker+exec+java: Disable `CAP_NET_RAW` linux capability by default to prevent ARP spoofing. CVE-2021-32575 [[GH-10568](https://github.com/hashicorp/nomad/issues/10568)](https://github.com/hashicorp/nomad/issues/10568)
 
 ## 1.0.4 (February 24, 2021)
 
@@ -296,7 +298,7 @@ BUG FIXES:
 ## 0.12.12 (May 11, 2021)
 
 SECURITY:
- * drivers/docker+exec+java: Disable `CAP_NET_RAW` linux capability by default to prevent ARP spoofing. CVE-2021-32575 [GH-10568](https://github.com/hashicorp/nomad/issues/10568)
+ * drivers/docker+exec+java: Disable `CAP_NET_RAW` linux capability by default to prevent ARP spoofing. CVE-2021-32575 [[GH-10568](https://github.com/hashicorp/nomad/issues/10568)](https://github.com/hashicorp/nomad/issues/10568)
 
 ## 0.12.11 (March 18, 2021)
 
