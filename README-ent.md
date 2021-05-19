@@ -22,6 +22,17 @@ is available for instructions on how to install the enterprise license.
 - see if there's an unexpired license that will meet your needs, use that or
 - create a new license that expires < 1 year
 
+To activate all Enterprise features, use v2 (for Nomad 1.1.0+) with the following Flags value:
+
+```json
+{
+  "modules": [
+    "governance-policy",
+    "multicluster-and-efficiency"
+  ]
+}
+```
+
 ### Running and Testing Nomad Enterprise
 
 You can load the content of the license via the `NOMAD_LICENSE` environment
