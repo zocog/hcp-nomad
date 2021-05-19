@@ -1,7 +1,25 @@
 #!/usr/bin/env bash
 
-set -u
-set -e
+set -o errexit
+set -o nounset
+
+usage() {
+    cat <<'EOF'
+  usage: merge-oss.sh [OSS_BRANCH] [ENT_BRANCH] [TMP_BRANCH]
+
+merge-oss automates propagating OSS changes into Enterprise, and resolves common
+conflict resources. On success, it creates a temporary branch that can be used
+to open a PR for merger
+
+Defaults to merging oss/main to oss/
+EOF
+}
+
+if [ $# -gt 3 ] || [[ $# -eq 1 && "${1}" == '--help' ]]
+then
+    usage
+    exit 1
+fi
 
 origin_branch="${1:-main}"
 dest_branch="${2:-main}"
@@ -21,6 +39,8 @@ fi
 git fetch oss "${origin_branch}"
 
 git checkout -b "${tmp_branch}"
+git reset --hard "origin/${dest_branch}"
+
 latest_oss_commit="$(git rev-parse "oss/${origin_branch}")"
 message="Merge Nomad OSS branch '${origin_branch}' at commit ${latest_oss_commit}"
 
