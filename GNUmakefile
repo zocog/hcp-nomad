@@ -89,6 +89,8 @@ define makePackageTarget
 
 pkg/$(1).zip: pkg/$(1)/nomad
 	@echo "==> Packaging for $(1)..."
+	curl -s -o pkg/$(1)/EULA.txt https://eula.hashicorp.com/EULA.txt
+	curl -s -o pkg/$(1)/TermsOfEvaluation.txt https://eula.hashicorp.com/TermsOfEvaluation.txt
 	@zip -j pkg/$(1).zip pkg/$(1)/*
 
 endef
