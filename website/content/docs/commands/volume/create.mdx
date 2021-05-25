@@ -54,16 +54,17 @@ capability {
   attachment_mode = "file-system"
 }
 
+mount_options {
+  fs_type     = "ext4"
+  mount_flags = "noatime"
+}
+
 secrets {
   example_secret = "xyzzy"
 }
 
 parameters {
   skuname = "Premium_LRS"
-}
-
-context {
-  endpoint = "http://192.168.1.101:9425"
 }
 ```
 
@@ -123,10 +124,11 @@ context {
     within the container.
 
 - `mount_options` - Options for mounting `file-system` volumes that don't
-  already have a pre-formatted file system. These field will be validated
-  during volume creation against the `capability` field. Consult the
-  documentation for your storage provider and CSI plugin as to whether these
-  options are required or necessary.
+  already have a pre-formatted file system. This block will be validated
+  during volume creation against the `capability` field. The `mount_options`
+  provided in a job specification's [`volume`] block will override this
+  block. Consult the documentation for your storage provider and CSI plugin as
+  to whether these options are required or necessary.
 
   - `fs_type` `(string <optional>)` - File system type (ex. `"ext4"`)
   - `mount_flags` `([]string: <optional>)` - The flags passed to `mount`
