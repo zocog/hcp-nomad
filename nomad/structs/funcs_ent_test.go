@@ -68,6 +68,8 @@ func TestUpdateUsageFromPlan(t *testing.T) {
 
 	// Remove an allocation - Should be discounted
 	rm := &Allocation{
+		ClientStatus:  AllocClientStatusRunning,
+		DesiredStatus: AllocDesiredStatusStop,
 		TaskResources: map[string]*Resources{
 			"web": {
 				CPU:      110,
