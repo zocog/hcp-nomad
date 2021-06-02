@@ -21,11 +21,16 @@ func UpdateUsageFromPlan(usage *QuotaUsage, plan *Plan) []*QuotaLimit {
 	// Gather the set of proposed stops.
 	for _, stops := range plan.NodeUpdate {
 		for _, stop := range stops {
-			r := &Resources{}
-			for _, v := range stop.TaskResources {
-				r.Add(v)
+			// Subtract resources about to be stopped. Resources
+			// from allocations that are already terminal on the
+			// client have already been subtracted.
+			if !stop.ClientTerminalStatus() && stop.ServerTerminalStatus() {
+				r := &Resources{}
+				for _, v := range stop.TaskResources {
+					r.Add(v)
+				}
+				limit.SubtractResource(r)
 			}
-			limit.SubtractResource(r)
 		}
 	}
 

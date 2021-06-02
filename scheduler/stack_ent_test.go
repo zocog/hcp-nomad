@@ -191,7 +191,9 @@ func TestQuotaIterator_BelowQuota_DiscountStopping(t *testing.T) {
 	}
 
 	// Add a planned eviction that makes it possible however to still place
-	plan.NodeUpdate[nodes[0].ID] = []*structs.Allocation{mock.Alloc()}
+	evict := mock.Alloc()
+	evict.DesiredStatus = structs.AllocDesiredStatusEvict
+	plan.NodeUpdate[nodes[0].ID] = []*structs.Allocation{evict}
 
 	// Create the quota iterator
 	quota := NewQuotaIterator(ctx, static)
