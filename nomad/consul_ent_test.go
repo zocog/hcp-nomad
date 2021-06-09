@@ -35,7 +35,7 @@ func TestConsulACLsAPI_CheckPermissions_ent(t *testing.T) {
 
 	t.Run("check-permissions kv read", func(t *testing.T) {
 		t.Run("with unset group namespace", func(t *testing.T) {
-			t.Run("uses kv has permission from with oss token", func(t *testing.T) {
+			t.Run("uses kv has permission from oss token", func(t *testing.T) {
 				u := &structs.ConsulUsage{KV: true}
 				try(t, "", u, consul.ExampleOperatorTokenID5, nil)
 			})
