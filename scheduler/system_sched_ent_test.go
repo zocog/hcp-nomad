@@ -27,9 +27,8 @@ func TestSystemSched_JobRegister_QuotaLimit(t *testing.T) {
 	ns.Quota = qs.Name
 	assert.Nil(h.State.UpsertNamespaces(h.NextIndex(), []*structs.Namespace{ns}))
 
-	// Create the job with two task groups with slightly different resource
-	// requirements
-	job := mock.Job()
+	// Create the job
+	job := mock.SystemJob()
 	job.Namespace = ns.Name
 
 	// Quota Limit: (2000 CPU, 2000 MB)

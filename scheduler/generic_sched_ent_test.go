@@ -127,3 +127,128 @@ func TestServiceSched_JobModify_IncrCount_QuotaLimit(t *testing.T) {
 	assert.Len(out, 4)
 	h.AssertEvalStatus(t, structs.EvalStatusComplete)
 }
+
+func TestServiceSched_QuotaInteractionsWithConstraints(t *testing.T) {
+
+	require := require.New(t)
+	h := NewHarness(t)
+
+	// Create the quota spec (2000 cpu/mem)
+	qs := mock.QuotaSpec()
+	require.NoError(h.State.UpsertQuotaSpecs(h.NextIndex(), []*structs.QuotaSpec{qs}))
+
+	// Create the namespace
+	ns := mock.Namespace()
+	ns.Quota = qs.Name
+	require.NoError(h.State.UpsertNamespaces(h.NextIndex(), []*structs.Namespace{ns}))
+
+	// Create a job with resources that allow for exactly one alloc
+	job := mock.Job()
+	job.Namespace = ns.Name
+	job.TaskGroups[0].Count = 1
+	job.TaskGroups[0].Constraints = []*structs.Constraint{
+		{
+			LTarget: "${node.class}",
+			RTarget: "good",
+			Operand: "=",
+		},
+	}
+	job.TaskGroups[0].Tasks[0].Env = map[string]string{"example": "1"}
+	r1 := job.TaskGroups[0].Tasks[0].Resources
+	r1.CPU = 800
+	r1.MemoryMB = 800
+	r1.Networks = nil
+
+	// quota usage should now be 800/2000
+	require.NoError(h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), job))
+
+	goodNode := mock.Node()
+	goodNode.NodeClass = "good"
+	goodNode.ComputeClass()
+	require.NoError(h.State.UpsertNode(structs.MsgTypeTestSetup, h.NextIndex(), goodNode))
+
+	goodNode2 := mock.Node()
+	goodNode2.NodeClass = "good"
+	goodNode2.ComputeClass()
+	require.NoError(h.State.UpsertNode(structs.MsgTypeTestSetup, h.NextIndex(), goodNode2))
+
+	// create a whole bunch of bad nodes to ensure we hit the failure case
+	for i := 0; i < 100; i++ {
+		badNode := mock.Node()
+		badNode.NodeClass = "bad"
+		badNode.ComputeClass()
+		require.NoError(h.State.UpsertNode(structs.MsgTypeTestSetup, h.NextIndex(), badNode))
+	}
+
+	alloc := mock.Alloc()
+	alloc.Job = job
+	alloc.JobID = job.ID
+	alloc.NodeID = goodNode.ID
+	alloc.Namespace = ns.Name
+	alloc.TaskGroup = job.TaskGroups[0].Name
+	alloc.Name = fmt.Sprintf("%s.%s[0]", job.ID, alloc.TaskGroup)
+	alloc.ClientStatus = structs.AllocClientStatusRunning
+	alloc.Resources = r1.Copy()
+	alloc.TaskResources = map[string]*structs.Resources{
+		"web": r1.Copy(),
+	}
+
+	require.NoError(h.State.UpsertAllocs(
+		structs.MsgTypeTestSetup, h.NextIndex(), []*structs.Allocation{alloc}))
+
+	// Update the env to force an update
+	job2 := job.Copy()
+	job2.TaskGroups[0].Count = 2
+	job2.TaskGroups[0].Tasks[0].Env = map[string]string{"example": "2"}
+	require.NoError(h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), job2))
+
+	eval := &structs.Evaluation{
+		Namespace:   ns.Name,
+		ID:          uuid.Generate(),
+		Priority:    50,
+		TriggeredBy: structs.EvalTriggerJobRegister,
+		JobID:       job2.ID,
+		Status:      structs.EvalStatusPending,
+	}
+	require.NoError(h.State.UpsertEvals(
+		structs.MsgTypeTestSetup, h.NextIndex(), []*structs.Evaluation{eval}))
+
+	// Process the evaluation
+	require.NoError(h.Process(NewServiceScheduler, eval))
+
+	quotaErrForEvals := func(evals []*structs.Evaluation) string {
+		if len(evals) < 1 {
+			return ""
+		}
+		if evals[0].QuotaLimitReached == "" {
+			// should never see this unless we break the test itself
+			return fmt.Sprintf("unexpected failure\n%#v", evals[0].FailedTGAllocs)
+		}
+		errMsg := "unexpected quota limit failure\n"
+		errMsg += "-> " + evals[0].QuotaLimitReached
+		for _, alloc := range evals[0].FailedTGAllocs {
+			for _, exhausted := range alloc.QuotaExhausted {
+				errMsg += fmt.Sprintf("\n-> %s", exhausted)
+			}
+		}
+		return errMsg
+	}
+
+	// Ensure the plan has no failures or blocked evals
+	require.Len(h.CreateEvals, 0, quotaErrForEvals(h.CreateEvals))
+	require.Len(h.Evals, 1)
+	h.AssertEvalStatus(t, structs.EvalStatusComplete)
+
+	// Ensure a single plan that evicts the running alloc and gives us a new alloc
+	require.Len(h.Plans, 1, "we should have exactly 1 plan")
+	plan := h.Plans[0]
+	require.Len(plan.NodeUpdate[alloc.NodeID], 1)
+
+	// Ensure the plan allocated
+	var planned []*structs.Allocation
+	for _, allocList := range plan.NodeAllocation {
+		planned = append(planned, allocList...)
+	}
+	require.Len(planned, 2)
+
+}
