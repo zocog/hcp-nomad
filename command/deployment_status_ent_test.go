@@ -67,14 +67,6 @@ func TestDeploymentStatusCommand_Multiregion(t *testing.T) {
 		t.Fatalf("status code non zero saw %d", code)
 	}
 
-	// Register multiregion job in west
-	jobWest := testMultiRegionJob("job1_sfxx", "west", "west-1")
-	resp2, _, err := clientWest.Jobs().Register(jobWest, &api.WriteOptions{Region: "west"})
-	require.NoError(t, err)
-	if code := waitForSuccess(ui, clientWest, fullId, t, resp2.EvalID); code != 0 {
-		t.Fatalf("status code non zero saw %d", code)
-	}
-
 	jobs, _, err := clientEast.Jobs().List(&api.QueryOptions{})
 	require.NoError(t, err)
 	require.Len(t, jobs, 1)

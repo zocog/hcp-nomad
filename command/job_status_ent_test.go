@@ -60,20 +60,11 @@ func TestJobStatusCommand_Multiregion(t *testing.T) {
 	ui := new(cli.MockUi)
 	cmd := &JobStatusCommand{Meta: Meta{Ui: ui, flagAddress: url}}
 
-	// Register multiregion job
 	// Register multiregion job in east
 	jobEast := testMultiRegionJob("job1_sfxx", "east", "east-1")
 	resp, _, err := clientEast.Jobs().Register(jobEast, nil)
 	require.NoError(t, err)
 	if code := waitForSuccess(ui, clientEast, fullId, t, resp.EvalID); code != 0 {
-		t.Fatalf("status code non zero saw %d", code)
-	}
-
-	// Register multiregion job in west
-	jobWest := testMultiRegionJob("job1_sfxx", "west", "west-1")
-	resp2, _, err := clientWest.Jobs().Register(jobWest, &api.WriteOptions{Region: "west"})
-	require.NoError(t, err)
-	if code := waitForSuccess(ui, clientWest, fullId, t, resp2.EvalID); code != 0 {
 		t.Fatalf("status code non zero saw %d", code)
 	}
 
@@ -92,7 +83,6 @@ func TestJobStatusCommand_Multiregion(t *testing.T) {
 
 	westDeploys, _, err := clientWest.Jobs().Deployments(jobs[0].ID, true, &api.QueryOptions{Region: "west"})
 	require.NoError(t, err)
-	// require.Len(t, westDeploys, 1)
 
 	// Run command for specific deploy
 	if code := cmd.Run([]string{"-address=" + url, jobs[0].ID}); code != 0 {
