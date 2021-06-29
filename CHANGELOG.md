@@ -547,6 +547,7 @@ FEATURES:
 __BACKWARDS INCOMPATIBILITIES:__
  * driver/docker: The Docker driver no longer allows binding host volumes by default.
    Operators can set `volume` `enabled` plugin configuration to restore previous permissive behavior. [[GH-8261](https://github.com/hashicorp/nomad/issues/8261)]
+ * driver/docker: The Docker driver's `port_map` configuration is deprecated in lieu of the `ports` field.
  * driver/qemu: The Qemu driver requires images to reside in a operator-defined paths allowed for task access. [[GH-8261](https://github.com/hashicorp/nomad/issues/8261)]
 
 IMPROVEMENTS:
@@ -561,6 +562,7 @@ IMPROVEMENTS:
 * build: Switched to Go modules for dependency management [[GH-8041](https://github.com/hashicorp/nomad/pull/8041)]
 * connect: Infer service task parameter where possible [[GH-8274](https://github.com/hashicorp/nomad/issues/8274)]
 * csi: Added `-force` flag to `nomad volume deregister` [[GH-8251](https://github.com/hashicorp/nomad/issues/8251)]
+* networking: Omitting the `port.to` field defaults to mapping to the same port value as the dynamically assigned port. [[GH-8208](https://github.com/hashicorp/nomad/issues/8208)]
 * server: Added `raft_multiplier` config to tweak Raft related timeouts [[GH-8082](https://github.com/hashicorp/nomad/issues/8082)]
 
 BUG FIXES:
