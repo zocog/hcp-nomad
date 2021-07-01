@@ -35,12 +35,9 @@ func (s *Server) establishEnterpriseLeadership(stopCh chan struct{}) error {
 	return nil
 }
 
-// revokeEnterpriseLeadership is used to disable Nomad Pro and Premium systems
+// revokeEnterpriseLeadership is used to disable Nomad Enterprise systems
 // upon losing leadership.
 func (s *Server) revokeEnterpriseLeadership() error {
-	if err := s.revokeProLeadership(); err != nil {
-		return err
-	}
 	return nil
 }
 
