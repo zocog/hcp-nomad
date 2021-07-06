@@ -3,12 +3,15 @@
 package quotas
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	e2e "github.com/hashicorp/nomad/e2e/e2eutil"
 	"github.com/hashicorp/nomad/e2e/framework"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/jobspec"
+	"github.com/hashicorp/nomad/testutil"
 )
 
 type QuotasE2ETest struct {
@@ -109,10 +112,29 @@ func (tc *QuotasE2ETest) TestQuotasIncreasedCount(f *framework.F) {
 	expected = []string{"running", "running"}
 	f.NoError(e2e.WaitForAllocStatusExpected(jobA, "NamespaceA", expected), "job should be running")
 
-	// increase above the quota
-	err = e2e.Register(jobA, "quotas/input/job_a.nomad")
-	f.Contains(err.Error(), `Task Group "group" (failed to place 1 allocation)`)
-	f.Contains(err.Error(), `* Quota limit hit "memory exhausted (384 needed > 300 limit)`)
+	// increase above the quota. note we can't use e2e.Register here because
+	// we need the EvalID of the job's evaluation with failed placements
+	count = 3
+	resp, _, err := tc.Nomad().Jobs().Register(job, nil)
+	f.NoError(err, "could not register jobA")
+
+	var out string
+	testutil.WaitForResultRetries(100, func() (bool, error) {
+		out, err = e2e.Command("nomad", "eval", "status",
+			"-namespace", "NamespaceA", resp.EvalID)
+		if err != nil {
+			return false, err
+		}
+		if !strings.Contains(out, "Status             = complete") {
+			return false, fmt.Errorf("evaluation not complete")
+		}
+		return true, nil
+	}, func(err error) {
+		f.NoError(err, "expected evaluation to be processed:\n%v", out)
+	})
+
+	f.Contains(out, `Task Group "group" (failed to place 1 allocation)`)
+	f.Contains(out, `* Quota limit hit "memory exhausted (384 needed > 300 limit)`)
 }
 
 // TestQuotasAddedLater adds quotas to a namespace with an existing job
@@ -132,7 +154,7 @@ func (tc *QuotasE2ETest) TestQuotasAddedLater(f *framework.F) {
 	job, err := jobspec.ParseFile("quotas/input/job_b.nomad")
 	f.NoError(err)
 	job.ID = &jobB
-	job.TaskGroups[0].Tasks[0].Env["TEST"] = "Z"
+	job.TaskGroups[0].Tasks[0].Env["TEST"] = "1st"
 	_, _, err = tc.Nomad().Jobs().Register(job, nil)
 	f.NoError(err, "could not register jobB")
 	expected := []string{"running", "running"}
@@ -144,12 +166,32 @@ func (tc *QuotasE2ETest) TestQuotasAddedLater(f *framework.F) {
 		"-description", "namespace B", "NamespaceB")
 	f.NoError(err, "could not apply quota to namespace")
 
-	err = e2e.Register(jobB, "quotas/input/job_b.nomad")
-	f.Contains(err.Error(), `Task Group "group" (failed to place 1 allocation)`)
-	f.Contains(err.Error(), `* Quota limit hit "cpu exhausted (512 needed > 300 limit)`)
+	// we can't use e2e.Register here because we need the EvalID of the failed
+	// evaluation
+	job.TaskGroups[0].Tasks[0].Env["TEST"] = "2nd"
+	resp, _, err := tc.Nomad().Jobs().Register(job, nil)
+	f.NoError(err, "could not register jobB")
+
+	var out string
+	testutil.WaitForResultRetries(100, func() (bool, error) {
+		out, err = e2e.Command("nomad", "eval", "status",
+			"-namespace", "NamespaceB", resp.EvalID)
+		if err != nil {
+			return false, err
+		}
+		if !strings.Contains(out, "Status             = failed") {
+			return false, fmt.Errorf("evaluation not complete")
+		}
+		return true, nil
+	}, func(err error) {
+		f.NoError(err, "expected evaluation to be processed:\n%v", out)
+	})
+
+	f.Contains(out, `Task Group "group" (failed to place 1 allocation)`)
+	f.Contains(out, `* Quota limit hit "cpu exhausted (512 needed > 300 limit)`)
 
 	// query the quota status and get expected errors for invalid region
-	out, err := e2e.Command("nomad", "quota", "status", "quotaB")
+	out, err = e2e.Command("nomad", "quota", "status", "quotaB")
 	f.Error(err, "exit status 1")
 
 	section, err := e2e.GetSection(out, "Quota Limits")
@@ -189,7 +231,32 @@ func (tc *QuotasE2ETest) TestQuotasBetweenJobs(f *framework.F) {
 	// 2nd job should not
 	jobC2 := "test-quotas-c-" + uuid.Generate()[0:8]
 	tc.namespacedJobIDs = append(tc.namespacedJobIDs, [2]string{"NamespaceC", jobC2})
-	err = e2e.Register(jobC2, "quotas/input/job_c.nomad")
-	f.Contains(err.Error(), `Task Group "group" (failed to place 1 allocation)`)
-	f.Contains(err.Error(), `* Quota limit hit "memory exhausted (256 needed > 200 limit)`)
+
+	// note we can't use e2e.Register here because we need the EvalID of the
+	// job's evaluation with failed placements
+	job, err := jobspec.ParseFile("quotas/input/job_c.nomad")
+	f.NoError(err, "could not parse jobC")
+
+	job.ID = &jobC2
+	resp, _, err := tc.Nomad().Jobs().Register(job, nil)
+	f.NoError(err, "could not register jobC2")
+
+	var out string
+	testutil.WaitForResultRetries(100, func() (bool, error) {
+		out, err = e2e.Command("nomad", "eval", "status",
+			"-namespace", "NamespaceC", resp.EvalID)
+		if err != nil {
+			return false, err
+		}
+		if !strings.Contains(out, "Status             = complete") {
+			return false, fmt.Errorf("evaluation not complete")
+		}
+		return true, nil
+	}, func(err error) {
+		f.NoError(err, "expected evaluation to be processed:\n%v", out)
+	})
+
+	f.Contains(out, `Task Group "group" (failed to place 1 allocation)`)
+	f.Contains(out, `* Quota limit hit "memory exhausted (256 needed > 200 limit)`)
+
 }
