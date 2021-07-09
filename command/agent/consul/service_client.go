@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/url"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -816,12 +817,27 @@ func (c *ServiceClient) sync(reason syncReason) error {
 		}
 
 		// Ignore if this is a service for a Nomad managed sidecar proxy.
-		if isNomadSidecar(id, c.services) {
+		if maybeConnectSidecar(id) {
 			continue
 		}
 
-		// Unknown Nomad managed service; kill
+		// Get the Consul namespace this service is in.
 		ns := servicesInConsul[id].Namespace
+
+		// If this service has a sidecar, we need to remove the sidecar first,
+		// otherwise Consul will produce a warning and an error when removing
+		// the parent service.
+		//
+		// The sidecar is not tracked on the Nomad side; it was registered
+		// implicitly through the parent service.
+		if sidecar := getNomadSidecar(id, servicesInConsul); sidecar != nil {
+			if err := c.agentAPI.ServiceDeregisterOpts(sidecar.ID, &api.QueryOptions{Namespace: ns}); err != nil {
+				metrics.IncrCounter([]string{"client", "consul", "sync_failure"}, 1)
+				return err
+			}
+		}
+
+		// Remove the unwanted service.
 		if err := c.agentAPI.ServiceDeregisterOpts(id, &api.QueryOptions{Namespace: ns}); err != nil {
 			if isOldNomadService(id) {
 				// Don't hard-fail on old entries. See #3620
@@ -886,7 +902,7 @@ func (c *ServiceClient) sync(reason syncReason) error {
 		}
 
 		// Ignore if this is a check for a Nomad managed sidecar proxy.
-		if isNomadSidecar(check.ServiceID, c.services) {
+		if maybeSidecarProxyCheck(id) {
 			continue
 		}
 
@@ -1681,8 +1697,14 @@ const (
 	sidecarSuffix = "-sidecar-proxy"
 )
 
-// isNomadSidecar returns true if the ID matches a sidecar proxy for a Nomad
-// managed service.
+// maybeConnectSidecar returns true if the ID is likely of a Connect sidecar proxy.
+// This function should only be used to determine if Nomad should skip managing
+// service id; it could produce false negatives for non-Nomad managed services
+// (i.e. someone set the ID manually), but Nomad does not manage those anyway.
+//
+// It is important not to reference the parent service, which may or may not still
+// be tracked by Nomad internally.
+//
 //
 // For example if you have a Connect enabled service with the ID:
 //
@@ -1692,14 +1714,39 @@ const (
 //
 //	_nomad-task-5229c7f8-376b-3ccc-edd9-981e238f7033-cache-redis-cache-db-sidecar-proxy
 //
-func isNomadSidecar(id string, services map[string]*api.AgentServiceRegistration) bool {
-	if !strings.HasSuffix(id, sidecarSuffix) {
-		return false
-	}
+func maybeConnectSidecar(id string) bool {
+	return strings.HasSuffix(id, sidecarSuffix)
+}
 
-	// Make sure the Nomad managed service for this proxy still exists.
-	_, ok := services[id[:len(id)-len(sidecarSuffix)]]
-	return ok
+var (
+	sidecarProxyCheckRe = regexp.MustCompile(`^service:_nomad-.+-sidecar-proxy(:[\d]+)?$`)
+)
+
+// maybeSidecarProxyCheck returns true if the ID likely matches a Nomad generated
+// check ID used in the context of a Nomad managed Connect sidecar proxy. This function
+// should only be used to determine if Nomad should skip managing a check; it can
+// produce false negatives for non-Nomad managed Connect sidecar proxy checks (i.e.
+// someone set the ID manually), but Nomad does not manage those anyway.
+//
+// For example if you have a Connect enabled service with the ID:
+//
+//	_nomad-task-5229c7f8-376b-3ccc-edd9-981e238f7033-cache-redis-cache-db
+//
+// Nomad will create a Connect sidecar proxy of ID:
+//
+// _nomad-task-5229c7f8-376b-3ccc-edd9-981e238f7033-cache-redis-cache-db-sidecar-proxy
+//
+// With default checks like:
+//
+// service:_nomad-task-2f5fb517-57d4-44ee-7780-dc1cb6e103cd-group-api-count-api-9001-sidecar-proxy:1
+// service:_nomad-task-2f5fb517-57d4-44ee-7780-dc1cb6e103cd-group-api-count-api-9001-sidecar-proxy:2
+//
+// Unless sidecar_service.disable_default_tcp_check is set, in which case the
+// default check is:
+//
+// service:_nomad-task-322616db-2680-35d8-0d10-b50a0a0aa4cd-group-api-count-api-9001-sidecar-proxy
+func maybeSidecarProxyCheck(id string) bool {
+	return sidecarProxyCheckRe.MatchString(id)
 }
 
 // getNomadSidecar returns the service registration of the sidecar for the managed
