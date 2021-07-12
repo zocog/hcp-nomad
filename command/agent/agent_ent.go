@@ -4,7 +4,9 @@ package agent
 
 import (
 	"fmt"
+	"io/fs"
 	"path/filepath"
+	"strconv"
 
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad-licensing/license"
@@ -124,6 +126,22 @@ func (a *Agent) setupAuditor(cfg *config.AuditConfig, logger hclog.InterceptLogg
 			return nil, fmt.Errorf("Invalid delivery guarantee %s", s.DeliveryGuarantee)
 		}
 
+		// Set default file mode
+		if s.Mode == "" {
+			s.Mode = "0600"
+		}
+
+		fileModeInt, err := strconv.ParseUint(s.Mode, 8, 32)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid file mode %q: Must be a valid octal number (%v).", s.Mode, err)
+		}
+
+		// fileMode must be a valid file permission
+		fileMode := fs.FileMode(fileModeInt)
+		if fileMode.Perm() != fileMode {
+			return nil, fmt.Errorf("Invalid file mode %q: Must be a valid Unix permission (%s).", s.Mode, fileMode)
+		}
+
 		sink := audit.SinkConfig{
 			Name:              s.Name,
 			Type:              sinkType,
@@ -134,6 +152,7 @@ func (a *Agent) setupAuditor(cfg *config.AuditConfig, logger hclog.InterceptLogg
 			RotateDuration:    s.RotateDuration,
 			RotateBytes:       s.RotateBytes,
 			RotateMaxFiles:    s.RotateMaxFiles,
+			Mode:              fileMode,
 		}
 		sinks = append(sinks, sink)
 	}

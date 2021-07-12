@@ -5,6 +5,7 @@ package audit
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"sync"
 	"time"
 
@@ -113,6 +114,9 @@ type SinkConfig struct {
 	// RotateMaxFiles is the maximum number of old audit log files
 	// that can be retained before pruning.
 	RotateMaxFiles int
+
+	// Mode is the permissions for the audit log files.
+	Mode fs.FileMode
 }
 
 // Auditor is the main struct for sending auditing events. If configured
@@ -380,6 +384,7 @@ func newFileSink(s SinkConfig) (eventlogger.NodeID, eventlogger.Node) {
 		Format:      string(s.Format),
 		Path:        s.Path,
 		FileName:    s.FileName,
+		Mode:        s.Mode,
 		MaxBytes:    s.RotateBytes,
 		MaxDuration: s.RotateDuration,
 		MaxFiles:    s.RotateMaxFiles,
