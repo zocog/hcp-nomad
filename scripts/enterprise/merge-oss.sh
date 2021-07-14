@@ -53,7 +53,6 @@ if ! git merge -m "$message" "oss/${origin_branch}"; then
     git checkout --theirs .circleci/config.yml
     git checkout --ours   vendor/modules.txt
     git checkout --ours   go.sum
-    make sync
 
     # Regenerate enterprise CircleCI config to apply changes from OSS merge
 

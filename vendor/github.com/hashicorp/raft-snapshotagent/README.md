@@ -1,1 +1,0 @@
-Raft Snapshot Agent Library
