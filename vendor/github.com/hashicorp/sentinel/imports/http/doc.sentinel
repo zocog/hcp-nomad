@@ -1,9 +1,0 @@
-// The http import enables the use of HTTP-accessable data from outside
-// the runtime in Sentinel policy rules.
-//
-// TODO: The content of this documentation is omitted as this file is completely
-// inaccessible beyond the codebase as `sentinel doc` has been removed from the CLI
-// at this time. As there's no automated process to keep the website MDX documentation
-// in sync with this file and converting to and from manually is tedious, take the
-// markdown file for the website (/website/pages/docs/imports/http.mdx) as the source
-// of truth until this file becomes important again.
