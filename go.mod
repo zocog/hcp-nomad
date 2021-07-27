@@ -122,13 +122,11 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/zclconf/go-cty v1.8.0
 	github.com/zclconf/go-cty-yaml v1.0.2
-	go.opencensus.io v0.22.1-0.20190713072201-b4a14686f0a9 // indirect
-	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
-	golang.org/x/net v0.0.0-20201224014010-6772e930b67b
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20210316164454-77fc1eacc6aa
+	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
+	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
-	golang.org/x/tools v0.0.0-20200522201501-cb1345f3a375 // indirect
 	google.golang.org/grpc v1.29.1
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
@@ -142,9 +140,10 @@ require (
 replace github.com/hashicorp/consul => github.com/hashicorp/consul-enterprise v1.7.9-0.20200911031423-dcac66d22260
 
 require (
+	github.com/denverdino/aliyungo v0.0.0-20190125010748-a747050bb1ba // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0
-	github.com/hashicorp/eventlogger v0.0.0-20200503125528-e0cd2ba137df
+	github.com/hashicorp/eventlogger v0.0.0-20210713172506-fccf91386ab7
 	github.com/hashicorp/go-licensing v1.3.8
 	github.com/hashicorp/nomad-licensing v0.0.11
 	github.com/hashicorp/raft-snapshotagent v0.0.0-20200831014059-4352e54f37b3

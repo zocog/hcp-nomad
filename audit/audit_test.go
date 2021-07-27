@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -85,6 +86,7 @@ func TestAuditor(t *testing.T) {
 }
 
 // TestAuditor_NewDir tests a directory that doesn't exist is properly made
+// with default permissions.
 func TestAuditor_NewDir(t *testing.T) {
 	t.Parallel()
 
@@ -93,6 +95,7 @@ func TestAuditor_NewDir(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
+	fileMode := fs.FileMode(0o640)
 	auditDir := filepath.Join(tmpDir, "audit")
 	auditor, err := NewAuditor(&Config{
 		Logger:         testlog.HCLogger(t),
@@ -107,6 +110,7 @@ func TestAuditor_NewDir(t *testing.T) {
 				DeliveryGuarantee: Enforced,
 				FileName:          "audit.log",
 				Path:              auditDir,
+				Mode:              fileMode,
 			},
 		},
 	})
@@ -119,8 +123,85 @@ func TestAuditor_NewDir(t *testing.T) {
 	err = auditor.Event(context.Background(), "audit", e)
 	require.NoError(t, err)
 
+	filename := filepath.Join(auditDir, "audit.log")
+
+	// Ensure directory and file have the expected modes. Expected
+	// directory mode is hardcoded in eventlogger.
+	dirInfo, err := os.Stat(auditDir)
+	require.NoError(t, err)
+	require.Equal(t, fs.FileMode(0o700), dirInfo.Mode().Perm())
+
+	fileInfo, err := os.Stat(filename)
+	require.NoError(t, err)
+	require.Equal(t, fileMode, fileInfo.Mode())
+
 	// Read from audit log
-	dat, err := ioutil.ReadFile(filepath.Join(auditDir, "audit.log"))
+	dat, err := ioutil.ReadFile(filename)
+	require.NoError(t, err)
+
+	// Ensure we can unmarshal back to an event
+	var jsonEvent eventWrapper
+	err = json.Unmarshal(dat, &jsonEvent)
+	require.NoError(t, err)
+
+	require.Equal(t, e.Request.Endpoint, jsonEvent.Payload.Request.Endpoint)
+}
+
+// TestAuditor_ExistingDir tests a directory that doest exist is used without
+// changing the permissions.
+func TestAuditor_ExistingDir(t *testing.T) {
+	t.Parallel()
+
+	// Create a temp directory for the audit log file
+	tmpDir, err := ioutil.TempDir("", t.Name())
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	fileMode := fs.FileMode(0o640)
+
+	// Create the directory and set non-default permissions
+	auditDir := filepath.Join(tmpDir, "audit")
+	dirMode := fs.FileMode(0o770)
+	require.NoError(t, os.Mkdir(auditDir, dirMode))
+
+	auditor, err := NewAuditor(&Config{
+		Logger:         testlog.HCLogger(t),
+		Enabled:        true,
+		FeatureChecker: &testChecker{},
+		Filters:        []FilterConfig{},
+		Sinks: []SinkConfig{
+			{
+				Name:              "json file",
+				Type:              FileSink,
+				Format:            JSONFmt,
+				DeliveryGuarantee: Enforced,
+				FileName:          "audit.log",
+				Path:              auditDir,
+				Mode:              fileMode,
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, auditor)
+
+	e := testEvent(AuditEvent, OperationReceived)
+
+	// Send event
+	err = auditor.Event(context.Background(), "audit", e)
+	require.NoError(t, err)
+
+	fn := filepath.Join(auditDir, "audit.log")
+
+	// Ensure directory and file have the expected modes.
+	dirInfo, err := os.Stat(auditDir)
+	require.NoError(t, err)
+	require.Equal(t, dirMode, dirInfo.Mode().Perm())
+	fileInfo, err := os.Stat(fn)
+	require.NoError(t, err)
+	require.Equal(t, fileMode, fileInfo.Mode())
+
+	// Read from audit log
+	dat, err := ioutil.ReadFile(fn)
 	require.NoError(t, err)
 
 	// Ensure we can unmarshal back to an event
@@ -206,7 +287,7 @@ func TestAuditor_Filter(t *testing.T) {
 	require.Len(t, logs, 1)
 }
 
-func TestAuditor_Mode_BestEffort(t *testing.T) {
+func TestAuditor_Delivery_BestEffort(t *testing.T) {
 	t.Parallel()
 
 	logger := testlog.HCLogger(t)
