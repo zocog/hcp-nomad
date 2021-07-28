@@ -37,6 +37,7 @@ steps:
 
         # protect against dest_branch being different from current branch
         git checkout "${dest_branch}"
+        git pull
 
         if ! ./scripts/enterprise/merge-oss.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}"; then
           echo "export FAIL_REASON='because git was unable to auto-merge'" >> $BASH_ENV
