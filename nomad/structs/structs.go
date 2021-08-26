@@ -3986,8 +3986,8 @@ type Job struct {
 }
 
 // NamespacedID returns the namespaced id useful for logging
-func (j *Job) NamespacedID() *NamespacedID {
-	return &NamespacedID{
+func (j *Job) NamespacedID() NamespacedID {
+	return NamespacedID{
 		ID:        j.ID,
 		Namespace: j.Namespace,
 	}
@@ -4208,19 +4208,24 @@ func (j *Job) Warnings() error {
 	var mErr multierror.Error
 
 	// Check the groups
-	ap := 0
+	hasAutoPromote, allAutoPromote := false, true
+
 	for _, tg := range j.TaskGroups {
 		if err := tg.Warnings(j); err != nil {
 			outer := fmt.Errorf("Group %q has warnings: %v", tg.Name, err)
 			mErr.Errors = append(mErr.Errors, outer)
 		}
-		if tg.Update != nil && tg.Update.AutoPromote {
-			ap += 1
+
+		if u := tg.Update; u != nil {
+			hasAutoPromote = hasAutoPromote || u.AutoPromote
+
+			// Having no canaries implies auto-promotion since there are no canaries to promote.
+			allAutoPromote = allAutoPromote && (u.Canary == 0 || u.AutoPromote)
 		}
 	}
 
 	// Check AutoPromote, should be all or none
-	if ap > 0 && ap < len(j.TaskGroups) {
+	if hasAutoPromote && !allAutoPromote {
 		err := fmt.Errorf("auto_promote must be true for all groups to enable automatic promotion")
 		mErr.Errors = append(mErr.Errors, err)
 	}
@@ -8737,7 +8742,7 @@ func (d *Deployment) HasAutoPromote() bool {
 		return false
 	}
 	for _, group := range d.TaskGroups {
-		if !group.AutoPromote {
+		if group.DesiredCanaries > 0 && !group.AutoPromote {
 			return false
 		}
 	}
