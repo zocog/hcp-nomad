@@ -2707,6 +2707,67 @@ func TestClientEndpoint_CreateNodeEvals(t *testing.T) {
 	}
 }
 
+// TestClientEndpoint_CreateNodeEvals_MultipleNSes asserts that evals are made
+// for all jobs across namespaces
+func TestClientEndpoint_CreateNodeEvals_MultipleNSes(t *testing.T) {
+	t.Parallel()
+
+	s1, cleanupS1 := TestServer(t, nil)
+	defer cleanupS1()
+	testutil.WaitForLeader(t, s1.RPC)
+
+	state := s1.fsm.State()
+
+	idx := uint64(3)
+	ns1 := mock.Namespace()
+	err := state.UpsertNamespaces(idx, []*structs.Namespace{ns1})
+	require.NoError(t, err)
+	idx++
+
+	node := mock.Node()
+	err = state.UpsertNode(structs.MsgTypeTestSetup, idx, node)
+	require.NoError(t, err)
+	idx++
+
+	// Inject a fake system job.
+	defaultJob := mock.SystemJob()
+	err = state.UpsertJob(structs.MsgTypeTestSetup, idx, defaultJob)
+	require.NoError(t, err)
+	idx++
+
+	nsJob := mock.SystemJob()
+	nsJob.ID = defaultJob.ID
+	nsJob.Namespace = ns1.Name
+	err = state.UpsertJob(structs.MsgTypeTestSetup, idx, nsJob)
+	require.NoError(t, err)
+	idx++
+
+	// Create some evaluations
+	evalIDs, index, err := s1.staticEndpoints.Node.createNodeEvals(node.ID, 1)
+	require.NoError(t, err)
+	require.NotZero(t, index)
+	require.Len(t, evalIDs, 2)
+
+	byNS := map[string]*structs.Evaluation{}
+	for _, evalID := range evalIDs {
+		eval, err := state.EvalByID(nil, evalID)
+		require.NoError(t, err)
+		byNS[eval.Namespace] = eval
+	}
+
+	require.Len(t, byNS, 2)
+
+	defaultNSEval := byNS[defaultJob.Namespace]
+	require.NotNil(t, defaultNSEval)
+	require.Equal(t, defaultJob.ID, defaultNSEval.JobID)
+	require.Equal(t, defaultJob.Namespace, defaultNSEval.Namespace)
+
+	otherNSEval := byNS[nsJob.Namespace]
+	require.NotNil(t, otherNSEval)
+	require.Equal(t, nsJob.ID, otherNSEval.JobID)
+	require.Equal(t, nsJob.Namespace, otherNSEval.Namespace)
+}
+
 func TestClientEndpoint_Evaluate(t *testing.T) {
 	t.Parallel()
 
@@ -3601,4 +3662,57 @@ func TestClientEndpoint_EmitEvents(t *testing.T) {
 	out, err := state.NodeByID(ws, node.ID)
 	require.Nil(err)
 	require.False(len(out.Events) < 2)
+}
+
+func TestClientEndpoint_ShouldCreateNodeEval(t *testing.T) {
+	t.Run("spurious changes don't require eval", func(t *testing.T) {
+		n1 := mock.Node()
+		n2 := n1.Copy()
+		n2.SecretID = uuid.Generate()
+		n2.Links["vault"] = "links don't get interpolated"
+		n2.ModifyIndex++
+
+		require.False(t, shouldCreateNodeEval(n1, n2))
+	})
+
+	positiveCases := []struct {
+		name     string
+		updateFn func(n *structs.Node)
+	}{
+		{
+			"data center changes",
+			func(n *structs.Node) { n.Datacenter += "u" },
+		},
+		{
+			"attribute change",
+			func(n *structs.Node) { n.Attributes["test.attribute"] = "something" },
+		},
+		{
+			"meta change",
+			func(n *structs.Node) { n.Meta["test.meta"] = "something" },
+		},
+		{
+			"drivers health changed",
+			func(n *structs.Node) { n.Drivers["exec"].Detected = false },
+		},
+		{
+			"new drivers",
+			func(n *structs.Node) {
+				n.Drivers["newdriver"] = &structs.DriverInfo{
+					Detected: true,
+					Healthy:  true,
+				}
+			},
+		},
+	}
+
+	for _, c := range positiveCases {
+		t.Run(c.name, func(t *testing.T) {
+			n1 := mock.Node()
+			n2 := n1.Copy()
+			c.updateFn(n2)
+
+			require.Truef(t, shouldCreateNodeEval(n1, n2), "node changed but without node eval: %v", pretty.Diff(n1, n2))
+		})
+	}
 }

@@ -3,6 +3,7 @@ package nomad
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -169,12 +170,7 @@ func (n *Node) Register(args *structs.NodeRegisterRequest, reply *structs.NodeUp
 	reply.NodeModifyIndex = index
 
 	// Check if we should trigger evaluations
-	originalStatus := structs.NodeStatusInit
-	if originalNode != nil {
-		originalStatus = originalNode.Status
-	}
-	transitionToReady := transitionedToReady(args.Node.Status, originalStatus)
-	if structs.ShouldDrainNode(args.Node.Status) || transitionToReady {
+	if shouldCreateNodeEval(originalNode, args.Node) {
 		evalIDs, evalIndex, err := n.createNodeEvals(args.Node.ID, index)
 		if err != nil {
 			n.logger.Error("eval creation failed", "error", err)
@@ -209,6 +205,56 @@ func (n *Node) Register(args *structs.NodeRegisterRequest, reply *structs.NodeUp
 	}
 
 	return nil
+}
+
+// shouldCreateNodeEval returns true if the node update may result into
+// allocation updates, so the node should be re-evaluating.
+//
+// Such cases might be:
+// * node health/drain status changes that may result into alloc rescheduling
+// * node drivers or attributes changing that may cause system job placement changes
+func shouldCreateNodeEval(original, updated *structs.Node) bool {
+	if structs.ShouldDrainNode(updated.Status) {
+		return true
+	}
+
+	if original == nil {
+		return transitionedToReady(updated.Status, structs.NodeStatusInit)
+	}
+
+	if transitionedToReady(updated.Status, original.Status) {
+		return true
+	}
+
+	// check fields used by the feasibility checks in ../scheduler/feasible.go,
+	// whether through a Constraint explicitly added by user or an implicit constraint
+	// added through a driver/volume check.
+	//
+	// Node Resources (e.g. CPU/Memory) are handled differently, using blocked evals,
+	// and not relevant in this check.
+	return !(original.ID == updated.ID &&
+		original.Datacenter == updated.Datacenter &&
+		original.Name == updated.Name &&
+		original.NodeClass == updated.NodeClass &&
+		reflect.DeepEqual(original.Attributes, updated.Attributes) &&
+		reflect.DeepEqual(original.Meta, updated.Meta) &&
+		reflect.DeepEqual(original.Drivers, updated.Drivers) &&
+		reflect.DeepEqual(original.HostVolumes, updated.HostVolumes) &&
+		equalDevices(original, updated))
+}
+
+func equalDevices(n1, n2 *structs.Node) bool {
+	// ignore super old nodes, mostly to avoid nil dereferencing
+	if n1.NodeResources == nil || n2.NodeResources == nil {
+		return n1.NodeResources == n2.NodeResources
+	}
+
+	// treat nil and empty value as equal
+	if len(n1.NodeResources.Devices) == 0 {
+		return len(n1.NodeResources.Devices) == len(n2.NodeResources.Devices)
+	}
+
+	return reflect.DeepEqual(n1.NodeResources.Devices, n2.NodeResources.Devices)
 }
 
 // updateNodeUpdateResponse assumes the n.srv.peerLock is held for reading.
@@ -1341,15 +1387,15 @@ func (n *Node) createNodeEvals(nodeID string, nodeIndex uint64) ([]string, uint6
 	// Create an eval for each JobID affected
 	var evals []*structs.Evaluation
 	var evalIDs []string
-	jobIDs := make(map[string]struct{})
+	jobIDs := map[structs.NamespacedID]struct{}{}
 	now := time.Now().UTC().UnixNano()
 
 	for _, alloc := range allocs {
 		// Deduplicate on JobID
-		if _, ok := jobIDs[alloc.JobID]; ok {
+		if _, ok := jobIDs[alloc.JobNamespacedID()]; ok {
 			continue
 		}
-		jobIDs[alloc.JobID] = struct{}{}
+		jobIDs[alloc.JobNamespacedID()] = struct{}{}
 
 		// Create a new eval
 		eval := &structs.Evaluation{
@@ -1372,10 +1418,10 @@ func (n *Node) createNodeEvals(nodeID string, nodeIndex uint64) ([]string, uint6
 	// Create an evaluation for each system job.
 	for _, job := range sysJobs {
 		// Still dedup on JobID as the node may already have the system job.
-		if _, ok := jobIDs[job.ID]; ok {
+		if _, ok := jobIDs[job.NamespacedID()]; ok {
 			continue
 		}
-		jobIDs[job.ID] = struct{}{}
+		jobIDs[job.NamespacedID()] = struct{}{}
 
 		// Create a new eval
 		eval := &structs.Evaluation{
