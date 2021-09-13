@@ -142,7 +142,7 @@ commands:
 executors:
     go:
         docker:
-            - image: docker.mirror.hashicorp.services/golang:1.16.5
+            - image: docker.mirror.hashicorp.services/golang:1.16.7
         environment:
             GIT_PAGER: cat
             GOMAXPROCS: 1
@@ -155,7 +155,7 @@ executors:
     go-machine:
         environment:
             GIT_PAGER: cat
-            GOLANG_VERSION: 1.16.5
+            GOLANG_VERSION: 1.16.7
             GOMAXPROCS: 1
             GOPATH: /home/circleci/go
             GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
@@ -168,7 +168,7 @@ executors:
     go-machine-recent:
         environment:
             GIT_PAGER: cat
-            GOLANG_VERSION: 1.16.5
+            GOLANG_VERSION: 1.16.7
             GOMAXPROCS: 1
             GOPATH: /home/circleci/go
             GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
@@ -181,7 +181,7 @@ executors:
     go-macos:
         environment:
             GIT_PAGER: cat
-            GOLANG_VERSION: 1.16.5
+            GOLANG_VERSION: 1.16.7
             GOMAXPROCS: 1
             GOPATH: /Users/distiller/go
             GOTESTSUM_JSONFILE: /tmp/test-reports/testjsonfile.json
@@ -194,7 +194,7 @@ executors:
     go-windows:
         environment:
             GOBIN: c:\gopath\bin
-            GOLANG_VERSION: 1.16.5
+            GOLANG_VERSION: 1.16.7
             GOPATH: c:\gopath
             GOTESTSUM_PATH: c:\tmp\test-reports
             GOTESTSUM_VERSION: 0.4.2
