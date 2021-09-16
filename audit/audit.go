@@ -381,13 +381,14 @@ func newFileSink(s SinkConfig) (eventlogger.NodeID, eventlogger.Node) {
 	// TODO: DeliveryGuarantee will eventually be defined at the sink level
 	sinkID := eventlogger.NodeID(uuid.Generate())
 	sink := &eventlogger.FileSink{
-		Format:      string(s.Format),
-		Path:        s.Path,
-		FileName:    s.FileName,
-		Mode:        s.Mode,
-		MaxBytes:    s.RotateBytes,
-		MaxDuration: s.RotateDuration,
-		MaxFiles:    s.RotateMaxFiles,
+		Format:                string(s.Format),
+		Path:                  s.Path,
+		FileName:              s.FileName,
+		Mode:                  s.Mode,
+		MaxBytes:              s.RotateBytes,
+		MaxDuration:           s.RotateDuration,
+		MaxFiles:              s.RotateMaxFiles,
+		TimestampOnlyOnRotate: true,
 	}
 	return sinkID, sink
 }
