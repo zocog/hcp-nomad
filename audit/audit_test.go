@@ -85,6 +85,72 @@ func TestAuditor(t *testing.T) {
 	require.Equal(t, e.Request.Endpoint, jsonEvent.Payload.Request.Endpoint)
 }
 
+// TestAuditor_Rotate tests we can send an event all the way through the
+// pipeline and to a sink, and that we can process the JSON file when rotation
+// is enabled.
+func TestAuditor_Rotate(t *testing.T) {
+	t.Parallel()
+
+	// Create a temp directory for the audit log file
+	tmpDir := t.TempDir()
+
+	auditor, err := NewAuditor(&Config{
+		Logger:  testlog.HCLogger(t),
+		Enabled: true,
+		Filters: []FilterConfig{},
+		Sinks: []SinkConfig{
+			{
+				Name:              "log file",
+				Type:              FileSink,
+				Format:            JSONFmt,
+				DeliveryGuarantee: Enforced,
+				FileName:          "audit.log",
+				Path:              tmpDir,
+				RotateBytes:       10,
+				RotateMaxFiles:    1,
+			},
+		},
+		FeatureChecker: &testChecker{},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, auditor)
+
+	// Send events
+	for i := 0; i < 3; i++ {
+		e := testEvent(AuditEvent, OperationReceived)
+		err = auditor.Event(context.Background(), "audit", e)
+		require.NoError(t, err)
+	}
+
+	lastEvent := testEvent(AuditEvent, OperationReceived)
+	err = auditor.Event(context.Background(), "audit", lastEvent)
+	require.NoError(t, err)
+
+	// Ensure only MaxFiles+1 files exist
+	files, err := os.ReadDir(tmpDir)
+	require.NoError(t, err)
+	require.Len(t, files, 2)
+	found := false
+	for _, file := range files {
+		if file.Name() == "audit.log" {
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
+
+	// Read from audit log
+	dat, err := ioutil.ReadFile(filepath.Join(tmpDir, "audit.log"))
+	require.NoError(t, err)
+
+	// Ensure we can unmarshal back to an event
+	var jsonEvent eventWrapper
+	err = json.Unmarshal(dat, &jsonEvent)
+	require.NoError(t, err)
+
+	require.Equal(t, lastEvent.ID, jsonEvent.Payload.ID)
+}
+
 // TestAuditor_NewDir tests a directory that doesn't exist is properly made
 // with default permissions.
 func TestAuditor_NewDir(t *testing.T) {

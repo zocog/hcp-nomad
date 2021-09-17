@@ -144,9 +144,12 @@ require (
 	github.com/denverdino/aliyungo v0.0.0-20190125010748-a747050bb1ba // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0
-	github.com/hashicorp/eventlogger v0.0.0-20210713172506-fccf91386ab7
+	github.com/hashicorp/eventlogger v0.1.1-0.20210917172429-90711333b9d0
 	github.com/hashicorp/go-licensing v1.3.8
 	github.com/hashicorp/nomad-licensing v0.0.11
 	github.com/hashicorp/raft-snapshotagent v0.0.0-20200831014059-4352e54f37b3
 	github.com/hashicorp/sentinel v0.15.5
+	github.com/mattn/go-isatty v0.0.13 // indirect
+	google.golang.org/api v0.24.0 // indirect
+	google.golang.org/protobuf v1.26.0 // indirect
 )
