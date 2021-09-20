@@ -380,7 +380,6 @@ func newFileSink(s SinkConfig) (eventlogger.NodeID, eventlogger.Node) {
 		Format:                string(s.Format),
 		Path:                  s.Path,
 		FileName:              s.FileName,
-		Mode:                  s.Mode,
 		MaxBytes:              s.RotateBytes,
 		MaxDuration:           s.RotateDuration,
 		MaxFiles:              s.RotateMaxFiles,
