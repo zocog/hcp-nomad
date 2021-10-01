@@ -141,7 +141,6 @@ require (
 replace github.com/hashicorp/consul => github.com/hashicorp/consul-enterprise v1.7.9-0.20200911031423-dcac66d22260
 
 require (
-	github.com/denverdino/aliyungo v0.0.0-20190125010748-a747050bb1ba // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/eventlogger v0.1.1-0.20210917172429-90711333b9d0
