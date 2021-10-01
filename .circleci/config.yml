@@ -688,18 +688,8 @@ workflows:
                             - stable-website
                 name: test-api
                 test_module: api
-            - test-container:
-                filters:
-                    branches:
-                        ignore:
-                            - /^.-ui\b.*/
-                            - /^docs-.*/
-                            - /^e2e-.*/
-                            - stable-website
-                name: test-devices
-                test_packages: ./devices/...
             - test-machine:
-                exclude_packages: ./api|./client|./drivers/docker|./drivers/exec|./drivers/shared/executor|./nomad|./devices|./e2e
+                exclude_packages: ./api|./client|./drivers/docker|./drivers/exec|./drivers/shared/executor|./nomad|./e2e
                 filters:
                     branches:
                         ignore:
