@@ -1,3 +1,4 @@
+//go:build ent
 // +build ent
 
 package structs
@@ -74,7 +75,7 @@ func TestJob_ConfigEntries(t *testing.T) {
 	exp := map[string]*ConsulConfigEntries{
 
 		// empty string is used for unset namespace from GetNamespace
-		"": &ConsulConfigEntries{
+		"": {
 			Ingress: map[string]*ConsulIngressConfigEntry{
 				"group1-service1": new(ConsulIngressConfigEntry),
 				"group2-service1": new(ConsulIngressConfigEntry),
@@ -83,7 +84,7 @@ func TestJob_ConfigEntries(t *testing.T) {
 				"group1-service3": new(ConsulTerminatingConfigEntry),
 			},
 		},
-		"apple": &ConsulConfigEntries{
+		"apple": {
 			Ingress: map[string]*ConsulIngressConfigEntry{
 				"group3-service1": new(ConsulIngressConfigEntry),
 				"group4-service1": new(ConsulIngressConfigEntry),
@@ -92,7 +93,7 @@ func TestJob_ConfigEntries(t *testing.T) {
 				"group4-service2": new(ConsulTerminatingConfigEntry),
 			},
 		},
-		"banana": &ConsulConfigEntries{
+		"banana": {
 			Ingress: map[string]*ConsulIngressConfigEntry{
 				"group5-service1": new(ConsulIngressConfigEntry),
 			},

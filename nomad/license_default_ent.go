@@ -1,6 +1,5 @@
-// +build ent
-// +build !on_prem_modules
-// +build !on_prem_platform
+//go:build ent && !on_prem_modules && !on_prem_platform
+// +build ent,!on_prem_modules,!on_prem_platform
 
 package nomad
 

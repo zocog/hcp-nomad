@@ -1,3 +1,4 @@
+//go:build ent || consulent
 // +build ent consulent
 
 package nomad

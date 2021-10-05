@@ -1,3 +1,4 @@
+//go:build on_prem_platform
 // +build on_prem_platform
 
 package nomad

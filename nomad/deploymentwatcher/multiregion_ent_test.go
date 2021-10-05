@@ -1,3 +1,4 @@
+//go:build ent
 // +build ent
 
 package deploymentwatcher
@@ -487,7 +488,7 @@ func (srv *MockRPCServer) upsertDeploymentStatusUpdate(u *structs.DeploymentStat
 		return 0, nil
 	}
 	next := errs[0]
-	srv.nextCheckpoints[status] = errs[1:len(errs)]
+	srv.nextCheckpoints[status] = errs[1:]
 	return 0, next
 }
 
