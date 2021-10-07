@@ -123,11 +123,13 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/zclconf/go-cty v1.8.0
 	github.com/zclconf/go-cty-yaml v1.0.2
+	go.uber.org/goleak v1.1.12
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
-	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210818153620-00dd8d7831e7
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
+	google.golang.org/api v0.24.0 // indirect
 	google.golang.org/grpc v1.29.1
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
@@ -149,6 +151,5 @@ require (
 	github.com/hashicorp/raft-snapshotagent v0.0.0-20200831014059-4352e54f37b3
 	github.com/hashicorp/sentinel v0.15.5
 	github.com/mattn/go-isatty v0.0.13 // indirect
-	google.golang.org/api v0.24.0 // indirect
 	google.golang.org/protobuf v1.26.0 // indirect
 )
