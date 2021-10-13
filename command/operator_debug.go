@@ -21,6 +21,7 @@ import (
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/nomad/api"
+	"github.com/hashicorp/nomad/api/contexts"
 	"github.com/hashicorp/nomad/helper"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/posener/complete"
@@ -179,12 +180,12 @@ func (c *OperatorDebugCommand) AutocompleteFlags() complete.Flags {
 		complete.Flags{
 			"-duration":       complete.PredictAnything,
 			"-interval":       complete.PredictAnything,
-			"-log-level":      complete.PredictAnything,
+			"-log-level":      complete.PredictSet("TRACE", "DEBUG", "INFO", "WARN", "ERROR"),
 			"-max-nodes":      complete.PredictAnything,
-			"-node-class":     complete.PredictAnything,
-			"-node-id":        complete.PredictAnything,
-			"-server-id":      complete.PredictAnything,
-			"-output":         complete.PredictAnything,
+			"-node-class":     NodeClassPredictor(c.Client),
+			"-node-id":        NodePredictor(c.Client),
+			"-server-id":      ServerPredictor(c.Client),
+			"-output":         complete.PredictDirs("*"),
 			"-pprof-duration": complete.PredictAnything,
 			"-consul-token":   complete.PredictAnything,
 			"-vault-token":    complete.PredictAnything,
@@ -193,6 +194,79 @@ func (c *OperatorDebugCommand) AutocompleteFlags() complete.Flags {
 
 func (c *OperatorDebugCommand) AutocompleteArgs() complete.Predictor {
 	return complete.PredictNothing
+}
+
+// NodePredictor returns a client node predictor
+func NodePredictor(factory ApiClientFactory) complete.Predictor {
+	return complete.PredictFunc(func(a complete.Args) []string {
+		client, err := factory()
+		if err != nil {
+			return nil
+		}
+
+		resp, _, err := client.Search().PrefixSearch(a.Last, contexts.Nodes, nil)
+		if err != nil {
+			return []string{}
+		}
+		return resp.Matches[contexts.Nodes]
+	})
+}
+
+// NodeClassPredictor returns a client node class predictor
+// TODO: Consider API options for node class filtering
+func NodeClassPredictor(factory ApiClientFactory) complete.Predictor {
+	return complete.PredictFunc(func(a complete.Args) []string {
+		client, err := factory()
+		if err != nil {
+			return nil
+		}
+
+		nodes, _, err := client.Nodes().List(nil) // TODO: should be *api.QueryOptions that matches region
+		if err != nil {
+			return []string{}
+		}
+
+		// Build map of unique node classes across all nodes
+		classes := make(map[string]bool)
+		for _, node := range nodes {
+			classes[node.NodeClass] = true
+		}
+
+		// Iterate over node classes looking for match
+		filtered := []string{}
+		for class := range classes {
+			if strings.HasPrefix(class, a.Last) {
+				filtered = append(filtered, class)
+			}
+		}
+
+		return filtered
+	})
+}
+
+// ServerPredictor returns a server member predictor
+// TODO: Consider API options for server member filtering
+func ServerPredictor(factory ApiClientFactory) complete.Predictor {
+	return complete.PredictFunc(func(a complete.Args) []string {
+		client, err := factory()
+		if err != nil {
+			return nil
+		}
+		members, err := client.Agent().Members()
+		if err != nil {
+			return []string{}
+		}
+
+		// Iterate over server members looking for match
+		filtered := []string{}
+		for _, member := range members.Members {
+			if strings.HasPrefix(member.Name, a.Last) {
+				filtered = append(filtered, member.Name)
+			}
+		}
+
+		return filtered
+	})
 }
 
 func (c *OperatorDebugCommand) Name() string { return "debug" }
@@ -329,7 +403,7 @@ func (c *OperatorDebugCommand) Run(args []string) int {
 	nodeLookupFailCount := 0
 	nodeCaptureCount := 0
 
-	for _, id := range argNodes(nodeIDs) {
+	for _, id := range stringToSlice(nodeIDs) {
 		if id == "all" {
 			// Capture from all nodes using empty prefix filter
 			id = ""
@@ -382,15 +456,15 @@ func (c *OperatorDebugCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Failed to retrieve server list; err: %v", err))
 		return 1
 	}
+
+	// Write complete list of server members to file
 	c.writeJSON("version", "members.json", members, err)
-	// We always write the error to the file, but don't range if no members found
-	if serverIDs == "all" && members != nil {
-		// Special case to capture from all servers
-		for _, member := range members.Members {
-			c.serverIDs = append(c.serverIDs, member.Name)
-		}
-	} else {
-		c.serverIDs = append(c.serverIDs, argNodes(serverIDs)...)
+
+	// Filter for servers matching criteria
+	c.serverIDs, err = filterServerMembers(members, serverIDs, c.region)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to parse server list; err: %v", err))
+		return 1
 	}
 
 	serversFound := 0
@@ -412,6 +486,8 @@ func (c *OperatorDebugCommand) Run(args []string) int {
 	// Display general info about the capture
 	c.Ui.Output("Starting debugger...")
 	c.Ui.Output("")
+	c.Ui.Output(fmt.Sprintf("           Region: %s", c.region))
+	c.Ui.Output(fmt.Sprintf("        Namespace: %s", c.namespace))
 	c.Ui.Output(fmt.Sprintf("          Servers: (%d/%d) %v", serverCaptureCount, serversFound, c.serverIDs))
 	c.Ui.Output(fmt.Sprintf("          Clients: (%d/%d) %v", nodeCaptureCount, nodesFound, c.nodeIDs))
 	if nodeCaptureCount > 0 && nodeCaptureCount == c.maxNodes {
@@ -467,6 +543,13 @@ func (c *OperatorDebugCommand) collect(client *api.Client) error {
 
 	self, err := client.Agent().Self()
 	c.writeJSON(dir, "agent-self.json", self, err)
+
+	var qo *api.QueryOptions
+	namespaces, _, err := client.Namespaces().List(qo)
+	c.writeJSON(dir, "namespaces.json", namespaces, err)
+
+	regions, err := client.Regions().List()
+	c.writeJSON(dir, "regions.json", regions, err)
 
 	// Fetch data directly from consul and vault. Ignore errors
 	var consul, vault string
@@ -1055,8 +1138,46 @@ func TarCZF(archive string, src, target string) error {
 	})
 }
 
-// argNodes splits node ids from the command line by ","
-func argNodes(input string) []string {
+// filterServerMembers returns a slice of server member names matching the search criteria
+func filterServerMembers(serverMembers *api.ServerMembers, serverIDs string, region string) (membersFound []string, err error) {
+	if serverMembers.Members == nil {
+		return nil, fmt.Errorf("Failed to parse server members, members==nil")
+	}
+
+	prefixes := stringToSlice(serverIDs)
+
+	// "leader" is a special case which Nomad handles in the API.  If "leader"
+	// appears in serverIDs, add it to membersFound and remove it from the list
+	// so that it isn't processed by the range loop
+	if helper.SliceStringContains(prefixes, "leader") {
+		membersFound = append(membersFound, "leader")
+		helper.RemoveEqualFold(&prefixes, "leader")
+	}
+
+	for _, member := range serverMembers.Members {
+		// If region is provided it must match exactly
+		if region != "" && member.Tags["region"] != region {
+			continue
+		}
+
+		// Always include "all"
+		if serverIDs == "all" {
+			membersFound = append(membersFound, member.Name)
+			continue
+		}
+
+		// Include member if name matches any prefix from serverIDs
+		if helper.StringHasPrefixInSlice(member.Name, prefixes) {
+			membersFound = append(membersFound, member.Name)
+		}
+	}
+
+	return membersFound, nil
+}
+
+// stringToSlice splits comma-separated input string into slice, trims
+// whitespace, and prunes empty values
+func stringToSlice(input string) []string {
 	ns := strings.Split(input, ",")
 	var out []string
 	for _, n := range ns {
