@@ -6,24 +6,15 @@ updates:
       interval: daily
     labels:
       - "theme/dependencies"
-  - package-ecosystem: gomod
-    directory: "/api"
-    schedule:
-      interval: daily
-    labels:
-      - "theme/dependencies"
-      - "theme/api"
-  - package-ecosystem: npm
-    directory: "/ui"
-    schedule:
-      interval: daily
-    labels:
-      - "theme/dependencies"
-      - "theme/ui"
-  - package-ecosystem: npm
-    directory: "/website"
-    schedule:
-      interval: daily
-    labels:
-      - "theme/dependencies"
-      - "theme/website"
+    # Only check for enterprise dependencies.
+    allow:
+      - dependency-name: "github.com/hashicorp/consul-enterprise"
+      - dependency-name: "github.com/google/go-querystring"
+      - dependency-name: "github.com/hashicorp/errwrap"
+      - dependency-name: "github.com/hashicorp/eventlogger"
+      - dependency-name: "github.com/hashicorp/go-licensing"
+      - dependency-name: "github.com/hashicorp/nomad-licensing"
+      - dependency-name: "github.com/hashicorp/raft-snapshotagent"
+      - dependency-name: "github.com/hashicorp/sentinel"
+      - dependency-name: "github.com/mattn/go-isatty"
+      - dependency-name: "google.golang.org/protobuf"
