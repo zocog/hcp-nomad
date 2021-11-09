@@ -1,6 +1,32 @@
 # Nomad Enterprise
 
+## Building on Vagrant
+
+We have several dependencies (Sentinel, Consul-Enterprise, Licensing)
+that are in private GitHub repositories. To build these in Vagrant,
+you'll need to provide Vagrant with a ssh key and configuration as a
+one-time setup task.
+
+On the Vagrant box, create a key, authenticate the host key, and
+create a git config file that causes the go toolchain to default to
+ssh access:
+
+```
+ssh-keygen -t ed25519 -C "yourname+vagrant@hashicorp.com"
+ssh -T git@github.com
+
+cat <<EOF > ~/.gitconfig
+[url "git@github.com:"]
+	insteadOf = https://github.com/
+EOF
+```
+
+Then upload the public key found at `/home/vagrant/id_ed25519.pub` to
+your GitHub profile at https://github.com/settings/keys and authorize
+it with SSO.
+
 ## Licensing
+
 As of Nomad 1.1.0, Nomad Enterprise requires a license to start.
 
 You can grab a license under the `nomad-testing` org at
