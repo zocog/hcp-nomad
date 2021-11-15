@@ -55,59 +55,26 @@ func (c *OperatorDebugCommand) Help() string {
 	helpText := `
 Usage: nomad operator debug [options]
 
-  Build an archive containing Nomad cluster configuration and state, and Consul and Vault
-  status. Include logs and pprof profiles for selected servers and client nodes.
+  Build an archive containing Nomad cluster configuration and state, and Consul
+  and Vault status. Include logs and pprof profiles for selected servers and
+  client nodes.
 
   If ACLs are enabled, this command will require a token with the 'node:read'
   capability to run. In order to collect information, the token will also
   require the 'agent:read' and 'operator:read' capabilities, as well as the
   'list-jobs' capability for all namespaces. To collect pprof profiles the
-  token will also require 'agent:write', or enable_debug configuration set to true.
+  token will also require 'agent:write', or enable_debug configuration set to
+  true.
 
 General Options:
 
   ` + generalOptionsUsage(usageOptsDefault|usageOptsNoNamespace) + `
 
-Debug Options:
-
-  -duration=<duration>
-    The duration of the log monitor command. Defaults to 2m.
-
-  -interval=<interval>
-    The interval between snapshots of the Nomad state. If unspecified, only one snapshot is
-    captured.
-
-  -log-level=<level>
-    The log level to monitor. Defaults to DEBUG.
-
-  -max-nodes=<count>
-    Cap the maximum number of client nodes included in the capture.  Defaults to 10, set to 0 for unlimited.
-
-  -node-id=<node>,<node>
-    Comma separated list of Nomad client node ids, to monitor for logs and include pprof
-    profiles. Accepts id prefixes, and "all" to select all nodes (up to count = max-nodes).
-
-  -node-class=<node-class>
-    Filter client nodes based on node class.
-
-  -pprof-duration=<duration>
-    Duration for pprof collection. Defaults to 1s.
-
-  -server-id=<server>,<server>
-    Comma separated list of Nomad server names, "leader", or "all" to monitor for logs and include pprof
-    profiles.
-
-  -stale=<true|false>
-    If "false", the default, get membership data from the cluster leader. If the cluster is in
-    an outage unable to establish leadership, it may be necessary to get the configuration from
-    a non-leader server.
-
-  -output=<path>
-    Path to the parent directory of the output directory. If not specified, an archive is built
-    in the current directory.
+Consul Options:
 
   -consul-http-addr=<addr>
-    The address and port of the Consul HTTP agent. Overrides the CONSUL_HTTP_ADDR environment variable.
+    The address and port of the Consul HTTP agent. Overrides the
+    CONSUL_HTTP_ADDR environment variable.
 
   -consul-token=<token>
     Token used to query Consul. Overrides the CONSUL_HTTP_TOKEN environment
@@ -133,6 +100,8 @@ Debug Options:
     Path to a directory of PEM encoded CA cert files to verify the Consul
     certificate. Overrides the CONSUL_CAPATH environment variable.
 
+Vault Options:
+
   -vault-address=<addr>
     The address and port of the Vault HTTP agent. Overrides the VAULT_ADDR
     environment variable.
@@ -156,6 +125,47 @@ Debug Options:
   -vault-ca-path=<path>
     Path to a directory of PEM encoded CA cert files to verify the Vault
     certificate. Overrides the VAULT_CAPATH environment variable.
+
+Debug Options:
+
+  -duration=<duration>
+    The duration of the log monitor command. Defaults to 2m.
+
+  -interval=<interval>
+    The interval between snapshots of the Nomad state. Set interval equal to 
+    duration to capture a single snapshot. Defaults to 30s.
+
+  -log-level=<level>
+    The log level to monitor. Defaults to DEBUG.
+
+  -max-nodes=<count>
+    Cap the maximum number of client nodes included in the capture. Defaults
+    to 10, set to 0 for unlimited.
+
+  -node-id=<node>,<node>
+    Comma separated list of Nomad client node ids to monitor for logs, API
+    outputs, and pprof profiles. Accepts id prefixes, and "all" to select all
+    nodes (up to count = max-nodes). Defaults to "all".
+
+  -node-class=<node-class>
+    Filter client nodes based on node class.
+
+  -pprof-duration=<duration>
+    Duration for pprof collection. Defaults to 1s.
+
+  -server-id=<server>,<server>
+    Comma separated list of Nomad server names to monitor for logs, API
+    outputs, and pprof profiles. Accepts server names, "leader", or "all".
+    Defaults to "all".
+
+  -stale=<true|false>
+    If "false", the default, get membership data from the cluster leader. If
+    the cluster is in an outage unable to establish leadership, it may be
+    necessary to get the configuration from a non-leader server.
+
+  -output=<path>
+    Path to the parent directory of the output directory. If not specified, an
+    archive is built in the current directory.
 `
 	return strings.TrimSpace(helpText)
 }
@@ -195,12 +205,12 @@ func (c *OperatorDebugCommand) Run(args []string) int {
 	var nodeIDs, serverIDs string
 
 	flags.StringVar(&duration, "duration", "2m", "")
-	flags.StringVar(&interval, "interval", "2m", "")
+	flags.StringVar(&interval, "interval", "30s", "")
 	flags.StringVar(&c.logLevel, "log-level", "DEBUG", "")
 	flags.IntVar(&c.maxNodes, "max-nodes", 10, "")
 	flags.StringVar(&c.nodeClass, "node-class", "", "")
 	flags.StringVar(&nodeIDs, "node-id", "", "")
-	flags.StringVar(&serverIDs, "server-id", "", "")
+	flags.StringVar(&serverIDs, "server-id", "all", "")
 	flags.BoolVar(&c.stale, "stale", false, "")
 	flags.StringVar(&output, "output", "", "")
 	flags.StringVar(&pprofDuration, "pprof-duration", "1s", "")
@@ -245,6 +255,12 @@ func (c *OperatorDebugCommand) Run(args []string) int {
 		return 1
 	}
 	c.interval = i
+
+	// Validate interval
+	if i.Seconds() > d.Seconds() {
+		c.Ui.Error(fmt.Sprintf("Error parsing interval: %s is greater than duration %s", interval, duration))
+		return 1
+	}
 
 	// Parse the pprof capture duration
 	pd, err := time.ParseDuration(pprofDuration)
@@ -313,7 +329,7 @@ func (c *OperatorDebugCommand) Run(args []string) int {
 	nodeLookupFailCount := 0
 	nodeCaptureCount := 0
 
-	for _, id := range argNodes(nodeIDs) {
+	for _, id := range stringToSlice(nodeIDs) {
 		if id == "all" {
 			// Capture from all nodes using empty prefix filter
 			id = ""
@@ -366,15 +382,15 @@ func (c *OperatorDebugCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Failed to retrieve server list; err: %v", err))
 		return 1
 	}
+
+	// Write complete list of server members to file
 	c.writeJSON("version", "members.json", members, err)
-	// We always write the error to the file, but don't range if no members found
-	if serverIDs == "all" && members != nil {
-		// Special case to capture from all servers
-		for _, member := range members.Members {
-			c.serverIDs = append(c.serverIDs, member.Name)
-		}
-	} else {
-		c.serverIDs = append(c.serverIDs, argNodes(serverIDs)...)
+
+	// Filter for servers matching criteria
+	c.serverIDs, err = filterServerMembers(members, serverIDs, c.region)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to parse server list; err: %v", err))
+		return 1
 	}
 
 	serversFound := 0
@@ -396,6 +412,8 @@ func (c *OperatorDebugCommand) Run(args []string) int {
 	// Display general info about the capture
 	c.Ui.Output("Starting debugger...")
 	c.Ui.Output("")
+	c.Ui.Output(fmt.Sprintf("           Region: %s", c.region))
+	c.Ui.Output(fmt.Sprintf("        Namespace: %s", c.namespace))
 	c.Ui.Output(fmt.Sprintf("          Servers: (%d/%d) %v", serverCaptureCount, serversFound, c.serverIDs))
 	c.Ui.Output(fmt.Sprintf("          Clients: (%d/%d) %v", nodeCaptureCount, nodesFound, c.nodeIDs))
 	if nodeCaptureCount > 0 && nodeCaptureCount == c.maxNodes {
@@ -451,6 +469,13 @@ func (c *OperatorDebugCommand) collect(client *api.Client) error {
 
 	self, err := client.Agent().Self()
 	c.writeJSON(dir, "agent-self.json", self, err)
+
+	var qo *api.QueryOptions
+	namespaces, _, err := client.Namespaces().List(qo)
+	c.writeJSON(dir, "namespaces.json", namespaces, err)
+
+	regions, err := client.Regions().List()
+	c.writeJSON(dir, "regions.json", regions, err)
 
 	// Fetch data directly from consul and vault. Ignore errors
 	var consul, vault string
@@ -1030,8 +1055,46 @@ func TarCZF(archive string, src, target string) error {
 	})
 }
 
-// argNodes splits node ids from the command line by ","
-func argNodes(input string) []string {
+// filterServerMembers returns a slice of server member names matching the search criteria
+func filterServerMembers(serverMembers *api.ServerMembers, serverIDs string, region string) (membersFound []string, err error) {
+	if serverMembers.Members == nil {
+		return nil, fmt.Errorf("Failed to parse server members, members==nil")
+	}
+
+	prefixes := stringToSlice(serverIDs)
+
+	// "leader" is a special case which Nomad handles in the API.  If "leader"
+	// appears in serverIDs, add it to membersFound and remove it from the list
+	// so that it isn't processed by the range loop
+	if helper.SliceStringContains(prefixes, "leader") {
+		membersFound = append(membersFound, "leader")
+		helper.RemoveEqualFold(&prefixes, "leader")
+	}
+
+	for _, member := range serverMembers.Members {
+		// If region is provided it must match exactly
+		if region != "" && member.Tags["region"] != region {
+			continue
+		}
+
+		// Always include "all"
+		if serverIDs == "all" {
+			membersFound = append(membersFound, member.Name)
+			continue
+		}
+
+		// Include member if name matches any prefix from serverIDs
+		if helper.StringHasPrefixInSlice(member.Name, prefixes) {
+			membersFound = append(membersFound, member.Name)
+		}
+	}
+
+	return membersFound, nil
+}
+
+// stringToSlice splits comma-separated input string into slice, trims
+// whitespace, and prunes empty values
+func stringToSlice(input string) []string {
 	ns := strings.Split(input, ",")
 	var out []string
 	for _, n := range ns {
