@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-licensing"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
@@ -118,25 +119,25 @@ func (lw *LicenseWatcher) Reload(cfg *LicenseConfig) error {
 }
 
 // License atomically returns the license watchers stored license
-func (w *LicenseWatcher) License() *nomadLicense.License {
-	return w.licenseInfo.Load().(*ServerLicense).license
+func (lw *LicenseWatcher) License() *nomadLicense.License {
+	return lw.licenseInfo.Load().(*ServerLicense).license
 }
 
-func (w *LicenseWatcher) LicenseBlob() string {
-	return w.licenseInfo.Load().(*ServerLicense).blob
+func (lw *LicenseWatcher) LicenseBlob() string {
+	return lw.licenseInfo.Load().(*ServerLicense).blob
 }
 
 // FileLicense returns the watchers file license that was used to initialize
 // the server. It is not necessarily the license that the server is currently using
 // if a newer license was added via raft or manual API invocation
-func (w *LicenseWatcher) FileLicense() string {
-	return w.fileLicense
+func (lw *LicenseWatcher) FileLicense() string {
+	return lw.fileLicense
 }
 
 // ValidateLicense validates that the given blob is a valid go-licensing
 // license as well as a valid nomad license
-func (w *LicenseWatcher) ValidateLicense(blob string) (*nomadLicense.License, error) {
-	lic, err := w.watcher.ValidateLicense(blob)
+func (lw *LicenseWatcher) ValidateLicense(blob string) (*nomadLicense.License, error) {
+	lic, err := lw.watcher.ValidateLicense(blob)
 	if err != nil {
 		return nil, err
 	}
@@ -147,8 +148,8 @@ func (w *LicenseWatcher) ValidateLicense(blob string) (*nomadLicense.License, er
 	return nLic, nil
 }
 
-func (w *LicenseWatcher) Features() nomadLicense.Features {
-	lic := w.License()
+func (lw *LicenseWatcher) Features() nomadLicense.Features {
+	lic := lw.License()
 	if lic == nil {
 		return nomadLicense.FeatureNone
 	}
@@ -233,6 +234,12 @@ func (lw *LicenseWatcher) start(ctx context.Context) {
 // Nomad uses the go licensing watcher channels mostly to log.  Since Nomad
 // does not shut down when a valid license has expired the ErrorCh logs.
 func (lw *LicenseWatcher) monitorWatcher(ctx context.Context) {
+
+	// Set up a ticker that allows us to emit a metric regarding the license
+	// expiration.
+	metricsTicker := time.NewTicker(time.Second)
+	defer metricsTicker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -255,6 +262,9 @@ func (lw *LicenseWatcher) monitorWatcher(ctx context.Context) {
 
 		case warnLicense := <-lw.watcher.WarningCh():
 			lw.logger.Warn("license expiring", "time_left", time.Until(warnLicense.ExpirationTime).Truncate(time.Second))
+
+		case <-metricsTicker.C:
+			metrics.SetGauge([]string{"license", "expiration_time_epoch"}, float32(lw.License().ExpirationTime.Unix()))
 		}
 	}
 }
