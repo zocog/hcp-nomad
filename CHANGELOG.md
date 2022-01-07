@@ -1,4 +1,22 @@
-## 1.2.0 (Unreleased)
+## 1.2.3 (December 13, 2021)
+
+SECURITY:
+
+* Updated to Go 1.17.5. Go 1.17.3 contained 2 CVEs. [CVE-2021-44717](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44717) could allow a task on a Unix system with exhausted file handles to misdirect I/O. [CVE-2021-44716](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44716) could create unbounded memory growth in HTTP2 servers. Nomad servers do not use HTTP2. [[GH-11662](https://github.com/hashicorp/nomad/issues/11662)]
+
+## 1.2.2 (November 24, 2021)
+
+BUG FIXES:
+
+* scheduler: Fix panic when system jobs are filtered by node class [[GH-11565](https://github.com/hashicorp/nomad/issues/11565)]
+
+## 1.2.1 (November 19, 2021)
+
+SECURITY:
+
+* Allow limiting QEMU arguments to reduce access to host resources. [CVE-2021-43415](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-43415) [[GH-11542](https://github.com/hashicorp/nomad/issues/11542)]
+
+## 1.2.0 (November 15, 2021)
 
 FEATURES:
 
@@ -61,6 +79,41 @@ BUG FIXES:
 * deps: Updated `hashicorp/go-plugin` to v1.4.3 to fix handles leakage on Windows platforms [[GH-11143](https://github.com/hashicorp/nomad/issues/11143)]
 * driver/exec: Set CPU resource limits when cgroup-v2 is enabled [[GH-11287](https://github.com/hashicorp/nomad/issues/11287)]
 * jobspec: ensure consistent error handling between var-file & cli vars [[GH-11165](https://github.com/hashicorp/nomad/issues/11165)]
+* rpc: Set the job deregistration eval priority to the job priority [[GH-11426](https://github.com/hashicorp/nomad/issues/11426)]
+* rpc: Set the job scale eval priority to the job priority [[GH-11429](https://github.com/hashicorp/nomad/issues/11429)]
+* server: Fixed a panic on arm64 platform when dispatching a job with a payload [[GH-11396](https://github.com/hashicorp/nomad/issues/11396)]
+* server: Fixed a panic that may occur when preempting multiple allocations on the same node [[GH-11346](https://github.com/hashicorp/nomad/issues/11346)]
+
+## 1.1.9 (December 13, 2021)
+
+SECURITY:
+
+* Updated to Go 1.16.12. Earlier versions of Go contained 2 CVEs. [CVE-2021-44717](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44717) could allow a task on a Unix system with exhausted file handles to misdirect I/O. [CVE-2021-44716](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44716) could create unbounded memory growth in HTTP2 servers. Nomad servers do not use HTTP2. [[GH-11662](https://github.com/hashicorp/nomad/issues/11662)]
+
+## 1.1.8 (November 19, 2021)
+
+SECURITY:
+
+* Allow limiting QEMU arguments to reduce access to host resources. [CVE-2021-43415](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-43415) [[GH-11542](https://github.com/hashicorp/nomad/issues/11542)]
+
+## 1.1.7 (November 15, 2021)
+
+IMPROVEMENTS:
+
+* cli: Improve debug namespace and region support [[GH-11269](https://github.com/hashicorp/nomad/issues/11269)]
+* client/plugins/drivermanager: log if there is an error in a driver event [[GH-11280](https://github.com/hashicorp/nomad/issues/11280)]
+* core: Elevated rejected node plan log lines to help diagnose #9506 [[GH-11416](https://github.com/hashicorp/nomad/issues/11416)]
+
+BUG FIXES:
+
+* agent: Fixed an issue that caused some non-JSON log output when `log_json` was enabled [[GH-11291](https://github.com/hashicorp/nomad/issues/11291)]
+* agent: Fixed an issue that could cause previous log lines to be overwritten [[GH-11386](https://github.com/hashicorp/nomad/issues/11386)]
+* cli: Fix support for `group.consul` field in the HCLv1 parser [[GH-11423](https://github.com/hashicorp/nomad/issues/11423)]
+* client: Added `NOMAD_LICENSE` to default environment variable deny list. [[GH-11215](https://github.com/hashicorp/nomad/issues/11215)]
+* client: Fixed a bug where network speed fingerprint could fail on Windows [[GH-11183](https://github.com/hashicorp/nomad/issues/11183)]
+* client: Removed spurious error log messages when tasks complete [[GH-11273](https://github.com/hashicorp/nomad/issues/11273)]
+* csi: Fixed a bug where the client would incorrectly set an empty capacity range for CSI volume creation requests. [[GH-11238](https://github.com/hashicorp/nomad/issues/11238)]
+* driver/exec: Set CPU resource limits when cgroup-v2 is enabled [[GH-11287](https://github.com/hashicorp/nomad/issues/11287)]
 * rpc: Set the job deregistration eval priority to the job priority [[GH-11426](https://github.com/hashicorp/nomad/issues/11426)]
 * rpc: Set the job scale eval priority to the job priority [[GH-11429](https://github.com/hashicorp/nomad/issues/11429)]
 * server: Fixed a panic on arm64 platform when dispatching a job with a payload [[GH-11396](https://github.com/hashicorp/nomad/issues/11396)]
@@ -295,6 +348,38 @@ BUG FIXES:
  * server: Fixed a bug where jobs may not run if submitted with ParentID field set [[GH-10424](https://github.com/hashicorp/nomad/issues/10424)]
  * server: Fixed a panic that may arise on submission of jobs containing invalid service checks [[GH-10154](https://github.com/hashicorp/nomad/issues/10154)]
  * ui: Fixed the rendering of interstitial components shown after processing a dynamic application sizing recommendation. [[GH-10094](https://github.com/hashicorp/nomad/pull/10094)]
+
+## 1.0.15 (December 13, 2021)
+
+SECURITY:
+
+* Updated to Go 1.16.12. Earlier versions of Go contained 2 CVEs. [CVE-2021-44717](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44717) could allow a task on a Unix system with exhausted file handles to misdirect I/O. [CVE-2021-44716](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44716) could create unbounded memory growth in HTTP2 servers. Nomad servers do not use HTTP2. [[GH-11662](https://github.com/hashicorp/nomad/issues/11662)]
+
+## 1.0.14 (November 19, 2021)
+
+SECURITY:
+
+* Allow limiting QEMU arguments to reduce access to host resources. [CVE-2021-43415](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-43415) [[GH-11542](https://github.com/hashicorp/nomad/issues/11542)]
+
+## 1.0.13 (November 15, 2021)
+
+IMPROVEMENTS:
+
+* cli: Improve debug namespace and region support [[GH-11269](https://github.com/hashicorp/nomad/issues/11269)]
+* cli: Update defaults for `nomad operator debug` flags `-interval` and `-server-id` to match common usage [[GH-10121](https://github.com/hashicorp/nomad/issues/10121)]
+* client/plugins/drivermanager: log if there is an error in a driver event [[GH-11280](https://github.com/hashicorp/nomad/issues/11280)]
+* core: Elevated rejected node plan log lines to help diagnose #9506 [[GH-11416](https://github.com/hashicorp/nomad/issues/11416)]
+
+BUG FIXES:
+
+* agent: Fixed an issue that caused some non-JSON log output when `log_json` was enabled [[GH-11291](https://github.com/hashicorp/nomad/issues/11291)]
+* agent: Fixed an issue that could cause previous log lines to be overwritten [[GH-11386](https://github.com/hashicorp/nomad/issues/11386)]
+* client: Fixed a bug where network speed fingerprint could fail on Windows [[GH-11183](https://github.com/hashicorp/nomad/issues/11183)]
+* client: Removed spurious error log messages when tasks complete [[GH-11273](https://github.com/hashicorp/nomad/issues/11273)]
+* driver/exec: Set CPU resource limits when cgroup-v2 is enabled [[GH-11287](https://github.com/hashicorp/nomad/issues/11287)]
+* rpc: Set the job deregistration eval priority to the job priority [[GH-11426](https://github.com/hashicorp/nomad/issues/11426)]
+* rpc: Set the job scale eval priority to the job priority [[GH-11429](https://github.com/hashicorp/nomad/issues/11429)]
+* server: Fixed a panic that may occur when preempting multiple allocations on the same node [[GH-11346](https://github.com/hashicorp/nomad/issues/11346)]
 
 ## 1.0.12 (October 5, 2021)
 

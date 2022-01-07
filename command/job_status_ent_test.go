@@ -65,8 +65,9 @@ func TestJobStatusCommand_Multiregion(t *testing.T) {
 	jobEast := testMultiRegionJob("job1_sfxx", "east", "east-1")
 	resp, _, err := clientEast.Jobs().Register(jobEast, nil)
 	require.NoError(t, err)
-	if code := waitForSuccess(ui, clientEast, fullId, t, resp.EvalID); code != 0 {
-		t.Fatalf("status code non zero saw %d", code)
+	code := waitForSuccess(ui, clientEast, fullId, t, resp.EvalID)
+	if code != 1 {
+		t.Fatalf("expected monitor to show blocked deployment: %d", code)
 	}
 
 	jobs, _, err := clientEast.Jobs().List(&api.QueryOptions{})
