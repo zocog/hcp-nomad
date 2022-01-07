@@ -195,24 +195,24 @@ func (c *grpcExecutorClient) Exec(deadline time.Time, cmd string, args []string)
 	return resp.Output, int(resp.ExitCode), nil
 }
 
-func (c *grpcExecutorClient) ExecStreaming(ctx context.Context,
+func (d *grpcExecutorClient) ExecStreaming(ctx context.Context,
 	command []string,
 	tty bool,
 	execStream drivers.ExecTaskStream) error {
 
-	err := c.execStreaming(ctx, command, tty, execStream)
+	err := d.execStreaming(ctx, command, tty, execStream)
 	if err != nil {
-		return grpcutils.HandleGrpcErr(err, c.doneCtx)
+		return grpcutils.HandleGrpcErr(err, d.doneCtx)
 	}
 	return nil
 }
 
-func (c *grpcExecutorClient) execStreaming(ctx context.Context,
+func (d *grpcExecutorClient) execStreaming(ctx context.Context,
 	command []string,
 	tty bool,
 	execStream drivers.ExecTaskStream) error {
 
-	stream, err := c.client.ExecStreaming(ctx)
+	stream, err := d.client.ExecStreaming(ctx)
 	if err != nil {
 		return err
 	}

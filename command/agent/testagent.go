@@ -66,11 +66,7 @@ type TestAgent struct {
 	// Key is the optional encryption key for the keyring.
 	Key string
 
-	// All HTTP servers started. Used to prevent server leaks and preserve
-	// backwards compatibility.
-	Servers []*HTTPServer
-
-	// Server is a reference to the primary, started HTTP endpoint.
+	// Server is a reference to the started HTTP endpoint.
 	// It is valid after Start().
 	Server *HTTPServer
 
@@ -259,15 +255,12 @@ func (a *TestAgent) start() (*Agent, error) {
 	}
 
 	// Setup the HTTP server
-	httpServers, err := NewHTTPServers(agent, a.Config)
+	http, err := NewHTTPServer(agent, a.Config)
 	if err != nil {
 		return agent, err
 	}
 
-	// TODO: investigate if there is a way to remove the requirement by updating test.
-	// Initial pass at implementing this is https://github.com/kevinschoonover/nomad/tree/tests.
-	a.Servers = httpServers
-	a.Server = httpServers[0]
+	a.Server = http
 	return agent, nil
 }
 
@@ -291,10 +284,7 @@ func (a *TestAgent) Shutdown() error {
 	ch := make(chan error, 1)
 	go func() {
 		defer close(ch)
-		for _, srv := range a.Servers {
-			srv.Shutdown()
-		}
-
+		a.Server.Shutdown()
 		ch <- a.Agent.Shutdown()
 	}()
 

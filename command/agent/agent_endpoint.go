@@ -71,9 +71,7 @@ func (s *HTTPServer) AgentSelfRequest(resp http.ResponseWriter, req *http.Reques
 		member = srv.LocalMember()
 		aclObj, err = srv.ResolveToken(secret)
 	} else {
-		// Not a Server, so use the Client for token resolution. Note
-		// this gets forwarded to a server with AllowStale = true if
-		// the local ACL cache TTL has expired (30s by default)
+		// Not a Server; use the Client for token resolution
 		aclObj, err = s.agent.Client().ResolveToken(secret)
 	}
 
@@ -679,9 +677,7 @@ func (s *HTTPServer) AgentHostRequest(resp http.ResponseWriter, req *http.Reques
 		aclObj, err = srv.ResolveToken(secret)
 		enableDebug = srv.GetConfig().EnableDebug
 	} else {
-		// Not a Server, so use the Client for token resolution. Note
-		// this gets forwarded to a server with AllowStale = true if
-		// the local ACL cache TTL has expired (30s by default)
+		// Not a Server; use the Client for token resolution
 		aclObj, err = s.agent.Client().ResolveToken(secret)
 		enableDebug = s.agent.Client().GetConfig().EnableDebug
 	}

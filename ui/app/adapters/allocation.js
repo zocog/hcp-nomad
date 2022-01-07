@@ -31,8 +31,14 @@ async function handleFSResponse(response) {
   } else {
     const body = await response.text();
 
+    // TODO update this if/when endpoint returns 404 as expected
+    const statusIs500 = response.status === 500;
+    const bodyIncludes404Text = body.includes('no such file or directory');
+
+    const translatedCode = statusIs500 && bodyIncludes404Text ? 404 : response.status;
+
     throw {
-      code: response.status,
+      code: translatedCode,
       toString: () => body,
     };
   }

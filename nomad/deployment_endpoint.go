@@ -400,34 +400,32 @@ func (d *Deployment) List(args *structs.DeploymentListRequest, reply *structs.De
 	opts := blockingOptions{
 		queryOpts: &args.QueryOptions,
 		queryMeta: &reply.QueryMeta,
-		run: func(ws memdb.WatchSet, store *state.StateStore) error {
+		run: func(ws memdb.WatchSet, state *state.StateStore) error {
 			// Capture all the deployments
 			var err error
 			var iter memdb.ResultIterator
 			if prefix := args.QueryOptions.Prefix; prefix != "" {
-				iter, err = store.DeploymentsByIDPrefix(ws, args.RequestNamespace(), prefix)
-			} else if args.RequestNamespace() == structs.AllNamespacesSentinel {
-				iter, err = store.Deployments(ws)
+				iter, err = state.DeploymentsByIDPrefix(ws, args.RequestNamespace(), prefix)
 			} else {
-				iter, err = store.DeploymentsByNamespace(ws, args.RequestNamespace())
+				iter, err = state.DeploymentsByNamespace(ws, args.RequestNamespace())
 			}
 			if err != nil {
 				return err
 			}
 
 			var deploys []*structs.Deployment
-			paginator := state.NewPaginator(iter, args.QueryOptions,
-				func(raw interface{}) {
-					deploy := raw.(*structs.Deployment)
-					deploys = append(deploys, deploy)
-				})
-
-			nextToken := paginator.Page()
-			reply.QueryMeta.NextToken = nextToken
+			for {
+				raw := iter.Next()
+				if raw == nil {
+					break
+				}
+				deploy := raw.(*structs.Deployment)
+				deploys = append(deploys, deploy)
+			}
 			reply.Deployments = deploys
 
 			// Use the last index that affected the deployment table
-			index, err := store.Index("deployment")
+			index, err := state.Index("deployment")
 			if err != nil {
 				return err
 			}

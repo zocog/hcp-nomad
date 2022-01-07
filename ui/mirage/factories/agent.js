@@ -1,4 +1,4 @@
-import { Factory, trait } from 'ember-cli-mirage';
+import { Factory } from 'ember-cli-mirage';
 import faker from 'nomad-ui/mirage/faker';
 import { provide } from '../utils';
 import { DATACENTERS } from '../common';
@@ -13,9 +13,6 @@ export default Factory.extend({
   name: () => generateName(),
 
   config: {
-    UI: {
-      Enabled: true,
-    },
     Version: {
       Version: '1.1.0',
       VersionMetadata: 'ent',
@@ -37,22 +34,6 @@ export default Factory.extend({
   version() {
     return this.member.Tags?.build || '';
   },
-
-  withConsulLink: trait({
-    afterCreate(agent) {
-      agent.config.UI.Consul = {
-        BaseUIURL: 'http://localhost:8500/ui',
-      };
-    },
-  }),
-
-  withVaultLink: trait({
-    afterCreate(agent) {
-      agent.config.UI.Vault = {
-        BaseUIURL: 'http://localhost:8200/ui',
-      };
-    },
-  }),
 });
 
 function generateName() {

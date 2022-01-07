@@ -159,7 +159,6 @@ func (ar *allocRunner) initRunnerHooks(config *clientconfig.Config) error {
 			taskEnvBuilder:      envBuilder,
 			networkStatusGetter: ar,
 			logger:              hookLogger,
-			shutdownDelayCtx:    ar.shutdownDelayCtx,
 		}),
 		newConsulGRPCSocketHook(hookLogger, alloc, ar.allocDir, config.ConsulConfig),
 		newConsulHTTPSocketHook(hookLogger, alloc, ar.allocDir, config.ConsulConfig),

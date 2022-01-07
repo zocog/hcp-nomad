@@ -36,11 +36,7 @@ func TestScalingEndpoint_GetPolicy(t *testing.T) {
 	p2 := mock.ScalingPolicy()
 	s1.fsm.State().UpsertScalingPolicies(1000, []*structs.ScalingPolicy{p1, p2})
 
-	// Add another policy at a higher index.
-	p3 := mock.ScalingPolicy()
-	require.NoError(s1.fsm.State().UpsertScalingPolicies(2000, []*structs.ScalingPolicy{p3}))
-
-	// Lookup the first policy and perform assertions.
+	// Lookup the policy
 	get := &structs.ScalingPolicySpecificRequest{
 		ID: p1.ID,
 		QueryOptions: structs.QueryOptions{
@@ -58,7 +54,7 @@ func TestScalingEndpoint_GetPolicy(t *testing.T) {
 	resp = structs.SingleScalingPolicyResponse{}
 	err = msgpackrpc.CallWithCodec(codec, "Scaling.GetPolicy", get, &resp)
 	require.NoError(err)
-	require.EqualValues(2000, resp.Index)
+	require.EqualValues(1000, resp.Index)
 	require.Nil(resp.Policy)
 }
 

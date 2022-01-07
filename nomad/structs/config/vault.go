@@ -92,19 +92,19 @@ func DefaultVaultConfig() *VaultConfig {
 }
 
 // IsEnabled returns whether the config enables Vault integration
-func (c *VaultConfig) IsEnabled() bool {
-	return c.Enabled != nil && *c.Enabled
+func (a *VaultConfig) IsEnabled() bool {
+	return a.Enabled != nil && *a.Enabled
 }
 
 // AllowsUnauthenticated returns whether the config allows unauthenticated
 // access to Vault
-func (c *VaultConfig) AllowsUnauthenticated() bool {
-	return c.AllowUnauthenticated != nil && *c.AllowUnauthenticated
+func (a *VaultConfig) AllowsUnauthenticated() bool {
+	return a.AllowUnauthenticated != nil && *a.AllowUnauthenticated
 }
 
 // Merge merges two Vault configurations together.
-func (c *VaultConfig) Merge(b *VaultConfig) *VaultConfig {
-	result := *c
+func (a *VaultConfig) Merge(b *VaultConfig) *VaultConfig {
+	result := *a
 
 	if b.Token != "" {
 		result.Token = b.Token
@@ -190,51 +190,51 @@ func (c *VaultConfig) Copy() *VaultConfig {
 
 // IsEqual compares two Vault configurations and returns a boolean indicating
 // if they are equal.
-func (c *VaultConfig) IsEqual(b *VaultConfig) bool {
-	if c == nil && b != nil {
+func (a *VaultConfig) IsEqual(b *VaultConfig) bool {
+	if a == nil && b != nil {
 		return false
 	}
-	if c != nil && b == nil {
+	if a != nil && b == nil {
 		return false
 	}
 
-	if c.Token != b.Token {
+	if a.Token != b.Token {
 		return false
 	}
-	if c.Role != b.Role {
+	if a.Role != b.Role {
 		return false
 	}
-	if c.TaskTokenTTL != b.TaskTokenTTL {
+	if a.TaskTokenTTL != b.TaskTokenTTL {
 		return false
 	}
-	if c.Addr != b.Addr {
+	if a.Addr != b.Addr {
 		return false
 	}
-	if c.ConnectionRetryIntv.Nanoseconds() != b.ConnectionRetryIntv.Nanoseconds() {
+	if a.ConnectionRetryIntv.Nanoseconds() != b.ConnectionRetryIntv.Nanoseconds() {
 		return false
 	}
-	if c.TLSCaFile != b.TLSCaFile {
+	if a.TLSCaFile != b.TLSCaFile {
 		return false
 	}
-	if c.TLSCaPath != b.TLSCaPath {
+	if a.TLSCaPath != b.TLSCaPath {
 		return false
 	}
-	if c.TLSCertFile != b.TLSCertFile {
+	if a.TLSCertFile != b.TLSCertFile {
 		return false
 	}
-	if c.TLSKeyFile != b.TLSKeyFile {
+	if a.TLSKeyFile != b.TLSKeyFile {
 		return false
 	}
-	if c.TLSServerName != b.TLSServerName {
+	if a.TLSServerName != b.TLSServerName {
 		return false
 	}
-	if c.AllowUnauthenticated != b.AllowUnauthenticated {
+	if a.AllowUnauthenticated != b.AllowUnauthenticated {
 		return false
 	}
-	if c.TLSSkipVerify != b.TLSSkipVerify {
+	if a.TLSSkipVerify != b.TLSSkipVerify {
 		return false
 	}
-	if c.Enabled != b.Enabled {
+	if a.Enabled != b.Enabled {
 		return false
 	}
 	return true

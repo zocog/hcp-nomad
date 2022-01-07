@@ -1531,7 +1531,9 @@ func TestClientEndpoint_GetNode(t *testing.T) {
 	node.StatusUpdatedAt = resp2.Node.StatusUpdatedAt
 	node.SecretID = ""
 	node.Events = resp2.Node.Events
-	require.Equal(t, node, resp2.Node)
+	if !reflect.DeepEqual(node, resp2.Node) {
+		t.Fatalf("bad: %#v \n %#v", node, resp2.Node)
+	}
 
 	// assert that the node register event was set correctly
 	if len(resp2.Node.Events) != 1 {

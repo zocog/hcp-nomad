@@ -171,9 +171,6 @@ type allocRunner struct {
 
 	taskHookCoordinator *taskHookCoordinator
 
-	shutdownDelayCtx      context.Context
-	shutdownDelayCancelFn context.CancelFunc
-
 	// rpcClient is the RPC Client that should be used by the allocrunner and its
 	// hooks to communicate with Nomad Servers.
 	rpcClient RPCer
@@ -233,10 +230,6 @@ func NewAllocRunner(config *Config) (*allocRunner, error) {
 
 	ar.taskHookCoordinator = newTaskHookCoordinator(ar.logger, tg.Tasks)
 
-	shutdownDelayCtx, shutdownDelayCancel := context.WithCancel(context.Background())
-	ar.shutdownDelayCtx = shutdownDelayCtx
-	ar.shutdownDelayCancelFn = shutdownDelayCancel
-
 	// Initialize the runners hooks.
 	if err := ar.initRunnerHooks(config.ClientConfig); err != nil {
 		return nil, err
@@ -272,7 +265,6 @@ func (ar *allocRunner) initTaskRunners(tasks []*structs.Task) error {
 			DriverManager:        ar.driverManager,
 			ServersContactedCh:   ar.serversContactedCh,
 			StartConditionMetCtx: ar.taskHookCoordinator.startConditionForTask(task),
-			ShutdownDelayCtx:     ar.shutdownDelayCtx,
 		}
 
 		if ar.cpusetManager != nil {
@@ -830,10 +822,6 @@ func (ar *allocRunner) Update(update *structs.Allocation) {
 			"modify_index", update.AllocModifyIndex)
 		return
 	default:
-	}
-
-	if update.DesiredTransition.ShouldIgnoreShutdownDelay() {
-		ar.shutdownDelayCancelFn()
 	}
 
 	// Queue the new update

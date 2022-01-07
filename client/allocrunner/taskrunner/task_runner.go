@@ -112,11 +112,6 @@ type TaskRunner struct {
 	killErr     error
 	killErrLock sync.Mutex
 
-	// shutdownDelayCtx is a context from the alloc runner which will
-	// tell us to exit early from shutdown_delay
-	shutdownDelayCtx      context.Context
-	shutdownDelayCancelFn context.CancelFunc
-
 	// Logger is the logger for the task runner.
 	logger log.Logger
 
@@ -292,13 +287,6 @@ type Config struct {
 
 	// startConditionMetCtx is done when TR should start the task
 	StartConditionMetCtx <-chan struct{}
-
-	// ShutdownDelayCtx is a context from the alloc runner which will
-	// tell us to exit early from shutdown_delay
-	ShutdownDelayCtx context.Context
-
-	// ShutdownDelayCancelFn should only be used in testing.
-	ShutdownDelayCancelFn context.CancelFunc
 }
 
 func NewTaskRunner(config *Config) (*TaskRunner, error) {
@@ -354,8 +342,6 @@ func NewTaskRunner(config *Config) (*TaskRunner, error) {
 		maxEvents:              defaultMaxEvents,
 		serversContactedCh:     config.ServersContactedCh,
 		startConditionMetCtx:   config.StartConditionMetCtx,
-		shutdownDelayCtx:       config.ShutdownDelayCtx,
-		shutdownDelayCancelFn:  config.ShutdownDelayCancelFn,
 	}
 
 	// Create the logger based on the allocation ID
@@ -909,8 +895,6 @@ func (tr *TaskRunner) handleKill(resultCh <-chan *drivers.ExitResult) *drivers.E
 		select {
 		case result := <-resultCh:
 			return result
-		case <-tr.shutdownDelayCtx.Done():
-			break
 		case <-time.After(delay):
 		}
 	}
@@ -1493,10 +1477,4 @@ func (tr *TaskRunner) DriverCapabilities() (*drivers.Capabilities, error) {
 
 func (tr *TaskRunner) SetAllocHookResources(res *cstructs.AllocHookResources) {
 	tr.allocHookResources = res
-}
-
-// shutdownDelayCancel is used for testing only and cancels the
-// shutdownDelayCtx
-func (tr *TaskRunner) shutdownDelayCancel() {
-	tr.shutdownDelayCancelFn()
 }

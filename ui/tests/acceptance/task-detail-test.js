@@ -1,4 +1,4 @@
-import { currentURL, waitFor } from '@ember/test-helpers';
+import { currentURL } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
 import { setupMirage } from 'ember-cli-mirage/test-support';
@@ -57,27 +57,26 @@ module('Acceptance | task detail', function(hooks) {
     const job = server.db.jobs.find(jobId);
 
     const shortId = allocation.id.split('-')[0];
-    assert.equal(Layout.breadcrumbFor('jobs.index').text, 'Jobs', 'Jobs is the first breadcrumb');
 
-    await waitFor('[data-test-job-breadcrumb]');
+    assert.equal(Layout.breadcrumbFor('jobs.index').text, 'Jobs', 'Jobs is the first breadcrumb');
     assert.equal(
       Layout.breadcrumbFor('jobs.job.index').text,
-      `Job ${job.name}`,
+      job.name,
       'Job is the second breadcrumb'
     );
     assert.equal(
       Layout.breadcrumbFor('jobs.job.task-group').text,
-      `Task Group ${taskGroup}`,
+      taskGroup,
       'Task Group is the third breadcrumb'
     );
     assert.equal(
       Layout.breadcrumbFor('allocations.allocation').text,
-      `Allocation ${shortId}`,
+      shortId,
       'Allocation short id is the fourth breadcrumb'
     );
     assert.equal(
       Layout.breadcrumbFor('allocations.allocation.task').text,
-      `Task ${task.name}`,
+      task.name,
       'Task name is the fifth breadcrumb'
     );
 

@@ -102,8 +102,8 @@ func (c CPUSet) Difference(other CPUSet) CPUSet {
 }
 
 // IsSubsetOf returns true if all cpus of the this CPUSet are present in the other CPUSet.
-func (c CPUSet) IsSubsetOf(other CPUSet) bool {
-	for cpu := range c.cpus {
+func (s CPUSet) IsSubsetOf(other CPUSet) bool {
+	for cpu := range s.cpus {
 		if _, ok := other.cpus[cpu]; !ok {
 			return false
 		}
@@ -111,9 +111,9 @@ func (c CPUSet) IsSubsetOf(other CPUSet) bool {
 	return true
 }
 
-func (c CPUSet) IsSupersetOf(other CPUSet) bool {
+func (s CPUSet) IsSupersetOf(other CPUSet) bool {
 	for cpu := range other.cpus {
-		if _, ok := c.cpus[cpu]; !ok {
+		if _, ok := s.cpus[cpu]; !ok {
 			return false
 		}
 	}
@@ -121,9 +121,9 @@ func (c CPUSet) IsSupersetOf(other CPUSet) bool {
 }
 
 // ContainsAny returns true if any cpus in other CPUSet are present
-func (c CPUSet) ContainsAny(other CPUSet) bool {
+func (s CPUSet) ContainsAny(other CPUSet) bool {
 	for cpu := range other.cpus {
-		if _, ok := c.cpus[cpu]; ok {
+		if _, ok := s.cpus[cpu]; ok {
 			return true
 		}
 	}
@@ -131,8 +131,8 @@ func (c CPUSet) ContainsAny(other CPUSet) bool {
 }
 
 // Equals tests the equality of the elements in the CPUSet
-func (c CPUSet) Equals(other CPUSet) bool {
-	return reflect.DeepEqual(c.cpus, other.cpus)
+func (s CPUSet) Equals(other CPUSet) bool {
+	return reflect.DeepEqual(s.cpus, other.cpus)
 }
 
 // Parse parses the Linux cpuset format into a CPUSet

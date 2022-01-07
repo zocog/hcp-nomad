@@ -11,7 +11,6 @@ import {
 
 import allocations from 'nomad-ui/tests/pages/components/allocations';
 import error from 'nomad-ui/tests/pages/components/error';
-import { multiFacet } from 'nomad-ui/tests/pages/components/facet';
 
 export default create({
   visit: visitable('/jobs/:id/allocations'),
@@ -22,12 +21,6 @@ export default create({
   search: fillable('[data-test-allocations-search] input'),
 
   ...allocations(),
-
-  facets: {
-    status: multiFacet('[data-test-allocation-status-facet]'),
-    client: multiFacet('[data-test-allocation-client-facet]'),
-    taskGroup: multiFacet('[data-test-allocation-task-group-facet]'),
-  },
 
   isEmpty: isPresent('[data-test-empty-allocations-list]'),
   emptyState: {

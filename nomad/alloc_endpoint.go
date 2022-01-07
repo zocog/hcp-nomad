@@ -320,8 +320,7 @@ func (a *Alloc) Stop(args *structs.AllocStopRequest, reply *structs.AllocStopRes
 		Evals: []*structs.Evaluation{eval},
 		Allocs: map[string]*structs.DesiredTransition{
 			args.AllocID: {
-				Migrate:         helper.BoolToPtr(true),
-				NoShutdownDelay: helper.BoolToPtr(args.NoShutdownDelay),
+				Migrate: helper.BoolToPtr(true),
 			},
 		},
 	}

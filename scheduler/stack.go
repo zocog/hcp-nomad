@@ -163,14 +163,7 @@ func (s *GenericStack) Select(tg *structs.TaskGroup, options *SelectOptions) *Ra
 	s.spread.SetTaskGroup(tg)
 
 	if s.nodeAffinity.hasAffinities() || s.spread.hasSpreads() {
-		// scoring spread across all nodes has quadratic behavior, so
-		// we need to consider a subset of nodes to keep evaluaton times
-		// reasonable but enough to ensure spread is correct. this
-		// value was empirically determined.
-		s.limit.SetLimit(tg.Count)
-		if tg.Count < 100 {
-			s.limit.SetLimit(100)
-		}
+		s.limit.SetLimit(math.MaxInt32)
 	}
 
 	if contextual, ok := s.quota.(ContextualIterator); ok {
