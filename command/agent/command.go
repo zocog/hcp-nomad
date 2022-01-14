@@ -410,7 +410,7 @@ func (c *Command) isValidConfig(config, cmdConfig *Config) bool {
 	if !config.DevMode {
 		// Ensure that we have the directories we need to run.
 		if config.Server.Enabled && config.DataDir == "" {
-			c.Ui.Error("Must specify data directory")
+			c.Ui.Error(`Must specify "data_dir" config option or "data-dir" CLI flag`)
 			return false
 		}
 
@@ -687,7 +687,10 @@ func (c *Command) Run(args []string) int {
 
 	// Wrap log messages emitted with the 'log' package.
 	// These usually come from external dependencies.
-	log.SetOutput(logger.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}))
+	log.SetOutput(logger.StandardWriter(&hclog.StandardLoggerOptions{
+		InferLevels:              true,
+		InferLevelsWithTimestamp: true,
+	}))
 	log.SetPrefix("")
 	log.SetFlags(0)
 
