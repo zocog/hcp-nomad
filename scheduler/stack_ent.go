@@ -96,6 +96,9 @@ func (iter *QuotaIterator) SetJob(job *structs.Job) {
 	iter.actUsage = usage
 }
 
+// Next implements the Next function of the FeasibleIterator interface. In the
+// context of this quota implementation, it checks that the resources requested
+// by the allocation currently being placed would not exceed the quota.
 func (iter *QuotaIterator) Next() *structs.Node {
 	// Get the next option from the source
 	option := iter.source.Next()
@@ -106,13 +109,16 @@ func (iter *QuotaIterator) Next() *structs.Node {
 		return option
 	}
 
-	// Add the resources of the proposed task group
-	iter.proposedLimit.AddResource(combinedResources(iter.tg))
+	// Add the resources of the proposed task group. It is important to use a
+	// copy, as the node may get rejected later during the selection process
+	// and Next() called numerous times before Reset().
+	proposedLimitCopy := iter.proposedLimit.Copy()
+	proposedLimitCopy.AddResource(combinedResources(iter.tg))
 
 	// Get the actual limit
-	quotaLimit := iter.quotaLimits[string(iter.proposedLimit.Hash)]
+	quotaLimit := iter.quotaLimits[string(proposedLimitCopy.Hash)]
 
-	superset, dimensions := quotaLimit.Superset(iter.proposedLimit)
+	superset, dimensions := quotaLimit.Superset(proposedLimitCopy)
 	if superset {
 		return option
 	}
@@ -127,6 +133,9 @@ func (iter *QuotaIterator) Next() *structs.Node {
 	return nil
 }
 
+// Reset implements the Reset function of the FeasibleIterator interface. In
+// the context of this quota implementation, the proposed limit is updated to
+// reflect the planned allocation placements found within ctx.Plan.
 func (iter *QuotaIterator) Reset() {
 	iter.source.Reset()
 
