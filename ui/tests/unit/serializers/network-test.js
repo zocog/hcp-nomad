@@ -12,7 +12,7 @@ module('Unit | Serializer | Network', function(hooks) {
   test('v4 IPs are passed through', async function(assert) {
     const ip = '10.0.13.12';
     const original = {
-      IP: ip,
+      IP: ip
     };
 
     const { data } = this.subject().normalize(NetworkModel, original);
@@ -22,7 +22,7 @@ module('Unit | Serializer | Network', function(hooks) {
   test('v6 IPs are wrapped in square brackets', async function(assert) {
     const ip = '2001:0dac:aba3:0000:0000:8a2e:0370:7334';
     const original = {
-      IP: ip,
+      IP: ip
     };
 
     const { data } = this.subject().normalize(NetworkModel, original);

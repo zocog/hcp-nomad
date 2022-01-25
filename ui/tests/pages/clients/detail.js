@@ -7,7 +7,7 @@ import {
   text,
   isPresent,
   value,
-  visitable,
+  visitable
 } from 'ember-cli-page-object';
 
 import allocations from 'nomad-ui/tests/pages/components/allocations';
@@ -24,17 +24,20 @@ export default create({
 
   statusLight: collection('[data-test-node-status]', {
     id: attribute('data-test-node-status'),
-    text: text(),
+    text: text()
   }),
 
   statusDefinition: text('[data-test-status-definition]'),
-  statusDecorationClass: attribute('class', '[data-test-status-definition] .status-text'),
+  statusDecorationClass: attribute(
+    'class',
+    '[data-test-status-definition] .status-text'
+  ),
   addressDefinition: text('[data-test-address-definition]'),
   datacenterDefinition: text('[data-test-datacenter-definition]'),
 
   resourceCharts: collection('[data-test-primary-metric]', {
     name: text('[data-test-primary-metric-title]'),
-    chartClass: attribute('class', '[data-test-percentage-chart] progress'),
+    chartClass: attribute('class', '[data-test-percentage-chart] progress')
   }),
 
   ...allocations(),
@@ -42,68 +45,77 @@ export default create({
   emptyAllocations: {
     scope: '[data-test-empty-allocations-list]',
     headline: text('[data-test-empty-allocations-list-headline]'),
-    body: text('[data-test-empty-allocations-list-body]'),
+    body: text('[data-test-empty-allocations-list-body]')
   },
 
   allocationFilter: {
     preemptions: clickable('[data-test-filter-preemptions]'),
     all: clickable('[data-test-filter-all]'),
     preemptionsCount: text('[data-test-filter-preemptions]'),
-    allCount: text('[data-test-filter-all]'),
+    allCount: text('[data-test-filter-all]')
   },
 
   facets: {
     namespace: multiFacet('[data-test-allocation-namespace-facet]'),
     job: multiFacet('[data-test-allocation-job-facet]'),
-    status: multiFacet('[data-test-allocation-status-facet]'),
+    status: multiFacet('[data-test-allocation-status-facet]')
   },
 
   attributesTable: isPresent('[data-test-attributes]'),
   metaTable: isPresent('[data-test-meta]'),
   emptyMetaMessage: isPresent('[data-test-empty-meta-message]'),
 
-  metaAttributes: collection('[data-test-meta] [data-test-attributes-section]', {
-    key: text('[data-test-key]'),
-    value: text('[data-test-value]'),
-  }),
+  metaAttributes: collection(
+    '[data-test-meta] [data-test-attributes-section]',
+    {
+      key: text('[data-test-key]'),
+      value: text('[data-test-value]')
+    }
+  ),
 
   error: {
     isShown: isPresent('[data-test-error]'),
     title: text('[data-test-error-title]'),
     message: text('[data-test-error-message]'),
-    seekHelp: clickable('[data-test-error-message] a'),
+    seekHelp: clickable('[data-test-error-message] a')
   },
 
   hasEvents: isPresent('[data-test-client-events]'),
   events: collection('[data-test-client-event]', {
     time: text('[data-test-client-event-time]'),
     subsystem: text('[data-test-client-event-subsystem]'),
-    message: text('[data-test-client-event-message]'),
+    message: text('[data-test-client-event-message]')
   }),
 
   hasHostVolumes: isPresent('[data-test-client-host-volumes]'),
   hostVolumes: collection('[data-test-client-host-volume]', {
     name: text('[data-test-name]'),
     path: text('[data-test-path]'),
-    permissions: text('[data-test-permissions]'),
+    permissions: text('[data-test-permissions]')
   }),
 
-  driverHeads: collection('[data-test-driver-status] [data-test-accordion-head]', {
-    name: text('[data-test-name]'),
-    detected: text('[data-test-detected]'),
-    lastUpdated: text('[data-test-last-updated]'),
-    healthIsShown: isPresent('[data-test-health]'),
-    health: text('[data-test-health]'),
-    healthClass: attribute('class', '[data-test-health] .color-swatch'),
+  driverHeads: collection(
+    '[data-test-driver-status] [data-test-accordion-head]',
+    {
+      name: text('[data-test-name]'),
+      detected: text('[data-test-detected]'),
+      lastUpdated: text('[data-test-last-updated]'),
+      healthIsShown: isPresent('[data-test-health]'),
+      health: text('[data-test-health]'),
+      healthClass: attribute('class', '[data-test-health] .color-swatch'),
 
-    toggle: clickable('[data-test-accordion-toggle]'),
-  }),
+      toggle: clickable('[data-test-accordion-toggle]')
+    }
+  ),
 
-  driverBodies: collection('[data-test-driver-status] [data-test-accordion-body]', {
-    description: text('[data-test-health-description]'),
-    descriptionIsShown: isPresent('[data-test-health-description]'),
-    attributesAreShown: isPresent('[data-test-driver-attributes]'),
-  }),
+  driverBodies: collection(
+    '[data-test-driver-status] [data-test-accordion-body]',
+    {
+      description: text('[data-test-health-description]'),
+      descriptionIsShown: isPresent('[data-test-health-description]'),
+      attributesAreShown: isPresent('[data-test-driver-attributes]')
+    }
+  ),
 
   drainDetails: {
     scope: '[data-test-drain-details]',
@@ -121,7 +133,7 @@ export default create({
     migratingCount: text('[data-test-migrating-count]'),
     remainingCount: text('[data-test-remaining-count]'),
     status: text('[data-test-status]'),
-    force: twoStepButton('[data-test-force]'),
+    force: twoStepButton('[data-test-force]')
   },
 
   drainPopover: {
@@ -137,8 +149,8 @@ export default create({
       ),
       options: collection('.ember-power-select-option', {
         label: text(),
-        choose: clickable(),
-      }),
+        choose: clickable()
+      })
     },
 
     setCustomDeadline: fillable('[data-test-drain-custom-deadline]'),
@@ -155,7 +167,7 @@ export default create({
         .toArray()
         .findBy('label', label)
         .choose();
-    },
+    }
   },
 
   stopDrain: twoStepButton('[data-test-drain-stop]'),
@@ -166,7 +178,13 @@ export default create({
   eligibilityError: notification('[data-test-eligibility-error]'),
   stopDrainError: notification('[data-test-stop-drain-error]'),
   drainError: notification('[data-test-drain-error]'),
-  drainStoppedNotification: notification('[data-test-drain-stopped-notification]'),
-  drainUpdatedNotification: notification('[data-test-drain-updated-notification]'),
-  drainCompleteNotification: notification('[data-test-drain-complete-notification]'),
+  drainStoppedNotification: notification(
+    '[data-test-drain-stopped-notification]'
+  ),
+  drainUpdatedNotification: notification(
+    '[data-test-drain-updated-notification]'
+  ),
+  drainCompleteNotification: notification(
+    '[data-test-drain-complete-notification]'
+  )
 });

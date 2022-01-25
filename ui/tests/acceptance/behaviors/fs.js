@@ -1,3 +1,4 @@
+/* eslint-disable qunit/require-expect */
 import { test } from 'qunit';
 import { currentURL, visit } from '@ember/test-helpers';
 
@@ -31,7 +32,7 @@ export default function browseFilesystem({
   getExpectedPathBase,
   getTitleComponent,
   getBreadcrumbComponent,
-  getFilesystemRoot,
+  getFilesystemRoot
 }) {
   test('it passes an accessibility audit', async function(assert) {
     await FS[pageObjectVisitFunctionName](
@@ -47,7 +48,7 @@ export default function browseFilesystem({
 
     const pathBaseWithTrailingSlash = getExpectedPathBase({
       allocation: this.allocation,
-      task: this.task,
+      task: this.task
     });
     const pathBaseWithoutTrailingSlash = pathBaseWithTrailingSlash.slice(0, -1);
 
@@ -55,7 +56,12 @@ export default function browseFilesystem({
   });
 
   test('visiting filesystem paths', async function(assert) {
-    const paths = ['some-file.log', 'a/deep/path/to/a/file.log', '/', 'Unicode™®'];
+    const paths = [
+      'some-file.log',
+      'a/deep/path/to/a/file.log',
+      '/',
+      'Unicode™®'
+    ];
 
     const testPath = async filePath => {
       let pathWithLeadingSlash = filePath;
@@ -66,13 +72,13 @@ export default function browseFilesystem({
 
       await FS[pageObjectVisitPathFunctionName]({
         ...visitSegments({ allocation: this.allocation, task: this.task }),
-        path: filePath,
+        path: filePath
       });
       assert.equal(
         currentURL(),
         `${getExpectedPathBase({
           allocation: this.allocation,
-          task: this.task,
+          task: this.task
         })}${encodeURIComponent(filePath)}`,
         'No redirect'
       );
@@ -80,14 +86,14 @@ export default function browseFilesystem({
         document.title,
         `${pathWithLeadingSlash} - ${getTitleComponent({
           allocation: this.allocation,
-          task: this.task,
+          task: this.task
         })} - Nomad`
       );
       assert.equal(
         FS.breadcrumbsText,
         `${getBreadcrumbComponent({
           allocation: this.allocation,
-          task: this.task,
+          task: this.task
         })} ${filePath.replace(/\//g, ' ')}`.trim()
       );
     };
@@ -100,11 +106,15 @@ export default function browseFilesystem({
 
   test('navigating allocation filesystem', async function(assert) {
     const objects = { allocation: this.allocation, task: this.task };
-    await FS[pageObjectVisitPathFunctionName]({ ...visitSegments(objects), path: '/' });
+    await FS[pageObjectVisitPathFunctionName]({
+      ...visitSegments(objects),
+      path: '/'
+    });
 
     const sortedFiles = fileSort(
       'name',
-      filesForPath(this.server.schema.allocFiles, getFilesystemRoot(objects)).models
+      filesForPath(this.server.schema.allocFiles, getFilesystemRoot(objects))
+        .models
     );
 
     assert.ok(FS.fileViewer.isHidden);
@@ -119,11 +129,21 @@ export default function browseFilesystem({
 
     FS.directoryEntries[0].as(directory => {
       const fileRecord = sortedFiles[0];
-      assert.equal(directory.name, fileRecord.name, 'directories should come first');
+      assert.equal(
+        directory.name,
+        fileRecord.name,
+        'directories should come first'
+      );
       assert.ok(directory.isDirectory);
       assert.equal(directory.size, '', 'directory sizes are hidden');
-      assert.equal(directory.lastModified, moment(fileRecord.modTime).fromNow());
-      assert.notOk(directory.path.includes('//'), 'paths shouldn’t have redundant separators');
+      assert.equal(
+        directory.lastModified,
+        moment(fileRecord.modTime).fromNow()
+      );
+      assert.notOk(
+        directory.path.includes('//'),
+        'paths shouldn’t have redundant separators'
+      );
     });
 
     FS.directoryEntries[2].as(file => {
@@ -139,7 +159,10 @@ export default function browseFilesystem({
     assert.equal(FS.directoryEntries.length, 1);
 
     assert.equal(FS.breadcrumbs.length, 2);
-    assert.equal(FS.breadcrumbsText, `${getBreadcrumbComponent(objects)} ${this.directory.name}`);
+    assert.equal(
+      FS.breadcrumbsText,
+      `${getBreadcrumbComponent(objects)} ${this.directory.name}`
+    );
 
     assert.notOk(FS.breadcrumbs[0].isActive);
 
@@ -157,7 +180,9 @@ export default function browseFilesystem({
     assert.equal(FS.breadcrumbs.length, 3);
     assert.equal(
       FS.breadcrumbsText,
-      `${getBreadcrumbComponent(objects)} ${this.directory.name} ${this.nestedDirectory.name}`
+      `${getBreadcrumbComponent(objects)} ${this.directory.name} ${
+        this.nestedDirectory.name
+      }`
     );
     assert.equal(FS.breadcrumbs[2].text, this.nestedDirectory.name);
 
@@ -171,7 +196,10 @@ export default function browseFilesystem({
     );
 
     await FS.breadcrumbs[1].visit();
-    assert.equal(FS.breadcrumbsText, `${getBreadcrumbComponent(objects)} ${this.directory.name}`);
+    assert.equal(
+      FS.breadcrumbsText,
+      `${getBreadcrumbComponent(objects)} ${this.directory.name}`
+    );
     assert.equal(FS.breadcrumbs.length, 2);
   });
 
@@ -184,7 +212,7 @@ export default function browseFilesystem({
           Size: 19190000,
           ModTime: moment()
             .subtract(1, 'year')
-            .format(),
+            .format()
         },
         {
           Name: 'mmm-small-mid-file',
@@ -192,13 +220,13 @@ export default function browseFilesystem({
           Size: 1919,
           ModTime: moment()
             .subtract(6, 'month')
-            .format(),
+            .format()
         },
         {
           Name: 'zzz-med-new-file',
           IsDir: false,
           Size: 191900,
-          ModTime: moment().format(),
+          ModTime: moment().format()
         },
         {
           Name: 'aaa-big-old-directory',
@@ -206,7 +234,7 @@ export default function browseFilesystem({
           Size: 19190000,
           ModTime: moment()
             .subtract(1, 'year')
-            .format(),
+            .format()
         },
         {
           Name: 'mmm-small-mid-directory',
@@ -214,20 +242,20 @@ export default function browseFilesystem({
           Size: 1919,
           ModTime: moment()
             .subtract(6, 'month')
-            .format(),
+            .format()
         },
         {
           Name: 'zzz-med-new-directory',
           IsDir: true,
           Size: 191900,
-          ModTime: moment().format(),
-        },
+          ModTime: moment().format()
+        }
       ];
     });
 
     await FS[pageObjectVisitPathFunctionName]({
       ...visitSegments({ allocation: this.allocation, task: this.task }),
-      path: '/',
+      path: '/'
     });
 
     assert.deepEqual(FS.directoryEntryNames(), [
@@ -236,7 +264,7 @@ export default function browseFilesystem({
       'zzz-med-new-directory',
       'aaa-big-old-file',
       'mmm-small-mid-file',
-      'zzz-med-new-file',
+      'zzz-med-new-file'
     ]);
 
     await FS.sortBy('Name');
@@ -247,7 +275,7 @@ export default function browseFilesystem({
       'aaa-big-old-file',
       'zzz-med-new-directory',
       'mmm-small-mid-directory',
-      'aaa-big-old-directory',
+      'aaa-big-old-directory'
     ]);
 
     await FS.sortBy('ModTime');
@@ -258,7 +286,7 @@ export default function browseFilesystem({
       'aaa-big-old-file',
       'zzz-med-new-directory',
       'mmm-small-mid-directory',
-      'aaa-big-old-directory',
+      'aaa-big-old-directory'
     ]);
 
     await FS.sortBy('ModTime');
@@ -269,7 +297,7 @@ export default function browseFilesystem({
       'zzz-med-new-directory',
       'aaa-big-old-file',
       'mmm-small-mid-file',
-      'zzz-med-new-file',
+      'zzz-med-new-file'
     ]);
 
     await FS.sortBy('Size');
@@ -282,7 +310,7 @@ export default function browseFilesystem({
         'mmm-small-mid-file',
         'zzz-med-new-directory',
         'mmm-small-mid-directory',
-        'aaa-big-old-directory',
+        'aaa-big-old-directory'
       ],
       'expected files to be sorted by descending size and directories to be sorted by descending name'
     );
@@ -297,7 +325,7 @@ export default function browseFilesystem({
         'zzz-med-new-directory',
         'mmm-small-mid-file',
         'zzz-med-new-file',
-        'aaa-big-old-file',
+        'aaa-big-old-file'
       ],
       'expected directories to be sorted by name and files to be sorted by ascending size'
     );
@@ -307,22 +335,32 @@ export default function browseFilesystem({
     const objects = { allocation: this.allocation, task: this.task };
     const node = server.db.nodes.find(this.allocation.nodeId);
 
-    server.get(`http://${node.httpAddr}/v1/client/fs/readat/:allocation_id`, function() {
-      return new Response(500);
-    });
+    server.get(
+      `http://${node.httpAddr}/v1/client/fs/readat/:allocation_id`,
+      function() {
+        return new Response(500);
+      }
+    );
 
-    await FS[pageObjectVisitPathFunctionName]({ ...visitSegments(objects), path: '/' });
+    await FS[pageObjectVisitPathFunctionName]({
+      ...visitSegments(objects),
+      path: '/'
+    });
 
     const sortedFiles = fileSort(
       'name',
-      filesForPath(this.server.schema.allocFiles, getFilesystemRoot(objects)).models
+      filesForPath(this.server.schema.allocFiles, getFilesystemRoot(objects))
+        .models
     );
     const fileRecord = sortedFiles.find(f => !f.isDir);
     const fileIndex = sortedFiles.indexOf(fileRecord);
 
     await FS.directoryEntries[fileIndex].visit();
 
-    assert.equal(FS.breadcrumbsText, `${getBreadcrumbComponent(objects)} ${fileRecord.name}`);
+    assert.equal(
+      FS.breadcrumbsText,
+      `${getBreadcrumbComponent(objects)} ${fileRecord.name}`
+    );
 
     assert.ok(FS.fileViewer.isPresent);
 
@@ -346,7 +384,7 @@ export default function browseFilesystem({
   test('viewing an empty directory', async function(assert) {
     await FS[pageObjectVisitPathFunctionName]({
       ...visitSegments({ allocation: this.allocation, task: this.task }),
-      path: 'empty-directory',
+      path: 'empty-directory'
     });
 
     assert.ok(FS.isEmptyDirectory);
@@ -359,10 +397,18 @@ export default function browseFilesystem({
 
     await FS[pageObjectVisitPathFunctionName]({
       ...visitSegments({ allocation: this.allocation, task: this.task }),
-      path: '/what-is-this',
+      path: '/what-is-this'
     });
-    assert.notEqual(FS.error.title, 'Not Found', '500 is not interpreted as 404');
-    assert.equal(FS.error.title, 'Server Error', '500 is not interpreted as 500');
+    assert.notEqual(
+      FS.error.title,
+      'Not Found',
+      '500 is not interpreted as 404'
+    );
+    assert.equal(
+      FS.error.title,
+      'Server Error',
+      '500 is not interpreted as 500'
+    );
 
     await visit('/');
 
@@ -372,7 +418,7 @@ export default function browseFilesystem({
 
     await FS[pageObjectVisitPathFunctionName]({
       ...visitSegments({ allocation: this.allocation, task: this.task }),
-      path: '/what-is-this',
+      path: '/what-is-this'
     });
     assert.equal(FS.error.title, 'Error', 'other statuses are passed through');
   });
@@ -384,10 +430,18 @@ export default function browseFilesystem({
 
     await FS[pageObjectVisitPathFunctionName]({
       ...visitSegments({ allocation: this.allocation, task: this.task }),
-      path: this.directory.name,
+      path: this.directory.name
     });
-    assert.notEqual(FS.error.title, 'Not Found', '500 is not interpreted as 404');
-    assert.equal(FS.error.title, 'Server Error', '500 is not interpreted as 404');
+    assert.notEqual(
+      FS.error.title,
+      'Not Found',
+      '500 is not interpreted as 404'
+    );
+    assert.equal(
+      FS.error.title,
+      'Server Error',
+      '500 is not interpreted as 404'
+    );
 
     await visit('/');
 
@@ -397,7 +451,7 @@ export default function browseFilesystem({
 
     await FS[pageObjectVisitPathFunctionName]({
       ...visitSegments({ allocation: this.allocation, task: this.task }),
-      path: this.directory.name,
+      path: this.directory.name
     });
     assert.equal(FS.error.title, 'Error', 'other statuses are passed through');
   });

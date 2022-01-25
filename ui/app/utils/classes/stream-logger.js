@@ -13,7 +13,7 @@ export default class StreamLogger extends EmberObject.extend(AbstractLogger) {
   @computed()
   get additionalParams() {
     return {
-      follow: true,
+      follow: true
     };
   }
 
@@ -89,5 +89,5 @@ export default class StreamLogger extends EmberObject.extend(AbstractLogger) {
 }
 
 StreamLogger.reopenClass({
-  isSupported: !!window.ReadableStream,
+  isSupported: !!window.ReadableStream
 });

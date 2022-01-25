@@ -13,7 +13,7 @@ const STATUS_ORDER = {
   running: 2,
   complete: 3,
   failed: 4,
-  lost: 5,
+  lost: 5
 };
 
 @classic
@@ -77,8 +77,10 @@ export default class Allocation extends Model {
   @belongsTo('allocation', { inverse: 'nextAllocation' }) previousAllocation;
   @belongsTo('allocation', { inverse: 'previousAllocation' }) nextAllocation;
 
-  @hasMany('allocation', { inverse: 'preemptedByAllocation' }) preemptedAllocations;
-  @belongsTo('allocation', { inverse: 'preemptedAllocations' }) preemptedByAllocation;
+  @hasMany('allocation', { inverse: 'preemptedByAllocation' })
+  preemptedAllocations;
+  @belongsTo('allocation', { inverse: 'preemptedAllocations' })
+  preemptedByAllocation;
   @attr('boolean') wasPreempted;
 
   @belongsTo('evaluation') followUpEvaluation;
@@ -90,7 +92,7 @@ export default class Allocation extends Model {
       running: 'is-primary',
       complete: 'is-complete',
       failed: 'is-error',
-      lost: 'is-light',
+      lost: 'is-light'
     };
 
     return classMap[this.clientStatus] || 'is-dark';
@@ -135,7 +137,11 @@ export default class Allocation extends Model {
     return this.get('rescheduleEvents.length') > 0 || this.nextAllocation;
   }
 
-  @computed('clientStatus', 'followUpEvaluation.content', 'nextAllocation.content')
+  @computed(
+    'clientStatus',
+    'followUpEvaluation.content',
+    'nextAllocation.content'
+  )
   get hasStoppedRescheduling() {
     return (
       !this.get('nextAllocation.content') &&

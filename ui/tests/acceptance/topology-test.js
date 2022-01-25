@@ -9,7 +9,7 @@ import {
   formatBytes,
   formatScheduledBytes,
   formatHertz,
-  formatScheduledHertz,
+  formatScheduledHertz
 } from 'nomad-ui/utils/units';
 import queryString from 'query-string';
 
@@ -25,6 +25,8 @@ module('Acceptance | topology', function(hooks) {
   });
 
   test('it passes an accessibility audit', async function(assert) {
+    assert.expect(1);
+
     server.createList('node', 3);
     server.createList('allocation', 5);
 
@@ -49,9 +51,14 @@ module('Acceptance | topology', function(hooks) {
     const scheduledAllocs = allocs.filter(alloc =>
       ['pending', 'running'].includes(alloc.clientStatus)
     );
-    assert.equal(Topology.clusterInfoPanel.allocCount, `${scheduledAllocs.length} Allocations`);
+    assert.equal(
+      Topology.clusterInfoPanel.allocCount,
+      `${scheduledAllocs.length} Allocations`
+    );
 
-    const nodeResources = server.schema.nodes.all().models.mapBy('nodeResources');
+    const nodeResources = server.schema.nodes
+      .all()
+      .models.mapBy('nodeResources');
     const taskResources = scheduledAllocs
       .mapBy('taskResources.models')
       .flat()
@@ -62,17 +69,28 @@ module('Acceptance | topology', function(hooks) {
     const reservedMem = sumResources(taskResources, 'Memory.MemoryMB');
     const reservedCPU = sumResources(taskResources, 'Cpu.CpuShares');
 
-    assert.equal(Topology.clusterInfoPanel.memoryProgressValue, reservedMem / totalMem);
-    assert.equal(Topology.clusterInfoPanel.cpuProgressValue, reservedCPU / totalCPU);
+    assert.equal(
+      Topology.clusterInfoPanel.memoryProgressValue,
+      reservedMem / totalMem
+    );
+    assert.equal(
+      Topology.clusterInfoPanel.cpuProgressValue,
+      reservedCPU / totalCPU
+    );
 
     assert.equal(
       Topology.clusterInfoPanel.memoryAbsoluteValue,
-      `${formatBytes(reservedMem * 1024 * 1024)} / ${formatBytes(totalMem * 1024 * 1024)} reserved`
+      `${formatBytes(reservedMem * 1024 * 1024)} / ${formatBytes(
+        totalMem * 1024 * 1024
+      )} reserved`
     );
 
     assert.equal(
       Topology.clusterInfoPanel.cpuAbsoluteValue,
-      `${formatHertz(reservedCPU, 'MHz')} / ${formatHertz(totalCPU, 'MHz')} reserved`
+      `${formatHertz(reservedCPU, 'MHz')} / ${formatHertz(
+        totalCPU,
+        'MHz'
+      )} reserved`
     );
   });
 
@@ -84,14 +102,18 @@ module('Acceptance | topology', function(hooks) {
     const requests = this.server.pretender.handledRequests;
     assert.ok(requests.findBy('url', '/v1/nodes?resources=true'));
 
-    const allocationsRequest = requests.find(req => req.url.startsWith('/v1/allocations'));
+    const allocationsRequest = requests.find(req =>
+      req.url.startsWith('/v1/allocations')
+    );
     assert.ok(allocationsRequest);
 
-    const allocationRequestParams = queryString.parse(allocationsRequest.url.split('?')[1]);
+    const allocationRequestParams = queryString.parse(
+      allocationsRequest.url.split('?')[1]
+    );
     assert.deepEqual(allocationRequestParams, {
       namespace: '*',
       task_states: 'false',
-      resources: 'true',
+      resources: 'true'
     });
   });
 
@@ -102,7 +124,7 @@ module('Acceptance | topology', function(hooks) {
     const allocs = server.createList('allocation', 5, {
       forceRunningClientStatus: true,
       jobId: job.id,
-      taskGroup,
+      taskGroup
     });
 
     // Get the first alloc of the first node that has an alloc
@@ -121,11 +143,15 @@ module('Acceptance | topology', function(hooks) {
       .uniq()
       .sort()
       .indexOf(node.datacenter);
-    const nodeIndex = nodes.filterBy('datacenter', node.datacenter).indexOf(node);
+    const nodeIndex = nodes
+      .filterBy('datacenter', node.datacenter)
+      .indexOf(node);
 
     const reset = async () => {
       await Topology.visit();
-      await Topology.viz.datacenters[dcIndex].nodes[nodeIndex].memoryRects[0].select();
+      await Topology.viz.datacenters[dcIndex].nodes[
+        nodeIndex
+      ].memoryRects[0].select();
     };
 
     await reset();
@@ -134,7 +160,10 @@ module('Acceptance | topology', function(hooks) {
     assert.equal(Topology.allocInfoPanel.id, alloc.id.split('-')[0]);
 
     const uniqueClients = allocs.mapBy('nodeId').uniq();
-    assert.equal(Topology.allocInfoPanel.siblingAllocs, `Sibling Allocations: ${allocs.length}`);
+    assert.equal(
+      Topology.allocInfoPanel.siblingAllocs,
+      `Sibling Allocations: ${allocs.length}`
+    );
     assert.equal(
       Topology.allocInfoPanel.uniquePlacements,
       `Unique Client Placements: ${uniqueClients.length}`
@@ -161,27 +190,33 @@ module('Acceptance | topology', function(hooks) {
   test('changing which allocation is selected changes the metric charts', async function(assert) {
     server.create('node');
     const job1 = server.create('job', { createAllocations: false });
-    const taskGroup1 = server.schema.find('taskGroup', job1.taskGroupIds[0]).name;
+    const taskGroup1 = server.schema.find('taskGroup', job1.taskGroupIds[0])
+      .name;
     server.create('allocation', {
       forceRunningClientStatus: true,
       jobId: job1.id,
-      taskGroup1,
+      taskGroup1
     });
 
     const job2 = server.create('job', { createAllocations: false });
-    const taskGroup2 = server.schema.find('taskGroup', job2.taskGroupIds[0]).name;
+    const taskGroup2 = server.schema.find('taskGroup', job2.taskGroupIds[0])
+      .name;
     server.create('allocation', {
       forceRunningClientStatus: true,
       jobId: job2.id,
-      taskGroup2,
+      taskGroup2
     });
 
     await Topology.visit();
     await Topology.viz.datacenters[0].nodes[0].memoryRects[0].select();
-    const firstAllocationTaskNames = Topology.allocInfoPanel.charts[0].areas.mapBy('taskName');
+    const firstAllocationTaskNames = Topology.allocInfoPanel.charts[0].areas.mapBy(
+      'taskName'
+    );
 
     await Topology.viz.datacenters[0].nodes[0].memoryRects[1].select();
-    const secondAllocationTaskNames = Topology.allocInfoPanel.charts[0].areas.mapBy('taskName');
+    const secondAllocationTaskNames = Topology.allocInfoPanel.charts[0].areas.mapBy(
+      'taskName'
+    );
 
     assert.notDeepEqual(firstAllocationTaskNames, secondAllocationTaskNames);
   });
@@ -204,7 +239,10 @@ module('Acceptance | topology', function(hooks) {
     assert.equal(Topology.nodeInfoPanel.address, `Address: ${node.httpAddr}`);
     assert.equal(Topology.nodeInfoPanel.status, `Status: ${node.status}`);
 
-    assert.equal(Topology.nodeInfoPanel.drainingLabel, node.drain ? 'Yes' : 'No');
+    assert.equal(
+      Topology.nodeInfoPanel.drainingLabel,
+      node.drain ? 'Yes' : 'No'
+    );
     assert.equal(
       Topology.nodeInfoPanel.eligibleLabel,
       node.schedulingEligibility === 'eligible' ? 'Yes' : 'No'
@@ -226,15 +264,20 @@ module('Acceptance | topology', function(hooks) {
     const totalMem = node.nodeResources.Memory.MemoryMB;
     const totalCPU = node.nodeResources.Cpu.CpuShares;
 
-    assert.equal(Topology.nodeInfoPanel.memoryProgressValue, reservedMem / totalMem);
-    assert.equal(Topology.nodeInfoPanel.cpuProgressValue, reservedCPU / totalCPU);
+    assert.equal(
+      Topology.nodeInfoPanel.memoryProgressValue,
+      reservedMem / totalMem
+    );
+    assert.equal(
+      Topology.nodeInfoPanel.cpuProgressValue,
+      reservedCPU / totalCPU
+    );
 
     assert.equal(
       Topology.nodeInfoPanel.memoryAbsoluteValue,
-      `${formatScheduledBytes(reservedMem * 1024 * 1024)} / ${formatScheduledBytes(
-        totalMem,
-        'MiB'
-      )} reserved`
+      `${formatScheduledBytes(
+        reservedMem * 1024 * 1024
+      )} / ${formatScheduledBytes(totalMem, 'MiB')} reserved`
     );
 
     assert.equal(

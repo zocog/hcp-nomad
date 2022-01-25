@@ -20,7 +20,7 @@ module('Unit | Component | scale-events-chart', function(hooks) {
   test('the current date is appended as a datum for the line chart to render', function(assert) {
     const events = [
       { time: new Date('2020-08-02T04:06:00'), count: 2, hasCount: true },
-      { time: new Date('2020-08-01T04:06:00'), count: 2, hasCount: true },
+      { time: new Date('2020-08-01T04:06:00'), count: 2, hasCount: true }
     ];
 
     const chart = this.createComponent({ events });
@@ -37,12 +37,12 @@ module('Unit | Component | scale-events-chart', function(hooks) {
     const annotationOutside = [
       { time: new Date('2020-08-01T04:06:00'), hasCount: false, error: true },
       { time: new Date('2020-08-02T04:06:00'), count: 2, hasCount: true },
-      { time: new Date('2020-08-03T04:06:00'), count: 2, hasCount: true },
+      { time: new Date('2020-08-03T04:06:00'), count: 2, hasCount: true }
     ];
     const annotationInside = [
       { time: new Date('2020-08-02T04:06:00'), count: 2, hasCount: true },
       { time: new Date('2020-08-02T12:06:00'), hasCount: false, error: true },
-      { time: new Date('2020-08-03T04:06:00'), count: 2, hasCount: true },
+      { time: new Date('2020-08-03T04:06:00'), count: 2, hasCount: true }
     ];
 
     const chart = this.createComponent({ events: annotationOutside });

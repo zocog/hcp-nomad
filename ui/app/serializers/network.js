@@ -5,7 +5,7 @@ export default class NetworkSerializer extends ApplicationSerializer {
   attrs = {
     cidr: 'CIDR',
     ip: 'IP',
-    mbits: 'MBits',
+    mbits: 'MBits'
   };
 
   normalize(typeHash, hash) {
@@ -19,14 +19,14 @@ export default class NetworkSerializer extends ApplicationSerializer {
       name: port.Label,
       port: port.Value,
       to: port.To,
-      isDynamic: false,
+      isDynamic: false
     }));
 
     const dynamicPorts = (hash.DynamicPorts || []).map(port => ({
       name: port.Label,
       port: port.Value,
       to: port.To,
-      isDynamic: true,
+      isDynamic: true
     }));
 
     hash.Ports = reservedPorts.concat(dynamicPorts).sortBy('name');

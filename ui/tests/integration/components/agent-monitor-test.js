@@ -1,3 +1,4 @@
+/* eslint-disable ember/no-string-prototype-extensions */
 import { run } from '@ember/runloop';
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
@@ -6,7 +7,10 @@ import hbs from 'htmlbars-inline-precompile';
 import Pretender from 'pretender';
 import sinon from 'sinon';
 import { logEncode } from '../../../mirage/data/logs';
-import { selectOpen, selectOpenChoose } from '../../utils/ember-power-select-extensions';
+import {
+  selectOpen,
+  selectOpenChoose
+} from '../../utils/ember-power-select-extensions';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
 
 module('Integration | Component | agent-monitor', function(hooks) {
@@ -21,7 +25,14 @@ module('Integration | Component | agent-monitor', function(hooks) {
       this.get('/v1/agent/monitor', ({ queryParams }) => [
         200,
         {},
-        logEncode([`[${(queryParams.log_level || 'info').toUpperCase()}] ${LOG_MESSAGE}\n`], 0),
+        logEncode(
+          [
+            `[${(
+              queryParams.log_level || 'info'
+            ).toUpperCase()}] ${LOG_MESSAGE}\n`
+          ],
+          0
+        )
       ]);
     });
   });
@@ -41,9 +52,11 @@ module('Integration | Component | agent-monitor', function(hooks) {
   `;
 
   test('basic appearance', async function(assert) {
+    assert.expect(5);
+
     this.setProperties({
       level: 'info',
-      client: { id: 'client1' },
+      client: { id: 'client1' }
     });
 
     run.later(run, run.cancelTimers, INTERVAL);
@@ -61,7 +74,7 @@ module('Integration | Component | agent-monitor', function(hooks) {
   test('when provided with a client, AgentMonitor streams logs for the client', async function(assert) {
     this.setProperties({
       level: 'info',
-      client: { id: 'client1', region: 'us-west-1' },
+      client: { id: 'client1', region: 'us-west-1' }
     });
 
     run.later(run, run.cancelTimers, INTERVAL);
@@ -79,7 +92,7 @@ module('Integration | Component | agent-monitor', function(hooks) {
   test('when provided with a server, AgentMonitor streams logs for the server', async function(assert) {
     this.setProperties({
       level: 'warn',
-      server: { id: 'server1', region: 'us-west-1' },
+      server: { id: 'server1', region: 'us-west-1' }
     });
 
     run.later(run, run.cancelTimers, INTERVAL);
@@ -101,13 +114,12 @@ module('Integration | Component | agent-monitor', function(hooks) {
     this.setProperties({
       level: 'info',
       client: { id: 'client1' },
-      onLevelChange,
+      onLevelChange
     });
 
     run.later(run, run.cancelTimers, INTERVAL);
 
     await render(commonTemplate);
-    await settled();
 
     const contentId = await selectOpen('[data-test-level-switcher-parent]');
     run.later(run, run.cancelTimers, INTERVAL);
@@ -128,14 +140,17 @@ module('Integration | Component | agent-monitor', function(hooks) {
     this.setProperties({
       level: 'info',
       client: { id: 'client1' },
-      onLevelChange,
+      onLevelChange
     });
 
     run.later(run, run.cancelTimers, INTERVAL);
 
     await render(commonTemplate);
-    await settled();
-    assert.equal(find('[data-test-log-cli]').textContent, `[INFO] ${LOG_MESSAGE}\n`);
+
+    assert.equal(
+      find('[data-test-log-cli]').textContent,
+      `[INFO] ${LOG_MESSAGE}\n`
+    );
 
     const contentId = await selectOpen('[data-test-level-switcher-parent]');
     run.later(run, run.cancelTimers, INTERVAL);
@@ -158,19 +173,26 @@ module('Integration | Component | agent-monitor', function(hooks) {
       {},
       queryParams.log_level === 'info'
         ? logEncode([''], 0)
-        : logEncode([`[${(queryParams.log_level || 'info').toUpperCase()}] ${LOG_MESSAGE}\n`], 0),
+        : logEncode(
+            [
+              `[${(
+                queryParams.log_level || 'info'
+              ).toUpperCase()}] ${LOG_MESSAGE}\n`
+            ],
+            0
+          )
     ]);
 
     this.setProperties({
       level: 'info',
       client: { id: 'client1' },
-      onLevelChange,
+      onLevelChange
     });
 
     run.later(run, run.cancelTimers, INTERVAL);
 
     await render(commonTemplate);
-    await settled();
+
     assert.equal(find('[data-test-log-cli]').textContent, '');
 
     const contentId = await selectOpen('[data-test-level-switcher-parent]');
@@ -178,6 +200,9 @@ module('Integration | Component | agent-monitor', function(hooks) {
     await selectOpenChoose(contentId, newLevel.capitalize());
     await settled();
 
-    assert.equal(find('[data-test-log-cli]').textContent, `[TRACE] ${LOG_MESSAGE}\n`);
+    assert.equal(
+      find('[data-test-log-cli]').textContent,
+      `[TRACE] ${LOG_MESSAGE}\n`
+    );
   });
 });

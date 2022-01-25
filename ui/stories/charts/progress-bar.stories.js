@@ -4,7 +4,7 @@ import EmberObject, { computed } from '@ember/object';
 import { on } from '@ember/object/evented';
 
 export default {
-  title: 'Charts/Progress Bar',
+  title: 'Charts/Progress Bar'
 };
 
 export let Standard = () => {
@@ -19,7 +19,7 @@ export let Standard = () => {
           0.33
         </progress>
       </div>
-      `,
+      `
   };
 };
 
@@ -69,7 +69,7 @@ export let Colors = () => {
           </div>
         </div>
       </div>
-      `,
+      `
   };
 };
 
@@ -126,10 +126,15 @@ export let LiveUpdates = () => {
           return Math.round(this.denominator * this.percentage * 100) / 100;
         }),
 
-        liveDetails: computed('denominator', 'numerator', 'percentage', function() {
-          return this.getProperties('denominator', 'numerator', 'percentage');
-        }),
-      }).create(),
-    },
+        liveDetails: computed(
+          'denominator',
+          'numerator',
+          'percentage',
+          function() {
+            return this.getProperties('denominator', 'numerator', 'percentage');
+          }
+        )
+      }).create()
+    }
   };
 };

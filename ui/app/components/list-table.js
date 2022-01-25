@@ -14,7 +14,7 @@ export default class ListTable extends Component {
   @computed('source.[]')
   get decoratedSource() {
     return (this.source || []).map(row => ({
-      model: row,
+      model: row
     }));
   }
 }

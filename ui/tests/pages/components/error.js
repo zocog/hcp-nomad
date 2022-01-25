@@ -6,6 +6,6 @@ export default function(selectorBase = 'data-test-error') {
     isPresent: isPresent(),
     title: text(`[${selectorBase}-title]`),
     message: text(`[${selectorBase}-message]`),
-    seekHelp: clickable(`[${selectorBase}-message] a`),
+    seekHelp: clickable(`[${selectorBase}-message] a`)
   };
 }

@@ -1,3 +1,5 @@
+/* eslint-disable qunit/require-expect */
+/* Mirage fixtures are random so we can't expect a set number of assertions */
 import hbs from 'htmlbars-inline-precompile';
 import { findAll, find, render } from '@ember/test-helpers';
 import { module, test } from 'qunit';
@@ -6,7 +8,9 @@ import { startMirage } from 'nomad-ui/initializers/ember-cli-mirage';
 import { initialize as fragmentSerializerInitializer } from 'nomad-ui/initializers/fragment-serializer';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
 
-module('Integration | Component | job-page/parts/placement-failures', function(hooks) {
+module('Integration | Component | job-page/parts/placement-failures', function(
+  hooks
+) {
   setupRenderingTest(hooks);
 
   hooks.beforeEach(function() {
@@ -23,7 +27,10 @@ module('Integration | Component | job-page/parts/placement-failures', function(h
   });
 
   test('when the job has placement failures, they are called out', async function(assert) {
-    this.server.create('job', { failedPlacements: true, createAllocations: false });
+    this.server.create('job', {
+      failedPlacements: true,
+      createAllocations: false
+    });
     await this.store.findAll('job');
 
     const job = this.store.peekAll('job').get('firstObject');
@@ -42,11 +49,14 @@ module('Integration | Component | job-page/parts/placement-failures', function(h
       .get('firstObject');
     const failedTGAllocs = failedEvaluation.get('failedTGAllocs');
 
-    assert.ok(find('[data-test-placement-failures]'), 'Placement failures section found');
-
-    const taskGroupLabels = findAll('[data-test-placement-failure-task-group]').map(title =>
-      title.textContent.trim()
+    assert.ok(
+      find('[data-test-placement-failures]'),
+      'Placement failures section found'
     );
+
+    const taskGroupLabels = findAll(
+      '[data-test-placement-failure-task-group]'
+    ).map(title => title.textContent.trim());
 
     failedTGAllocs.forEach(alloc => {
       const name = alloc.get('name');
@@ -55,7 +65,9 @@ module('Integration | Component | job-page/parts/placement-failures', function(h
         `${name} included in placement failures list`
       );
       assert.ok(
-        taskGroupLabels.find(label => label.includes(alloc.get('coalescedFailures') + 1)),
+        taskGroupLabels.find(label =>
+          label.includes(alloc.get('coalescedFailures') + 1)
+        ),
         'The number of unplaced allocs = CoalescedFailures + 1'
       );
     });
@@ -64,7 +76,10 @@ module('Integration | Component | job-page/parts/placement-failures', function(h
   });
 
   test('when the job has no placement failures, the placement failures section is gone', async function(assert) {
-    this.server.create('job', { noFailedPlacements: true, createAllocations: false });
+    this.server.create('job', {
+      noFailedPlacements: true,
+      createAllocations: false
+    });
     await this.store.findAll('job');
 
     const job = this.store.peekAll('job').get('firstObject');
@@ -76,6 +91,9 @@ module('Integration | Component | job-page/parts/placement-failures', function(h
       <JobPage::Parts::PlacementFailures @job={{job}} />)
     `);
 
-    assert.notOk(find('[data-test-placement-failures]'), 'Placement failures section not found');
+    assert.notOk(
+      find('[data-test-placement-failures]'),
+      'Placement failures section not found'
+    );
   });
 });

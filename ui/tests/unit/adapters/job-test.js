@@ -145,7 +145,9 @@ module('Unit | Adapter | Job', function(hooks) {
     await settled();
 
     assert.notOk(
-      pretender.handledRequests.mapBy('requestHeaders').some(headers => headers['X-Nomad-Token']),
+      pretender.handledRequests
+        .mapBy('requestHeaders')
+        .some(headers => headers['X-Nomad-Token']),
       'No token header present on either job request'
     );
   });
@@ -177,7 +179,7 @@ module('Unit | Adapter | Job', function(hooks) {
     const request = () =>
       this.subject().findAll(null, { modelName: 'job' }, null, {
         reload: true,
-        adapterOptions: { watch: true },
+        adapterOptions: { watch: true }
       });
 
     request();
@@ -207,7 +209,7 @@ module('Unit | Adapter | Job', function(hooks) {
     const request = () =>
       this.subject().findRecord(null, { modelName: 'job' }, jobId, {
         reload: true,
-        adapterOptions: { watch: true },
+        adapterOptions: { watch: true }
       });
 
     request();
@@ -280,7 +282,7 @@ module('Unit | Adapter | Job', function(hooks) {
     this.subject()
       .findAll(null, { modelName: 'job' }, null, {
         reload: true,
-        adapterOptions: { watch: true, abortController: controller },
+        adapterOptions: { watch: true, abortController: controller }
       })
       .catch(() => {});
 
@@ -307,7 +309,7 @@ module('Unit | Adapter | Job', function(hooks) {
 
     this.subject().findRecord(null, { modelName: 'job' }, jobId, {
       reload: true,
-      adapterOptions: { watch: true, abortController: controller },
+      adapterOptions: { watch: true, abortController: controller }
     });
 
     const { request: xhr } = pretender.requestReferences[0];
@@ -333,7 +335,7 @@ module('Unit | Adapter | Job', function(hooks) {
 
     this.subject().reloadRelationship(mockModel, 'summary', {
       watch: true,
-      abortController: controller,
+      abortController: controller
     });
 
     const { request: xhr } = pretender.requestReferences[0];
@@ -360,18 +362,22 @@ module('Unit | Adapter | Job', function(hooks) {
 
     this.subject().findRecord(null, { modelName: 'job' }, jobId, {
       reload: true,
-      adapterOptions: { watch: true, abortController: controller1 },
+      adapterOptions: { watch: true, abortController: controller1 }
     });
 
     this.subject().findRecord(null, { modelName: 'job' }, jobId, {
       reload: true,
-      adapterOptions: { watch: true, abortController: controller2 },
+      adapterOptions: { watch: true, abortController: controller2 }
     });
 
     const { request: xhr } = pretender.requestReferences[0];
     const { request: xhr2 } = pretender.requestReferences[1];
     assert.equal(xhr.status, 0, 'Request is still pending');
-    assert.equal(pretender.requestReferences.length, 2, 'Two findRecord requests were made');
+    assert.equal(
+      pretender.requestReferences.length,
+      2,
+      'Two findRecord requests were made'
+    );
     assert.equal(
       pretender.requestReferences.mapBy('url').uniq().length,
       1,
@@ -406,7 +412,7 @@ module('Unit | Adapter | Job', function(hooks) {
     assert.equal(request.method, 'POST');
     assert.deepEqual(JSON.parse(request.requestBody), {
       Payload: encodedPayload,
-      Meta: {},
+      Meta: {}
     });
   });
 
@@ -491,7 +497,10 @@ module('Unit | Adapter | Job', function(hooks) {
     await this.subject().forcePeriodic(job);
 
     const request = this.server.pretender.handledRequests[0];
-    assert.equal(request.url, `/v1/job/${job.plainId}/periodic/force?region=${region}`);
+    assert.equal(
+      request.url,
+      `/v1/job/${job.plainId}/periodic/force?region=${region}`
+    );
     assert.equal(request.method, 'POST');
   });
 
@@ -517,7 +526,7 @@ module('Unit | Adapter | Job', function(hooks) {
     assert.equal(request.method, 'POST');
     assert.deepEqual(JSON.parse(request.requestBody), {
       JobHCL: 'job "name-goes-here" {',
-      Canonicalize: true,
+      Canonicalize: true
     });
   });
 
@@ -576,7 +585,10 @@ module('Unit | Adapter | Job', function(hooks) {
     await this.subject().dispatch(job, {}, '');
 
     const request = this.server.pretender.handledRequests[0];
-    assert.equal(request.url, `/v1/job/${job.plainId}/dispatch?region=${region}`);
+    assert.equal(
+      request.url,
+      `/v1/job/${job.plainId}/dispatch?region=${region}`
+    );
     assert.equal(request.method, 'POST');
   });
 });
@@ -588,16 +600,16 @@ function makeMockModel(id, options) {
         return {
           kind: 'belongsTo',
           type: 'job-summary',
-          key: name,
+          key: name
         };
       },
       belongsTo(name) {
         return {
           link() {
             return `/v1/job/${id}/${name}`;
-          },
+          }
         };
-      },
+      }
     },
     options
   );

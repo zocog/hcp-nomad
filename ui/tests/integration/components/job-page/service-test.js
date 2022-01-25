@@ -4,7 +4,13 @@ import { setupRenderingTest } from 'ember-qunit';
 import { click, find, render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 import { startMirage } from 'nomad-ui/initializers/ember-cli-mirage';
-import { startJob, stopJob, expectError, expectDeleteRequest, expectStartRequest } from './helpers';
+import {
+  startJob,
+  stopJob,
+  expectError,
+  expectDeleteRequest,
+  expectStartRequest
+} from './helpers';
 import Job from 'nomad-ui/tests/pages/jobs/detail';
 import { initialize as fragmentSerializerInitializer } from 'nomad-ui/initializers/fragment-serializer';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
@@ -40,7 +46,7 @@ module('Integration | Component | job-page/service', function(hooks) {
     sortProperty: 'name',
     sortDescending: true,
     currentPage: 1,
-    gotoJob() {},
+    gotoJob() {}
   });
 
   const makeMirageJob = (server, props = {}) =>
@@ -50,13 +56,15 @@ module('Integration | Component | job-page/service', function(hooks) {
         {
           type: 'service',
           createAllocations: false,
-          status: 'running',
+          status: 'running'
         },
         props
       )
     );
 
   test('Stopping a job sends a delete request for the job', async function(assert) {
+    assert.expect(1);
+
     const mirageJob = makeMirageJob(this.server);
     await this.store.findAll('job');
 
@@ -70,6 +78,8 @@ module('Integration | Component | job-page/service', function(hooks) {
   });
 
   test('Stopping a job without proper permissions shows an error message', async function(assert) {
+    assert.expect(4);
+
     this.server.pretender.delete('/v1/job/:id', () => [403, {}, '']);
 
     const mirageJob = makeMirageJob(this.server);
@@ -87,6 +97,8 @@ module('Integration | Component | job-page/service', function(hooks) {
   });
 
   test('Starting a job sends a post request for the job using the current definition', async function(assert) {
+    assert.expect(2);
+
     const mirageJob = makeMirageJob(this.server, { status: 'dead' });
     await this.store.findAll('job');
 
@@ -100,6 +112,8 @@ module('Integration | Component | job-page/service', function(hooks) {
   });
 
   test('Starting a job without proper permissions shows an error message', async function(assert) {
+    assert.expect(3);
+
     this.server.pretender.post('/v1/job/:id', () => [403, {}, '']);
 
     const mirageJob = makeMirageJob(this.server, { status: 'dead' });
@@ -115,6 +129,8 @@ module('Integration | Component | job-page/service', function(hooks) {
   });
 
   test('Recent allocations shows allocations in the job context', async function(assert) {
+    assert.expect(3);
+
     this.server.create('node');
     const mirageJob = makeMirageJob(this.server, { createAllocations: true });
     await this.store.findAll('job');
@@ -124,11 +140,17 @@ module('Integration | Component | job-page/service', function(hooks) {
     this.setProperties(commonProperties(job));
     await render(commonTemplate);
 
-    const allocation = this.server.db.allocations.sortBy('modifyIndex').reverse()[0];
+    const allocation = this.server.db.allocations
+      .sortBy('modifyIndex')
+      .reverse()[0];
     const allocationRow = Job.allocations.objectAt(0);
 
     assert.equal(allocationRow.shortId, allocation.id.split('-')[0], 'ID');
-    assert.equal(allocationRow.taskGroup, allocation.taskGroup, 'Task Group name');
+    assert.equal(
+      allocationRow.taskGroup,
+      allocation.taskGroup,
+      'Task Group name'
+    );
 
     await componentA11yAudit(this.element, assert);
   });
@@ -153,6 +175,8 @@ module('Integration | Component | job-page/service', function(hooks) {
   });
 
   test('Recent allocations shows an empty message when the job has no allocations', async function(assert) {
+    assert.expect(2);
+
     this.server.create('node');
     const mirageJob = makeMirageJob(this.server);
 
@@ -196,7 +220,13 @@ module('Integration | Component | job-page/service', function(hooks) {
   });
 
   test('When promoting the active deployment fails, an error is shown', async function(assert) {
-    this.server.pretender.post('/v1/deployment/promote/:id', () => [403, {}, '']);
+    assert.expect(4);
+
+    this.server.pretender.post('/v1/deployment/promote/:id', () => [
+      403,
+      {},
+      ''
+    ]);
 
     this.server.create('node');
     const mirageJob = makeMirageJob(this.server, { activeDeployment: true });
@@ -224,7 +254,10 @@ module('Integration | Component | job-page/service', function(hooks) {
 
     await click('[data-test-job-error-close]');
 
-    assert.notOk(find('[data-test-job-error-title]'), 'Error message is dismissable');
+    assert.notOk(
+      find('[data-test-job-error-title]'),
+      'Error message is dismissable'
+    );
   });
 
   test('Active deployment can be failed', async function(assert) {
@@ -253,6 +286,8 @@ module('Integration | Component | job-page/service', function(hooks) {
   });
 
   test('When failing the active deployment fails, an error is shown', async function(assert) {
+    assert.expect(4);
+
     this.server.pretender.post('/v1/deployment/fail/:id', () => [403, {}, '']);
 
     this.server.create('node');
@@ -282,6 +317,9 @@ module('Integration | Component | job-page/service', function(hooks) {
 
     await click('[data-test-job-error-close]');
 
-    assert.notOk(find('[data-test-job-error-title]'), 'Error message is dismissable');
+    assert.notOk(
+      find('[data-test-job-error-title]'),
+      'Error message is dismissable'
+    );
   });
 });

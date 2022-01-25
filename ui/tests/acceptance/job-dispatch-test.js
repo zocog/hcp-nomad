@@ -1,4 +1,6 @@
 /* eslint-disable ember/no-test-module-for */
+/* eslint-disable qunit/require-expect */
+/* eslint-disable qunit/no-conditional-assertions */
 import { module, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
 import { setupMirage } from 'ember-cli-mirage/test-support';
@@ -16,7 +18,7 @@ moduleForJobDispatch('Acceptance | job dispatch', () => {
 
   return server.create('job', 'parameterized', {
     status: 'running',
-    namespaceId: namespace.name,
+    namespaceId: namespace.name
   });
 });
 
@@ -26,7 +28,7 @@ moduleForJobDispatch('Acceptance | job dispatch (with namespace)', () => {
 
   return server.create('job', 'parameterized', {
     status: 'running',
-    namespaceId: namespace.name,
+    namespaceId: namespace.name
   });
 });
 
@@ -71,10 +73,10 @@ function moduleForJobDispatch(title, jobFactory) {
           Namespaces: [
             {
               Name: namespace.name,
-              Capabilities: ['list-jobs', 'dispatch-job'],
-            },
-          ],
-        },
+              Capabilities: ['list-jobs', 'dispatch-job']
+            }
+          ]
+        }
       });
 
       clientToken.policyIds = [policy.id];
@@ -99,7 +101,8 @@ function moduleForJobDispatch(title, jobFactory) {
       await JobDispatch.visit({ id: job.id, namespace: namespace.name });
       assert.equal(
         JobDispatch.metaFields.length,
-        job.parameterizedJob.MetaOptional.length + job.parameterizedJob.MetaRequired.length
+        job.parameterizedJob.MetaOptional.length +
+          job.parameterizedJob.MetaRequired.length
       );
     });
 
@@ -108,12 +111,17 @@ function moduleForJobDispatch(title, jobFactory) {
 
       JobDispatch.metaFields.forEach(f => {
         const hasIndicator = f.label.includes(REQUIRED_INDICATOR);
-        const isRequired = job.parameterizedJob.MetaRequired.includes(f.field.id);
+        const isRequired = job.parameterizedJob.MetaRequired.includes(
+          f.field.id
+        );
 
         if (isRequired) {
           assert.ok(hasIndicator, `${f.label} contains required indicator.`);
         } else {
-          assert.notOk(hasIndicator, `${f.label} doesn't contain required indicator.`);
+          assert.notOk(
+            hasIndicator,
+            `${f.label} doesn't contain required indicator.`
+          );
         }
       });
     });
@@ -124,11 +132,14 @@ function moduleForJobDispatch(title, jobFactory) {
         namespaceId: namespace.name,
         parameterizedJob: {
           MetaRequired: null,
-          MetaOptional: null,
-        },
+          MetaOptional: null
+        }
       });
 
-      await JobDispatch.visit({ id: jobWithoutMeta.id, namespace: namespace.name });
+      await JobDispatch.visit({
+        id: jobWithoutMeta.id,
+        namespace: namespace.name
+      });
       assert.ok(JobDispatch.dispatchButton.isPresent);
     });
 
@@ -147,18 +158,21 @@ function moduleForJobDispatch(title, jobFactory) {
         status: 'running',
         namespaceId: namespace.name,
         parameterizedJob: {
-          Payload: 'required',
-        },
+          Payload: 'required'
+        }
       });
       const jobPayloadOptional = server.create('job', 'parameterized', {
         status: 'running',
         namespaceId: namespace.name,
         parameterizedJob: {
-          Payload: 'optional',
-        },
+          Payload: 'optional'
+        }
       });
 
-      await JobDispatch.visit({ id: jobPayloadRequired.id, namespace: namespace.name });
+      await JobDispatch.visit({
+        id: jobPayloadRequired.id,
+        namespace: namespace.name
+      });
 
       let payloadTitle = JobDispatch.payload.title;
       assert.ok(
@@ -166,7 +180,10 @@ function moduleForJobDispatch(title, jobFactory) {
         `${payloadTitle} contains required indicator.`
       );
 
-      await JobDispatch.visit({ id: jobPayloadOptional.id, namespace: namespace.name });
+      await JobDispatch.visit({
+        id: jobPayloadOptional.id,
+        namespace: namespace.name
+      });
 
       payloadTitle = JobDispatch.payload.title;
       assert.notOk(
@@ -191,7 +208,9 @@ function moduleForJobDispatch(title, jobFactory) {
       const childrenCountAfter = countDispatchChildren();
 
       assert.equal(childrenCountAfter, childrenCountBefore + 1);
-      assert.ok(currentURL().startsWith(`/jobs/${encodeURIComponent(`${job.id}/`)}`));
+      assert.ok(
+        currentURL().startsWith(`/jobs/${encodeURIComponent(`${job.id}/`)}`)
+      );
       assert.ok(JobDetail.jobName);
     });
 

@@ -11,7 +11,7 @@ module('Integration | Component | list pagination', function(hooks) {
     source: [],
     size: 25,
     page: 1,
-    spread: 2,
+    spread: 2
   };
 
   const list100 = Array(100)
@@ -19,6 +19,8 @@ module('Integration | Component | list pagination', function(hooks) {
     .map((_, i) => i);
 
   test('the source property', async function(assert) {
+    assert.expect(36);
+
     this.set('source', list100);
     await render(hbs`
       <ListPagination @source={{source}} as |p|>
@@ -37,8 +39,14 @@ module('Integration | Component | list pagination', function(hooks) {
       </ListPagination>
     `);
 
-    assert.ok(!findAll('.first').length, 'On the first page, there is no first link');
-    assert.ok(!findAll('.prev').length, 'On the first page, there is no prev link');
+    assert.notOk(
+      findAll('.first').length,
+      'On the first page, there is no first link'
+    );
+    assert.notOk(
+      findAll('.prev').length,
+      'On the first page, there is no prev link'
+    );
     await componentA11yAudit(this.element, assert);
 
     assert.equal(
@@ -48,14 +56,23 @@ module('Integration | Component | list pagination', function(hooks) {
     );
 
     for (var pageNumber = 1; pageNumber <= defaults.spread + 1; pageNumber++) {
-      assert.ok(findAll(`.link.page-${pageNumber}`).length, `Page link includes ${pageNumber}`);
+      assert.ok(
+        findAll(`.link.page-${pageNumber}`).length,
+        `Page link includes ${pageNumber}`
+      );
     }
 
-    assert.ok(findAll('.next').length, 'While not on the last page, there is a next link');
-    assert.ok(findAll('.last').length, 'While not on the last page, there is a last link');
+    assert.ok(
+      findAll('.next').length,
+      'While not on the last page, there is a next link'
+    );
+    assert.ok(
+      findAll('.last').length,
+      'While not on the last page, there is a last link'
+    );
     await componentA11yAudit(this.element, assert);
 
-    assert.ok(
+    assert.equal(
       findAll('.item').length,
       defaults.size,
       `Only ${defaults.size} (the default) number of items are rendered`
@@ -73,7 +90,7 @@ module('Integration | Component | list pagination', function(hooks) {
   test('the size property', async function(assert) {
     this.setProperties({
       size: 5,
-      source: list100,
+      source: list100
     });
     await render(hbs`
       <ListPagination @source={{source}} @size={{size}} as |p|>
@@ -82,15 +99,21 @@ module('Integration | Component | list pagination', function(hooks) {
     `);
 
     const totalPages = Math.ceil(this.source.length / this.size);
-    assert.equal(find('.page-info').textContent, `1 of ${totalPages}`, `${totalPages} total pages`);
+    assert.equal(
+      find('.page-info').textContent,
+      `1 of ${totalPages}`,
+      `${totalPages} total pages`
+    );
   });
 
   test('the spread property', async function(assert) {
+    assert.expect(12);
+
     this.setProperties({
       source: list100,
       spread: 1,
       size: 10,
-      currentPage: 5,
+      currentPage: 5
     });
 
     await render(hbs`
@@ -107,10 +130,12 @@ module('Integration | Component | list pagination', function(hooks) {
   });
 
   test('page property', async function(assert) {
+    assert.expect(10);
+
     this.setProperties({
       source: list100,
       size: 5,
-      currentPage: 5,
+      currentPage: 5
     });
 
     await render(hbs`
@@ -150,10 +175,10 @@ module('Integration | Component | list pagination', function(hooks) {
       </ListPagination>
     `);
 
-    assert.ok(!findAll('.first').length, 'No first link');
-    assert.ok(!findAll('.prev').length, 'No prev link');
-    assert.ok(!findAll('.next').length, 'No next link');
-    assert.ok(!findAll('.last').length, 'No last link');
+    assert.notOk(findAll('.first').length, 'No first link');
+    assert.notOk(findAll('.prev').length, 'No prev link');
+    assert.notOk(findAll('.next').length, 'No next link');
+    assert.notOk(findAll('.last').length, 'No last link');
 
     assert.equal(find('.page-info').textContent, '1 of 1', 'Only one page');
     assert.equal(
@@ -165,11 +190,13 @@ module('Integration | Component | list pagination', function(hooks) {
 
   // when there is less pages than the total spread amount
   test('when there is less pages than the total spread amount', async function(assert) {
+    assert.expect(9);
+
     this.setProperties({
       source: list100,
       spread: 4,
       size: 20,
-      page: 3,
+      page: 3
     });
 
     const totalPages = Math.ceil(this.get('source.length') / this.size);
@@ -191,15 +218,26 @@ module('Integration | Component | list pagination', function(hooks) {
     assert.ok(findAll('.prev').length, 'Prev page still exists');
     assert.ok(findAll('.next').length, 'Next page still exists');
     assert.ok(findAll('.last').length, 'Last page still exists');
-    assert.equal(findAll('.link').length, totalPages, 'Every page gets a page link');
+    assert.equal(
+      findAll('.link').length,
+      totalPages,
+      'Every page gets a page link'
+    );
     for (var pageNumber = 1; pageNumber < totalPages; pageNumber++) {
-      assert.ok(findAll(`.link.page-${pageNumber}`).length, `Page link for ${pageNumber} exists`);
+      assert.ok(
+        findAll(`.link.page-${pageNumber}`).length,
+        `Page link for ${pageNumber} exists`
+      );
     }
   });
 
   function testSpread(assert) {
     const { spread, currentPage } = this.getProperties('spread', 'currentPage');
-    for (var pageNumber = currentPage - spread; pageNumber <= currentPage + spread; pageNumber++) {
+    for (
+      var pageNumber = currentPage - spread;
+      pageNumber <= currentPage + spread;
+      pageNumber++
+    ) {
       assert.ok(
         findAll(`.link.page-${pageNumber}`).length,
         `Page links for currentPage (${currentPage}) +/- spread of ${spread} (${pageNumber})`

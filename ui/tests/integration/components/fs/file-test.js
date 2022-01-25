@@ -17,12 +17,24 @@ module('Integration | Component | fs/file', function(hooks) {
       this.get('/v1/agent/members', () => [
         200,
         {},
-        JSON.stringify({ ServerRegion: 'default', Members: [] }),
+        JSON.stringify({ ServerRegion: 'default', Members: [] })
       ]);
-      this.get('/v1/regions', () => [200, {}, JSON.stringify(['default', 'region-2'])]);
-      this.get('/v1/client/fs/stream/:alloc_id', () => [200, {}, logEncode(['Hello World'], 0)]);
+      this.get('/v1/regions', () => [
+        200,
+        {},
+        JSON.stringify(['default', 'region-2'])
+      ]);
+      this.get('/v1/client/fs/stream/:alloc_id', () => [
+        200,
+        {},
+        logEncode(['Hello World'], 0)
+      ]);
       this.get('/v1/client/fs/cat/:alloc_id', () => [200, {}, 'Hello World']);
-      this.get('/v1/client/fs/readat/:alloc_id', () => [200, {}, 'Hello World']);
+      this.get('/v1/client/fs/readat/:alloc_id', () => [
+        200,
+        {},
+        'Hello World'
+      ]);
     });
     this.system = this.owner.lookup('service:system');
   });
@@ -39,8 +51,8 @@ module('Integration | Component | fs/file', function(hooks) {
   const fileStat = (type, size = 0) => ({
     stat: {
       Size: size,
-      ContentType: type,
-    },
+      ContentType: type
+    }
   });
   const makeProps = (props = {}) =>
     assign(
@@ -49,22 +61,24 @@ module('Integration | Component | fs/file', function(hooks) {
         allocation: {
           id: 'alloc-1',
           node: {
-            httpAddr: HOST,
-          },
+            httpAddr: HOST
+          }
         },
         taskState: {
-          name: 'task-name',
+          name: 'task-name'
         },
         file: 'path/to/file',
         stat: {
           Size: 12345,
-          ContentType: 'text/plain',
-        },
+          ContentType: 'text/plain'
+        }
       },
       props
     );
 
   test('When a file is text-based, the file mode is streaming', async function(assert) {
+    assert.expect(3);
+
     const props = makeProps(fileStat('text/plain', 500));
     this.setProperties(props);
 
@@ -83,6 +97,8 @@ module('Integration | Component | fs/file', function(hooks) {
   });
 
   test('When a file is an image, the file mode is image', async function(assert) {
+    assert.expect(3);
+
     const props = makeProps(fileStat('image/png', 1234));
     this.setProperties(props);
 
@@ -101,6 +117,8 @@ module('Integration | Component | fs/file', function(hooks) {
   });
 
   test('When the file is neither text-based or an image, the unsupported file type empty state is shown', async function(assert) {
+    assert.expect(4);
+
     const props = makeProps(fileStat('wat/ohno', 1234));
     this.setProperties(props);
 
@@ -114,7 +132,10 @@ module('Integration | Component | fs/file', function(hooks) {
       find('[data-test-file-box] [data-test-log-cli]'),
       'The streaming file component was not rendered'
     );
-    assert.ok(find('[data-test-unsupported-type]'), 'Unsupported file type message is shown');
+    assert.ok(
+      find('[data-test-unsupported-type]'),
+      'Unsupported file type message is shown'
+    );
     await componentA11yAudit(this.element, assert);
   });
 
@@ -213,6 +234,8 @@ module('Integration | Component | fs/file', function(hooks) {
   });
 
   test('Yielded content goes in the top-left header area', async function(assert) {
+    assert.expect(2);
+
     const props = makeProps(fileStat('image/svg', 5000));
     this.setProperties(props);
 
@@ -257,6 +280,9 @@ module('Integration | Component | fs/file', function(hooks) {
 
     classes = Array.from(find('[data-test-file-box]').classList);
     assert.notOk(classes.includes('is-dark'), 'Body is still not dark');
-    assert.notOk(classes.includes('is-full-bleed'), 'Body is still not full-bleed');
+    assert.notOk(
+      classes.includes('is-full-bleed'),
+      'Body is still not full-bleed'
+    );
   });
 });

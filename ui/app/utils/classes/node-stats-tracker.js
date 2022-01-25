@@ -30,14 +30,14 @@ class NodeStatsTracker extends EmberObject.extend(AbstractStatsTracker) {
     this.cpu.pushObject({
       timestamp,
       used: cpuUsed,
-      percent: percent(cpuUsed, this.reservedCPU),
+      percent: percent(cpuUsed, this.reservedCPU)
     });
 
     const memoryUsed = frame.Memory.Used;
     this.memory.pushObject({
       timestamp,
       used: memoryUsed,
-      percent: percent(memoryUsed / 1024 / 1024, this.reservedMemory),
+      percent: percent(memoryUsed / 1024 / 1024, this.reservedMemory)
     });
   }
 
@@ -70,7 +70,7 @@ export function stats(nodeProp, fetch) {
   return computed(nodeProp, function() {
     return NodeStatsTracker.create({
       fetch: fetch.call(this),
-      node: this.get(nodeProp),
+      node: this.get(nodeProp)
     });
   });
 }

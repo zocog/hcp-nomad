@@ -1,4 +1,5 @@
-/* eslint-disable ember-a11y-testing/a11y-audit-called */ // TODO
+/* eslint-disable ember-a11y-testing/a11y-audit-called */
+/* eslint-disable qunit/require-expect */
 import { module, test } from 'qunit';
 import { currentURL, triggerEvent, visit } from '@ember/test-helpers';
 import { setupApplicationTest } from 'ember-qunit';
@@ -20,16 +21,21 @@ module('Acceptance | search', function(hooks) {
       id: 'vwxyz',
       namespaceId: 'default',
       groupsCount: 1,
-      groupTaskCount: 1,
+      groupTaskCount: 1
     });
     server.create('job', {
       id: 'xyz',
       name: 'xyz job',
       namespaceId: 'default',
       groupsCount: 1,
-      groupTaskCount: 1,
+      groupTaskCount: 1
     });
-    server.create('job', { id: 'abc', namespaceId: 'default', groupsCount: 1, groupTaskCount: 1 });
+    server.create('job', {
+      id: 'abc',
+      namespaceId: 'default',
+      groupsCount: 1,
+      groupTaskCount: 1
+    });
 
     const firstAllocation = server.schema.allocations.all().models[0];
     const firstTaskGroup = server.schema.taskGroups.all().models[0];
@@ -100,13 +106,16 @@ module('Acceptance | search', function(hooks) {
     await Layout.navbar.search.groups[4].options[0].click();
     assert.equal(currentURL(), '/csi/plugins/xyz-plugin');
 
-    const fuzzySearchQueries = server.pretender.handledRequests.filterBy('url', '/v1/search/fuzzy');
+    const fuzzySearchQueries = server.pretender.handledRequests.filterBy(
+      'url',
+      '/v1/search/fuzzy'
+    );
 
     const featureDetectionQueries = fuzzySearchQueries.filter(request =>
       request.requestBody.includes('feature-detection-query')
     );
 
-    assert.ok(
+    assert.equal(
       featureDetectionQueries.length,
       1,
       'expect the feature detection query to only run once'
@@ -117,7 +126,7 @@ module('Acceptance | search', function(hooks) {
     assert.deepEqual(JSON.parse(realFuzzySearchQuery.requestBody), {
       Context: 'all',
       Namespace: '*',
-      Text: 'xy',
+      Text: 'xy'
     });
   });
 
@@ -128,7 +137,8 @@ module('Acceptance | search', function(hooks) {
 
     assert.ok(Layout.navbar.search.noOptionsShown);
     assert.equal(
-      server.pretender.handledRequests.filterBy('url', '/v1/search/fuzzy').length,
+      server.pretender.handledRequests.filterBy('url', '/v1/search/fuzzy')
+        .length,
       1,
       'expect the feature detection query'
     );

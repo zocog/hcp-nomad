@@ -1,3 +1,4 @@
+/* eslint-disable qunit/require-expect */
 import { currentURL, settled } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
@@ -39,7 +40,11 @@ module('Acceptance | clients list', function(hooks) {
     const sortedNodes = server.db.nodes.sortBy('modifyIndex').reverse();
 
     ClientsList.nodes.forEach((node, index) => {
-      assert.equal(node.id, sortedNodes[index].id.split('-')[0], 'Clients are ordered');
+      assert.equal(
+        node.id,
+        sortedNodes[index].id.split('-')[0],
+        'Clients are ordered'
+      );
     });
 
     assert.equal(document.title, 'Clients - Nomad');
@@ -47,7 +52,7 @@ module('Acceptance | clients list', function(hooks) {
 
   test('each client record should show high-level info of the client', async function(assert) {
     const node = server.create('node', 'draining', {
-      status: 'ready',
+      status: 'ready'
     });
 
     server.createList('agent', 1);
@@ -77,12 +82,14 @@ module('Acceptance | clients list', function(hooks) {
       modifyIndex: 4,
       status: 'ready',
       schedulingEligibility: 'eligible',
-      drain: false,
+      drain: false
     });
 
     server.create('job', { createAllocations: false });
 
-    const running = server.createList('allocation', 2, { clientStatus: 'running' });
+    const running = server.createList('allocation', 2, {
+      clientStatus: 'running'
+    });
     server.createList('allocation', 3, { clientStatus: 'pending' });
     server.createList('allocation', 10, { clientStatus: 'complete' });
 
@@ -106,35 +113,35 @@ module('Acceptance | clients list', function(hooks) {
       modifyIndex: 5,
       status: 'ready',
       schedulingEligibility: 'eligible',
-      drain: false,
+      drain: false
     });
     server.create('node', {
       modifyIndex: 4,
       status: 'initializing',
       schedulingEligibility: 'eligible',
-      drain: false,
+      drain: false
     });
     server.create('node', {
       modifyIndex: 3,
       status: 'down',
       schedulingEligibility: 'eligible',
-      drain: false,
+      drain: false
     });
     server.create('node', {
       modifyIndex: 2,
       status: 'down',
       schedulingEligibility: 'ineligible',
-      drain: false,
+      drain: false
     });
     server.create('node', {
       modifyIndex: 1,
       status: 'ready',
       schedulingEligibility: 'ineligible',
-      drain: false,
+      drain: false
     });
     server.create('node', 'draining', {
       modifyIndex: 0,
-      status: 'ready',
+      status: 'ready'
     });
 
     await ClientsList.visit();
@@ -154,10 +161,16 @@ module('Acceptance | clients list', function(hooks) {
     );
 
     assert.equal(ClientsList.nodes[4].compositeStatus.text, 'ineligible');
-    assert.ok(ClientsList.nodes[4].compositeStatus.isWarning, 'expected warning class');
+    assert.ok(
+      ClientsList.nodes[4].compositeStatus.isWarning,
+      'expected warning class'
+    );
 
     assert.equal(ClientsList.nodes[5].compositeStatus.text, 'draining');
-    assert.ok(ClientsList.nodes[5].compositeStatus.isInfo, 'expected info class');
+    assert.ok(
+      ClientsList.nodes[5].compositeStatus.isInfo,
+      'expected info class'
+    );
 
     await ClientsList.sortBy('compositeStatus');
 
@@ -167,7 +180,7 @@ module('Acceptance | clients list', function(hooks) {
       'ineligible',
       'draining',
       'down',
-      'down',
+      'down'
     ]);
 
     // Simulate a client state change arriving through polling
@@ -185,7 +198,7 @@ module('Acceptance | clients list', function(hooks) {
       'ineligible',
       'draining',
       'down',
-      'down',
+      'down'
     ]);
   });
 
@@ -243,7 +256,7 @@ module('Acceptance | clients list', function(hooks) {
       server.createList('node', ClientsList.pageSize);
       server.createList('agent', 1);
       await ClientsList.visit();
-    },
+    }
   });
 
   testFacet('Class', {
@@ -259,13 +272,19 @@ module('Acceptance | clients list', function(hooks) {
       server.createList('node', 2, { nodeClass: 'nc-three' });
       await ClientsList.visit();
     },
-    filter: (node, selection) => selection.includes(node.nodeClass),
+    filter: (node, selection) => selection.includes(node.nodeClass)
   });
 
   testFacet('State', {
     facet: ClientsList.facets.state,
     paramName: 'state',
-    expectedOptions: ['Initializing', 'Ready', 'Down', 'Ineligible', 'Draining'],
+    expectedOptions: [
+      'Initializing',
+      'Ready',
+      'Down',
+      'Ineligible',
+      'Draining'
+    ],
     async beforeEach() {
       server.create('agent');
 
@@ -273,19 +292,31 @@ module('Acceptance | clients list', function(hooks) {
       server.createList('node', 2, { status: 'ready' });
       server.createList('node', 2, { status: 'down' });
 
-      server.createList('node', 2, { schedulingEligibility: 'eligible', drain: false });
-      server.createList('node', 2, { schedulingEligibility: 'ineligible', drain: false });
-      server.createList('node', 2, { schedulingEligibility: 'ineligible', drain: true });
+      server.createList('node', 2, {
+        schedulingEligibility: 'eligible',
+        drain: false
+      });
+      server.createList('node', 2, {
+        schedulingEligibility: 'ineligible',
+        drain: false
+      });
+      server.createList('node', 2, {
+        schedulingEligibility: 'ineligible',
+        drain: true
+      });
 
       await ClientsList.visit();
     },
     filter: (node, selection) => {
       if (selection.includes('draining') && !node.drain) return false;
-      if (selection.includes('ineligible') && node.schedulingEligibility === 'eligible')
+      if (
+        selection.includes('ineligible') &&
+        node.schedulingEligibility === 'eligible'
+      )
         return false;
 
       return selection.includes(node.status);
-    },
+    }
   });
 
   testFacet('Datacenters', {
@@ -301,7 +332,7 @@ module('Acceptance | clients list', function(hooks) {
       server.createList('node', 2, { datacenter: 'ams-1' });
       await ClientsList.visit();
     },
-    filter: (node, selection) => selection.includes(node.datacenter),
+    filter: (node, selection) => selection.includes(node.datacenter)
   });
 
   testFacet('Versions', {
@@ -317,7 +348,7 @@ module('Acceptance | clients list', function(hooks) {
       server.createList('node', 2, { version: '1.2.0+ent' });
       await ClientsList.visit();
     },
-    filter: (node, selection) => selection.includes(node.version),
+    filter: (node, selection) => selection.includes(node.version)
   });
 
   testFacet('Volumes', {
@@ -325,17 +356,21 @@ module('Acceptance | clients list', function(hooks) {
     paramName: 'volume',
     expectedOptions(nodes) {
       const flatten = (acc, val) => acc.concat(Object.keys(val));
-      return Array.from(new Set(nodes.mapBy('hostVolumes').reduce(flatten, [])));
+      return Array.from(
+        new Set(nodes.mapBy('hostVolumes').reduce(flatten, []))
+      );
     },
     async beforeEach() {
       server.create('agent');
       server.createList('node', 2, { hostVolumes: { One: { Name: 'One' } } });
-      server.createList('node', 2, { hostVolumes: { One: { Name: 'One' }, Two: { Name: 'Two' } } });
+      server.createList('node', 2, {
+        hostVolumes: { One: { Name: 'One' }, Two: { Name: 'Two' } }
+      });
       server.createList('node', 2, { hostVolumes: { Two: { Name: 'Two' } } });
       await ClientsList.visit();
     },
     filter: (node, selection) =>
-      Object.keys(node.hostVolumes).find(volume => selection.includes(volume)),
+      Object.keys(node.hostVolumes).find(volume => selection.includes(volume))
   });
 
   test('when the facet selections result in no matches, the empty state states why', async function(assert) {
@@ -347,7 +382,11 @@ module('Acceptance | clients list', function(hooks) {
     await ClientsList.facets.state.toggle();
     await ClientsList.facets.state.options.objectAt(0).toggle();
     assert.ok(ClientsList.isEmpty, 'There is an empty message');
-    assert.equal(ClientsList.empty.headline, 'No Matches', 'The message is appropriate');
+    assert.equal(
+      ClientsList.empty.headline,
+      'No Matches',
+      'The message is appropriate'
+    );
   });
 
   test('the clients list is immediately filtered based on query params', async function(assert) {
@@ -357,10 +396,17 @@ module('Acceptance | clients list', function(hooks) {
 
     await ClientsList.visit({ class: JSON.stringify(['wtf-tiny']) });
 
-    assert.equal(ClientsList.nodes.length, 1, 'Only one client shown due to query param');
+    assert.equal(
+      ClientsList.nodes.length,
+      1,
+      'Only one client shown due to query param'
+    );
   });
 
-  function testFacet(label, { facet, paramName, beforeEach, filter, expectedOptions }) {
+  function testFacet(
+    label,
+    { facet, paramName, beforeEach, filter, expectedOptions }
+  ) {
     test(`the ${label} facet has the correct options`, async function(assert) {
       await beforeEach();
       await facet.toggle();
@@ -445,7 +491,9 @@ module('Acceptance | clients list', function(hooks) {
 
       assert.equal(
         currentURL(),
-        `/clients?${paramName}=${encodeURIComponent(JSON.stringify(selection))}`,
+        `/clients?${paramName}=${encodeURIComponent(
+          JSON.stringify(selection)
+        )}`,
         'URL has the correct query param key and value'
       );
     });

@@ -25,8 +25,12 @@ module('Integration | Component | breadcrumbs', function(hooks) {
       {{/if}}
     `);
 
-    assert.dom('[data-test-crumb]').exists({ count: 1 }, 'We register one crumb');
-    assert.dom('[data-test-crumb]').hasText('Zoey', 'The first registered crumb is Zoey');
+    assert
+      .dom('[data-test-crumb]')
+      .exists({ count: 1 }, 'We register one crumb');
+    assert
+      .dom('[data-test-crumb]')
+      .hasText('Zoey', 'The first registered crumb is Zoey');
 
     await click('[data-test-button]');
     const crumbs = await findAll('[data-test-crumb]');
@@ -36,16 +40,27 @@ module('Integration | Component | breadcrumbs', function(hooks) {
       .exists({ count: 2 }, 'The second crumb registered successfully');
     assert
       .dom(crumbs[0])
-      .hasText('Zoey', 'Breadcrumbs maintain the order in which they are declared');
+      .hasText(
+        'Zoey',
+        'Breadcrumbs maintain the order in which they are declared'
+      );
     assert
       .dom(crumbs[1])
-      .hasText('Tomster', 'Breadcrumbs maintain the order in which they are declared');
+      .hasText(
+        'Tomster',
+        'Breadcrumbs maintain the order in which they are declared'
+      );
 
     await click('[data-test-button]');
-    assert.dom('[data-test-crumb]').exists({ count: 1 }, 'We deregister one crumb');
     assert
       .dom('[data-test-crumb]')
-      .hasText('Zoey', 'Zoey remains in the template after Tomster deregisters');
+      .exists({ count: 1 }, 'We deregister one crumb');
+    assert
+      .dom('[data-test-crumb]')
+      .hasText(
+        'Zoey',
+        'Zoey remains in the template after Tomster deregisters'
+      );
   });
 
   test('it can register complex crumb objects', async function(assert) {
@@ -62,6 +77,9 @@ module('Integration | Component | breadcrumbs', function(hooks) {
 
     assert
       .dom('[data-test-crumb]')
-      .hasText('Tomster', 'We can access the registered breadcrumbs in the template');
+      .hasText(
+        'Tomster',
+        'We can access the registered breadcrumbs in the template'
+      );
   });
 });

@@ -17,18 +17,19 @@ export default class RecommendationSummarySerializer extends ApplicationSerializ
     const allRecommendations = [];
 
     payload.forEach(recommendationHash => {
-      const slug = `${JSON.stringify([recommendationHash.JobID, recommendationHash.Namespace])}/${
-        recommendationHash.Group
-      }`;
+      const slug = `${JSON.stringify([
+        recommendationHash.JobID,
+        recommendationHash.Namespace
+      ])}/${recommendationHash.Group}`;
 
       if (!slugToSummaryObject[slug]) {
         slugToSummaryObject[slug] = {
           attributes: {
             jobId: recommendationHash.JobID,
             jobNamespace: recommendationHash.Namespace,
-            taskGroupName: recommendationHash.Group,
+            taskGroupName: recommendationHash.Group
           },
-          recommendations: [],
+          recommendations: []
         };
       }
 
@@ -38,7 +39,9 @@ export default class RecommendationSummarySerializer extends ApplicationSerializ
 
     return {
       data: Object.values(slugToSummaryObject).map(summaryObject => {
-        const latest = Math.max(...summaryObject.recommendations.mapBy('SubmitTime'));
+        const latest = Math.max(
+          ...summaryObject.recommendations.mapBy('SubmitTime')
+        );
 
         return {
           type: 'recommendation-summary',
@@ -48,7 +51,7 @@ export default class RecommendationSummarySerializer extends ApplicationSerializ
             .join('-'),
           attributes: {
             ...summaryObject.attributes,
-            submitTime: new Date(Math.floor(latest / 1000000)),
+            submitTime: new Date(Math.floor(latest / 1000000))
           },
           relationships: {
             job: {
@@ -56,25 +59,28 @@ export default class RecommendationSummarySerializer extends ApplicationSerializ
                 type: 'job',
                 id: JSON.stringify([
                   summaryObject.attributes.jobId,
-                  summaryObject.attributes.jobNamespace,
-                ]),
-              },
+                  summaryObject.attributes.jobNamespace
+                ])
+              }
             },
             recommendations: {
               data: summaryObject.recommendations.map(r => {
                 return {
                   type: 'recommendation',
-                  id: r.ID,
+                  id: r.ID
                 };
-              }),
-            },
-          },
+              })
+            }
+          }
         };
       }),
       included: allRecommendations.map(
         recommendationHash =>
-          recommendationSerializer.normalize(RecommendationModel, recommendationHash).data
-      ),
+          recommendationSerializer.normalize(
+            RecommendationModel,
+            recommendationHash
+          ).data
+      )
     };
   }
 
@@ -83,9 +89,9 @@ export default class RecommendationSummarySerializer extends ApplicationSerializ
       data: {
         id,
         attributes: {
-          isProcessed: true,
-        },
-      },
+          isProcessed: true
+        }
+      }
     };
   }
 }

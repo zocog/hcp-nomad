@@ -20,7 +20,7 @@ export default class ApplicationAdapter extends RESTAdapter {
     const token = this.get('token.secret');
     if (token) {
       return {
-        'X-Nomad-Token': token,
+        'X-Nomad-Token': token
       };
     }
 
@@ -96,6 +96,7 @@ export default class ApplicationAdapter extends RESTAdapter {
     let prefix = this.urlPrefix();
 
     if (modelName) {
+      /* eslint-disable-next-line ember/no-string-prototype-extensions */
       path = modelName.camelize();
       if (path) {
         url.push(path);
@@ -124,5 +125,7 @@ export default class ApplicationAdapter extends RESTAdapter {
 }
 
 function associateRegion(url, region) {
-  return url.indexOf('?') !== -1 ? `${url}&region=${region}` : `${url}?region=${region}`;
+  return url.indexOf('?') !== -1
+    ? `${url}&region=${region}`
+    : `${url}?region=${region}`;
 }

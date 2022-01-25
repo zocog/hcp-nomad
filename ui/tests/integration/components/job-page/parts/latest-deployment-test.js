@@ -7,7 +7,9 @@ import { startMirage } from 'nomad-ui/initializers/ember-cli-mirage';
 import { initialize as fragmentSerializerInitializer } from 'nomad-ui/initializers/fragment-serializer';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
 
-module('Integration | Component | job-page/parts/latest-deployment', function(hooks) {
+module('Integration | Component | job-page/parts/latest-deployment', function(
+  hooks
+) {
   setupRenderingTest(hooks);
 
   hooks.beforeEach(function() {
@@ -27,7 +29,7 @@ module('Integration | Component | job-page/parts/latest-deployment', function(ho
     this.server.create('job', {
       type: 'service',
       noDeployments: true,
-      createAllocations: false,
+      createAllocations: false
     });
 
     await this.store.findAll('job');
@@ -41,10 +43,12 @@ module('Integration | Component | job-page/parts/latest-deployment', function(ho
   });
 
   test('the latest deployment section shows up for the currently running deployment', async function(assert) {
+    assert.expect(11);
+
     this.server.create('job', {
       type: 'service',
       createAllocations: false,
-      activeDeployment: true,
+      activeDeployment: true
     });
 
     await this.store.findAll('job');
@@ -69,14 +73,18 @@ module('Integration | Component | job-page/parts/latest-deployment', function(ho
     );
 
     assert.equal(
-      find('[data-test-active-deployment-stat="submit-time"]').textContent.trim(),
+      find(
+        '[data-test-active-deployment-stat="submit-time"]'
+      ).textContent.trim(),
       moment(version.get('submitTime')).fromNow(),
       'Time since the job was submitted is in the active deployment header'
     );
 
     assert.equal(
       find('[data-test-deployment-metric="canaries"]').textContent.trim(),
-      `${deployment.get('placedCanaries')} / ${deployment.get('desiredCanaries')}`,
+      `${deployment.get('placedCanaries')} / ${deployment.get(
+        'desiredCanaries'
+      )}`,
       'Canaries, both places and desired, are in the metrics'
     );
 
@@ -117,7 +125,7 @@ module('Integration | Component | job-page/parts/latest-deployment', function(ho
     this.server.create('job', {
       type: 'service',
       createAllocations: false,
-      noActiveDeployment: true,
+      noActiveDeployment: true
     });
 
     await this.store.findAll('job');
@@ -135,6 +143,8 @@ module('Integration | Component | job-page/parts/latest-deployment', function(ho
   });
 
   test('the latest deployment section can be expanded to show task groups and allocations', async function(assert) {
+    assert.expect(5);
+
     this.server.create('node');
     this.server.create('job', { type: 'service', activeDeployment: true });
 
@@ -145,8 +155,14 @@ module('Integration | Component | job-page/parts/latest-deployment', function(ho
       <JobPage::Parts::LatestDeployment @job={{job}} />
     `);
 
-    assert.notOk(find('[data-test-deployment-task-groups]'), 'Task groups not found');
-    assert.notOk(find('[data-test-deployment-allocations]'), 'Allocations not found');
+    assert.notOk(
+      find('[data-test-deployment-task-groups]'),
+      'Task groups not found'
+    );
+    assert.notOk(
+      find('[data-test-deployment-allocations]'),
+      'Allocations not found'
+    );
 
     await click('[data-test-deployment-toggle-details]');
 
@@ -172,7 +188,8 @@ module('Integration | Component | job-page/parts/latest-deployment', function(ho
     await click('[data-test-deployment-toggle-details]');
 
     const task = job.get('runningDeployment.taskGroupSummaries.firstObject');
-    const findForTaskGroup = selector => find(`[data-test-deployment-task-group-${selector}]`);
+    const findForTaskGroup = selector =>
+      find(`[data-test-deployment-task-group-${selector}]`);
     assert.equal(findForTaskGroup('name').textContent.trim(), task.get('name'));
     assert.equal(
       findForTaskGroup('progress-deadline').textContent.trim(),

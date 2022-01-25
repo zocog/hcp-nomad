@@ -5,7 +5,7 @@ import {
   fillable,
   isPresent,
   text,
-  visitable,
+  visitable
 } from 'ember-cli-page-object';
 
 import allocations from 'nomad-ui/tests/pages/components/allocations';
@@ -36,7 +36,7 @@ export default create({
 
   facets: {
     status: multiFacet('[data-test-allocation-status-facet]'),
-    client: multiFacet('[data-test-allocation-client-facet]'),
+    client: multiFacet('[data-test-allocation-client-facet]')
   },
 
   lifecycleChart: LifecycleChart,
@@ -46,35 +46,46 @@ export default create({
     name: text('[data-test-volume-name]'),
     type: text('[data-test-volume-type]'),
     source: text('[data-test-volume-source]'),
-    permissions: text('[data-test-volume-permissions]'),
+    permissions: text('[data-test-volume-permissions]')
   }),
 
   hasScaleEvents: isPresent('[data-test-scale-events]'),
-  scaleEvents: collection('[data-test-scale-events] [data-test-accordion-head]', {
-    error: isPresent('[data-test-error]'),
-    time: text('[data-test-time]'),
-    count: text('[data-test-count]'),
-    countIcon: { scope: '[data-test-count-icon]' },
-    message: text('[data-test-message]'),
+  scaleEvents: collection(
+    '[data-test-scale-events] [data-test-accordion-head]',
+    {
+      error: isPresent('[data-test-error]'),
+      time: text('[data-test-time]'),
+      count: text('[data-test-count]'),
+      countIcon: { scope: '[data-test-count-icon]' },
+      message: text('[data-test-message]'),
 
-    isToggleable: isPresent('[data-test-accordion-toggle]:not(.is-invisible)'),
-    toggle: clickable('[data-test-accordion-toggle]'),
-  }),
+      isToggleable: isPresent(
+        '[data-test-accordion-toggle]:not(.is-invisible)'
+      ),
+      toggle: clickable('[data-test-accordion-toggle]')
+    }
+  ),
 
-  scaleEventBodies: collection('[data-test-scale-events] [data-test-accordion-body]', {
-    meta: text(),
-  }),
+  scaleEventBodies: collection(
+    '[data-test-scale-events] [data-test-accordion-body]',
+    {
+      meta: text()
+    }
+  ),
 
   hasScalingTimeline: isPresent('[data-test-scaling-timeline]'),
-  scalingAnnotations: collection('[data-test-scaling-timeline] [data-test-annotation]', {
-    open: clickable('button'),
-  }),
+  scalingAnnotations: collection(
+    '[data-test-scaling-timeline] [data-test-annotation]',
+    {
+      open: clickable('button')
+    }
+  ),
 
   error: error(),
 
   emptyState: {
-    headline: text('[data-test-empty-allocations-list-headline]'),
+    headline: text('[data-test-empty-allocations-list-headline]')
   },
 
-  pageSizeSelect: pageSizeSelect(),
+  pageSizeSelect: pageSizeSelect()
 });

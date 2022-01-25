@@ -1,3 +1,4 @@
+/* eslint-disable ember/no-string-prototype-extensions */
 import { copy } from 'ember-copy';
 import { get } from '@ember/object';
 import { makeArray } from '@ember/array';
@@ -72,7 +73,7 @@ export default class Application extends JSONSerializer {
   pushPayload(store, payload) {
     const documentHash = {
       data: [],
-      included: [],
+      included: []
     };
 
     Object.keys(payload).forEach(key => {
@@ -163,7 +164,9 @@ export default class Application extends JSONSerializer {
       .filter(record => get(record, 'id'))
       .filter(storeFilter)
       .forEach(old => {
-        const newRecord = newRecords.find(record => get(record, 'id') === get(old, 'id'));
+        const newRecord = newRecords.find(
+          record => get(record, 'id') === get(old, 'id')
+        );
         if (!newRecord) {
           removeRecord(store, old);
         } else {

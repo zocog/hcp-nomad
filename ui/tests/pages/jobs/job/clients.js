@@ -6,7 +6,7 @@ import {
   fillable,
   isPresent,
   text,
-  visitable,
+  visitable
 } from 'ember-cli-page-object';
 import { multiFacet } from 'nomad-ui/tests/pages/components/facet';
 
@@ -24,12 +24,12 @@ export default create({
 
   isEmpty: isPresent('[data-test-empty-clients-list]'),
   emptyState: {
-    headline: text('[data-test-empty-clients-list-headline]'),
+    headline: text('[data-test-empty-clients-list-headline]')
   },
 
   sortOptions: collection('[data-test-sort-by]', {
     id: attribute('data-test-sort-by'),
-    sort: clickable(),
+    sort: clickable()
   }),
 
   sortBy(id) {
@@ -42,8 +42,8 @@ export default create({
   facets: {
     jobStatus: multiFacet('[data-test-job-status-facet]'),
     datacenter: multiFacet('[data-test-datacenter-facet]'),
-    clientClass: multiFacet('[data-test-class-facet]'),
+    clientClass: multiFacet('[data-test-class-facet]')
   },
 
-  error: error(),
+  error: error()
 });

@@ -1,12 +1,15 @@
 import { assign } from '@ember/polyfills';
 import hbs from 'htmlbars-inline-precompile';
-import { click, findAll, find } from '@ember/test-helpers';
+import { click, findAll, find, render } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import sinon from 'sinon';
 import { startMirage } from 'nomad-ui/initializers/ember-cli-mirage';
 import { setupRenderingTest } from 'ember-qunit';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
-import { formatScheduledHertz, formatScheduledBytes } from 'nomad-ui/utils/units';
+import {
+  formatScheduledHertz,
+  formatScheduledBytes
+} from 'nomad-ui/utils/units';
 
 module('Integration | Component | job-page/parts/task-groups', function(hooks) {
   setupRenderingTest(hooks);
@@ -28,14 +31,16 @@ module('Integration | Component | job-page/parts/task-groups', function(hooks) {
         job,
         sortProperty: 'name',
         sortDescending: true,
-        gotoTaskGroup: () => {},
+        gotoTaskGroup: () => {}
       },
       options
     );
 
   test('the job detail page should list all task groups', async function(assert) {
+    assert.expect(2);
+
     this.server.create('job', {
-      createAllocations: false,
+      createAllocations: false
     });
 
     await this.store.findAll('job').then(jobs => {
@@ -45,7 +50,7 @@ module('Integration | Component | job-page/parts/task-groups', function(hooks) {
     const job = this.store.peekAll('job').get('firstObject');
     this.setProperties(props(job));
 
-    await this.render(hbs`
+    await render(hbs`
       <JobPage::Parts::TaskGroups
         @job={{this.job}}
         @sortProperty={{this.sortProperty}}
@@ -64,7 +69,7 @@ module('Integration | Component | job-page/parts/task-groups', function(hooks) {
 
   test('each row in the task group table should show basic information about the task group', async function(assert) {
     this.server.create('job', {
-      createAllocations: false,
+      createAllocations: false
     });
 
     const job = await this.store.findAll('job').then(async jobs => {
@@ -79,7 +84,7 @@ module('Integration | Component | job-page/parts/task-groups', function(hooks) {
 
     this.setProperties(props(job));
 
-    await this.render(hbs`
+    await render(hbs`
       <JobPage::Parts::TaskGroups
         @job={{this.job}}
         @sortProperty={{this.sortProperty}}
@@ -90,32 +95,44 @@ module('Integration | Component | job-page/parts/task-groups', function(hooks) {
     const taskGroupRow = find('[data-test-task-group]');
 
     assert.equal(
-      taskGroupRow.querySelector('[data-test-task-group-name]').textContent.trim(),
+      taskGroupRow
+        .querySelector('[data-test-task-group-name]')
+        .textContent.trim(),
       taskGroup.get('name'),
       'Name'
     );
     assert.equal(
-      taskGroupRow.querySelector('[data-test-task-group-count]').textContent.trim(),
+      taskGroupRow
+        .querySelector('[data-test-task-group-count]')
+        .textContent.trim(),
       taskGroup.get('count'),
       'Count'
     );
     assert.equal(
-      taskGroupRow.querySelector('[data-test-task-group-volume]').textContent.trim(),
+      taskGroupRow
+        .querySelector('[data-test-task-group-volume]')
+        .textContent.trim(),
       taskGroup.get('volumes.length') ? 'Yes' : '',
       'Volumes'
     );
     assert.equal(
-      taskGroupRow.querySelector('[data-test-task-group-cpu]').textContent.trim(),
+      taskGroupRow
+        .querySelector('[data-test-task-group-cpu]')
+        .textContent.trim(),
       `${formatScheduledHertz(taskGroup.get('reservedCPU'), 'MHz')}`,
       'Reserved CPU'
     );
     assert.equal(
-      taskGroupRow.querySelector('[data-test-task-group-mem]').textContent.trim(),
+      taskGroupRow
+        .querySelector('[data-test-task-group-mem]')
+        .textContent.trim(),
       `${formatScheduledBytes(taskGroup.get('reservedMemory'), 'MiB')}`,
       'Reserved Memory'
     );
     assert.equal(
-      taskGroupRow.querySelector('[data-test-task-group-disk]').textContent.trim(),
+      taskGroupRow
+        .querySelector('[data-test-task-group-disk]')
+        .textContent.trim(),
       `${formatScheduledBytes(taskGroup.get('reservedEphemeralDisk'), 'MiB')}`,
       'Reserved Disk'
     );
@@ -123,7 +140,7 @@ module('Integration | Component | job-page/parts/task-groups', function(hooks) {
 
   test('gotoTaskGroup is called when task group rows are clicked', async function(assert) {
     this.server.create('job', {
-      createAllocations: false,
+      createAllocations: false
     });
 
     const job = await this.store.findAll('job').then(async jobs => {
@@ -140,11 +157,11 @@ module('Integration | Component | job-page/parts/task-groups', function(hooks) {
 
     this.setProperties(
       props(job, {
-        gotoTaskGroup: taskGroupSpy,
+        gotoTaskGroup: taskGroupSpy
       })
     );
 
-    await this.render(hbs`
+    await render(hbs`
       <JobPage::Parts::TaskGroups
         @job={{this.job}}
         @sortProperty={{this.sortProperty}}

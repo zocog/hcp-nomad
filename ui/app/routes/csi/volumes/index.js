@@ -7,13 +7,16 @@ import WithWatchers from 'nomad-ui/mixins/with-watchers';
 import notifyForbidden from 'nomad-ui/utils/notify-forbidden';
 import WithForbiddenState from 'nomad-ui/mixins/with-forbidden-state';
 
-export default class IndexRoute extends Route.extend(WithWatchers, WithForbiddenState) {
+export default class IndexRoute extends Route.extend(
+  WithWatchers,
+  WithForbiddenState
+) {
   @service store;
 
   queryParams = {
     qpNamespace: {
-      refreshModel: true,
-    },
+      refreshModel: true
+    }
   };
 
   model(params) {
@@ -21,7 +24,7 @@ export default class IndexRoute extends Route.extend(WithWatchers, WithForbidden
       volumes: this.store
         .query('volume', { type: 'csi', namespace: params.qpNamespace })
         .catch(notifyForbidden(this)),
-      namespaces: this.store.findAll('namespace'),
+      namespaces: this.store.findAll('namespace')
     });
   }
 
@@ -29,7 +32,10 @@ export default class IndexRoute extends Route.extend(WithWatchers, WithForbidden
     controller.set('namespacesWatch', this.watchNamespaces.perform());
     controller.set(
       'modelWatch',
-      this.watchVolumes.perform({ type: 'csi', namespace: controller.qpNamespace })
+      this.watchVolumes.perform({
+        type: 'csi',
+        namespace: controller.qpNamespace
+      })
     );
   }
 

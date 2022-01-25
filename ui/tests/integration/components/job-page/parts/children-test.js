@@ -29,7 +29,7 @@ module('Integration | Component | job-page/parts/children', function(hooks) {
         sortProperty: 'name',
         sortDescending: true,
         currentPage: 1,
-        gotoJob: () => {},
+        gotoJob: () => {}
       },
       options
     );
@@ -38,7 +38,7 @@ module('Integration | Component | job-page/parts/children', function(hooks) {
     this.server.create('job', 'periodic', {
       id: 'parent',
       childrenCount: 3,
-      createAllocations: false,
+      createAllocations: false
     });
 
     await this.store.findAll('job');
@@ -64,13 +64,15 @@ module('Integration | Component | job-page/parts/children', function(hooks) {
   });
 
   test('eventually paginates', async function(assert) {
+    assert.expect(5);
+
     const pageSize = 10;
     window.localStorage.nomadPageSize = pageSize;
 
     this.server.create('job', 'periodic', {
       id: 'parent',
       childrenCount: 11,
-      createAllocations: false,
+      createAllocations: false
     });
 
     await this.store.findAll('job');
@@ -89,22 +91,33 @@ module('Integration | Component | job-page/parts/children', function(hooks) {
     `);
 
     const childrenCount = parent.get('children.length');
-    assert.ok(childrenCount > pageSize, 'Parent has more children than one page size');
-    assert.equal(findAll('[data-test-job-name]').length, pageSize, 'Table length maxes out at 10');
+    assert.ok(
+      childrenCount > pageSize,
+      'Parent has more children than one page size'
+    );
+    assert.equal(
+      findAll('[data-test-job-name]').length,
+      pageSize,
+      'Table length maxes out at 10'
+    );
     assert.ok(find('.pagination-next'), 'Next button is rendered');
 
     assert.ok(
-      new RegExp(`1.10.+?${childrenCount}`).test(find('.pagination-numbers').textContent.trim())
+      new RegExp(`1.10.+?${childrenCount}`).test(
+        find('.pagination-numbers').textContent.trim()
+      )
     );
 
     await componentA11yAudit(this.element, assert);
   });
 
   test('is sorted based on the sortProperty and sortDescending properties', async function(assert) {
+    assert.expect(6);
+
     this.server.create('job', 'periodic', {
       id: 'parent',
       childrenCount: 3,
-      createAllocations: false,
+      createAllocations: false
     });
 
     await this.store.findAll('job');
@@ -150,7 +163,7 @@ module('Integration | Component | job-page/parts/children', function(hooks) {
     this.server.create('job', 'periodic', {
       id: 'parent',
       childrenCount: 1,
-      createAllocations: false,
+      createAllocations: false
     });
 
     await this.store.findAll('job');
@@ -159,7 +172,7 @@ module('Integration | Component | job-page/parts/children', function(hooks) {
 
     this.setProperties(
       props(parent, {
-        gotoJob: gotoJobSpy,
+        gotoJob: gotoJobSpy
       })
     );
 

@@ -17,6 +17,8 @@ module('Integration | Component | job diff', function(hooks) {
   `;
 
   test('job field diffs', async function(assert) {
+    assert.expect(5);
+
     this.set('diff', {
       ID: 'test-case-1',
       Type: 'Edited',
@@ -24,8 +26,8 @@ module('Integration | Component | job diff', function(hooks) {
       Fields: [
         field('Removed Field', 'deleted', 12),
         field('Added Field', 'added', 'Foobar'),
-        field('Edited Field', 'edited', 512, 256),
-      ],
+        field('Edited Field', 'edited', 512, 256)
+      ]
     });
 
     await render(commonTemplate);
@@ -37,21 +39,27 @@ module('Integration | Component | job diff', function(hooks) {
     );
     assert.equal(
       cleanWhitespace(
-        find('[data-test-diff-section-label="field"][data-test-diff-field="added"]').textContent
+        find(
+          '[data-test-diff-section-label="field"][data-test-diff-field="added"]'
+        ).textContent
       ),
       '+ Added Field: "Foobar"',
       'Added field is rendered correctly'
     );
     assert.equal(
       cleanWhitespace(
-        find('[data-test-diff-section-label="field"][data-test-diff-field="edited"]').textContent
+        find(
+          '[data-test-diff-section-label="field"][data-test-diff-field="edited"]'
+        ).textContent
       ),
       '+/- Edited Field: "256" => "512"',
       'Edited field is rendered correctly'
     );
     assert.equal(
       cleanWhitespace(
-        find('[data-test-diff-section-label="field"][data-test-diff-field="deleted"]').textContent
+        find(
+          '[data-test-diff-section-label="field"][data-test-diff-field="deleted"]'
+        ).textContent
       ),
       '- Removed Field: "12"',
       'Removed field is rendered correctly'
@@ -61,6 +69,8 @@ module('Integration | Component | job diff', function(hooks) {
   });
 
   test('job object diffs', async function(assert) {
+    assert.expect(9);
+
     this.set('diff', {
       ID: 'test-case-2',
       Type: 'Edited',
@@ -73,8 +83,8 @@ module('Integration | Component | job diff', function(hooks) {
             field('Prop 1', 'added', 'prop-1-value'),
             field('Prop 2', 'none', 'prop-2-is-the-same'),
             field('Prop 3', 'edited', 'new value', 'some old value'),
-            field('Prop 4', 'deleted', 'delete me'),
-          ],
+            field('Prop 4', 'deleted', 'delete me')
+          ]
         },
         {
           Name: 'DeepConfiguration',
@@ -88,58 +98,70 @@ module('Integration | Component | job diff', function(hooks) {
                 field('Engineering', 'added', 'Regina Phalange'),
                 field('Customer Support', 'added', 'Jerome Hendricks'),
                 field('HR', 'added', 'Jack Blue'),
-                field('Sales', 'added', 'Maria Lopez'),
-              ],
-            },
+                field('Sales', 'added', 'Maria Lopez')
+              ]
+            }
           ],
-          Fields: [field('Executive Prop', 'added', 'in charge')],
+          Fields: [field('Executive Prop', 'added', 'in charge')]
         },
         {
           Name: 'DatedStuff',
           Type: 'Deleted',
           Objects: null,
-          Fields: [field('Deprecated', 'deleted', 'useless')],
-        },
+          Fields: [field('Deprecated', 'deleted', 'useless')]
+        }
       ],
-      Fields: null,
+      Fields: null
     });
 
     await render(commonTemplate);
 
     assert.ok(
       cleanWhitespace(
-        find('[data-test-diff-section-label="object"][data-test-diff-field="added"]').textContent
+        find(
+          '[data-test-diff-section-label="object"][data-test-diff-field="added"]'
+        ).textContent
       ).startsWith('+ DeepConfiguration {'),
       'Added object starts with a JSON block'
     );
     assert.ok(
       cleanWhitespace(
-        find('[data-test-diff-section-label="object"][data-test-diff-field="edited"]').textContent
+        find(
+          '[data-test-diff-section-label="object"][data-test-diff-field="edited"]'
+        ).textContent
       ).startsWith('+/- ComplexProperty {'),
       'Edited object starts with a JSON block'
     );
     assert.ok(
       cleanWhitespace(
-        find('[data-test-diff-section-label="object"][data-test-diff-field="deleted"]').textContent
+        find(
+          '[data-test-diff-section-label="object"][data-test-diff-field="deleted"]'
+        ).textContent
       ).startsWith('- DatedStuff {'),
       'Removed object starts with a JSON block'
     );
 
     assert.ok(
       cleanWhitespace(
-        find('[data-test-diff-section-label="object"][data-test-diff-field="added"]').textContent
+        find(
+          '[data-test-diff-section-label="object"][data-test-diff-field="added"]'
+        ).textContent
       ).endsWith('}'),
       'Added object ends the JSON block'
     );
     assert.ok(
       cleanWhitespace(
-        find('[data-test-diff-section-label="object"][data-test-diff-field="edited"]').textContent
+        find(
+          '[data-test-diff-section-label="object"][data-test-diff-field="edited"]'
+        ).textContent
       ).endsWith('}'),
       'Edited object starts with a JSON block'
     );
     assert.ok(
       cleanWhitespace(
-        find('[data-test-diff-section-label="object"][data-test-diff-field="deleted"]').textContent
+        find(
+          '[data-test-diff-section-label="object"][data-test-diff-field="deleted"]'
+        ).textContent
       ).endsWith('}'),
       'Removed object ends the JSON block'
     );
@@ -171,7 +193,7 @@ module('Integration | Component | job diff', function(hooks) {
           New: newVal,
           Old: '',
           Type: 'Added',
-          Name: name,
+          Name: name
         };
       case 'deleted':
         return {
@@ -179,7 +201,7 @@ module('Integration | Component | job diff', function(hooks) {
           New: '',
           Old: newVal,
           Type: 'Deleted',
-          Name: name,
+          Name: name
         };
       case 'edited':
         return {
@@ -187,7 +209,7 @@ module('Integration | Component | job diff', function(hooks) {
           New: newVal,
           Old: oldVal,
           Type: 'Edited',
-          Name: name,
+          Name: name
         };
     }
     return {
@@ -195,7 +217,7 @@ module('Integration | Component | job diff', function(hooks) {
       New: newVal,
       Old: oldVal,
       Type: 'None',
-      Name: name,
+      Name: name
     };
   }
 });

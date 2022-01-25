@@ -14,8 +14,8 @@ module('Unit | Util | stream-frames', function() {
       in: `{"Offset":100,"Data":"${btoa('Hello World')}"}`,
       out: {
         offset: 100,
-        message: 'Hello World',
-      },
+        message: 'Hello World'
+      }
     },
     {
       name: 'Multiple frames',
@@ -23,27 +23,27 @@ module('Unit | Util | stream-frames', function() {
       in: `{"Offset":1,"Data":"${btoa('One fish,')}"}{"Offset":2,"Data":"${btoa( ' Two fish.')}"}{"Offset":3,"Data":"${btoa(' Red fish, ')}"}{"Offset":4,"Data":"${btoa('Blue fish.')}"}`,
       out: {
         offset: 4,
-        message: 'One fish, Two fish. Red fish, Blue fish.',
-      },
+        message: 'One fish, Two fish. Red fish, Blue fish.'
+      }
     },
     {
       name: 'Empty frames',
       in: '{}{}{}',
-      out: {},
+      out: {}
     },
     {
       name: 'Empty string',
       in: '',
-      out: {},
+      out: {}
     },
     {
       name: 'Multi-byte unicode',
       in: `{"Offset":1,"Data":"${encode('ワンワン 🐶')}"}`,
       out: {
         offset: 1,
-        message: 'ワンワン 🐶',
-      },
-    },
+        message: 'ワンワン 🐶'
+      }
+    }
   ];
 
   decodeTestCases.forEach(testCase => {

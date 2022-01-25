@@ -1,4 +1,4 @@
-import { find } from '@ember/test-helpers';
+import { find, render } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
@@ -24,9 +24,9 @@ const nodeGen = (name, datacenter, memory, cpu, allocations = []) => ({
     cpuPercent: alloc.cpu / cpu,
     allocation: {
       id: faker.random.uuid(),
-      isScheduled: true,
-    },
-  })),
+      isScheduled: true
+    }
+  }))
 });
 
 // Used in Array#reduce to sum by a property common to an array of objects
@@ -42,7 +42,7 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
     heightScale: () => 50,
     onAllocationSelect: sinon.spy(),
     onNodeSelect: sinon.spy(),
-    ...props,
+    ...props
   });
 
   const commonTemplate = hbs`
@@ -56,16 +56,18 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
   `;
 
   test('presents as a div with a label and a FlexMasonry with a collection of nodes', async function(assert) {
+    assert.expect(3);
+
     this.setProperties(
       commonProps({
         datacenter: {
           name: 'dc1',
-          nodes: [nodeGen('node-1', 'dc1', 1000, 500)],
-        },
+          nodes: [nodeGen('node-1', 'dc1', 1000, 500)]
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     assert.ok(TopoVizDatacenter.isPresent);
     assert.equal(TopoVizDatacenter.nodes.length, this.datacenter.nodes.length);
@@ -81,20 +83,20 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
           nodes: [
             nodeGen('node-1', 'dc1', 1000, 500, [
               { memory: 100, cpu: 300 },
-              { memory: 200, cpu: 50 },
+              { memory: 200, cpu: 50 }
             ]),
             nodeGen('node-2', 'dc1', 1500, 100, [
               { memory: 50, cpu: 80 },
-              { memory: 100, cpu: 20 },
+              { memory: 100, cpu: 20 }
             ]),
             nodeGen('node-3', 'dc1', 2000, 300),
-            nodeGen('node-4', 'dc1', 3000, 200),
-          ],
-        },
+            nodeGen('node-4', 'dc1', 3000, 200)
+          ]
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     const allocs = this.datacenter.nodes.reduce(
       (allocs, node) => allocs.concat(node.allocations),
@@ -106,11 +108,16 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
     const cpuTotal = this.datacenter.nodes.reduce(sumBy('cpu'), 0);
 
     assert.ok(TopoVizDatacenter.label.includes(this.datacenter.name));
-    assert.ok(TopoVizDatacenter.label.includes(`${this.datacenter.nodes.length} Nodes`));
+    assert.ok(
+      TopoVizDatacenter.label.includes(`${this.datacenter.nodes.length} Nodes`)
+    );
     assert.ok(TopoVizDatacenter.label.includes(`${allocs.length} Allocs`));
     assert.ok(
       TopoVizDatacenter.label.includes(
-        `${formatBytes(memoryReserved, 'MiB')}/${formatBytes(memoryTotal, 'MiB')}`
+        `${formatBytes(memoryReserved, 'MiB')}/${formatBytes(
+          memoryTotal,
+          'MiB'
+        )}`
       )
     );
     assert.ok(
@@ -126,12 +133,15 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
         isSingleColumn: true,
         datacenter: {
           name: 'dc1',
-          nodes: [nodeGen('node-1', 'dc1', 1000, 500), nodeGen('node-2', 'dc1', 1000, 500)],
-        },
+          nodes: [
+            nodeGen('node-1', 'dc1', 1000, 500),
+            nodeGen('node-2', 'dc1', 1000, 500)
+          ]
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     assert.ok(find('[data-test-flex-masonry].flex-masonry-columns-1'));
 
@@ -140,6 +150,8 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
   });
 
   test('args get passed down to the TopViz::Node children', async function(assert) {
+    assert.expect(4);
+
     const heightSpy = sinon.spy();
     this.setProperties(
       commonProps({
@@ -150,12 +162,14 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
         },
         datacenter: {
           name: 'dc1',
-          nodes: [nodeGen('node-1', 'dc1', 1000, 500, [{ memory: 100, cpu: 300 }])],
-        },
+          nodes: [
+            nodeGen('node-1', 'dc1', 1000, 500, [{ memory: 100, cpu: 300 }])
+          ]
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     TopoVizDatacenter.nodes[0].as(async TopoVizNode => {
       assert.notOk(TopoVizNode.labelIsPresent);
@@ -165,7 +179,11 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
       assert.ok(this.onNodeSelect.calledWith(this.datacenter.nodes[0]));
 
       await TopoVizNode.memoryRects[0].select();
-      assert.ok(this.onAllocationSelect.calledWith(this.datacenter.nodes[0].allocations[0]));
+      assert.ok(
+        this.onAllocationSelect.calledWith(
+          this.datacenter.nodes[0].allocations[0]
+        )
+      );
     });
   });
 });

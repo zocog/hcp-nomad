@@ -22,10 +22,10 @@ module('Unit | Serializer | Scale Event', function(hooks) {
         Meta: {
           OriginalCount: 3,
           OriginalMessage: 'submitted using the Nomad CLI',
-          OriginalMeta: null,
+          OriginalMeta: null
         },
         PreviousCount: 1,
-        Time: +sampleDate * 1000000,
+        Time: +sampleDate * 1000000
       },
       out: {
         data: {
@@ -36,17 +36,17 @@ module('Unit | Serializer | Scale Event', function(hooks) {
             meta: {
               OriginalCount: 3,
               OriginalMessage: 'submitted using the Nomad CLI',
-              OriginalMeta: null,
+              OriginalMeta: null
             },
             previousCount: 1,
             time: sampleDate,
-            timeNanos: 0,
+            timeNanos: 0
           },
           relationships: {},
           type: 'scale-event',
-          id: null,
-        },
-      },
+          id: null
+        }
+      }
     },
     {
       name: 'No meta',
@@ -58,7 +58,7 @@ module('Unit | Serializer | Scale Event', function(hooks) {
         Message: 'submitted using the Nomad CLI',
         Meta: null,
         PreviousCount: 1,
-        Time: +sampleDate * 1000000,
+        Time: +sampleDate * 1000000
       },
       out: {
         data: {
@@ -69,19 +69,22 @@ module('Unit | Serializer | Scale Event', function(hooks) {
             meta: {},
             previousCount: 1,
             time: sampleDate,
-            timeNanos: 0,
+            timeNanos: 0
           },
           relationships: {},
           type: 'scale-event',
-          id: null,
-        },
-      },
-    },
+          id: null
+        }
+      }
+    }
   ];
 
   normalizationTestCases.forEach(testCase => {
     test(`normalization: ${testCase.name}`, async function(assert) {
-      assert.deepEqual(this.subject().normalize(ScaleEventModel, testCase.in), testCase.out);
+      assert.deepEqual(
+        this.subject().normalize(ScaleEventModel, testCase.in),
+        testCase.out
+      );
     });
   });
 });

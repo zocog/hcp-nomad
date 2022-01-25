@@ -35,7 +35,7 @@ module('Integration | Component | allocation row', function(hooks) {
       JSON.stringify({ ResourceUsage: generateResources() }),
       null,
       '<Not>Valid JSON</Not>',
-      JSON.stringify({ ResourceUsage: generateResources() }),
+      JSON.stringify({ ResourceUsage: generateResources() })
     ];
 
     this.server.get('/client/allocation/:id/stats', function() {
@@ -60,7 +60,7 @@ module('Integration | Component | allocation row', function(hooks) {
     this.setProperties({
       allocation,
       context: 'job',
-      enablePolling: true,
+      enablePolling: true
     });
 
     await render(hbs`
@@ -81,15 +81,17 @@ module('Integration | Component | allocation row', function(hooks) {
   });
 
   test('Allocation row shows warning when it requires drivers that are unhealthy on the node it is running on', async function(assert) {
+    assert.expect(2);
+
     // Driver health status require node:read permission.
     const policy = server.create('policy', {
       id: 'node-read',
       name: 'node-read',
       rulesJSON: {
         Node: {
-          Policy: 'read',
-        },
-      },
+          Policy: 'read'
+        }
+      }
     });
     const clientToken = server.create('token', { type: 'client' });
     clientToken.policyIds = [policy.id];
@@ -116,7 +118,7 @@ module('Integration | Component | allocation row', function(hooks) {
 
     this.setProperties({
       allocation,
-      context: 'job',
+      context: 'job'
     });
 
     await render(hbs`
@@ -125,11 +127,16 @@ module('Integration | Component | allocation row', function(hooks) {
         @context={{context}} />
     `);
 
-    assert.ok(find('[data-test-icon="unhealthy-driver"]'), 'Unhealthy driver icon is shown');
+    assert.ok(
+      find('[data-test-icon="unhealthy-driver"]'),
+      'Unhealthy driver icon is shown'
+    );
     await componentA11yAudit(this.element, assert);
   });
 
   test('Allocation row shows an icon indicator when it was preempted', async function(assert) {
+    assert.expect(2);
+
     const allocId = this.server.create('allocation', 'preempted').id;
     const allocation = await this.store.findRecord('allocation', allocId);
 
@@ -145,9 +152,11 @@ module('Integration | Component | allocation row', function(hooks) {
   });
 
   test('when an allocation is not running, the utilization graphs are omitted', async function(assert) {
+    assert.expect(8);
+
     this.setProperties({
       context: 'job',
-      enablePolling: false,
+      enablePolling: false
     });
 
     // All non-running statuses need to be tested
@@ -161,7 +170,7 @@ module('Integration | Component | allocation row', function(hooks) {
 
     for (const allocation of allocations.toArray()) {
       this.set('allocation', allocation);
-      await this.render(hbs`
+      await render(hbs`
           <AllocationRow
             @allocation={{allocation}}
             @context={{context}}
@@ -169,8 +178,14 @@ module('Integration | Component | allocation row', function(hooks) {
         `);
 
       const status = allocation.get('clientStatus');
-      assert.notOk(find('[data-test-cpu] .inline-chart'), `No CPU chart for ${status}`);
-      assert.notOk(find('[data-test-mem] .inline-chart'), `No Mem chart for ${status}`);
+      assert.notOk(
+        find('[data-test-cpu] .inline-chart'),
+        `No CPU chart for ${status}`
+      );
+      assert.notOk(
+        find('[data-test-mem] .inline-chart'),
+        `No Mem chart for ${status}`
+      );
     }
   });
 });

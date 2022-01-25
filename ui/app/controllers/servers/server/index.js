@@ -12,7 +12,7 @@ export default class ServerController extends Controller {
     return Object.keys(tags)
       .map(name => ({
         name,
-        value: tags[name],
+        value: tags[name]
       }))
       .sortBy('name');
   }

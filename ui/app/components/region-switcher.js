@@ -18,7 +18,7 @@ export default class RegionSwitcher extends Component {
 
   gotoRegion(region) {
     this.router.transitionTo('jobs', {
-      queryParams: { region },
+      queryParams: { region }
     });
   }
 }

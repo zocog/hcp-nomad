@@ -17,13 +17,15 @@ export function decode(chunk) {
     .replace(/\}\{/g, '}\n{')
     .split('\n')
     .without('');
-  const frames = lines.map(line => JSON.parse(line)).filter(frame => frame.Data);
+  const frames = lines
+    .map(line => JSON.parse(line))
+    .filter(frame => frame.Data);
 
   if (frames.length) {
     frames.forEach(frame => (frame.Data = b64decode(frame.Data)));
     return {
       offset: frames[frames.length - 1].Offset,
-      message: frames.mapBy('Data').join(''),
+      message: frames.mapBy('Data').join('')
     };
   }
 

@@ -10,7 +10,7 @@ import { startMirage } from 'nomad-ui/initializers/ember-cli-mirage';
 const mockTasks = [
   { task: 'One', reservedCPU: 200, reservedMemory: 500, cpu: [], memory: [] },
   { task: 'Two', reservedCPU: 100, reservedMemory: 200, cpu: [], memory: [] },
-  { task: 'Three', reservedCPU: 300, reservedMemory: 100, cpu: [], memory: [] },
+  { task: 'Three', reservedCPU: 300, reservedMemory: 100, cpu: [], memory: [] }
 ];
 
 module('Integration | Component | PrimaryMetric::Task', function(hooks) {
@@ -26,7 +26,7 @@ module('Integration | Component | PrimaryMetric::Task', function(hooks) {
     const job = this.server.create('job', {
       groupsCount: 1,
       groupTaskCount: 3,
-      createAllocations: false,
+      createAllocations: false
     });
 
     // Update job > group > task names to match mockTasks
@@ -51,9 +51,12 @@ module('Integration | Component | PrimaryMetric::Task', function(hooks) {
     await store.findAll('allocation');
   };
 
-  const findResource = store => store.peekAll('allocation').get('firstObject.states.firstObject');
+  const findResource = store =>
+    store.peekAll('allocation').get('firstObject.states.firstObject');
 
   test('Must pass an accessibility audit', async function(assert) {
+    assert.expect(1);
+
     await preload(this.store);
 
     const resource = findResource(this.store);
@@ -66,6 +69,6 @@ module('Integration | Component | PrimaryMetric::Task', function(hooks) {
   primaryMetric({
     template,
     preload,
-    findResource,
+    findResource
   });
 });

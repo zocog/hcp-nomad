@@ -25,18 +25,23 @@ export function setupPrimaryMetricMocks(hooks, tasks = []) {
       memory: computed(function() {
         return [];
       }),
-      tasks,
+      tasks
     });
 
     const mockStatsTrackersRegistry = Service.extend({
       getTracker(...args) {
         getTrackerSpy(...args);
         return MockTracker.create();
-      },
+      }
     });
 
-    this.owner.register('service:stats-trackers-registry', mockStatsTrackersRegistry);
-    this.statsTrackersRegistry = this.owner.lookup('service:stats-trackers-registry');
+    this.owner.register(
+      'service:stats-trackers-registry',
+      mockStatsTrackersRegistry
+    );
+    this.statsTrackersRegistry = this.owner.lookup(
+      'service:stats-trackers-registry'
+    );
   });
 }
 
@@ -99,8 +104,12 @@ export function primaryMetric({ template, findResource, preload }) {
 
     await render(template);
 
+    const spy =
+      this.getTrackerSpy.calledWith(resource) ||
+      this.getTrackerSpy.calledWith(resource.allocation);
+
     assert.ok(
-      this.getTrackerSpy.calledWith(resource) || this.getTrackerSpy.calledWith(resource.allocation),
+      spy,
       'Uses the tracker registry to get the tracker for the provided resource'
     );
   });
@@ -115,7 +124,10 @@ export function primaryMetric({ template, findResource, preload }) {
 
     await render(template);
 
-    assert.ok(this.trackerPollSpy.calledOnce, 'The tracker is polled immediately');
+    assert.ok(
+      this.trackerPollSpy.calledOnce,
+      'The tracker is polled immediately'
+    );
   });
 
   test('A pause signal is sent to the tracker when the component is destroyed', async function(assert) {
@@ -130,9 +142,15 @@ export function primaryMetric({ template, findResource, preload }) {
     this.setProperties({ resource, metric });
     await render(template);
 
-    assert.notOk(trackerSignalPauseSpy.called, 'No pause signal has been sent yet');
+    assert.notOk(
+      trackerSignalPauseSpy.called,
+      'No pause signal has been sent yet'
+    );
     await clearRender();
 
-    assert.ok(trackerSignalPauseSpy.calledOnce, 'A pause signal is sent to the tracker');
+    assert.ok(
+      trackerSignalPauseSpy.calledOnce,
+      'A pause signal is sent to the tracker'
+    );
   });
 }

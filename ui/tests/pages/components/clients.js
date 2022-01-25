@@ -17,24 +17,24 @@ export default function(selector = '[data-test-client]', propKey = 'clients') {
         scope: '[data-test-create-time]',
         tooltip: {
           scope: '.tooltip',
-          text: attribute('aria-label'),
-        },
+          text: attribute('aria-label')
+        }
       },
 
       modifyTime: {
         scope: '[data-test-modify-time]',
         tooltip: {
           scope: '.tooltip',
-          text: attribute('aria-label'),
-        },
+          text: attribute('aria-label')
+        }
       },
 
       visit: clickable('[data-test-short-id] a'),
-      visitRow: clickable(),
+      visitRow: clickable()
     }),
 
     [lookupKey]: function(id) {
       return this[propKey].toArray().find(client => client.id === id);
-    },
+    }
   };
 }

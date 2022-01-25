@@ -12,14 +12,14 @@ module('Unit | Component | gauge-chart', function(hooks) {
     const chart = this.subject.create();
     chart.setProperties({
       value: 5,
-      total: 10,
+      total: 10
     });
 
     assert.equal(chart.percent, 0.5);
 
     chart.setProperties({
       total: null,
-      complement: 15,
+      complement: 15
     });
 
     assert.equal(chart.percent, 0.25);

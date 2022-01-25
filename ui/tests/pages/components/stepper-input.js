@@ -7,7 +7,7 @@ import {
   isPresent,
   text,
   triggerable,
-  value,
+  value
 } from 'ember-cli-page-object';
 
 export default scope => ({
@@ -23,7 +23,7 @@ export default scope => ({
     blur: blurrable(),
     value: value(),
     esc: triggerable('keydown', '', { eventProperties: { keyCode: 27 } }),
-    isDisabled: attribute('disabled'),
+    isDisabled: attribute('disabled')
   },
 
   decrement: {
@@ -31,7 +31,7 @@ export default scope => ({
     click: clickable(),
     isPresent: isPresent(),
     isDisabled: attribute('disabled'),
-    classNames: attribute('class'),
+    classNames: attribute('class')
   },
 
   increment: {
@@ -39,6 +39,6 @@ export default scope => ({
     click: clickable(),
     isPresent: isPresent(),
     isDisabled: attribute('disabled'),
-    classNames: attribute('class'),
-  },
+    classNames: attribute('class')
+  }
 });

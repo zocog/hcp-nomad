@@ -7,7 +7,7 @@ import {
   isHidden,
   isPresent,
   property,
-  text,
+  text
 } from 'ember-cli-page-object';
 
 export default create({
@@ -19,8 +19,8 @@ export default create({
       isPresent: isPresent(),
       open: clickable('.ember-power-select-trigger'),
       options: collection('.ember-power-select-option', {
-        label: text(),
-      }),
+        label: text()
+      })
     },
 
     search: {
@@ -33,19 +33,19 @@ export default create({
         resetScope: true,
         name: text('.ember-power-select-group-name'),
 
-        options: collection('.ember-power-select-option'),
+        options: collection('.ember-power-select-option')
       }),
 
       noOptionsShown: isHidden('.ember-power-select-options', {
         testContainer: '.ember-basic-dropdown-content',
-        resetScope: true,
+        resetScope: true
       }),
 
       field: {
         scope: '.ember-power-select-search input',
         testContainer: 'html',
-        resetScope: true,
-      },
+        resetScope: true
+      }
     },
 
     end: {
@@ -54,15 +54,15 @@ export default create({
       consulLink: {
         scope: '[data-test-header-consul-link]',
         text: text(),
-        link: property('href'),
+        link: property('href')
       },
 
       vaultLink: {
         scope: '[data-test-header-vault-link]',
         text: text(),
-        link: property('href'),
-      },
-    },
+        link: property('href')
+      }
+    }
   },
 
   gutter: {
@@ -70,18 +70,18 @@ export default create({
     visitJobs: clickable('[data-test-gutter-link="jobs"]'),
 
     optimize: {
-      scope: '[data-test-gutter-link="optimize"]',
+      scope: '[data-test-gutter-link="optimize"]'
     },
 
     visitClients: clickable('[data-test-gutter-link="clients"]'),
     visitServers: clickable('[data-test-gutter-link="servers"]'),
-    visitStorage: clickable('[data-test-gutter-link="storage"]'),
+    visitStorage: clickable('[data-test-gutter-link="storage"]')
   },
 
   breadcrumbs: collection('[data-test-breadcrumb]', {
     id: attribute('data-test-breadcrumb'),
     text: text(),
-    visit: clickable(),
+    visit: clickable()
   }),
 
   breadcrumbFor(id) {
@@ -91,7 +91,7 @@ export default create({
   error: {
     isPresent: isPresent('[data-test-error]'),
     title: text('[data-test-error-title]'),
-    message: text('[data-test-error-message]'),
+    message: text('[data-test-error-message]')
   },
 
   inlineError: {
@@ -101,6 +101,6 @@ export default create({
     dismiss: clickable('[data-test-inline-error-close]'),
 
     isDanger: hasClass('is-danger', '[data-test-inline-error]'),
-    isWarning: hasClass('is-warning', '[data-test-inline-error]'),
-  },
+    isWarning: hasClass('is-warning', '[data-test-inline-error]')
+  }
 });

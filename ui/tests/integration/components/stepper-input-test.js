@@ -1,4 +1,10 @@
-import { find, render, settled, triggerEvent, waitUntil } from '@ember/test-helpers';
+import {
+  find,
+  render,
+  settled,
+  triggerEvent,
+  waitUntil
+} from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
@@ -23,7 +29,7 @@ module('Integration | Component | stepper input', function(hooks) {
     label: 'Stepper',
     classVariant: 'is-primary',
     disabled: false,
-    onChange: sinon.spy(),
+    onChange: sinon.spy()
   });
 
   const commonTemplate = hbs`
@@ -40,6 +46,8 @@ module('Integration | Component | stepper input', function(hooks) {
   `;
 
   test('basic appearance includes a label, an input, and two buttons', async function(assert) {
+    assert.expect(7);
+
     this.setProperties(commonProperties());
 
     await render(commonTemplate);
@@ -48,8 +56,12 @@ module('Integration | Component | stepper input', function(hooks) {
     assert.equal(StepperInput.input.value, this.value);
     assert.ok(StepperInput.decrement.isPresent);
     assert.ok(StepperInput.increment.isPresent);
-    assert.ok(StepperInput.decrement.classNames.split(' ').includes(this.classVariant));
-    assert.ok(StepperInput.increment.classNames.split(' ').includes(this.classVariant));
+    assert.ok(
+      StepperInput.decrement.classNames.split(' ').includes(this.classVariant)
+    );
+    assert.ok(
+      StepperInput.increment.classNames.split(' ').includes(this.classVariant)
+    );
 
     await componentA11yAudit(this.element, assert);
   });

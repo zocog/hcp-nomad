@@ -17,9 +17,9 @@ module('Unit | Model | allocation', function(hooks) {
           {
             name: 'from-job',
             count: 1,
-            task: [],
-          },
-        ],
+            task: []
+          }
+        ]
       })
     );
 
@@ -31,8 +31,8 @@ module('Unit | Model | allocation', function(hooks) {
         allocationTaskGroup: {
           name: 'from-allocation',
           count: 1,
-          task: [],
-        },
+          task: []
+        }
       })
     );
 
@@ -48,9 +48,9 @@ module('Unit | Model | allocation', function(hooks) {
           {
             name: 'from-job',
             count: 1,
-            task: [],
-          },
-        ],
+            task: []
+          }
+        ]
       })
     );
 
@@ -62,8 +62,8 @@ module('Unit | Model | allocation', function(hooks) {
         allocationTaskGroup: {
           name: 'from-allocation',
           count: 1,
-          task: [],
-        },
+          task: []
+        }
       })
     );
 
@@ -79,9 +79,9 @@ module('Unit | Model | allocation', function(hooks) {
           {
             name: 'from-job',
             count: 1,
-            task: [],
-          },
-        ],
+            task: []
+          }
+        ]
       })
     );
 
@@ -89,7 +89,7 @@ module('Unit | Model | allocation', function(hooks) {
       this.store.createRecord('allocation', {
         job,
         jobVersion: 2,
-        taskGroupName: 'from-job',
+        taskGroupName: 'from-job'
       })
     );
 

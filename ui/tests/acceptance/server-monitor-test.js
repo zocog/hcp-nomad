@@ -27,6 +27,8 @@ module('Acceptance | server monitor', function(hooks) {
   });
 
   test('it passes an accessibility audit', async function(assert) {
+    assert.expect(1);
+
     await ServerMonitor.visit({ name: agent.name });
     await a11yAudit(assert);
   });
@@ -38,7 +40,10 @@ module('Acceptance | server monitor', function(hooks) {
       'Servers',
       'The page should read the breadcrumb Servers'
     );
-    assert.equal(Layout.breadcrumbFor('servers.server').text, `Server ${agent.name}`);
+    assert.equal(
+      Layout.breadcrumbFor('servers.server').text,
+      `Server ${agent.name}`
+    );
 
     await Layout.breadcrumbFor('servers.index').visit();
     assert.equal(currentURL(), '/servers');

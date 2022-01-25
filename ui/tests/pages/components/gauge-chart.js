@@ -5,5 +5,5 @@ export default scope => ({
 
   svgIsPresent: isPresent('[data-test-gauge-svg]'),
   label: text('[data-test-label]'),
-  percentage: text('[data-test-percentage]'),
+  percentage: text('[data-test-percentage]')
 });

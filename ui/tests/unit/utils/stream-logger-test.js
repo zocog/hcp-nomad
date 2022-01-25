@@ -9,7 +9,7 @@ module('Unit | Util | StreamLogger', function() {
     const fetch = fetchMock.request();
 
     const logger = StreamLogger.create({
-      logFetch: () => fetch,
+      logFetch: () => fetch
     });
 
     logger.start();
@@ -29,7 +29,7 @@ module('Unit | Util | StreamLogger', function() {
     const fetch = fetchMock.request();
 
     const logger = StreamLogger.create({
-      logFetch: () => fetch,
+      logFetch: () => fetch
     });
 
     logger.start();
@@ -65,7 +65,9 @@ class FetchMock {
     if (this._closeRequest) {
       this._closeRequest(this.response);
     } else {
-      throw new Error('Must call FetchMock.request() before FetchMock.closeRequest');
+      throw new Error(
+        'Must call FetchMock.request() before FetchMock.closeRequest'
+      );
     }
   }
 }
@@ -76,7 +78,7 @@ class FetchResponseMock {
     this.body = {
       getReader() {
         return reader;
-      },
+      }
     };
   }
 }

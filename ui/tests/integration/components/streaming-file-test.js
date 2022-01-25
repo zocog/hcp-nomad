@@ -1,5 +1,5 @@
 import { run } from '@ember/runloop';
-import { find, settled, triggerKeyEvent } from '@ember/test-helpers';
+import { find, render, triggerKeyEvent } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
@@ -23,7 +23,7 @@ const makeLogger = (url, params) =>
     url,
     params,
     plainText: true,
-    logFetch: url => fetch(url).then(res => res),
+    logFetch: url => fetch(url).then(res => res)
   });
 
 module('Integration | Component | streaming file', function(hooks) {
@@ -45,16 +45,17 @@ module('Integration | Component | streaming file', function(hooks) {
   `;
 
   test('when mode is `head`, the logger signals head', async function(assert) {
+    assert.expect(5);
+
     const url = '/file/endpoint';
     const params = { path: 'hello/world.txt', offset: 0, limit: 50000 };
     this.setProperties({
       logger: makeLogger(url, params),
       mode: 'head',
-      isStreaming: false,
+      isStreaming: false
     });
 
-    await this.render(commonTemplate);
-    await settled();
+    await render(commonTemplate);
 
     const request = this.server.handledRequests[0];
     assert.equal(this.server.handledRequests.length, 1, 'One request made');
@@ -74,11 +75,10 @@ module('Integration | Component | streaming file', function(hooks) {
     this.setProperties({
       logger: makeLogger(url, params),
       mode: 'tail',
-      isStreaming: false,
+      isStreaming: false
     });
 
-    await this.render(commonTemplate);
-    await settled();
+    await render(commonTemplate);
 
     const request = this.server.handledRequests[0];
     assert.equal(this.server.handledRequests.length, 1, 'One request made');
@@ -97,15 +97,14 @@ module('Integration | Component | streaming file', function(hooks) {
     this.setProperties({
       logger: makeLogger(url, params),
       mode: 'streaming',
-      isStreaming: true,
+      isStreaming: true
     });
 
     assert.ok(true);
 
     run.later(run, run.cancelTimers, 500);
 
-    await this.render(commonTemplate);
-    await settled();
+    await render(commonTemplate);
 
     const request = this.server.handledRequests[0];
     assert.equal(request.url.split('?')[0], url, `URL is ${url}`);
@@ -118,18 +117,19 @@ module('Integration | Component | streaming file', function(hooks) {
     this.setProperties({
       logger: makeLogger(url, params),
       mode: 'head',
-      isStreaming: false,
+      isStreaming: false
     });
 
-    await this.render(hbs`
+    await render(hbs`
       Extra text
       <StreamingFile @logger={{logger}} @mode={{mode}} @isStreaming={{isStreaming}} />
       On either side
     `);
-    await settled();
 
     // Windows and Linux shortcut
-    await triggerKeyEvent('[data-test-output]', 'keydown', A_KEY, { ctrlKey: true });
+    await triggerKeyEvent('[data-test-output]', 'keydown', A_KEY, {
+      ctrlKey: true
+    });
     assert.equal(
       window
         .getSelection()
@@ -141,7 +141,9 @@ module('Integration | Component | streaming file', function(hooks) {
     window.getSelection().removeAllRanges();
 
     // MacOS shortcut
-    await triggerKeyEvent('[data-test-output]', 'keydown', A_KEY, { metaKey: true });
+    await triggerKeyEvent('[data-test-output]', 'keydown', A_KEY, {
+      metaKey: true
+    });
     assert.equal(
       window
         .getSelection()

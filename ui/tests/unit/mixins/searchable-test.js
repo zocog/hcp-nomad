@@ -15,7 +15,7 @@ module('Unit | Mixin | Searchable', function(hooks) {
         searchProps: computed(function() {
           return ['id', 'name'];
         }),
-        listToSearch: alias('source'),
+        listToSearch: alias('source')
       });
 
       this.owner.register('test-container:searchable-object', SearchableObject);
@@ -25,7 +25,10 @@ module('Unit | Mixin | Searchable', function(hooks) {
 
   test('the searchable mixin does nothing when there is no search term', function(assert) {
     const subject = this.subject();
-    subject.set('source', [{ id: '1', name: 'hello' }, { id: '2', name: 'world' }]);
+    subject.set('source', [
+      { id: '1', name: 'hello' },
+      { id: '2', name: 'world' }
+    ]);
 
     assert.deepEqual(subject.get('listSearched'), subject.get('source'));
   });
@@ -35,7 +38,7 @@ module('Unit | Mixin | Searchable', function(hooks) {
     subject.set('source', [
       { id: '1', name: 'hello' },
       { id: '2', name: 'world' },
-      { id: '3', name: 'oranges' },
+      { id: '3', name: 'oranges' }
     ]);
 
     subject.set('searchTerm', '.+l+[A-Z]$');
@@ -51,13 +54,19 @@ module('Unit | Mixin | Searchable', function(hooks) {
     subject.set('source', [
       { id: '1', name: 'United States of America', continent: 'North America' },
       { id: '2', name: 'Canada', continent: 'North America' },
-      { id: '3', name: 'Mexico', continent: 'North America' },
+      { id: '3', name: 'Mexico', continent: 'North America' }
     ]);
 
     subject.set('searchTerm', 'America');
     assert.deepEqual(
       subject.get('listSearched'),
-      [{ id: '1', name: 'United States of America', continent: 'North America' }],
+      [
+        {
+          id: '1',
+          name: 'United States of America',
+          continent: 'North America'
+        }
+      ],
       'Only USA matched, since continent is not a search prop'
     );
   });
@@ -67,7 +76,7 @@ module('Unit | Mixin | Searchable', function(hooks) {
     subject.set('source', [
       { id: '1', name: 'United States of America', continent: 'North America' },
       { id: '2', name: 'Canada', continent: 'North America' },
-      { id: '3', name: 'Mexico', continent: 'North America' },
+      { id: '3', name: 'Mexico', continent: 'North America' }
     ]);
 
     subject.set('searchTerm', 'Ameerica');
@@ -83,14 +92,20 @@ module('Unit | Mixin | Searchable', function(hooks) {
     subject.set('source', [
       { id: '1', name: 'United States of America', continent: 'North America' },
       { id: '2', name: 'Canada', continent: 'North America' },
-      { id: '3', name: 'Mexico', continent: 'North America' },
+      { id: '3', name: 'Mexico', continent: 'North America' }
     ]);
 
     subject.set('fuzzySearchEnabled', true);
     subject.set('searchTerm', 'Ameerica');
     assert.deepEqual(
       subject.get('listSearched'),
-      [{ id: '1', name: 'United States of America', continent: 'North America' }],
+      [
+        {
+          id: '1',
+          name: 'United States of America',
+          continent: 'North America'
+        }
+      ],
       'America is matched due to fuzzy matching'
     );
   });
@@ -98,9 +113,21 @@ module('Unit | Mixin | Searchable', function(hooks) {
   test('the fuzzy search can include match results', function(assert) {
     const subject = this.subject();
     subject.set('source', [
-      EmberObject.create({ id: '1', name: 'United States of America', continent: 'North America' }),
-      EmberObject.create({ id: '2', name: 'Canada', continent: 'North America' }),
-      EmberObject.create({ id: '3', name: 'Mexico', continent: 'North America' }),
+      EmberObject.create({
+        id: '1',
+        name: 'United States of America',
+        continent: 'North America'
+      }),
+      EmberObject.create({
+        id: '2',
+        name: 'Canada',
+        continent: 'North America'
+      }),
+      EmberObject.create({
+        id: '3',
+        name: 'Mexico',
+        continent: 'North America'
+      })
     ]);
 
     subject.set('fuzzySearchEnabled', true);
@@ -109,7 +136,9 @@ module('Unit | Mixin | Searchable', function(hooks) {
     assert.deepEqual(
       subject
         .get('listSearched')
-        .map(object => object.getProperties('id', 'name', 'continent', 'fuzzySearchMatches')),
+        .map(object =>
+          object.getProperties('id', 'name', 'continent', 'fuzzySearchMatches')
+        ),
       [
         {
           id: '1',
@@ -119,10 +148,10 @@ module('Unit | Mixin | Searchable', function(hooks) {
             {
               indices: [[2, 2], [4, 4], [9, 9], [11, 11], [17, 23]],
               value: 'United States of America',
-              key: 'name',
-            },
-          ],
-        },
+              key: 'name'
+            }
+          ]
+        }
       ],
       'America is matched due to fuzzy matching'
     );
@@ -133,7 +162,7 @@ module('Unit | Mixin | Searchable', function(hooks) {
     subject.set('source', [
       { id: '1', name: 'United States of America', continent: 'North America' },
       { id: '2', name: 'Canada', continent: 'North America' },
-      { id: '3', name: 'Mexico', continent: 'North America' },
+      { id: '3', name: 'Mexico', continent: 'North America' }
     ]);
 
     subject.set('regexSearchProps', []);
@@ -159,7 +188,7 @@ module('Unit | Mixin | Searchable', function(hooks) {
     subject.set('source', [
       { id: '1', name: 'United States of America', continent: 'North America' },
       { id: '2', name: 'Canada', continent: 'North America' },
-      { id: '3', name: 'Mexico', continent: 'North America' },
+      { id: '3', name: 'Mexico', continent: 'North America' }
     ]);
 
     subject.set('searchTerm', '^.{6}$');
@@ -167,7 +196,7 @@ module('Unit | Mixin | Searchable', function(hooks) {
       subject.get('listSearched'),
       [
         { id: '2', name: 'Canada', continent: 'North America' },
-        { id: '3', name: 'Mexico', continent: 'North America' },
+        { id: '3', name: 'Mexico', continent: 'North America' }
       ],
       'Canada and Mexico meet the regex criteria'
     );
@@ -186,7 +215,7 @@ module('Unit | Mixin | Searchable', function(hooks) {
     subject.set('source', [
       { id: '1', name: 'United States of America', continent: 'North America' },
       { id: '2', name: 'Canada', continent: 'North America' },
-      { id: '3', name: 'Mexico', continent: 'North America' },
+      { id: '3', name: 'Mexico', continent: 'North America' }
     ]);
 
     subject.set('fuzzySearchEnabled', true);
@@ -204,7 +233,13 @@ module('Unit | Mixin | Searchable', function(hooks) {
     subject.set('searchTerm', 'America States');
     assert.deepEqual(
       subject.get('listSearched'),
-      [{ id: '1', name: 'United States of America', continent: 'North America' }],
+      [
+        {
+          id: '1',
+          name: 'United States of America',
+          continent: 'North America'
+        }
+      ],
       'Fuzzy match on one country, but not an exact match on continent'
     );
 
@@ -218,9 +253,17 @@ module('Unit | Mixin | Searchable', function(hooks) {
 
   test('the resetPagination method is a no-op', function(assert) {
     const subject = this.subject();
-    assert.strictEqual(subject.get('currentPage'), undefined, 'No currentPage value set');
+    assert.strictEqual(
+      subject.get('currentPage'),
+      undefined,
+      'No currentPage value set'
+    );
     subject.resetPagination();
-    assert.strictEqual(subject.get('currentPage'), undefined, 'Still no currentPage value set');
+    assert.strictEqual(
+      subject.get('currentPage'),
+      undefined,
+      'Still no currentPage value set'
+    );
   });
 });
 
@@ -236,10 +279,13 @@ module('Unit | Mixin | Searchable (with pagination)', function(hooks) {
           return ['id', 'name'];
         }),
         listToSearch: alias('source'),
-        currentPage: 1,
+        currentPage: 1
       });
 
-      this.owner.register('test-container:searchable-paginated-object', SearchablePaginatedObject);
+      this.owner.register(
+        'test-container:searchable-paginated-object',
+        SearchablePaginatedObject
+      );
       return this.owner.lookup('test-container:searchable-paginated-object');
     };
   });
@@ -247,7 +293,11 @@ module('Unit | Mixin | Searchable (with pagination)', function(hooks) {
   test('the resetPagination method sets the currentPage to 1', function(assert) {
     const subject = this.subject();
     subject.set('currentPage', 5);
-    assert.equal(subject.get('currentPage'), 5, 'Current page is something other than 1');
+    assert.equal(
+      subject.get('currentPage'),
+      5,
+      'Current page is something other than 1'
+    );
     subject.resetPagination();
     assert.equal(subject.get('currentPage'), 1, 'Current page gets reset to 1');
   });

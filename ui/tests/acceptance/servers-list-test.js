@@ -1,3 +1,4 @@
+/* eslint-disable qunit/require-expect */
 import { currentURL } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
@@ -40,10 +41,18 @@ module('Acceptance | servers list', function(hooks) {
 
     await ServersList.visit();
 
-    assert.equal(ServersList.servers.length, ServersList.pageSize, 'List is stopped at pageSize');
+    assert.equal(
+      ServersList.servers.length,
+      ServersList.pageSize,
+      'List is stopped at pageSize'
+    );
 
     ServersList.servers.forEach((server, index) => {
-      assert.equal(server.name, sortedAgents[index].name, 'Servers are ordered');
+      assert.equal(
+        server.name,
+        sortedAgents[index].name,
+        'Servers are ordered'
+      );
     });
 
     assert.equal(document.title, 'Servers - Nomad');
@@ -73,7 +82,11 @@ module('Acceptance | servers list', function(hooks) {
     await ServersList.visit();
     await ServersList.servers.objectAt(0).clickRow();
 
-    assert.equal(currentURL(), `/servers/${agent.name}`, 'Now at the server detail page');
+    assert.equal(
+      currentURL(),
+      `/servers/${agent.name}`,
+      'Now at the server detail page'
+    );
   });
 
   test('when accessing servers is forbidden, show a message with a link to the tokens page', async function(assert) {

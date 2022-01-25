@@ -5,5 +5,5 @@ export default scope => ({
   scope,
 
   label: text('[data-test-topo-viz-datacenter-label]'),
-  nodes: collection('[data-test-topo-viz-node]', TopoVizNode()),
+  nodes: collection('[data-test-topo-viz-node]', TopoVizNode())
 });

@@ -12,7 +12,7 @@ export function codeFillable(selector) {
         cm.setValue(code);
         return this;
       };
-    },
+    }
   };
 }
 
@@ -27,6 +27,6 @@ export function code(selector) {
     get() {
       const cm = getCodeMirrorInstance(selector);
       return cm.getValue();
-    },
+    }
   };
 }

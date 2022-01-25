@@ -27,11 +27,11 @@ const jsonJob = overrides => {
             Tasks: [
               {
                 Name: 'redis',
-                Driver: 'docker',
-              },
-            ],
-          },
-        ],
+                Driver: 'docker'
+              }
+            ]
+          }
+        ]
       },
       overrides
     ),
@@ -56,6 +56,8 @@ module('Acceptance | job run', function(hooks) {
   });
 
   test('it passes an accessibility audit', async function(assert) {
+    assert.expect(1);
+
     await JobRun.visit();
     await a11yAudit(assert);
   });
@@ -117,7 +119,7 @@ module('Acceptance | job run', function(hooks) {
       createAllocations: false,
       shallow: true,
       noActiveDeployment: true,
-      namespaceId: newNamespace,
+      namespaceId: newNamespace
     });
 
     const policy = server.create('policy', {
@@ -127,10 +129,10 @@ module('Acceptance | job run', function(hooks) {
         Namespaces: [
           {
             Name: newNamespace,
-            Capabilities: ['scale-job', 'submit-job', 'read-job', 'list-jobs'],
-          },
-        ],
-      },
+            Capabilities: ['scale-job', 'submit-job', 'read-job', 'list-jobs']
+          }
+        ]
+      }
     });
 
     clientTokenWithPolicy.policyIds = [policy.id];

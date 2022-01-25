@@ -1,4 +1,4 @@
-import { find, settled } from '@ember/test-helpers';
+import { find, render, settled } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
@@ -16,7 +16,7 @@ module('Integration | Component | toggle', function(hooks) {
     isActive: false,
     isDisabled: false,
     label: 'Label',
-    onToggle: sinon.spy(),
+    onToggle: sinon.spy()
   });
 
   const commonTemplate = hbs`
@@ -29,9 +29,11 @@ module('Integration | Component | toggle', function(hooks) {
   `;
 
   test('presents as a label with an inner checkbox and display span, and text', async function(assert) {
+    assert.expect(7);
+
     const props = commonProperties();
     this.setProperties(props);
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     assert.equal(Toggle.label, props.label, `Label should be ${props.label}`);
     assert.ok(Toggle.isPresent);
@@ -52,9 +54,11 @@ module('Integration | Component | toggle', function(hooks) {
   });
 
   test('the isActive property dictates the active state and class', async function(assert) {
+    assert.expect(5);
+
     const props = commonProperties();
     this.setProperties(props);
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     assert.notOk(Toggle.isActive);
     assert.notOk(Toggle.hasActiveClass);
@@ -69,9 +73,11 @@ module('Integration | Component | toggle', function(hooks) {
   });
 
   test('the isDisabled property dictates the disabled state and class', async function(assert) {
+    assert.expect(5);
+
     const props = commonProperties();
     this.setProperties(props);
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     assert.notOk(Toggle.isDisabled);
     assert.notOk(Toggle.hasDisabledClass);
@@ -88,7 +94,7 @@ module('Integration | Component | toggle', function(hooks) {
   test('toggling the input calls the onToggle action', async function(assert) {
     const props = commonProperties();
     this.setProperties(props);
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     await Toggle.toggle();
     assert.equal(props.onToggle.callCount, 1);

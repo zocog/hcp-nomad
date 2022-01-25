@@ -1,3 +1,4 @@
+/* eslint-disable ember/no-controller-access-in-routes */
 import Route from '@ember/routing/route';
 
 export default class OptimizeIndexRoute extends Route {
@@ -10,8 +11,8 @@ export default class OptimizeIndexRoute extends Route {
 
       return this.transitionTo('optimize.summary', firstSummary.slug, {
         queryParams: {
-          jobNamespace: firstSummary.jobNamespace || 'default',
-        },
+          jobNamespace: firstSummary.jobNamespace || 'default'
+        }
       });
     }
   }

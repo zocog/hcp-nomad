@@ -1,3 +1,4 @@
+/* eslint-disable qunit/require-expect */
 import { currentURL } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
@@ -15,7 +16,7 @@ const makeSearchableClients = (server, job) => {
       const node = server.create('node', {
         id: index < 5 ? `ffffff-dddddd-${index}` : `111111-222222-${index}`,
         datacenter: 'dc1',
-        status: 'ready',
+        status: 'ready'
       });
       server.create('allocation', { jobId: job.id, nodeId: node.id });
     });
@@ -28,7 +29,7 @@ module('Acceptance | job clients', function(hooks) {
   hooks.beforeEach(function() {
     clients = server.createList('node', 12, {
       datacenter: 'dc1',
-      status: 'ready',
+      status: 'ready'
     });
     // Job with 1 task group.
     job = server.create('job', {
@@ -36,7 +37,7 @@ module('Acceptance | job clients', function(hooks) {
       datacenters: ['dc1'],
       type: 'sysbatch',
       resourceSpec: ['M: 256, C: 500'],
-      createAllocations: false,
+      createAllocations: false
     });
     clients.forEach(c => {
       server.create('allocation', { jobId: job.id, nodeId: c.id });
@@ -46,7 +47,7 @@ module('Acceptance | job clients', function(hooks) {
     clients = clients.concat(
       server.createList('node', 3, {
         datacenter: 'dc1',
-        status: 'ready',
+        status: 'ready'
       })
     );
   });
@@ -75,14 +76,23 @@ module('Acceptance | job clients', function(hooks) {
 
       ['createTime', 'modifyTime'].forEach(col => {
         if (jobStatus === 'not scheduled') {
-          assert.equal(clientRow[col].text, '-', `row ${index} doesn't have ${col} tooltip`);
+          /* eslint-disable-next-line qunit/no-conditional-assertions */
+          assert.equal(
+            clientRow[col].text,
+            '-',
+            `row ${index} doesn't have ${col} tooltip`
+          );
+          /* eslint-disable-next-line qunit/no-early-return */
           return;
         }
 
         const hasTooltip = clientRow[col].tooltip.isPresent;
         const tooltipText = clientRow[col].tooltip.text;
         assert.true(hasTooltip, `row ${index} has ${col} tooltip`);
-        assert.ok(tooltipText, `row ${index} has ${col} tooltip content ${tooltipText}`);
+        assert.ok(
+          tooltipText,
+          `row ${index} has ${col} tooltip content ${tooltipText}`
+        );
       });
     });
   });
@@ -142,7 +152,11 @@ module('Acceptance | job clients', function(hooks) {
       '/v1/job/not-a-real-job',
       'A request to the nonexistent job is made'
     );
-    assert.equal(currentURL(), '/jobs/not-a-real-job/clients', 'The URL persists');
+    assert.equal(
+      currentURL(),
+      '/jobs/not-a-real-job/clients',
+      'The URL persists'
+    );
     assert.ok(Clients.error.isPresent, 'Error message is shown');
     assert.equal(Clients.error.title, 'Not Found', 'Error message is for 404');
   });
@@ -174,11 +188,11 @@ module('Acceptance | job clients', function(hooks) {
       'Complete',
       'Degraded',
       'Failed',
-      'Lost',
+      'Lost'
     ],
     async beforeEach() {
       await Clients.visit({ id: job.id });
-    },
+    }
   });
 
   function testFacet(label, { facet, paramName, beforeEach, expectedOptions }) {

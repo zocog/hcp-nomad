@@ -5,20 +5,20 @@ export default scope => ({
 
   slices: collection('svg .bars g', {
     label: attribute('data-test-slice-label'),
-    click: clickable(),
+    click: clickable()
   }),
 
   legend: {
     scope: '.legend',
 
     items: collection('li', {
-      label: attribute('data-test-legend-label'),
+      label: attribute('data-test-legend-label')
     }),
 
     clickableItems: collection('li.is-clickable', {
       label: attribute('data-test-legend-label'),
-      click: clickable('a'),
-    }),
+      click: clickable('a')
+    })
   },
 
   visitSlice: async function(label) {
@@ -33,5 +33,5 @@ export default scope => ({
       .toArray()
       .findBy('label', label)
       .click();
-  },
+  }
 });

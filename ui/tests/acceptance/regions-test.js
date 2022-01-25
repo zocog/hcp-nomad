@@ -1,3 +1,5 @@
+/* eslint-disable qunit/require-expect */
+/* eslint-disable qunit/no-conditional-assertions */
 import { currentURL } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
@@ -16,7 +18,10 @@ module('Acceptance | regions (only one)', function(hooks) {
   hooks.beforeEach(function() {
     server.create('agent');
     server.create('node');
-    server.createList('job', 2, { createAllocations: false, noDeployments: true });
+    server.createList('job', 2, {
+      createAllocations: false,
+      noDeployments: true
+    });
   });
 
   test('it passes an accessibility audit', async function(assert) {
@@ -75,7 +80,10 @@ module('Acceptance | regions (many)', function(hooks) {
   hooks.beforeEach(function() {
     server.create('agent');
     server.create('node');
-    server.createList('job', 2, { createAllocations: false, noDeployments: true });
+    server.createList('job', 2, {
+      createAllocations: false,
+      noDeployments: true
+    });
     server.create('allocation');
     server.create('region', { id: 'global' });
     server.create('region', { id: 'region-2' });
@@ -84,7 +92,10 @@ module('Acceptance | regions (many)', function(hooks) {
   test('the region switcher is rendered in the nav bar and the region is in the page title', async function(assert) {
     await JobsList.visit();
 
-    assert.ok(Layout.navbar.regionSwitcher.isPresent, 'Region switcher is shown');
+    assert.ok(
+      Layout.navbar.regionSwitcher.isPresent,
+      'Region switcher is shown'
+    );
     assert.equal(document.title, 'Jobs - global - Nomad');
   });
 
@@ -92,7 +103,11 @@ module('Acceptance | regions (many)', function(hooks) {
     await JobsList.visit();
 
     assert.equal(currentURL(), '/jobs', 'No region query param');
-    assert.equal(window.localStorage.nomadActiveRegion, 'global', 'Region in localStorage');
+    assert.equal(
+      window.localStorage.nomadActiveRegion,
+      'global',
+      'Region in localStorage'
+    );
   });
 
   test('switching regions sets localStorage and the region query param', async function(assert) {
@@ -106,7 +121,11 @@ module('Acceptance | regions (many)', function(hooks) {
       currentURL().includes(`region=${newRegion}`),
       'New region is the region query param value'
     );
-    assert.equal(window.localStorage.nomadActiveRegion, newRegion, 'New region in localStorage');
+    assert.equal(
+      window.localStorage.nomadActiveRegion,
+      newRegion,
+      'New region in localStorage'
+    );
   });
 
   test('switching regions to the default region, unsets the region query param', async function(assert) {
@@ -117,7 +136,10 @@ module('Acceptance | regions (many)', function(hooks) {
 
     await selectChoose('[data-test-region-switcher-parent]', defaultRegion);
 
-    assert.notOk(currentURL().includes('region='), 'No region query param for the default region');
+    assert.notOk(
+      currentURL().includes('region='),
+      'No region query param for the default region'
+    );
     assert.equal(
       window.localStorage.nomadActiveRegion,
       defaultRegion,

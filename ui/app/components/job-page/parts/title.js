@@ -21,7 +21,7 @@ export default class Title extends Component {
     } catch (err) {
       this.handleError({
         title: 'Could Not Stop Job',
-        description: messageFromAdapterError(err, 'stop jobs'),
+        description: messageFromAdapterError(err, 'stop jobs')
       });
     }
   })
@@ -42,7 +42,7 @@ export default class Title extends Component {
     } catch (err) {
       this.handleError({
         title: 'Could Not Start Job',
-        description: messageFromAdapterError(err, 'start jobs'),
+        description: messageFromAdapterError(err, 'start jobs')
       });
     }
   })

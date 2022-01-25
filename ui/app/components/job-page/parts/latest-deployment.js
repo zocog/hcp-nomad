@@ -19,7 +19,7 @@ export default class LatestDeployment extends Component {
     } catch (err) {
       this.handleError({
         title: 'Could Not Promote Deployment',
-        description: messageFromAdapterError(err, 'promote deployments'),
+        description: messageFromAdapterError(err, 'promote deployments')
       });
     }
   })
@@ -31,7 +31,7 @@ export default class LatestDeployment extends Component {
     } catch (err) {
       this.handleError({
         title: 'Could Not Fail Deployment',
-        description: messageFromAdapterError(err, 'fail deployments'),
+        description: messageFromAdapterError(err, 'fail deployments')
       });
     }
   })

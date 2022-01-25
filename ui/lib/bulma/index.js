@@ -27,7 +27,7 @@ module.exports = {
     return new Funnel(this.bulmaPath, {
       srcDir: '/',
       destDir: 'app/styles/bulma',
-      annotation: 'Funnel (bulma)',
+      annotation: 'Funnel (bulma)'
     });
-  },
+  }
 };

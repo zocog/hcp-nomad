@@ -10,20 +10,20 @@ module('Unit | Component | TopoViz', function(hooks) {
     const nodes = [
       { datacenter: 'dc1', id: 'node0', resources: {} },
       { datacenter: 'dc2', id: 'node1', resources: {} },
-      { datacenter: 'dc1', id: 'node2', resources: {} },
+      { datacenter: 'dc1', id: 'node2', resources: {} }
     ];
 
     const node0Allocs = [
       alloc({ nodeId: 'node0', jobId: 'job0', taskGroupName: 'group' }),
-      alloc({ nodeId: 'node0', jobId: 'job1', taskGroupName: 'group' }),
+      alloc({ nodeId: 'node0', jobId: 'job1', taskGroupName: 'group' })
     ];
     const node1Allocs = [
       alloc({ nodeId: 'node1', jobId: 'job0', taskGroupName: 'group' }),
-      alloc({ nodeId: 'node1', jobId: 'job1', taskGroupName: 'group' }),
+      alloc({ nodeId: 'node1', jobId: 'job1', taskGroupName: 'group' })
     ];
     const node2Allocs = [
       alloc({ nodeId: 'node2', jobId: 'job0', taskGroupName: 'group' }),
-      alloc({ nodeId: 'node2', jobId: 'job1', taskGroupName: 'group' }),
+      alloc({ nodeId: 'node2', jobId: 'job1', taskGroupName: 'group' })
     ];
 
     const allocations = [...node0Allocs, ...node1Allocs, ...node2Allocs];
@@ -32,9 +32,17 @@ module('Unit | Component | TopoViz', function(hooks) {
 
     topoViz.buildTopology();
 
-    assert.deepEqual(topoViz.topology.datacenters.mapBy('name'), ['dc1', 'dc2']);
-    assert.deepEqual(topoViz.topology.datacenters[0].nodes.mapBy('node'), [nodes[0], nodes[2]]);
-    assert.deepEqual(topoViz.topology.datacenters[1].nodes.mapBy('node'), [nodes[1]]);
+    assert.deepEqual(topoViz.topology.datacenters.mapBy('name'), [
+      'dc1',
+      'dc2'
+    ]);
+    assert.deepEqual(topoViz.topology.datacenters[0].nodes.mapBy('node'), [
+      nodes[0],
+      nodes[2]
+    ]);
+    assert.deepEqual(topoViz.topology.datacenters[1].nodes.mapBy('node'), [
+      nodes[1]
+    ]);
     assert.deepEqual(
       topoViz.topology.datacenters[0].nodes[0].allocations.mapBy('allocation'),
       node0Allocs
@@ -50,6 +58,8 @@ module('Unit | Component | TopoViz', function(hooks) {
   });
 
   test('the topology object contains an allocation index keyed by jobId+taskGroupName', async function(assert) {
+    assert.expect(7);
+
     const allocations = [
       alloc({ nodeId: 'node0', jobId: 'job0', taskGroupName: 'one' }),
       alloc({ nodeId: 'node0', jobId: 'job0', taskGroupName: 'one' }),
@@ -60,7 +70,7 @@ module('Unit | Component | TopoViz', function(hooks) {
       alloc({ nodeId: 'node0', jobId: 'job2', taskGroupName: 'one' }),
       alloc({ nodeId: 'node0', jobId: 'job2', taskGroupName: 'one' }),
       alloc({ nodeId: 'node0', jobId: 'job2', taskGroupName: 'one' }),
-      alloc({ nodeId: 'node0', jobId: 'job2', taskGroupName: 'one' }),
+      alloc({ nodeId: 'node0', jobId: 'job2', taskGroupName: 'one' })
     ];
 
     const nodes = [{ datacenter: 'dc1', id: 'node0', resources: {} }];
@@ -78,7 +88,7 @@ module('Unit | Component | TopoViz', function(hooks) {
         JSON.stringify(['job1', 'two']),
         JSON.stringify(['job1', 'three']),
 
-        JSON.stringify(['job2', 'one']),
+        JSON.stringify(['job2', 'one'])
       ].sort()
     );
 
@@ -86,7 +96,9 @@ module('Unit | Component | TopoViz', function(hooks) {
       const [jobId, group] = JSON.parse(key);
       assert.deepEqual(
         topoViz.topology.allocationIndex[key].mapBy('allocation'),
-        allocations.filter(alloc => alloc.jobId === jobId && alloc.taskGroupName === group)
+        allocations.filter(
+          alloc => alloc.jobId === jobId && alloc.taskGroupName === group
+        )
       );
     });
   });
@@ -108,18 +120,24 @@ module('Unit | Component | TopoViz', function(hooks) {
   test('isSingleColumn is true when there are multiple datacenters with a high variance in node count', async function(assert) {
     const uniformDcs = [
       { datacenter: 'dc1', id: 'node0', resources: {} },
-      { datacenter: 'dc2', id: 'node1', resources: {} },
+      { datacenter: 'dc2', id: 'node1', resources: {} }
     ];
     const skewedDcs = [
       { datacenter: 'dc1', id: 'node0', resources: {} },
       { datacenter: 'dc2', id: 'node1', resources: {} },
       { datacenter: 'dc2', id: 'node2', resources: {} },
       { datacenter: 'dc2', id: 'node3', resources: {} },
-      { datacenter: 'dc2', id: 'node4', resources: {} },
+      { datacenter: 'dc2', id: 'node4', resources: {} }
     ];
 
-    const twoColumnViz = this.createComponent({ nodes: uniformDcs, allocations: [] });
-    const oneColumViz = this.createComponent({ nodes: skewedDcs, allocations: [] });
+    const twoColumnViz = this.createComponent({
+      nodes: uniformDcs,
+      allocations: []
+    });
+    const oneColumViz = this.createComponent({
+      nodes: skewedDcs,
+      allocations: []
+    });
 
     twoColumnViz.buildTopology();
     oneColumViz.buildTopology();
@@ -134,18 +152,24 @@ module('Unit | Component | TopoViz', function(hooks) {
       .map((_, index) => ({
         datacenter: index > 12 ? 'dc2' : 'dc1',
         id: `node${index}`,
-        resources: {},
+        resources: {}
       }));
     const manySkewedNodes = Array(25)
       .fill(null)
       .map((_, index) => ({
         datacenter: index > 5 ? 'dc2' : 'dc1',
         id: `node${index}`,
-        resources: {},
+        resources: {}
       }));
 
-    const oneColumnViz = this.createComponent({ nodes: manyUniformNodes, allocations: [] });
-    const twoColumnViz = this.createComponent({ nodes: manySkewedNodes, allocations: [] });
+    const oneColumnViz = this.createComponent({
+      nodes: manyUniformNodes,
+      allocations: []
+    });
+    const twoColumnViz = this.createComponent({
+      nodes: manySkewedNodes,
+      allocations: []
+    });
 
     oneColumnViz.buildTopology();
     twoColumnViz.buildTopology();
@@ -158,21 +182,29 @@ module('Unit | Component | TopoViz', function(hooks) {
   });
 
   test('dataForAllocation correctly calculates proportion of node utilization and group key', async function(assert) {
-    const nodes = [{ datacenter: 'dc1', id: 'node0', resources: { cpu: 100, memory: 250 } }];
+    const nodes = [
+      { datacenter: 'dc1', id: 'node0', resources: { cpu: 100, memory: 250 } }
+    ];
     const allocations = [
       alloc({
         nodeId: 'node0',
         jobId: 'job0',
         taskGroupName: 'group',
-        allocatedResources: { cpu: 50, memory: 25 },
-      }),
+        allocatedResources: { cpu: 50, memory: 25 }
+      })
     ];
 
     const topoViz = this.createComponent({ nodes, allocations });
     topoViz.buildTopology();
 
-    assert.equal(topoViz.topology.datacenters[0].nodes[0].allocations[0].cpuPercent, 0.5);
-    assert.equal(topoViz.topology.datacenters[0].nodes[0].allocations[0].memoryPercent, 0.1);
+    assert.equal(
+      topoViz.topology.datacenters[0].nodes[0].allocations[0].cpuPercent,
+      0.5
+    );
+    assert.equal(
+      topoViz.topology.datacenters[0].nodes[0].allocations[0].memoryPercent,
+      0.1
+    );
   });
 
   test('allocations that reference nonexistent nodes are ignored', async function(assert) {
@@ -180,17 +212,20 @@ module('Unit | Component | TopoViz', function(hooks) {
 
     const allocations = [
       alloc({ nodeId: 'node0', jobId: 'job0', taskGroupName: 'group' }),
-      alloc({ nodeId: 'node404', jobId: 'job1', taskGroupName: 'group' }),
+      alloc({ nodeId: 'node404', jobId: 'job1', taskGroupName: 'group' })
     ];
 
     const topoViz = this.createComponent({ nodes, allocations });
 
     topoViz.buildTopology();
 
-    assert.deepEqual(topoViz.topology.datacenters[0].nodes.mapBy('node'), [nodes[0]]);
-    assert.deepEqual(topoViz.topology.datacenters[0].nodes[0].allocations.mapBy('allocation'), [
-      allocations[0],
+    assert.deepEqual(topoViz.topology.datacenters[0].nodes.mapBy('node'), [
+      nodes[0]
     ]);
+    assert.deepEqual(
+      topoViz.topology.datacenters[0].nodes[0].allocations.mapBy('allocation'),
+      [allocations[0]]
+    );
   });
 });
 
@@ -202,8 +237,8 @@ function alloc(props) {
       return {
         id() {
           return type === 'job' ? props.jobId : props.nodeId;
-        },
+        }
       };
-    },
+    }
   };
 }

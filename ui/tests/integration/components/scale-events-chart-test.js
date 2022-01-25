@@ -17,7 +17,7 @@ module('Integration | Component | scale-events-chart', function(hooks) {
       hasCount: true,
       meta: {},
       message: '',
-      error: false,
+      error: false
     },
     {
       time: new Date('2020-08-06T04:06:00'),
@@ -25,7 +25,7 @@ module('Integration | Component | scale-events-chart', function(hooks) {
       hasCount: true,
       meta: {},
       message: '',
-      error: false,
+      error: false
     },
     {
       time: new Date('2020-08-07T04:06:00'),
@@ -33,25 +33,27 @@ module('Integration | Component | scale-events-chart', function(hooks) {
       hasCount: true,
       meta: {},
       message: '',
-      error: false,
+      error: false
     },
     {
       time: new Date('2020-08-06T04:06:00'),
       hasCount: false,
       meta: { prop: { deep: true }, five: 5 },
       message: 'Something went wrong',
-      error: true,
+      error: true
     },
     {
       time: new Date('2020-08-05T04:06:00'),
       hasCount: false,
       meta: {},
       message: 'Something insightful',
-      error: false,
-    },
+      error: false
+    }
   ];
 
   test('each event is rendered as an annotation', async function(assert) {
+    assert.expect(2);
+
     this.set('events', events);
     await render(hbs`<ScaleEventsChart @events={{this.events}} />`);
 
@@ -63,6 +65,8 @@ module('Integration | Component | scale-events-chart', function(hooks) {
   });
 
   test('clicking an annotation presents details for the event', async function(assert) {
+    assert.expect(6);
+
     const annotation = events
       .rejectBy('hasCount')
       .sortBy('time')

@@ -39,7 +39,7 @@ export default class AllocationPrimaryMetric extends Component {
     const ret = this.tracker.tasks
       .map(task => ({
         name: task.task,
-        data: task[this.metric],
+        data: task[this.metric]
       }))
       .reverse();
 
@@ -78,6 +78,7 @@ export default class AllocationPrimaryMetric extends Component {
   }
 
   willDestroy() {
+    super.willDestroy(...arguments);
     this.poller.cancelAll();
     this.tracker.signalPause.perform();
   }

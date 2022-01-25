@@ -10,7 +10,7 @@ import { startMirage } from 'nomad-ui/initializers/ember-cli-mirage';
 const mockTasks = [
   { task: 'One', reservedCPU: 200, reservedMemory: 500, cpu: [], memory: [] },
   { task: 'Two', reservedCPU: 100, reservedMemory: 200, cpu: [], memory: [] },
-  { task: 'Three', reservedCPU: 300, reservedMemory: 100, cpu: [], memory: [] },
+  { task: 'Three', reservedCPU: 300, reservedMemory: 100, cpu: [], memory: [] }
 ];
 
 module('Integration | Component | PrimaryMetric::Allocation', function(hooks) {
@@ -23,7 +23,11 @@ module('Integration | Component | PrimaryMetric::Allocation', function(hooks) {
     this.server = startMirage();
     this.server.create('namespace');
     this.server.create('node');
-    this.server.create('job', { groupsCount: 1, groupTaskCount: 3, createAllocations: false });
+    this.server.create('job', {
+      groupsCount: 1,
+      groupTaskCount: 3,
+      createAllocations: false
+    });
     this.server.create('allocation');
   });
 
@@ -44,6 +48,8 @@ module('Integration | Component | PrimaryMetric::Allocation', function(hooks) {
   const findResource = store => store.peekAll('allocation').get('firstObject');
 
   test('Must pass an accessibility audit', async function(assert) {
+    assert.expect(1);
+
     await preload(this.store);
 
     const resource = findResource(this.store);
@@ -66,6 +72,6 @@ module('Integration | Component | PrimaryMetric::Allocation', function(hooks) {
   primaryMetric({
     template,
     preload,
-    findResource,
+    findResource
   });
 });

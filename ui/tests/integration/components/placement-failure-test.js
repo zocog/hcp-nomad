@@ -14,13 +14,15 @@ module('Integration | Component | placement failures', function(hooks) {
   `;
 
   test('should render the placement failure (basic render)', async function(assert) {
+    assert.expect(12);
+
     const name = 'Placement Failure';
     const failures = 11;
     this.set(
       'taskGroup',
       createFixture(
         {
-          coalescedFailures: failures - 1,
+          coalescedFailures: failures - 1
         },
         name
       )
@@ -29,12 +31,16 @@ module('Integration | Component | placement failures', function(hooks) {
     await render(commonTemplate);
 
     assert.equal(
-      cleanWhitespace(find('[data-test-placement-failure-task-group]').firstChild.wholeText),
+      cleanWhitespace(
+        find('[data-test-placement-failure-task-group]').firstChild.wholeText
+      ),
       name,
       'Title is rendered with the name of the placement failure'
     );
     assert.equal(
-      parseInt(find('[data-test-placement-failure-coalesced-failures]').textContent),
+      parseInt(
+        find('[data-test-placement-failure-coalesced-failures]').textContent
+      ),
       failures,
       'Title is rendered correctly with a count of unplaced'
     );
@@ -78,17 +84,23 @@ module('Integration | Component | placement failures', function(hooks) {
       1,
       'Quota exhausted message shown'
     );
-    assert.equal(findAll('[data-test-placement-failure-scores]').length, 1, 'Scores message shown');
+    assert.equal(
+      findAll('[data-test-placement-failure-scores]').length,
+      1,
+      'Scores message shown'
+    );
 
     await componentA11yAudit(this.element, assert);
   });
 
   test('should render correctly when a node is not evaluated', async function(assert) {
+    assert.expect(3);
+
     this.set(
       'taskGroup',
       createFixture({
         nodesEvaluated: 1,
-        nodesExhausted: 0,
+        nodesExhausted: 0
       })
     );
 
@@ -117,30 +129,30 @@ module('Integration | Component | placement failures', function(hooks) {
           coalescedFailures: 10,
           nodesEvaluated: 0,
           nodesAvailable: {
-            datacenter: 0,
+            datacenter: 0
           },
           classFiltered: {
-            filtered: 1,
+            filtered: 1
           },
           constraintFiltered: {
-            'prop = val': 1,
+            'prop = val': 1
           },
           nodesExhausted: 3,
           classExhausted: {
-            class: 3,
+            class: 3
           },
           dimensionExhausted: {
-            iops: 3,
+            iops: 3
           },
           quotaExhausted: {
-            quota: 'dimension',
+            quota: 'dimension'
           },
           scores: {
-            name: 3,
-          },
+            name: 3
+          }
         },
         obj
-      ),
+      )
     };
   }
 });

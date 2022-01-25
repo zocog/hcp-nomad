@@ -24,7 +24,7 @@ export default class ListAccordion extends Component {
       const cacheItem = stateCache.findBy(deepKey, get(item, key));
       return {
         item,
-        isOpen: cacheItem ? !!cacheItem.isOpen : startExpanded,
+        isOpen: cacheItem ? !!cacheItem.isOpen : startExpanded
       };
     });
 

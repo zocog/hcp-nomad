@@ -27,7 +27,7 @@ export default class Trigger extends Component {
 
   get fns() {
     return {
-      do: this.onTrigger,
+      do: this.onTrigger
     };
   }
 

@@ -24,7 +24,10 @@ export default class Deployment extends Model {
       this.status === 'running' &&
       this.taskGroupSummaries
         .toArray()
-        .some(summary => summary.get('requiresPromotion') && !summary.get('promoted'))
+        .some(
+          summary =>
+            summary.get('requiresPromotion') && !summary.get('promoted')
+        )
     );
   }
 
@@ -38,7 +41,10 @@ export default class Deployment extends Model {
 
   @computed('versionNumber', 'job.versions.content.@each.number')
   get version() {
-    return (this.get('job.versions') || []).findBy('number', this.versionNumber);
+    return (this.get('job.versions') || []).findBy(
+      'number',
+      this.versionNumber
+    );
   }
 
   // Dependent keys can only go one level past an @each so an alias is needed
@@ -58,14 +64,17 @@ export default class Deployment extends Model {
       successful: 'is-primary',
       paused: 'is-light',
       failed: 'is-error',
-      cancelled: 'is-cancelled',
+      cancelled: 'is-cancelled'
     };
 
     return classMap[this.status] || 'is-dark';
   }
 
   promote() {
-    assert('A deployment needs to requirePromotion to be promoted', this.requiresPromotion);
+    assert(
+      'A deployment needs to requirePromotion to be promoted',
+      this.requiresPromotion
+    );
     return this.store.adapterFor('deployment').promote(this);
   }
 

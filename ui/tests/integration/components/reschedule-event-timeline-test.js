@@ -26,11 +26,13 @@ module('Integration | Component | reschedule event timeline', function(hooks) {
   `;
 
   test('when the allocation is running, the timeline shows past allocations', async function(assert) {
+    assert.expect(7);
+
     const attempts = 2;
 
     this.server.create('allocation', 'rescheduled', {
       rescheduleAttempts: attempts,
-      rescheduleSuccess: true,
+      rescheduleSuccess: true
     });
 
     await this.store.findAll('allocation');
@@ -75,11 +77,13 @@ module('Integration | Component | reschedule event timeline', function(hooks) {
   });
 
   test('when the allocation has failed and there is a follow up evaluation, a note with a time is shown', async function(assert) {
+    assert.expect(3);
+
     const attempts = 2;
 
     this.server.create('allocation', 'rescheduled', {
       rescheduleAttempts: attempts,
-      rescheduleSuccess: false,
+      rescheduleSuccess: false
     });
 
     await this.store.findAll('allocation');
@@ -95,26 +99,33 @@ module('Integration | Component | reschedule event timeline', function(hooks) {
       find('[data-test-stop-warning]'),
       'Stop warning is shown since the last allocation failed'
     );
-    assert.notOk(find('[data-test-attempt-notice]'), 'Reschdule attempt notice is not shown');
+    assert.notOk(
+      find('[data-test-attempt-notice]'),
+      'Reschdule attempt notice is not shown'
+    );
 
     await componentA11yAudit(this.element, assert);
   });
 
   test('when the allocation has failed and there is no follow up evaluation, a warning is shown', async function(assert) {
+    assert.expect(3);
+
     const attempts = 2;
 
     this.server.create('allocation', 'rescheduled', {
       rescheduleAttempts: attempts,
-      rescheduleSuccess: false,
+      rescheduleSuccess: false
     });
 
-    const lastAllocation = server.schema.allocations.findBy({ nextAllocation: undefined });
+    const lastAllocation = server.schema.allocations.findBy({
+      nextAllocation: undefined
+    });
     lastAllocation.update({
       followupEvalId: server.create('evaluation', {
         waitUntil: moment()
           .add(2, 'hours')
-          .toDate(),
-      }).id,
+          .toDate()
+      }).id
     });
 
     await this.store.findAll('allocation');
@@ -140,24 +151,28 @@ module('Integration | Component | reschedule event timeline', function(hooks) {
 
     const originalAllocation = this.server.create('allocation', 'rescheduled', {
       rescheduleAttempts: attempts,
-      rescheduleSuccess: true,
+      rescheduleSuccess: true
     });
 
     await this.store.findAll('allocation');
 
-    const allocation = this.store.peekAll('allocation').findBy('id', originalAllocation.id);
+    const allocation = this.store
+      .peekAll('allocation')
+      .findBy('id', originalAllocation.id);
 
     this.set('allocation', allocation);
     await render(commonTemplate);
 
-    assert.ok(
+    assert.equal(
       find('[data-test-reschedule-label]').textContent.trim(),
       'Next Allocation',
       'The first allocation is the next allocation and labeled as such'
     );
 
     assert.equal(
-      find('[data-test-allocation] [data-test-allocation-link]').textContent.trim(),
+      find(
+        '[data-test-allocation] [data-test-allocation-link]'
+      ).textContent.trim(),
       allocation.get('nextAllocation.shortId'),
       'The next allocation item is for the correct allocation'
     );

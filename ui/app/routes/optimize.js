@@ -23,12 +23,12 @@ export default class OptimizeRoute extends Route {
       ...jobs
         .filter(job => job)
         .filterBy('isPartial')
-        .map(j => j.reload()),
+        .map(j => j.reload())
     ]);
 
     return {
       summaries: summaries.sortBy('submitTime').reverse(),
-      namespaces,
+      namespaces
     };
   }
 

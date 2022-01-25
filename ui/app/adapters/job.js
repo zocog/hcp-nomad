@@ -4,7 +4,7 @@ import { base64EncodeString } from 'nomad-ui/utils/encode';
 
 export default class JobAdapter extends WatchableNamespaceIDs {
   relationshipFallbackLinks = {
-    summary: '/summary',
+    summary: '/summary'
   };
 
   fetchRawDefinition(job) {
@@ -14,7 +14,10 @@ export default class JobAdapter extends WatchableNamespaceIDs {
 
   forcePeriodic(job) {
     if (job.get('periodic')) {
-      const url = addToPath(this.urlForFindRecord(job.get('id'), 'job'), '/periodic/force');
+      const url = addToPath(
+        this.urlForFindRecord(job.get('id'), 'job'),
+        '/periodic/force'
+      );
       return this.ajax(url, 'POST');
     }
   }
@@ -29,8 +32,8 @@ export default class JobAdapter extends WatchableNamespaceIDs {
     return this.ajax(url, 'POST', {
       data: {
         JobHCL: spec,
-        Canonicalize: true,
-      },
+        Canonicalize: true
+      }
     });
   }
 
@@ -42,8 +45,8 @@ export default class JobAdapter extends WatchableNamespaceIDs {
     return this.ajax(url, 'POST', {
       data: {
         Job: job.get('_newDefinitionJSON'),
-        Diff: true,
-      },
+        Diff: true
+      }
     }).then(json => {
       json.ID = jobId;
       store.pushPayload('job-plan', { jobPlans: [json] });
@@ -56,8 +59,8 @@ export default class JobAdapter extends WatchableNamespaceIDs {
   run(job) {
     return this.ajax(this.urlForCreateRecord('job'), 'POST', {
       data: {
-        Job: job.get('_newDefinitionJSON'),
-      },
+        Job: job.get('_newDefinitionJSON')
+      }
     });
   }
 
@@ -65,34 +68,40 @@ export default class JobAdapter extends WatchableNamespaceIDs {
     const jobId = job.get('id') || job.get('_idBeforeSaving');
     return this.ajax(this.urlForUpdateRecord(jobId, 'job'), 'POST', {
       data: {
-        Job: job.get('_newDefinitionJSON'),
-      },
+        Job: job.get('_newDefinitionJSON')
+      }
     });
   }
 
   scale(job, group, count, message) {
-    const url = addToPath(this.urlForFindRecord(job.get('id'), 'job'), '/scale');
+    const url = addToPath(
+      this.urlForFindRecord(job.get('id'), 'job'),
+      '/scale'
+    );
     return this.ajax(url, 'POST', {
       data: {
         Count: count,
         Message: message,
         Target: {
-          Group: group,
+          Group: group
         },
         Meta: {
-          Source: 'nomad-ui',
-        },
-      },
+          Source: 'nomad-ui'
+        }
+      }
     });
   }
 
   dispatch(job, meta, payload) {
-    const url = addToPath(this.urlForFindRecord(job.get('id'), 'job'), '/dispatch');
+    const url = addToPath(
+      this.urlForFindRecord(job.get('id'), 'job'),
+      '/dispatch'
+    );
     return this.ajax(url, 'POST', {
       data: {
         Payload: base64EncodeString(payload),
-        Meta: meta,
-      },
+        Meta: meta
+      }
     });
   }
 }

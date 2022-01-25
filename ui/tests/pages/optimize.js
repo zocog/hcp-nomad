@@ -6,7 +6,7 @@ import {
   hasClass,
   isPresent,
   text,
-  visitable,
+  visitable
 } from 'ember-cli-page-object';
 
 import recommendationCard from 'nomad-ui/tests/pages/components/recommendation-card';
@@ -17,7 +17,7 @@ export default create({
 
   search: {
     scope: '[data-test-recommendation-summaries-search] input',
-    placeholder: attribute('placeholder'),
+    placeholder: attribute('placeholder')
   },
 
   facets: {
@@ -25,39 +25,42 @@ export default create({
     type: multiFacet('[data-test-type-facet]'),
     status: multiFacet('[data-test-status-facet]'),
     datacenter: multiFacet('[data-test-datacenter-facet]'),
-    prefix: multiFacet('[data-test-prefix-facet]'),
+    prefix: multiFacet('[data-test-prefix-facet]')
   },
 
   card: recommendationCard,
 
-  recommendationSummaries: collection('[data-test-recommendation-summary-row]', {
-    isActive: hasClass('is-active'),
-    isDisabled: hasClass('is-disabled'),
+  recommendationSummaries: collection(
+    '[data-test-recommendation-summary-row]',
+    {
+      isActive: hasClass('is-active'),
+      isDisabled: hasClass('is-disabled'),
 
-    slug: text('[data-test-slug]'),
-    namespace: text('[data-test-namespace]'),
-    date: text('[data-test-date]'),
-    allocationCount: text('[data-test-allocation-count]'),
-    cpu: text('[data-test-cpu]'),
-    memory: text('[data-test-memory]'),
-    aggregateCpu: text('[data-test-aggregate-cpu]'),
-    aggregateMemory: text('[data-test-aggregate-memory]'),
-  }),
+      slug: text('[data-test-slug]'),
+      namespace: text('[data-test-namespace]'),
+      date: text('[data-test-date]'),
+      allocationCount: text('[data-test-allocation-count]'),
+      cpu: text('[data-test-cpu]'),
+      memory: text('[data-test-memory]'),
+      aggregateCpu: text('[data-test-aggregate-cpu]'),
+      aggregateMemory: text('[data-test-aggregate-memory]')
+    }
+  ),
 
   empty: {
     scope: '[data-test-empty-recommendations]',
-    headline: text('[data-test-empty-recommendations-headline]'),
+    headline: text('[data-test-empty-recommendations-headline]')
   },
 
   error: {
     scope: '[data-test-recommendation-error]',
     headline: text('[data-test-headline]'),
     errors: text('[data-test-errors]'),
-    dismiss: clickable('[data-test-dismiss]'),
+    dismiss: clickable('[data-test-dismiss]')
   },
 
   applicationError: {
     isPresent: isPresent('[data-test-error]'),
-    title: text('[data-test-error-title]'),
-  },
+    title: text('[data-test-error-title]')
+  }
 });

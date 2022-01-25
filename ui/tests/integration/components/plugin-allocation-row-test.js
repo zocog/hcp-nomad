@@ -21,47 +21,57 @@ module('Integration | Component | plugin allocation row', function(hooks) {
   });
 
   test('Plugin allocation row immediately fetches the plugin allocation', async function(assert) {
-    const plugin = this.server.create('csi-plugin', { id: 'plugin', controllerRequired: true });
+    assert.expect(2);
+
+    const plugin = this.server.create('csi-plugin', {
+      id: 'plugin',
+      controllerRequired: true
+    });
     const storageController = plugin.controllers.models[0];
 
     const pluginRecord = await this.store.find('plugin', 'csi/plugin');
 
     this.setProperties({
-      plugin: pluginRecord.get('controllers.firstObject'),
+      plugin: pluginRecord.get('controllers.firstObject')
     });
 
     await render(hbs`
       <PluginAllocationRow @pluginAllocation={{plugin}} />
     `);
-
-    await settled();
 
     const allocationRequest = this.server.pretender.handledRequests.find(req =>
       req.url.startsWith('/v1/allocation')
     );
-    assert.equal(allocationRequest.url, `/v1/allocation/${storageController.allocID}`);
+    assert.equal(
+      allocationRequest.url,
+      `/v1/allocation/${storageController.allocID}`
+    );
     await componentA11yAudit(this.element, assert);
   });
 
   test('After the plugin allocation row fetches the plugin allocation, allocation stats are fetched', async function(assert) {
-    const plugin = this.server.create('csi-plugin', { id: 'plugin', controllerRequired: true });
+    const plugin = this.server.create('csi-plugin', {
+      id: 'plugin',
+      controllerRequired: true
+    });
     const storageController = plugin.controllers.models[0];
 
     const pluginRecord = await this.store.find('plugin', 'csi/plugin');
 
     this.setProperties({
-      plugin: pluginRecord.get('controllers.firstObject'),
+      plugin: pluginRecord.get('controllers.firstObject')
     });
 
     await render(hbs`
       <PluginAllocationRow @pluginAllocation={{plugin}} />
     `);
 
-    await settled();
-
     const [statsRequest] = this.server.pretender.handledRequests.slice(-1);
 
-    assert.equal(statsRequest.url, `/v1/client/allocation/${storageController.allocID}/stats`);
+    assert.equal(
+      statsRequest.url,
+      `/v1/client/allocation/${storageController.allocID}/stats`
+    );
   });
 
   test('Setting a new plugin fetches the new plugin allocation', async function(assert) {
@@ -69,7 +79,7 @@ module('Integration | Component | plugin allocation row', function(hooks) {
       id: 'plugin',
       isMonolith: false,
       controllerRequired: true,
-      controllersExpected: 2,
+      controllersExpected: 2
     });
     const storageController = plugin.controllers.models[0];
     const storageController2 = plugin.controllers.models[1];
@@ -77,20 +87,21 @@ module('Integration | Component | plugin allocation row', function(hooks) {
     const pluginRecord = await this.store.find('plugin', 'csi/plugin');
 
     this.setProperties({
-      plugin: pluginRecord.get('controllers.firstObject'),
+      plugin: pluginRecord.get('controllers.firstObject')
     });
 
     await render(hbs`
       <PluginAllocationRow @pluginAllocation={{plugin}} />
     `);
 
-    await settled();
-
     const allocationRequest = this.server.pretender.handledRequests.find(req =>
       req.url.startsWith('/v1/allocation')
     );
 
-    assert.equal(allocationRequest.url, `/v1/allocation/${storageController.allocID}`);
+    assert.equal(
+      allocationRequest.url,
+      `/v1/allocation/${storageController.allocID}`
+    );
 
     this.set('plugin', pluginRecord.get('controllers').toArray()[1]);
     await settled();
@@ -99,6 +110,9 @@ module('Integration | Component | plugin allocation row', function(hooks) {
       .filter(req => req.url.startsWith('/v1/allocation'))
       .reverse()[0];
 
-    assert.equal(latestAllocationRequest.url, `/v1/allocation/${storageController2.allocID}`);
+    assert.equal(
+      latestAllocationRequest.url,
+      `/v1/allocation/${storageController2.allocID}`
+    );
   });
 });

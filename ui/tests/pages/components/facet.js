@@ -1,5 +1,8 @@
 import { clickable, collection, text, attribute } from 'ember-cli-page-object';
-import { selectChoose, clickTrigger } from 'ember-power-select/test-support/helpers';
+import {
+  selectChoose,
+  clickTrigger
+} from 'ember-power-select/test-support/helpers';
 
 export const multiFacet = scope => ({
   scope,
@@ -11,8 +14,8 @@ export const multiFacet = scope => ({
     resetScope: true,
     label: text(),
     key: attribute('data-test-dropdown-option'),
-    toggle: clickable('label'),
-  }),
+    toggle: clickable('label')
+  })
 });
 
 export const singleFacet = scope => ({
@@ -33,6 +36,6 @@ export const singleFacet = scope => ({
       // and multiFacet compared to moving select to the parent.
       const parentScope = this.__parentTreeNode.scope;
       await selectChoose(parentScope, this.label);
-    },
-  }),
+    }
+  })
 });

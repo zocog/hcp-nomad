@@ -3,7 +3,9 @@ import { assign } from '@ember/polyfills';
 import { module, test } from 'qunit';
 import sinon from 'sinon';
 import Pretender from 'pretender';
-import NodeStatsTracker, { stats } from 'nomad-ui/utils/classes/node-stats-tracker';
+import NodeStatsTracker, {
+  stats
+} from 'nomad-ui/utils/classes/node-stats-tracker';
 import fetch from 'nomad-ui/utils/fetch';
 import statsTrackerFrameMissingBehavior from './behaviors/stats-tracker-frame-missing';
 
@@ -19,8 +21,8 @@ module('Unit | Util | NodeStatsTracker', function() {
         id: 'some-identifier',
         resources: {
           cpu: 2000,
-          memory: 4096,
-        },
+          memory: 4096
+        }
       },
       overrides
     );
@@ -28,9 +30,9 @@ module('Unit | Util | NodeStatsTracker', function() {
   const mockFrame = step => ({
     CPUTicksConsumed: step + 1000,
     Memory: {
-      Used: (step + 2048) * 1024 * 1024,
+      Used: (step + 2048) * 1024 * 1024
     },
-    Timestamp: refDate + step,
+    Timestamp: refDate + step
   });
 
   test('the NodeStatsTracker constructor expects a fetch definition and a node', async function(assert) {
@@ -59,7 +61,11 @@ module('Unit | Util | NodeStatsTracker', function() {
     const node = MockNode();
     const tracker = NodeStatsTracker.create({ fetch, node });
 
-    assert.equal(tracker.get('reservedCPU'), node.resources.cpu, 'reservedCPU comes from the node');
+    assert.equal(
+      tracker.get('reservedCPU'),
+      node.resources.cpu,
+      'reservedCPU comes from the node'
+    );
     assert.equal(
       tracker.get('reservedMemory'),
       node.resources.memory,
@@ -69,12 +75,16 @@ module('Unit | Util | NodeStatsTracker', function() {
 
   test('poll results in requesting the url and calling append with the resulting JSON', async function(assert) {
     const node = MockNode();
-    const tracker = NodeStatsTracker.create({ fetch, node, append: sinon.spy() });
+    const tracker = NodeStatsTracker.create({
+      fetch,
+      node,
+      append: sinon.spy()
+    });
     const mockFrame = {
       Some: {
         data: ['goes', 'here'],
-        twelve: 12,
-      },
+        twelve: 12
+      }
     };
 
     const server = new Pretender(function() {
@@ -116,7 +126,13 @@ module('Unit | Util | NodeStatsTracker', function() {
 
     assert.deepEqual(
       tracker.get('memory'),
-      [{ timestamp: makeDate(refDate + 1), used: 2049 * 1024 * 1024, percent: 2049 / 4096 }],
+      [
+        {
+          timestamp: makeDate(refDate + 1),
+          used: 2049 * 1024 * 1024,
+          percent: 2049 / 4096
+        }
+      ],
       'One frame of memory'
     );
 
@@ -126,7 +142,7 @@ module('Unit | Util | NodeStatsTracker', function() {
       tracker.get('cpu'),
       [
         { timestamp: makeDate(refDate + 1), used: 1001, percent: 1001 / 2000 },
-        { timestamp: makeDate(refDate + 2), used: 1002, percent: 1002 / 2000 },
+        { timestamp: makeDate(refDate + 2), used: 1002, percent: 1002 / 2000 }
       ],
       'Two frames of cpu'
     );
@@ -134,8 +150,16 @@ module('Unit | Util | NodeStatsTracker', function() {
     assert.deepEqual(
       tracker.get('memory'),
       [
-        { timestamp: makeDate(refDate + 1), used: 2049 * 1024 * 1024, percent: 2049 / 4096 },
-        { timestamp: makeDate(refDate + 2), used: 2050 * 1024 * 1024, percent: 2050 / 4096 },
+        {
+          timestamp: makeDate(refDate + 1),
+          used: 2049 * 1024 * 1024,
+          percent: 2049 / 4096
+        },
+        {
+          timestamp: makeDate(refDate + 2),
+          used: 2050 * 1024 * 1024,
+          percent: 2050 / 4096
+        }
       ],
       'Two frames of memory'
     );
@@ -180,10 +204,10 @@ module('Unit | Util | NodeStatsTracker', function() {
     const SomeClass = EmberObject.extend({
       stats: stats('theNode', function() {
         return () => fetchSpy(this);
-      }),
+      })
     });
     const someObject = SomeClass.create({
-      theNode: node,
+      theNode: node
     });
 
     assert.equal(
@@ -204,11 +228,11 @@ module('Unit | Util | NodeStatsTracker', function() {
     const node1 = MockNode();
     const node2 = MockNode();
     const SomeClass = EmberObject.extend({
-      stats: stats('theNode', () => fetch),
+      stats: stats('theNode', () => fetch)
     });
 
     const someObject = SomeClass.create({
-      theNode: node1,
+      theNode: node1
     });
 
     const stats1 = someObject.get('stats');
@@ -216,8 +240,9 @@ module('Unit | Util | NodeStatsTracker', function() {
     someObject.set('theNode', node2);
     const stats2 = someObject.get('stats');
 
-    assert.notOk(
-      stats1 === stats2,
+    assert.notStrictEqual(
+      stats1,
+      stats2,
       'Changing the value of the node results in creating a new NodeStatsTracker instance'
     );
   });
@@ -233,14 +258,14 @@ module('Unit | Util | NodeStatsTracker', function() {
         {
           timestamp,
           used: frame.CPUTicksConsumed,
-          percent: frame.CPUTicksConsumed / 2000,
+          percent: frame.CPUTicksConsumed / 2000
         },
         {
           timestamp,
           used: frame.Memory.Used,
-          percent: frame.Memory.Used / 1024 / 1024 / 4096,
-        },
+          percent: frame.Memory.Used / 1024 / 1024 / 4096
+        }
       ];
-    },
+    }
   });
 });

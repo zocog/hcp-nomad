@@ -15,7 +15,7 @@ module('Unit | Service | Token', function(hooks) {
   hooks.beforeEach(function() {
     const mockSystem = Service.extend({
       activeRegion: 'region-1',
-      shouldIncludeRegion: true,
+      shouldIncludeRegion: true
     });
 
     this.owner.register('service:system', mockSystem);

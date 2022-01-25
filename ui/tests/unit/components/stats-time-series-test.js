@@ -25,7 +25,7 @@ module('Unit | Component | stats-time-series', function(hooks) {
     { timestamp: ts(6), percent: 0.4 },
     { timestamp: ts(4), percent: 0.5 },
     { timestamp: ts(2), percent: 0.6 },
-    { timestamp: ts(0), percent: 0.6 },
+    { timestamp: ts(0), percent: 0.6 }
   ];
 
   const narrowData = [
@@ -34,20 +34,22 @@ module('Unit | Component | stats-time-series', function(hooks) {
     { timestamp: ts(16, 's'), percent: 0.4 },
     { timestamp: ts(14, 's'), percent: 0.3 },
     { timestamp: ts(12, 's'), percent: 0.9 },
-    { timestamp: ts(10, 's'), percent: 0.3 },
+    { timestamp: ts(10, 's'), percent: 0.3 }
   ];
 
   const unboundedData = [
     { timestamp: ts(20, 's'), percent: -0.5 },
-    { timestamp: ts(18, 's'), percent: 1.5 },
+    { timestamp: ts(18, 's'), percent: 1.5 }
   ];
 
   const nullData = [
     { timestamp: ts(20, 's'), percent: null },
-    { timestamp: ts(18, 's'), percent: null },
+    { timestamp: ts(18, 's'), percent: null }
   ];
 
   test('xFormat is time-formatted for hours, minutes, and seconds', function(assert) {
+    assert.expect(11);
+
     const chart = this.createComponent({ data: wideData });
 
     wideData.forEach(datum => {
@@ -59,10 +61,15 @@ module('Unit | Component | stats-time-series', function(hooks) {
   });
 
   test('yFormat is percent-formatted', function(assert) {
+    assert.expect(11);
+
     const chart = this.createComponent({ data: wideData });
 
     wideData.forEach(datum => {
-      assert.equal(chart.yFormat(datum.percent), d3Format.format('.1~%')(datum.percent));
+      assert.equal(
+        chart.yFormat(datum.percent),
+        d3Format.format('.1~%')(datum.percent)
+      );
     });
   });
 
@@ -92,7 +99,10 @@ module('Unit | Component | stats-time-series', function(hooks) {
     const chart = this.createComponent({ data: wideData });
 
     assert.deepEqual(
-      [Math.min(...wideData.mapBy('percent')), Math.max(...wideData.mapBy('percent'))],
+      [
+        Math.min(...wideData.mapBy('percent')),
+        Math.max(...wideData.mapBy('percent'))
+      ],
       [0.3, 0.9],
       'The bounds of the value prop of the dataset is narrower than 0 - 1'
     );
@@ -133,6 +143,10 @@ module('Unit | Component | stats-time-series', function(hooks) {
   test('when there are only empty frames in the data array, the default y domain is used', function(assert) {
     const chart = this.createComponent({ data: nullData });
 
-    assert.deepEqual(chart.yScale(nullData, 0).domain(), [0, 1], 'The bounds are 0 and 1');
+    assert.deepEqual(
+      chart.yScale(nullData, 0).domain(),
+      [0, 1],
+      'The bounds are 0 and 1'
+    );
   });
 });

@@ -1,11 +1,14 @@
 /* eslint-disable ember/no-test-module-for */
+/* eslint-disable qunit/require-expect */
 import { currentURL } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
 import { setupMirage } from 'ember-cli-mirage/test-support';
 import moment from 'moment';
 import a11yAudit from 'nomad-ui/tests/helpers/a11y-audit';
-import moduleForJob, { moduleForJobWithClientStatus } from 'nomad-ui/tests/helpers/module-for-job';
+import moduleForJob, {
+  moduleForJobWithClientStatus
+} from 'nomad-ui/tests/helpers/module-for-job';
 import JobDetail from 'nomad-ui/tests/pages/jobs/detail';
 
 moduleForJob('Acceptance | job detail (batch)', 'allocations', () =>
@@ -16,26 +19,30 @@ moduleForJob('Acceptance | job detail (system)', 'allocations', () =>
   server.create('job', { type: 'system', shallow: true })
 );
 
-moduleForJobWithClientStatus('Acceptance | job detail with client status (system)', () =>
-  server.create('job', {
-    status: 'running',
-    datacenters: ['dc1'],
-    type: 'system',
-    createAllocations: false,
-  })
+moduleForJobWithClientStatus(
+  'Acceptance | job detail with client status (system)',
+  () =>
+    server.create('job', {
+      status: 'running',
+      datacenters: ['dc1'],
+      type: 'system',
+      createAllocations: false
+    })
 );
 
 moduleForJob('Acceptance | job detail (sysbatch)', 'allocations', () =>
   server.create('job', { type: 'sysbatch', shallow: true })
 );
 
-moduleForJobWithClientStatus('Acceptance | job detail with client status (sysbatch)', () =>
-  server.create('job', {
-    status: 'running',
-    datacenters: ['dc1'],
-    type: 'sysbatch',
-    createAllocations: false,
-  })
+moduleForJobWithClientStatus(
+  'Acceptance | job detail with client status (sysbatch)',
+  () =>
+    server.create('job', {
+      status: 'running',
+      datacenters: ['dc1'],
+      type: 'sysbatch',
+      createAllocations: false
+    })
 );
 
 moduleForJobWithClientStatus(
@@ -47,7 +54,7 @@ moduleForJobWithClientStatus(
       datacenters: ['dc1'],
       type: 'sysbatch',
       namespaceId: namespace.name,
-      createAllocations: false,
+      createAllocations: false
     });
   }
 );
@@ -56,19 +63,22 @@ moduleForJob('Acceptance | job detail (sysbatch child)', 'allocations', () => {
   const parent = server.create('job', 'periodicSysbatch', {
     childrenCount: 1,
     shallow: true,
-    datacenters: ['dc1'],
+    datacenters: ['dc1']
   });
   return server.db.jobs.where({ parentId: parent.id })[0];
 });
 
-moduleForJobWithClientStatus('Acceptance | job detail with client status (sysbatch child)', () => {
-  const parent = server.create('job', 'periodicSysbatch', {
-    childrenCount: 1,
-    shallow: true,
-    datacenters: ['dc1'],
-  });
-  return server.db.jobs.where({ parentId: parent.id })[0];
-});
+moduleForJobWithClientStatus(
+  'Acceptance | job detail with client status (sysbatch child)',
+  () => {
+    const parent = server.create('job', 'periodicSysbatch', {
+      childrenCount: 1,
+      shallow: true,
+      datacenters: ['dc1']
+    });
+    return server.db.jobs.where({ parentId: parent.id })[0];
+  }
+);
 
 moduleForJobWithClientStatus(
   'Acceptance | job detail with client status (sysbatch child with namespace)',
@@ -78,7 +88,7 @@ moduleForJobWithClientStatus(
       childrenCount: 1,
       shallow: true,
       namespaceId: namespace.name,
-      datacenters: ['dc1'],
+      datacenters: ['dc1']
     });
     return server.db.jobs.where({ parentId: parent.id })[0];
   }
@@ -98,9 +108,11 @@ moduleForJob(
       assert.ok(JobDetail.jobsHeader.hasSubmitTime);
       assert.equal(
         JobDetail.jobs[0].submitTime,
-        moment(mostRecentLaunch.submitTime / 1000000).format('MMM DD HH:mm:ss ZZ')
+        moment(mostRecentLaunch.submitTime / 1000000).format(
+          'MMM DD HH:mm:ss ZZ'
+        )
       );
-    },
+    }
   }
 );
 
@@ -111,7 +123,7 @@ moduleForJob(
     const namespace = server.create('namespace', { id: 'test' });
     const parent = server.create('job', 'periodic', {
       shallow: true,
-      namespaceId: namespace.name,
+      namespaceId: namespace.name
     });
     return parent;
   },
@@ -119,7 +131,7 @@ moduleForJob(
     'display namespace in children table': async function(job, assert) {
       assert.ok(JobDetail.jobsHeader.hasNamespace);
       assert.equal(JobDetail.jobs[0].namespace, job.namespace);
-    },
+    }
   }
 );
 
@@ -137,9 +149,11 @@ moduleForJob(
       assert.ok(JobDetail.jobsHeader.hasSubmitTime);
       assert.equal(
         JobDetail.jobs[0].submitTime,
-        moment(mostRecentLaunch.submitTime / 1000000).format('MMM DD HH:mm:ss ZZ')
+        moment(mostRecentLaunch.submitTime / 1000000).format(
+          'MMM DD HH:mm:ss ZZ'
+        )
       );
-    },
+    }
   }
 );
 
@@ -150,7 +164,7 @@ moduleForJob(
     const namespace = server.create('namespace', { id: 'test' });
     const parent = server.create('job', 'parameterized', {
       shallow: true,
-      namespaceId: namespace.name,
+      namespaceId: namespace.name
     });
     return parent;
   },
@@ -158,19 +172,29 @@ moduleForJob(
     'display namespace in children table': async function(job, assert) {
       assert.ok(JobDetail.jobsHeader.hasNamespace);
       assert.equal(JobDetail.jobs[0].namespace, job.namespace);
-    },
+    }
   }
 );
 
 moduleForJob('Acceptance | job detail (periodic child)', 'allocations', () => {
-  const parent = server.create('job', 'periodic', { childrenCount: 1, shallow: true });
+  const parent = server.create('job', 'periodic', {
+    childrenCount: 1,
+    shallow: true
+  });
   return server.db.jobs.where({ parentId: parent.id })[0];
 });
 
-moduleForJob('Acceptance | job detail (parameterized child)', 'allocations', () => {
-  const parent = server.create('job', 'parameterized', { childrenCount: 1, shallow: true });
-  return server.db.jobs.where({ parentId: parent.id })[0];
-});
+moduleForJob(
+  'Acceptance | job detail (parameterized child)',
+  'allocations',
+  () => {
+    const parent = server.create('job', 'parameterized', {
+      childrenCount: 1,
+      shallow: true
+    });
+    return server.db.jobs.where({ parentId: parent.id })[0];
+  }
+);
 
 moduleForJob(
   'Acceptance | job detail (service)',
@@ -196,8 +220,12 @@ moduleForJob(
       );
       assert.equal(currentURL(), '/jobs/not-a-real-job', 'The URL persists');
       assert.ok(JobDetail.error.isPresent, 'Error message is shown');
-      assert.equal(JobDetail.error.title, 'Not Found', 'Error message is for 404');
-    },
+      assert.equal(
+        JobDetail.error.title,
+        'Not Found',
+        'Error message is for 404'
+      );
+    }
   }
 );
 
@@ -213,10 +241,10 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
     job = server.create('job', {
       type: 'service',
       status: 'running',
-      namespaceId: server.db.namespaces[1].name,
+      namespaceId: server.db.namespaces[1].name
     });
     server.createList('job', 3, {
-      namespaceId: server.db.namespaces[0].name,
+      namespaceId: server.db.namespaces[0].name
     });
 
     managementToken = server.create('token');
@@ -233,17 +261,20 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
     const namespace = server.db.namespaces.find(job.namespaceId);
     await JobDetail.visit({ id: job.id, namespace: namespace.name });
 
-    assert.ok(JobDetail.statFor('namespace').text, 'Namespace included in stats');
+    assert.ok(
+      JobDetail.statFor('namespace').text,
+      'Namespace included in stats'
+    );
   });
 
   test('the exec button state can change between namespaces', async function(assert) {
     const job1 = server.create('job', {
       status: 'running',
-      namespaceId: server.db.namespaces[0].id,
+      namespaceId: server.db.namespaces[0].id
     });
     const job2 = server.create('job', {
       status: 'running',
-      namespaceId: server.db.namespaces[1].id,
+      namespaceId: server.db.namespaces[1].id
     });
 
     window.localStorage.nomadTokenSecret = clientToken.secretId;
@@ -255,14 +286,14 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
         Namespaces: [
           {
             Name: job1.namespaceId,
-            Capabilities: ['list-jobs', 'alloc-exec'],
+            Capabilities: ['list-jobs', 'alloc-exec']
           },
           {
             Name: job2.namespaceId,
-            Capabilities: ['list-jobs'],
-          },
-        ],
-      },
+            Capabilities: ['list-jobs']
+          }
+        ]
+      }
     });
 
     clientToken.policyIds = [policy.id];
@@ -286,13 +317,16 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
         Namespaces: [
           {
             Name: 'default',
-            Capabilities: ['list-jobs', 'alloc-exec'],
-          },
-        ],
-      },
+            Capabilities: ['list-jobs', 'alloc-exec']
+          }
+        ]
+      }
     });
 
-    await JobDetail.visit({ id: job.id, namespace: server.db.namespaces[1].name });
+    await JobDetail.visit({
+      id: job.id,
+      namespace: server.db.namespaces[1].name
+    });
     assert.notOk(JobDetail.execButton.isDisabled);
   });
 
@@ -301,14 +335,20 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
       status: 'running',
       namespaceId: server.db.namespaces[1].id,
       meta: {
-        'a.b': 'c',
-      },
+        'a.b': 'c'
+      }
     });
 
-    await JobDetail.visit({ id: job.id, namespace: server.db.namespaces[1].name });
+    await JobDetail.visit({
+      id: job.id,
+      namespace: server.db.namespaces[1].name
+    });
     assert.notOk(JobDetail.metaTable, 'Meta table not present');
 
-    await JobDetail.visit({ id: jobWithMeta.id, namespace: server.db.namespaces[1].name });
+    await JobDetail.visit({
+      id: jobWithMeta.id,
+      namespace: server.db.namespaces[1].name
+    });
     assert.ok(JobDetail.metaTable, 'Meta table is present');
   });
 
@@ -319,8 +359,8 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
       namespaceId: namespace,
       meta: {
         'pack.name': 'my-pack',
-        'pack.version': '1.0.0',
-      },
+        'pack.version': '1.0.0'
+      }
     });
 
     await JobDetail.visit({ id: jobFromPack.id, namespace });
@@ -345,11 +385,14 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
       status: 'running',
       namespaceId: server.db.namespaces[1].name,
       groupsCount: 3,
-      createRecommendations: true,
+      createRecommendations: true
     });
 
     window.localStorage.nomadTokenSecret = managementToken.secretId;
-    await JobDetail.visit({ id: job.id, namespace: server.db.namespaces[1].name });
+    await JobDetail.visit({
+      id: job.id,
+      namespace: server.db.namespaces[1].name
+    });
 
     const groupsWithRecommendations = job.taskGroups.filter(group =>
       group.tasks.models.any(task => task.recommendations.models.length)
@@ -380,7 +423,10 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
 
     await toggle.click();
 
-    assert.equal(recommendation.card.slug.groupName, firstRecommendationGroup.name);
+    assert.equal(
+      recommendation.card.slug.groupName,
+      firstRecommendationGroup.name
+    );
 
     await recommendation.card.acceptButton.click();
 
@@ -394,13 +440,17 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
 
   test('resource recommendations are not fetched when the feature doesn’t exist', async function(assert) {
     window.localStorage.nomadTokenSecret = managementToken.secretId;
-    await JobDetail.visit({ id: job.id, namespace: server.db.namespaces[1].name });
+    await JobDetail.visit({
+      id: job.id,
+      namespace: server.db.namespaces[1].name
+    });
 
     assert.equal(JobDetail.recommendations.length, 0);
 
     assert.equal(
-      server.pretender.handledRequests.filter(request => request.url.includes('recommendations'))
-        .length,
+      server.pretender.handledRequests.filter(request =>
+        request.url.includes('recommendations')
+      ).length,
       0
     );
   });
@@ -410,15 +460,19 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
     const READ_ONLY_NAMESPACE = 'read-only-namespace';
     const clientToken = server.create('token');
 
-    const namespace = server.create('namespace', { id: SCALE_AND_WRITE_NAMESPACE });
-    const secondNamespace = server.create('namespace', { id: READ_ONLY_NAMESPACE });
+    const namespace = server.create('namespace', {
+      id: SCALE_AND_WRITE_NAMESPACE
+    });
+    const secondNamespace = server.create('namespace', {
+      id: READ_ONLY_NAMESPACE
+    });
 
     job = server.create('job', {
       groupCount: 0,
       createAllocations: false,
       shallow: true,
       noActiveDeployment: true,
-      namespaceId: SCALE_AND_WRITE_NAMESPACE,
+      namespaceId: SCALE_AND_WRITE_NAMESPACE
     });
 
     const job2 = server.create('job', {
@@ -426,14 +480,14 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
       createAllocations: false,
       shallow: true,
       noActiveDeployment: true,
-      namespaceId: READ_ONLY_NAMESPACE,
+      namespaceId: READ_ONLY_NAMESPACE
     });
     const scalingGroup2 = server.create('task-group', {
       job: job2,
       name: 'scaling',
       count: 1,
       shallow: true,
-      withScaling: true,
+      withScaling: true
     });
     job2.update({ taskGroupIds: [scalingGroup2.id] });
 
@@ -444,21 +498,21 @@ module('Acceptance | job detail (with namespaces)', function(hooks) {
         Namespaces: [
           {
             Name: SCALE_AND_WRITE_NAMESPACE,
-            Capabilities: ['scale-job', 'submit-job', 'read-job', 'list-jobs'],
+            Capabilities: ['scale-job', 'submit-job', 'read-job', 'list-jobs']
           },
           {
             Name: READ_ONLY_NAMESPACE,
-            Capabilities: ['list-jobs', 'read-job'],
-          },
-        ],
-      },
+            Capabilities: ['list-jobs', 'read-job']
+          }
+        ]
+      }
     });
     const scalingGroup = server.create('task-group', {
       job,
       name: 'scaling',
       count: 1,
       shallow: true,
-      withScaling: true,
+      withScaling: true
     });
     job.update({ taskGroupIds: [scalingGroup.id] });
 

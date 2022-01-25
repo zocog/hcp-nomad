@@ -28,6 +28,8 @@ module('Acceptance | client monitor', function(hooks) {
   });
 
   test('it passes an accessibility audit', async function(assert) {
+    assert.expect(1);
+
     await ClientMonitor.visit({ id: node.id });
     await a11yAudit(assert);
   });
@@ -36,7 +38,10 @@ module('Acceptance | client monitor', function(hooks) {
     await ClientMonitor.visit({ id: node.id });
 
     assert.equal(Layout.breadcrumbFor('clients.index').text, 'Clients');
-    assert.equal(Layout.breadcrumbFor('clients.client').text, `Client ${node.id.split('-')[0]}`);
+    assert.equal(
+      Layout.breadcrumbFor('clients.client').text,
+      `Client ${node.id.split('-')[0]}`
+    );
 
     await Layout.breadcrumbFor('clients.index').visit();
     assert.equal(currentURL(), '/clients');

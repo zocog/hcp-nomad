@@ -1,3 +1,4 @@
+/* eslint-disable qunit/require-expect */
 import { module, skip, test } from 'qunit';
 import { currentURL, settled } from '@ember/test-helpers';
 import { setupApplicationTest } from 'ember-qunit';
@@ -22,14 +23,14 @@ module('Acceptance | exec', function(hooks) {
       groupsCount: 2,
       groupTaskCount: 5,
       createAllocations: false,
-      status: 'running',
+      status: 'running'
     });
 
     this.job.taskGroups.models.forEach(taskGroup => {
       server.create('allocation', {
         jobId: this.job.id,
         taskGroup: taskGroup.name,
-        forceRunningClientStatus: true,
+        forceRunningClientStatus: true
       });
     });
   });
@@ -49,10 +50,14 @@ module('Acceptance | exec', function(hooks) {
     this.job = server.create('job', {
       createAllocations: false,
       namespaceId: namespace.id,
-      status: 'running',
+      status: 'running'
     });
 
-    await Exec.visitJob({ job: this.job.id, namespace: namespace.id, region: 'region-2' });
+    await Exec.visitJob({
+      job: this.job.id,
+      namespace: namespace.id,
+      region: 'region-2'
+    });
 
     assert.equal(document.title, 'Exec - region-2 - Nomad');
 
@@ -104,7 +109,10 @@ module('Acceptance | exec', function(hooks) {
 
   test('a task group with a pending allocation shows a loading spinner', async function(assert) {
     let taskGroup = this.job.taskGroups.models.sortBy('name')[0];
-    this.server.db.allocations.update({ taskGroup: taskGroup.name }, { clientStatus: 'pending' });
+    this.server.db.allocations.update(
+      { taskGroup: taskGroup.name },
+      { clientStatus: 'pending' }
+    );
 
     await Exec.visitJob({ job: this.job.id });
     assert.ok(Exec.taskGroups[0].isLoading);
@@ -112,7 +120,10 @@ module('Acceptance | exec', function(hooks) {
 
   test('a task group with no running task states or pending allocations should not be shown', async function(assert) {
     let taskGroup = this.job.taskGroups.models.sortBy('name')[0];
-    this.server.db.allocations.update({ taskGroup: taskGroup.name }, { clientStatus: 'failed' });
+    this.server.db.allocations.update(
+      { taskGroup: taskGroup.name },
+      { clientStatus: 'failed' }
+    );
 
     await Exec.visitJob({ job: this.job.id });
     assert.notEqual(Exec.taskGroups[0].name, taskGroup.name);
@@ -128,7 +139,10 @@ module('Acceptance | exec', function(hooks) {
     let runningTaskGroup = this.job.taskGroups.models.sortBy('name')[1];
     runningTaskGroup.tasks.models.forEach((task, index) => {
       if (index > 0) {
-        this.server.db.taskStates.update({ name: task.name }, { finishedAt: new Date() });
+        this.server.db.taskStates.update(
+          { name: task.name },
+          { finishedAt: new Date() }
+        );
       }
     });
 
@@ -149,7 +163,10 @@ module('Acceptance | exec', function(hooks) {
     let changingTaskStateName;
     runningTaskGroup.tasks.models.sortBy('name').forEach((task, index) => {
       if (index > 0) {
-        this.server.db.taskStates.update({ name: task.name }, { finishedAt: new Date() });
+        this.server.db.taskStates.update(
+          { name: task.name },
+          { finishedAt: new Date() }
+        );
       }
 
       if (index === 1) {
@@ -167,7 +184,10 @@ module('Acceptance | exec', function(hooks) {
       .lookup('service:store')
       .peekAll('allocation')
       .forEach(allocation => {
-        const changingTaskState = allocation.states.findBy('name', changingTaskStateName);
+        const changingTaskState = allocation.states.findBy(
+          'name',
+          changingTaskStateName
+        );
 
         if (changingTaskState) {
           changingTaskState.set('finishedAt', undefined);
@@ -192,7 +212,7 @@ module('Acceptance | exec', function(hooks) {
     await Exec.visitTask({
       job: this.job.id,
       task_group: taskGroup.name,
-      task_name: task.name,
+      task_name: task.name
     });
 
     assert.ok(Exec.jobDead.isPresent);
@@ -224,7 +244,11 @@ module('Acceptance | exec', function(hooks) {
     assert.ok(Exec.taskGroups[0].chevron.isDown);
 
     let task = taskGroup.tasks.models.sortBy('name')[0];
-    await Exec.visitTask({ job: this.job.id, task_group: taskGroup.name, task_name: task.name });
+    await Exec.visitTask({
+      job: this.job.id,
+      task_group: taskGroup.name,
+      task_name: task.name
+    });
 
     assert.equal(Exec.taskGroups[0].tasks.length, taskGroup.tasks.length);
     assert.ok(Exec.taskGroups[0].chevron.isDown);
@@ -239,13 +263,16 @@ module('Acceptance | exec', function(hooks) {
     let task = taskGroup.tasks.models.sortBy('name')[0];
 
     let taskStates = this.server.db.taskStates.where({
-      name: task.name,
+      name: task.name
     });
     let allocationId = taskStates.find(ts => ts.allocationId).allocationId;
 
     await settled();
 
-    assert.equal(currentURL(), `/exec/${this.job.id}/${taskGroup.name}/${task.name}`);
+    assert.equal(
+      currentURL(),
+      `/exec/${this.job.id}/${taskGroup.name}/${task.name}`
+    );
     assert.ok(Exec.taskGroups[0].tasks[0].isActive);
 
     assert.equal(
@@ -269,7 +296,9 @@ module('Acceptance | exec', function(hooks) {
         .getLine(6)
         .translateToString()
         .trim(),
-      `$ nomad alloc exec -i -t -task ${task.name} ${allocationId.split('-')[0]} /bin/bash`
+      `$ nomad alloc exec -i -t -task ${task.name} ${
+        allocationId.split('-')[0]
+      } /bin/bash`
     );
   });
 
@@ -278,11 +307,14 @@ module('Acceptance | exec', function(hooks) {
     let task = taskGroup.tasks.models.sortBy('name')[0];
     let allocations = this.server.db.allocations.where({
       jobId: this.job.id,
-      taskGroup: taskGroup.name,
+      taskGroup: taskGroup.name
     });
     let allocation = allocations[allocations.length - 1];
 
-    this.server.db.taskStates.update({ name: task.name }, { name: 'spaced name!' });
+    this.server.db.taskStates.update(
+      { name: task.name },
+      { name: 'spaced name!' }
+    );
 
     task.name = 'spaced name!';
     task.save();
@@ -291,7 +323,7 @@ module('Acceptance | exec', function(hooks) {
       job: this.job.id,
       task_group: taskGroup.name,
       task_name: task.name,
-      allocation: allocation.id.split('-')[0],
+      allocation: allocation.id.split('-')[0]
     });
 
     await settled();
@@ -301,7 +333,9 @@ module('Acceptance | exec', function(hooks) {
         .getLine(4)
         .translateToString()
         .trim(),
-      `$ nomad alloc exec -i -t -task spaced\\ name\\! ${allocation.id.split('-')[0]} /bin/bash`
+      `$ nomad alloc exec -i -t -task spaced\\ name\\! ${
+        allocation.id.split('-')[0]
+      } /bin/bash`
     );
   });
 
@@ -317,7 +351,7 @@ module('Acceptance | exec', function(hooks) {
         assert.step('Socket built');
 
         return mockSocket;
-      },
+      }
     });
 
     this.owner.register('service:sockets', mockSockets);
@@ -326,7 +360,7 @@ module('Acceptance | exec', function(hooks) {
     let task = taskGroup.tasks.models.sortBy('name')[0];
     let allocations = this.server.db.allocations.where({
       jobId: this.job.id,
-      taskGroup: taskGroup.name,
+      taskGroup: taskGroup.name
     });
     let allocation = allocations[allocations.length - 1];
 
@@ -334,7 +368,7 @@ module('Acceptance | exec', function(hooks) {
       job: this.job.id,
       task_group: taskGroup.name,
       task_name: task.name,
-      allocation: allocation.id.split('-')[0],
+      allocation: allocation.id.split('-')[0]
     });
 
     await settled();
@@ -346,7 +380,7 @@ module('Acceptance | exec', function(hooks) {
     assert.verifySteps(['Socket built']);
 
     mockSocket.onmessage({
-      data: '{"stdout":{"data":"c2gtMy4yIPCfpbMk"}}',
+      data: '{"stdout":{"data":"c2gtMy4yIPCfpbMk"}}'
     });
 
     await settled();
@@ -365,7 +399,7 @@ module('Acceptance | exec', function(hooks) {
     assert.deepEqual(mockSocket.sent, [
       '{"version":1,"auth_token":""}',
       `{"tty_size":{"width":${window.execTerminal.cols},"height":${window.execTerminal.rows}}}`,
-      '{"stdin":{"data":"DQ=="}}',
+      '{"stdin":{"data":"DQ=="}}'
     ]);
 
     await mockSocket.onclose();
@@ -388,7 +422,7 @@ module('Acceptance | exec', function(hooks) {
     let mockSockets = Service.extend({
       getTaskStateSocket() {
         return mockSocket;
-      },
+      }
     });
 
     this.owner.register('service:sockets', mockSockets);
@@ -397,7 +431,7 @@ module('Acceptance | exec', function(hooks) {
     let task = taskGroup.tasks.models[0];
     let allocations = this.server.db.allocations.where({
       jobId: this.job.id,
-      taskGroup: taskGroup.name,
+      taskGroup: taskGroup.name
     });
     let allocation = allocations[allocations.length - 1];
 
@@ -405,7 +439,7 @@ module('Acceptance | exec', function(hooks) {
       job: this.job.id,
       task_group: taskGroup.name,
       task_name: task.name,
-      allocation: allocation.id.split('-')[0],
+      allocation: allocation.id.split('-')[0]
     });
 
     await Exec.terminal.pressEnter();
@@ -415,7 +449,10 @@ module('Acceptance | exec', function(hooks) {
     await Exec.terminal.pressEnter();
     await settled();
 
-    assert.equal(mockSocket.sent[0], `{"version":1,"auth_token":"${secretId}"}`);
+    assert.equal(
+      mockSocket.sent[0],
+      `{"version":1,"auth_token":"${secretId}"}`
+    );
   });
 
   test('only one socket is opened after switching between tasks', async function(assert) {
@@ -423,13 +460,13 @@ module('Acceptance | exec', function(hooks) {
       getTaskStateSocket() {
         assert.step('Socket built');
         return new MockSocket();
-      },
+      }
     });
 
     this.owner.register('service:sockets', mockSockets);
 
     await Exec.visitJob({
-      job: this.job.id,
+      job: this.job.id
     });
 
     await settled();
@@ -454,7 +491,7 @@ module('Acceptance | exec', function(hooks) {
         assert.step('Socket built');
 
         return new MockSocket();
-      },
+      }
     });
 
     this.owner.register('service:sockets', mockSockets);
@@ -467,7 +504,7 @@ module('Acceptance | exec', function(hooks) {
     let task = taskGroup.tasks.models.sortBy('name')[0];
     let allocation = this.server.db.allocations.findBy({
       jobId: this.job.id,
-      taskGroup: taskGroup.name,
+      taskGroup: taskGroup.name
     });
 
     await settled();
@@ -495,7 +532,9 @@ module('Acceptance | exec', function(hooks) {
         .getLine(6)
         .translateToString()
         .trim(),
-      `$ nomad alloc exec -i -t -task ${task.name} ${allocation.id.split('-')[0]}`
+      `$ nomad alloc exec -i -t -task ${task.name} ${
+        allocation.id.split('-')[0]
+      }`
     );
 
     await window.execTerminal.simulateCommandDataEvent('/sh');
@@ -513,7 +552,7 @@ module('Acceptance | exec', function(hooks) {
     let task = taskGroup.tasks.models[0];
     let allocations = this.server.db.allocations.where({
       jobId: this.job.id,
-      taskGroup: taskGroup.name,
+      taskGroup: taskGroup.name
     });
     let allocation = allocations[allocations.length - 1];
 
@@ -521,7 +560,7 @@ module('Acceptance | exec', function(hooks) {
       job: this.job.id,
       task_group: taskGroup.name,
       task_name: task.name,
-      allocation: allocation.id.split('-')[0],
+      allocation: allocation.id.split('-')[0]
     });
 
     await settled();
@@ -531,7 +570,9 @@ module('Acceptance | exec', function(hooks) {
         .getLine(4)
         .translateToString()
         .trim(),
-      `$ nomad alloc exec -i -t -task ${task.name} ${allocation.id.split('-')[0]} /bin/sh`
+      `$ nomad alloc exec -i -t -task ${task.name} ${
+        allocation.id.split('-')[0]
+      } /bin/sh`
     );
   });
 
@@ -542,7 +583,7 @@ module('Acceptance | exec', function(hooks) {
     await Exec.visitTask({
       job: this.job.id,
       task_group: taskGroup.name,
-      task_name: task.name,
+      task_name: task.name
     });
 
     // Approximate allocation failure via polling

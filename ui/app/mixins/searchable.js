@@ -50,23 +50,28 @@ export default Mixin.create({
     }
   },
 
-  fuse: computed('fuzzySearchProps.[]', 'includeFuzzySearchMatches', 'listToSearch.[]', function() {
-    return new Fuse(this.listToSearch, {
-      shouldSort: true,
-      threshold: 0.4,
-      location: 0,
-      distance: 100,
-      tokenize: true,
-      matchAllTokens: true,
-      maxPatternLength: 32,
-      minMatchCharLength: 1,
-      includeMatches: this.includeFuzzySearchMatches,
-      keys: this.fuzzySearchProps || [],
-      getFn(item, key) {
-        return get(item, key);
-      },
-    });
-  }),
+  fuse: computed(
+    'fuzzySearchProps.[]',
+    'includeFuzzySearchMatches',
+    'listToSearch.[]',
+    function() {
+      return new Fuse(this.listToSearch, {
+        shouldSort: true,
+        threshold: 0.4,
+        location: 0,
+        distance: 100,
+        tokenize: true,
+        matchAllTokens: true,
+        maxPatternLength: 32,
+        minMatchCharLength: 1,
+        includeMatches: this.includeFuzzySearchMatches,
+        keys: this.fuzzySearchProps || [],
+        getFn(item, key) {
+          return get(item, key);
+        }
+      });
+    }
+  ),
 
   listSearched: computed(
     'exactMatchEnabled',
@@ -90,7 +95,11 @@ export default Mixin.create({
 
       if (this.exactMatchEnabled) {
         results.push(
-          ...exactMatchSearch(searchTerm, this.listToSearch, this.exactMatchSearchProps)
+          ...exactMatchSearch(
+            searchTerm,
+            this.listToSearch,
+            this.exactMatchSearchProps
+          )
         );
       }
 
@@ -109,12 +118,14 @@ export default Mixin.create({
       }
 
       if (this.regexEnabled) {
-        results.push(...regexSearch(searchTerm, this.listToSearch, this.regexSearchProps));
+        results.push(
+          ...regexSearch(searchTerm, this.listToSearch, this.regexSearchProps)
+        );
       }
 
       return results.uniq();
     }
-  ),
+  )
 });
 
 function exactMatchSearch(term, list, keys) {

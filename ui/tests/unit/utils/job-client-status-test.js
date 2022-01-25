@@ -46,7 +46,7 @@ class AllocationMock {
     return {
       id() {
         return self.node.id;
-      },
+      }
     };
   }
 }
@@ -59,11 +59,11 @@ module('Unit | Util | JobClientStatus', function() {
       datacenters: ['dc1'],
       status: 'running',
       allocations: [new AllocationMock(node, 'running')],
-      taskGroups: [{}],
+      taskGroups: [{}]
     };
     const expected = {
       byNode: {
-        'node-1': 'running',
+        'node-1': 'running'
       },
       byStatus: {
         running: ['node-1'],
@@ -73,9 +73,9 @@ module('Unit | Util | JobClientStatus', function() {
         lost: [],
         notScheduled: [],
         queued: [],
-        starting: [],
+        starting: []
       },
-      totalNodes: 1,
+      totalNodes: 1
     };
 
     const mock = new JobClientStatusMock(job, nodes);
@@ -93,13 +93,13 @@ module('Unit | Util | JobClientStatus', function() {
       allocations: [
         new AllocationMock(node, 'running'),
         new AllocationMock(node, 'failed'),
-        new AllocationMock(node, 'running'),
+        new AllocationMock(node, 'running')
       ],
-      taskGroups: [{}, {}, {}],
+      taskGroups: [{}, {}, {}]
     };
     const expected = {
       byNode: {
-        'node-2': 'degraded',
+        'node-2': 'degraded'
       },
       byStatus: {
         running: [],
@@ -109,9 +109,9 @@ module('Unit | Util | JobClientStatus', function() {
         lost: [],
         notScheduled: [],
         queued: [],
-        starting: [],
+        starting: []
       },
-      totalNodes: 1,
+      totalNodes: 1
     };
 
     const mock = new JobClientStatusMock(job, nodes);
@@ -129,13 +129,13 @@ module('Unit | Util | JobClientStatus', function() {
       allocations: [
         new AllocationMock(node, 'lost'),
         new AllocationMock(node, 'lost'),
-        new AllocationMock(node, 'lost'),
+        new AllocationMock(node, 'lost')
       ],
-      taskGroups: [{}, {}, {}],
+      taskGroups: [{}, {}, {}]
     };
     const expected = {
       byNode: {
-        'node-1': 'lost',
+        'node-1': 'lost'
       },
       byStatus: {
         running: [],
@@ -145,9 +145,9 @@ module('Unit | Util | JobClientStatus', function() {
         lost: ['node-1'],
         notScheduled: [],
         queued: [],
-        starting: [],
+        starting: []
       },
-      totalNodes: 1,
+      totalNodes: 1
     };
 
     const mock = new JobClientStatusMock(job, nodes);
@@ -165,13 +165,13 @@ module('Unit | Util | JobClientStatus', function() {
       allocations: [
         new AllocationMock(node, 'failed'),
         new AllocationMock(node, 'failed'),
-        new AllocationMock(node, 'failed'),
+        new AllocationMock(node, 'failed')
       ],
-      taskGroups: [{}, {}, {}],
+      taskGroups: [{}, {}, {}]
     };
     const expected = {
       byNode: {
-        'node-1': 'failed',
+        'node-1': 'failed'
       },
       byStatus: {
         running: [],
@@ -181,9 +181,9 @@ module('Unit | Util | JobClientStatus', function() {
         lost: [],
         notScheduled: [],
         queued: [],
-        starting: [],
+        starting: []
       },
-      totalNodes: 1,
+      totalNodes: 1
     };
 
     const mock = new JobClientStatusMock(job, nodes);
@@ -201,13 +201,13 @@ module('Unit | Util | JobClientStatus', function() {
       allocations: [
         new AllocationMock(node, 'running'),
         new AllocationMock(node, 'running'),
-        new AllocationMock(node, 'running'),
+        new AllocationMock(node, 'running')
       ],
-      taskGroups: [{}, {}, {}, {}],
+      taskGroups: [{}, {}, {}, {}]
     };
     const expected = {
       byNode: {
-        'node-1': 'degraded',
+        'node-1': 'degraded'
       },
       byStatus: {
         running: [],
@@ -217,9 +217,9 @@ module('Unit | Util | JobClientStatus', function() {
         lost: [],
         notScheduled: [],
         queued: [],
-        starting: [],
+        starting: []
       },
-      totalNodes: 1,
+      totalNodes: 1
     };
 
     const mock = new JobClientStatusMock(job, nodes);
@@ -235,11 +235,11 @@ module('Unit | Util | JobClientStatus', function() {
       datacenters: ['dc1'],
       status: 'running',
       allocations: [],
-      taskGroups: [],
+      taskGroups: []
     };
     const expected = {
       byNode: {
-        'node-1': 'notScheduled',
+        'node-1': 'notScheduled'
       },
       byStatus: {
         running: [],
@@ -249,9 +249,9 @@ module('Unit | Util | JobClientStatus', function() {
         lost: [],
         notScheduled: ['node-1'],
         queued: [],
-        starting: [],
+        starting: []
       },
-      totalNodes: 1,
+      totalNodes: 1
     };
 
     const mock = new JobClientStatusMock(job, nodes);
@@ -269,13 +269,13 @@ module('Unit | Util | JobClientStatus', function() {
       allocations: [
         new AllocationMock(node, 'starting'),
         new AllocationMock(node, 'starting'),
-        new AllocationMock(node, 'starting'),
+        new AllocationMock(node, 'starting')
       ],
-      taskGroups: [{}, {}, {}, {}],
+      taskGroups: [{}, {}, {}, {}]
     };
     const expected = {
       byNode: {
-        'node-1': 'queued',
+        'node-1': 'queued'
       },
       byStatus: {
         running: [],
@@ -285,9 +285,9 @@ module('Unit | Util | JobClientStatus', function() {
         lost: [],
         notScheduled: [],
         queued: ['node-1'],
-        starting: [],
+        starting: []
       },
-      totalNodes: 1,
+      totalNodes: 1
     };
 
     const mock = new JobClientStatusMock(job, nodes);
@@ -306,13 +306,13 @@ module('Unit | Util | JobClientStatus', function() {
       allocations: [
         new AllocationMock(node1, 'running'),
         new AllocationMock(node2, 'failed'),
-        new AllocationMock(node1, 'running'),
+        new AllocationMock(node1, 'running')
       ],
-      taskGroups: [{}, {}],
+      taskGroups: [{}, {}]
     };
     const expected = {
       byNode: {
-        'node-1': 'running',
+        'node-1': 'running'
       },
       byStatus: {
         running: ['node-1'],
@@ -322,9 +322,9 @@ module('Unit | Util | JobClientStatus', function() {
         lost: [],
         notScheduled: [],
         queued: [],
-        starting: [],
+        starting: []
       },
-      totalNodes: 1,
+      totalNodes: 1
     };
 
     const mock = new JobClientStatusMock(job, nodes);

@@ -49,11 +49,11 @@ module('Integration | Component | job-editor', function(hooks) {
               Tasks: [
                 {
                   Name: 'redis',
-                  Driver: 'docker',
-                },
-              ],
-            },
-          ],
+                  Driver: 'docker'
+                }
+              ]
+            }
+          ]
         },
         overrides
       ),
@@ -95,7 +95,12 @@ module('Integration | Component | job-editor', function(hooks) {
   };
 
   const renderEditJob = async (component, job) => {
-    component.setProperties({ job, onSubmit: sinon.spy(), onCancel: sinon.spy(), context: 'edit' });
+    component.setProperties({
+      job,
+      onSubmit: sinon.spy(),
+      onCancel: sinon.spy(),
+      context: 'edit'
+    });
     await component.render(cancelableTemplate);
   };
 
@@ -105,10 +110,15 @@ module('Integration | Component | job-editor', function(hooks) {
   };
 
   test('the default state is an editor with an explanation popup', async function(assert) {
+    assert.expect(3);
+
     const job = await this.store.createRecord('job');
 
     await renderNewJob(this, job);
-    assert.ok(Editor.editorHelp.isPresent, 'Editor explanation popup is present');
+    assert.ok(
+      Editor.editorHelp.isPresent,
+      'Editor explanation popup is present'
+    );
     assert.ok(Editor.editor.isPresent, 'Editor is present');
 
     await componentA11yAudit(this.element, assert);
@@ -119,7 +129,10 @@ module('Integration | Component | job-editor', function(hooks) {
 
     await renderNewJob(this, job);
     await Editor.editorHelp.dismiss();
-    assert.notOk(Editor.editorHelp.isPresent, 'Editor explanation popup is gone');
+    assert.notOk(
+      Editor.editorHelp.isPresent,
+      'Editor explanation popup is gone'
+    );
     assert.equal(
       window.localStorage.nomadMessageJobEditor,
       'false',
@@ -133,7 +146,10 @@ module('Integration | Component | job-editor', function(hooks) {
     const job = await this.store.createRecord('job');
 
     await renderNewJob(this, job);
-    assert.notOk(Editor.editorHelp.isPresent, 'Editor explanation popup is gone');
+    assert.notOk(
+      Editor.editorHelp.isPresent,
+      'Editor explanation popup is gone'
+    );
   });
 
   test('submitting a json job skips the parse endpoint', async function(assert) {
@@ -143,8 +159,14 @@ module('Integration | Component | job-editor', function(hooks) {
     await renderNewJob(this, job);
     await planJob(spec);
     const requests = this.server.pretender.handledRequests.mapBy('url');
-    assert.notOk(requests.includes('/v1/jobs/parse'), 'JSON job spec is not parsed');
-    assert.ok(requests.includes(`/v1/job/${newJobName}/plan`), 'JSON job spec is still planned');
+    assert.notOk(
+      requests.includes('/v1/jobs/parse'),
+      'JSON job spec is not parsed'
+    );
+    assert.ok(
+      requests.includes(`/v1/job/${newJobName}/plan`),
+      'JSON job spec is still planned'
+    );
   });
 
   test('submitting an hcl job requires the parse endpoint', async function(assert) {
@@ -154,22 +176,34 @@ module('Integration | Component | job-editor', function(hooks) {
     await renderNewJob(this, job);
     await planJob(spec);
     const requests = this.server.pretender.handledRequests.mapBy('url');
-    assert.ok(requests.includes('/v1/jobs/parse'), 'HCL job spec is parsed first');
-    assert.ok(requests.includes(`/v1/job/${newJobName}/plan`), 'HCL job spec is planned');
     assert.ok(
-      requests.indexOf('/v1/jobs/parse') < requests.indexOf(`/v1/job/${newJobName}/plan`),
+      requests.includes('/v1/jobs/parse'),
+      'HCL job spec is parsed first'
+    );
+    assert.ok(
+      requests.includes(`/v1/job/${newJobName}/plan`),
+      'HCL job spec is planned'
+    );
+    assert.ok(
+      requests.indexOf('/v1/jobs/parse') <
+        requests.indexOf(`/v1/job/${newJobName}/plan`),
       'Parse comes before Plan'
     );
   });
 
   test('when a job is successfully parsed and planned, the plan is shown to the user', async function(assert) {
+    assert.expect(4);
+
     const spec = hclJob();
     const job = await this.store.createRecord('job');
 
     await renderNewJob(this, job);
     await planJob(spec);
     assert.ok(Editor.planOutput, 'The plan is outputted');
-    assert.notOk(Editor.editor.isPresent, 'The editor is replaced with the plan output');
+    assert.notOk(
+      Editor.editor.isPresent,
+      'The editor is replaced with the plan output'
+    );
     assert.ok(Editor.planHelp.isPresent, 'The plan explanation popup is shown');
 
     await componentA11yAudit(this.element, assert);
@@ -183,10 +217,16 @@ module('Integration | Component | job-editor', function(hooks) {
     await planJob(spec);
     await Editor.cancel();
     assert.ok(Editor.editor.isPresent, 'The editor is shown again');
-    assert.equal(Editor.editor.contents, spec, 'The spec that was planned is still in the editor');
+    assert.equal(
+      Editor.editor.contents,
+      spec,
+      'The spec that was planned is still in the editor'
+    );
   });
 
   test('when parse fails, the parse error message is shown', async function(assert) {
+    assert.expect(5);
+
     const spec = hclJob();
     const errorMessage = 'Parse Failed!! :o';
     const job = await this.store.createRecord('job');
@@ -209,11 +249,17 @@ module('Integration | Component | job-editor', function(hooks) {
   });
 
   test('when plan fails, the plan error message is shown', async function(assert) {
+    assert.expect(5);
+
     const spec = hclJob();
     const errorMessage = 'Plan Failed!! :o';
     const job = await this.store.createRecord('job');
 
-    this.server.pretender.post(`/v1/job/${newJobName}/plan`, () => [400, {}, errorMessage]);
+    this.server.pretender.post(`/v1/job/${newJobName}/plan`, () => [
+      400,
+      {},
+      errorMessage
+    ]);
 
     await renderNewJob(this, job);
     await planJob(spec);
@@ -231,6 +277,8 @@ module('Integration | Component | job-editor', function(hooks) {
   });
 
   test('when run fails, the run error message is shown', async function(assert) {
+    assert.expect(5);
+
     const spec = hclJob();
     const errorMessage = 'Run Failed!! :o';
     const job = await this.store.createRecord('job');
@@ -254,6 +302,8 @@ module('Integration | Component | job-editor', function(hooks) {
   });
 
   test('when the scheduler dry-run has warnings, the warnings are shown to the user', async function(assert) {
+    assert.expect(4);
+
     const spec = jsonJob({ Unschedulable: true });
     const job = await this.store.createRecord('job');
 
@@ -276,6 +326,8 @@ module('Integration | Component | job-editor', function(hooks) {
   });
 
   test('when the scheduler dry-run has no warnings, a success message is shown to the user', async function(assert) {
+    assert.expect(3);
+
     const spec = hclJob();
     const job = await this.store.createRecord('job');
 
@@ -300,9 +352,17 @@ module('Integration | Component | job-editor', function(hooks) {
     await renderEditJob(this, job);
     await planJob(spec);
     await Editor.run();
-    const requests = this.server.pretender.handledRequests.filterBy('method', 'POST').mapBy('url');
-    assert.ok(requests.includes(`/v1/job/${newJobName}`), 'A request was made to job update');
-    assert.notOk(requests.includes('/v1/jobs'), 'A request was not made to job create');
+    const requests = this.server.pretender.handledRequests
+      .filterBy('method', 'POST')
+      .mapBy('url');
+    assert.ok(
+      requests.includes(`/v1/job/${newJobName}`),
+      'A request was made to job update'
+    );
+    assert.notOk(
+      requests.includes('/v1/jobs'),
+      'A request was not made to job create'
+    );
   });
 
   test('when a job is submitted in the new context, a POST request is made to the create job endpoint', async function(assert) {
@@ -312,8 +372,13 @@ module('Integration | Component | job-editor', function(hooks) {
     await renderNewJob(this, job);
     await planJob(spec);
     await Editor.run();
-    const requests = this.server.pretender.handledRequests.filterBy('method', 'POST').mapBy('url');
-    assert.ok(requests.includes('/v1/jobs'), 'A request was made to job create');
+    const requests = this.server.pretender.handledRequests
+      .filterBy('method', 'POST')
+      .mapBy('url');
+    assert.ok(
+      requests.includes('/v1/jobs'),
+      'A request was made to job create'
+    );
     assert.notOk(
       requests.includes(`/v1/job/${newJobName}`),
       'A request was not made to job update'
@@ -341,6 +406,8 @@ module('Integration | Component | job-editor', function(hooks) {
   });
 
   test('when the job-editor cancelable flag is true, there is a cancel button in the header', async function(assert) {
+    assert.expect(2);
+
     const job = await this.store.createRecord('job');
 
     await renderEditJob(this, job);

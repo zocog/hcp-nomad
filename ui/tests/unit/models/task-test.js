@@ -7,6 +7,8 @@ module('Unit | Model | task', function(hooks) {
   setupTest(hooks);
 
   test("should expose mergedMeta as merged with the job's and task groups's meta", function(assert) {
+    assert.expect(8);
+
     const job = run(() =>
       this.owner.lookup('service:store').createRecord('job', {
         name: 'example',
@@ -17,42 +19,42 @@ module('Unit | Model | task', function(hooks) {
             tasks: [
               {
                 name: 'task-one',
-                meta: { c: 'd' },
+                meta: { c: 'd' }
               },
               {
-                name: 'task-two',
+                name: 'task-two'
               },
               {
                 name: 'task-three',
-                meta: null,
+                meta: null
               },
               {
                 name: 'task-four',
-                meta: {},
-              },
-            ],
+                meta: {}
+              }
+            ]
           },
           {
             name: 'two',
             tasks: [
               {
                 name: 'task-one',
-                meta: { c: 'd' },
+                meta: { c: 'd' }
               },
               {
-                name: 'task-two',
+                name: 'task-two'
               },
               {
                 name: 'task-three',
-                meta: null,
+                meta: null
               },
               {
                 name: 'task-four',
-                meta: {},
-              },
-            ],
-          },
-        ],
+                meta: {}
+              }
+            ]
+          }
+        ]
       })
     );
 

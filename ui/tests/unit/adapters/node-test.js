@@ -46,7 +46,9 @@ module('Unit | Adapter | Node', function(hooks) {
     server.db.allocations.remove('node-1-1');
 
     allocations = await run(() => findHasMany(node, 'allocations'));
-    const dbAllocations = this.server.db.allocations.where({ nodeId: node.get('id') });
+    const dbAllocations = this.server.db.allocations.where({
+      nodeId: node.get('id')
+    });
     assert.equal(
       allocations.get('length'),
       dbAllocations.length,
@@ -98,21 +100,22 @@ module('Unit | Adapter | Node', function(hooks) {
       id: 'node-1',
       region: null,
       eligibility: 'POST /v1/node/node-1/eligibility',
-      drain: 'POST /v1/node/node-1/drain',
+      drain: 'POST /v1/node/node-1/drain'
     },
     {
       variation: 'with non-default region',
       id: 'node-1',
       region: 'region-2',
       eligibility: 'POST /v1/node/node-1/eligibility?region=region-2',
-      drain: 'POST /v1/node/node-1/drain?region=region-2',
-    },
+      drain: 'POST /v1/node/node-1/drain?region=region-2'
+    }
   ];
 
   testCases.forEach(testCase => {
     test(`setEligible makes the correct POST request to /:node_id/eligibility ${testCase.variation}`, async function(assert) {
       const { pretender } = this.server;
-      if (testCase.region) window.localStorage.nomadActiveRegion = testCase.region;
+      if (testCase.region)
+        window.localStorage.nomadActiveRegion = testCase.region;
 
       const node = await run(() => this.store.findRecord('node', testCase.id));
       await this.subject().setEligible(node);
@@ -121,13 +124,14 @@ module('Unit | Adapter | Node', function(hooks) {
       assert.equal(`${request.method} ${request.url}`, testCase.eligibility);
       assert.deepEqual(JSON.parse(request.requestBody), {
         NodeID: node.id,
-        Eligibility: 'eligible',
+        Eligibility: 'eligible'
       });
     });
 
     test(`setIneligible makes the correct POST request to /:node_id/eligibility ${testCase.variation}`, async function(assert) {
       const { pretender } = this.server;
-      if (testCase.region) window.localStorage.nomadActiveRegion = testCase.region;
+      if (testCase.region)
+        window.localStorage.nomadActiveRegion = testCase.region;
 
       const node = await run(() => this.store.findRecord('node', testCase.id));
       await this.subject().setIneligible(node);
@@ -136,13 +140,14 @@ module('Unit | Adapter | Node', function(hooks) {
       assert.equal(`${request.method} ${request.url}`, testCase.eligibility);
       assert.deepEqual(JSON.parse(request.requestBody), {
         NodeID: node.id,
-        Eligibility: 'ineligible',
+        Eligibility: 'ineligible'
       });
     });
 
     test(`drain makes the correct POST request to /:node_id/drain with appropriate defaults ${testCase.variation}`, async function(assert) {
       const { pretender } = this.server;
-      if (testCase.region) window.localStorage.nomadActiveRegion = testCase.region;
+      if (testCase.region)
+        window.localStorage.nomadActiveRegion = testCase.region;
 
       const node = await run(() => this.store.findRecord('node', testCase.id));
       await this.subject().drain(node);
@@ -153,14 +158,15 @@ module('Unit | Adapter | Node', function(hooks) {
         NodeID: node.id,
         DrainSpec: {
           Deadline: 0,
-          IgnoreSystemJobs: true,
-        },
+          IgnoreSystemJobs: true
+        }
       });
     });
 
     test(`drain makes the correct POST request to /:node_id/drain with the provided drain spec ${testCase.variation}`, async function(assert) {
       const { pretender } = this.server;
-      if (testCase.region) window.localStorage.nomadActiveRegion = testCase.region;
+      if (testCase.region)
+        window.localStorage.nomadActiveRegion = testCase.region;
 
       const node = await run(() => this.store.findRecord('node', testCase.id));
 
@@ -173,14 +179,15 @@ module('Unit | Adapter | Node', function(hooks) {
         NodeID: node.id,
         DrainSpec: {
           Deadline: spec.Deadline,
-          IgnoreSystemJobs: spec.IgnoreSystemJobs,
-        },
+          IgnoreSystemJobs: spec.IgnoreSystemJobs
+        }
       });
     });
 
     test(`forceDrain makes the correct POST request to /:node_id/drain with appropriate defaults ${testCase.variation}`, async function(assert) {
       const { pretender } = this.server;
-      if (testCase.region) window.localStorage.nomadActiveRegion = testCase.region;
+      if (testCase.region)
+        window.localStorage.nomadActiveRegion = testCase.region;
 
       const node = await run(() => this.store.findRecord('node', testCase.id));
 
@@ -192,14 +199,15 @@ module('Unit | Adapter | Node', function(hooks) {
         NodeID: node.id,
         DrainSpec: {
           Deadline: -1,
-          IgnoreSystemJobs: true,
-        },
+          IgnoreSystemJobs: true
+        }
       });
     });
 
     test(`forceDrain makes the correct POST request to /:node_id/drain with the provided drain spec ${testCase.variation}`, async function(assert) {
       const { pretender } = this.server;
-      if (testCase.region) window.localStorage.nomadActiveRegion = testCase.region;
+      if (testCase.region)
+        window.localStorage.nomadActiveRegion = testCase.region;
 
       const node = await run(() => this.store.findRecord('node', testCase.id));
 
@@ -212,14 +220,15 @@ module('Unit | Adapter | Node', function(hooks) {
         NodeID: node.id,
         DrainSpec: {
           Deadline: -1,
-          IgnoreSystemJobs: spec.IgnoreSystemJobs,
-        },
+          IgnoreSystemJobs: spec.IgnoreSystemJobs
+        }
       });
     });
 
     test(`cancelDrain makes the correct POST request to /:node_id/drain ${testCase.variation}`, async function(assert) {
       const { pretender } = this.server;
-      if (testCase.region) window.localStorage.nomadActiveRegion = testCase.region;
+      if (testCase.region)
+        window.localStorage.nomadActiveRegion = testCase.region;
 
       const node = await run(() => this.store.findRecord('node', testCase.id));
 
@@ -229,7 +238,7 @@ module('Unit | Adapter | Node', function(hooks) {
       assert.equal(`${request.method} ${request.url}`, testCase.drain);
       assert.deepEqual(JSON.parse(request.requestBody), {
         NodeID: node.id,
-        DrainSpec: null,
+        DrainSpec: null
       });
     });
   });

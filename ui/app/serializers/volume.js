@@ -3,7 +3,7 @@ import ApplicationSerializer from './application';
 
 export default class VolumeSerializer extends ApplicationSerializer {
   attrs = {
-    externalId: 'ExternalID',
+    externalId: 'ExternalID'
   };
 
   embeddedRelationships = ['writeAllocations', 'readAllocations'];
@@ -44,11 +44,17 @@ export default class VolumeSerializer extends ApplicationSerializer {
     }
 
     const normalizedHash = super.normalize(typeHash, hash);
-    return this.extractEmbeddedRecords(this, this.store, typeHash, normalizedHash);
+    return this.extractEmbeddedRecords(
+      this,
+      this.store,
+      typeHash,
+      normalizedHash
+    );
   }
 
   keyForRelationship(attr, relationshipType) {
     //Embedded relationship attributes don't end in IDs
+    /* eslint-disable-next-line ember/no-string-prototype-extensions */
     if (this.embeddedRelationships.includes(attr)) return attr.capitalize();
     return super.keyForRelationship(attr, relationshipType);
   }

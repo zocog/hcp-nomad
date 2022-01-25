@@ -27,7 +27,7 @@ export default class SystemService extends Service {
           // Dirty self so leader can be used as a dependent key
           this.notifyPropertyChange('leader.rpcAddr');
           return leader;
-        }),
+        })
     });
   }
 
@@ -40,13 +40,19 @@ export default class SystemService extends Service {
         .then(jsonWithDefault({}))
         .then(agent => {
           if (agent?.config?.Version) {
-            const { Version, VersionPrerelease, VersionMetadata } = agent.config.Version;
+            const {
+              Version,
+              VersionPrerelease,
+              VersionMetadata
+            } = agent.config.Version;
             agent.version = Version;
-            if (VersionPrerelease) agent.version = `${agent.version}-${VersionPrerelease}`;
-            if (VersionMetadata) agent.version = `${agent.version}+${VersionMetadata}`;
+            if (VersionPrerelease)
+              agent.version = `${agent.version}-${VersionPrerelease}`;
+            if (VersionMetadata)
+              agent.version = `${agent.version}+${VersionMetadata}`;
           }
           return agent;
-        }),
+        })
     });
   }
 
@@ -59,7 +65,7 @@ export default class SystemService extends Service {
         .then(jsonWithDefault({}))
         .then(json => {
           return { region: json.ServerRegion };
-        }),
+        })
     });
   }
 
@@ -68,7 +74,9 @@ export default class SystemService extends Service {
     const token = this.token;
 
     return PromiseArray.create({
-      promise: token.authorizedRawRequest(`/${namespace}/regions`).then(jsonWithDefault([])),
+      promise: token
+        .authorizedRawRequest(`/${namespace}/regions`)
+        .then(jsonWithDefault([]))
     });
   }
 
@@ -103,20 +111,28 @@ export default class SystemService extends Service {
 
   @computed('activeRegion', 'defaultRegion.region', 'shouldShowRegions')
   get shouldIncludeRegion() {
-    return this.shouldShowRegions && this.activeRegion !== this.get('defaultRegion.region');
+    return (
+      this.shouldShowRegions &&
+      this.activeRegion !== this.get('defaultRegion.region')
+    );
   }
 
   @computed('activeRegion')
   get namespaces() {
     return PromiseArray.create({
-      promise: this.store.findAll('namespace').then(namespaces => namespaces.compact()),
+      promise: this.store
+        .findAll('namespace')
+        .then(namespaces => namespaces.compact())
     });
   }
 
   @computed('namespaces.[]')
   get shouldShowNamespaces() {
     const namespaces = this.namespaces.toArray();
-    return namespaces.length && namespaces.some(namespace => namespace.get('id') !== 'default');
+    return (
+      namespaces.length &&
+      namespaces.some(namespace => namespace.get('id') !== 'default')
+    );
   }
 
   // The cachedNamespace is set on pages that have a namespaces filter.
@@ -144,8 +160,8 @@ export default class SystemService extends Service {
         method: 'POST',
         body: JSON.stringify({
           Text: 'feature-detection-query',
-          Context: 'namespaces',
-        }),
+          Context: 'namespaces'
+        })
       });
 
       return request.ok;

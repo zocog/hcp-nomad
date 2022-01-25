@@ -17,13 +17,14 @@ export default class Summary extends Component {
     this.router.transitionTo('jobs.job.allocations', this.job, {
       queryParams: {
         status: JSON.stringify(status),
-        namespace: this.job.get('namespace.name'),
-      },
+        namespace: this.job.get('namespace.name')
+      }
     });
   }
 
   @action
   onSliceClick(ev, slice) {
+    /* eslint-disable-next-line ember/no-string-prototype-extensions */
     this.gotoAllocations([slice.label.camelize()]);
   }
 

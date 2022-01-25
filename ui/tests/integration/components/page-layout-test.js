@@ -17,6 +17,8 @@ module('Integration | Component | page layout', function(hooks) {
   });
 
   test('the global-header hamburger menu opens the gutter menu', async function(assert) {
+    assert.expect(3);
+
     await render(hbs`<PageLayout />`);
 
     assert.notOk(
@@ -25,7 +27,10 @@ module('Integration | Component | page layout', function(hooks) {
     );
     await click('[data-test-header-gutter-toggle]');
 
-    assert.ok(find('[data-test-gutter-menu]').classList.contains('is-open'), 'Gutter menu is open');
+    assert.ok(
+      find('[data-test-gutter-menu]').classList.contains('is-open'),
+      'Gutter menu is open'
+    );
     await componentA11yAudit(this.element, assert);
   });
 
@@ -34,7 +39,10 @@ module('Integration | Component | page layout', function(hooks) {
 
     await click('[data-test-header-gutter-toggle]');
 
-    assert.ok(find('[data-test-gutter-menu]').classList.contains('is-open'), 'Gutter menu is open');
+    assert.ok(
+      find('[data-test-gutter-menu]').classList.contains('is-open'),
+      'Gutter menu is open'
+    );
     await click('[data-test-gutter-gutter-toggle]');
 
     assert.notOk(
@@ -48,7 +56,10 @@ module('Integration | Component | page layout', function(hooks) {
 
     await click('[data-test-header-gutter-toggle]');
 
-    assert.ok(find('[data-test-gutter-menu]').classList.contains('is-open'), 'Gutter menu is open');
+    assert.ok(
+      find('[data-test-gutter-menu]').classList.contains('is-open'),
+      'Gutter menu is open'
+    );
     await click('[data-test-gutter-backdrop]');
 
     assert.notOk(

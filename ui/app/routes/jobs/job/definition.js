@@ -7,7 +7,7 @@ export default class DefinitionRoute extends Route {
 
     return job.fetchRawDefinition().then(definition => ({
       job,
-      definition,
+      definition
     }));
   }
 

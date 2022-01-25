@@ -10,7 +10,7 @@ module('Unit | Ability | allocation', function(hooks) {
 
   test('it permits alloc exec when ACLs are disabled', function(assert) {
     const mockToken = Service.extend({
-      aclEnabled: false,
+      aclEnabled: false
     });
 
     this.owner.register('service:token', mockToken);
@@ -21,7 +21,7 @@ module('Unit | Ability | allocation', function(hooks) {
   test('it permits alloc exec for management tokens', function(assert) {
     const mockToken = Service.extend({
       aclEnabled: true,
-      selfToken: { type: 'management' },
+      selfToken: { type: 'management' }
     });
 
     this.owner.register('service:token', mockToken);
@@ -31,7 +31,7 @@ module('Unit | Ability | allocation', function(hooks) {
 
   test('it permits alloc exec for client tokens with a policy that has namespace alloc-exec', function(assert) {
     const mockSystem = Service.extend({
-      aclEnabled: true,
+      aclEnabled: true
     });
 
     const mockToken = Service.extend({
@@ -43,23 +43,25 @@ module('Unit | Ability | allocation', function(hooks) {
             Namespaces: [
               {
                 Name: 'aNamespace',
-                Capabilities: ['alloc-exec'],
-              },
-            ],
-          },
-        },
-      ],
+                Capabilities: ['alloc-exec']
+              }
+            ]
+          }
+        }
+      ]
     });
 
     this.owner.register('service:system', mockSystem);
     this.owner.register('service:token', mockToken);
 
-    assert.ok(this.can.can('exec allocation', null, { namespace: 'aNamespace' }));
+    assert.ok(
+      this.can.can('exec allocation', null, { namespace: 'aNamespace' })
+    );
   });
 
   test('it permits alloc exec for client tokens with a policy that has default namespace alloc-exec and no capabilities for active namespace', function(assert) {
     const mockSystem = Service.extend({
-      aclEnabled: true,
+      aclEnabled: true
     });
 
     const mockToken = Service.extend({
@@ -71,27 +73,29 @@ module('Unit | Ability | allocation', function(hooks) {
             Namespaces: [
               {
                 Name: 'aNamespace',
-                Capabilities: [],
+                Capabilities: []
               },
               {
                 Name: 'default',
-                Capabilities: ['alloc-exec'],
-              },
-            ],
-          },
-        },
-      ],
+                Capabilities: ['alloc-exec']
+              }
+            ]
+          }
+        }
+      ]
     });
 
     this.owner.register('service:system', mockSystem);
     this.owner.register('service:token', mockToken);
 
-    assert.ok(this.can.can('exec allocation', null, { namespace: 'anotherNamespace' }));
+    assert.ok(
+      this.can.can('exec allocation', null, { namespace: 'anotherNamespace' })
+    );
   });
 
   test('it blocks alloc exec for client tokens with a policy that has no alloc-exec capability', function(assert) {
     const mockSystem = Service.extend({
-      aclEnabled: true,
+      aclEnabled: true
     });
 
     const mockToken = Service.extend({
@@ -103,23 +107,25 @@ module('Unit | Ability | allocation', function(hooks) {
             Namespaces: [
               {
                 Name: 'aNamespace',
-                Capabilities: ['list-jobs'],
-              },
-            ],
-          },
-        },
-      ],
+                Capabilities: ['list-jobs']
+              }
+            ]
+          }
+        }
+      ]
     });
 
     this.owner.register('service:system', mockSystem);
     this.owner.register('service:token', mockToken);
 
-    assert.ok(this.can.cannot('exec allocation', null, { namespace: 'aNamespace' }));
+    assert.ok(
+      this.can.cannot('exec allocation', null, { namespace: 'aNamespace' })
+    );
   });
 
   test('it handles globs in namespace names', function(assert) {
     const mockSystem = Service.extend({
-      aclEnabled: true,
+      aclEnabled: true
     });
 
     const mockToken = Service.extend({
@@ -131,43 +137,53 @@ module('Unit | Ability | allocation', function(hooks) {
             Namespaces: [
               {
                 Name: 'production-*',
-                Capabilities: ['alloc-exec'],
+                Capabilities: ['alloc-exec']
               },
               {
                 Name: 'production-api',
-                Capabilities: ['alloc-exec'],
+                Capabilities: ['alloc-exec']
               },
               {
                 Name: 'production-web',
-                Capabilities: [],
+                Capabilities: []
               },
               {
                 Name: '*-suffixed',
-                Capabilities: ['alloc-exec'],
+                Capabilities: ['alloc-exec']
               },
               {
                 Name: '*-more-suffixed',
-                Capabilities: [],
+                Capabilities: []
               },
               {
                 Name: '*-abc-*',
-                Capabilities: ['alloc-exec'],
-              },
-            ],
-          },
-        },
-      ],
+                Capabilities: ['alloc-exec']
+              }
+            ]
+          }
+        }
+      ]
     });
 
     this.owner.register('service:system', mockSystem);
     this.owner.register('service:token', mockToken);
 
-    assert.ok(this.can.cannot('exec allocation', null, { namespace: 'production-web' }));
-    assert.ok(this.can.can('exec allocation', null, { namespace: 'production-api' }));
-    assert.ok(this.can.can('exec allocation', null, { namespace: 'production-other' }));
-    assert.ok(this.can.can('exec allocation', null, { namespace: 'something-suffixed' }));
     assert.ok(
-      this.can.cannot('exec allocation', null, { namespace: 'something-more-suffixed' }),
+      this.can.cannot('exec allocation', null, { namespace: 'production-web' })
+    );
+    assert.ok(
+      this.can.can('exec allocation', null, { namespace: 'production-api' })
+    );
+    assert.ok(
+      this.can.can('exec allocation', null, { namespace: 'production-other' })
+    );
+    assert.ok(
+      this.can.can('exec allocation', null, { namespace: 'something-suffixed' })
+    );
+    assert.ok(
+      this.can.cannot('exec allocation', null, {
+        namespace: 'something-more-suffixed'
+      }),
       'expected the namespace with the greatest number of matched characters to be chosen'
     );
     assert.ok(

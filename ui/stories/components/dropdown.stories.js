@@ -1,7 +1,7 @@
 import hbs from 'htmlbars-inline-precompile';
 
 export default {
-  title: 'Components/Dropdown',
+  title: 'Components/Dropdown'
 };
 
 let options = [
@@ -10,7 +10,7 @@ let options = [
   { name: 'Packer' },
   { name: 'Terraform' },
   { name: 'Vagrant' },
-  { name: 'Vault' },
+  { name: 'Vault' }
 ];
 
 export let Standard = () => {
@@ -23,8 +23,8 @@ export let Standard = () => {
       <p class="annotation">Power Select currently fulfills all of Nomad's dropdown needs out of the box.</p>
       `,
     context: {
-      options,
-    },
+      options
+    }
   };
 };
 
@@ -42,8 +42,8 @@ export let Resized = () => {
     <p class="annotation">Dropdowns are always 100% wide. To control the width of a dropdown, adjust the dimensions of its container. One way to achieve this is using columns.</p>
     `,
     context: {
-      options,
-    },
+      options
+    }
   };
 };
 
@@ -76,8 +76,8 @@ export let Search = () => {
         'Twelve',
         'Thirteen',
         'Fourteen',
-        'Fifteen',
-      ].map(name => ({ name })),
-    },
+        'Fifteen'
+      ].map(name => ({ name }))
+    }
   };
 };

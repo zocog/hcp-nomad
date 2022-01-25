@@ -10,7 +10,7 @@ module('Unit | Ability | client', function(hooks) {
 
   test('it permits client read and write when ACLs are disabled', function(assert) {
     const mockToken = Service.extend({
-      aclEnabled: false,
+      aclEnabled: false
     });
     this.owner.register('service:token', mockToken);
 
@@ -21,7 +21,7 @@ module('Unit | Ability | client', function(hooks) {
   test('it permits client read and write for management tokens', function(assert) {
     const mockToken = Service.extend({
       aclEnabled: true,
-      selfToken: { type: 'management' },
+      selfToken: { type: 'management' }
     });
     this.owner.register('service:token', mockToken);
 
@@ -37,11 +37,11 @@ module('Unit | Ability | client', function(hooks) {
         {
           rulesJSON: {
             Node: {
-              Policy: 'write',
-            },
-          },
-        },
-      ],
+              Policy: 'write'
+            }
+          }
+        }
+      ]
     });
     this.owner.register('service:token', mockToken);
 
@@ -57,18 +57,18 @@ module('Unit | Ability | client', function(hooks) {
         {
           rulesJSON: {
             Node: {
-              Policy: 'write',
-            },
-          },
+              Policy: 'write'
+            }
+          }
         },
         {
           rulesJSON: {
             Node: {
-              Policy: 'read',
-            },
-          },
-        },
-      ],
+              Policy: 'read'
+            }
+          }
+        }
+      ]
     });
     this.owner.register('service:token', mockToken);
 
@@ -84,11 +84,11 @@ module('Unit | Ability | client', function(hooks) {
         {
           rulesJSON: {
             Node: {
-              Policy: 'read',
-            },
-          },
-        },
-      ],
+              Policy: 'read'
+            }
+          }
+        }
+      ]
     });
     this.owner.register('service:token', mockToken);
 
@@ -102,9 +102,9 @@ module('Unit | Ability | client', function(hooks) {
       selfToken: { type: 'client' },
       selfTokenPolicies: [
         {
-          rulesJSON: {},
-        },
-      ],
+          rulesJSON: {}
+        }
+      ]
     });
     this.owner.register('service:token', mockToken);
 

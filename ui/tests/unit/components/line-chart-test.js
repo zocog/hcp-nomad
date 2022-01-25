@@ -12,13 +12,13 @@ module('Unit | Component | line-chart', function(hooks) {
     { foo: 2, bar: 200 },
     { foo: 3, bar: 300 },
     { foo: 8, bar: 400 },
-    { foo: 4, bar: 500 },
+    { foo: 4, bar: 500 }
   ];
 
   test('x scale domain is the min and max values in data based on the xProp value', function(assert) {
     const chart = this.createComponent({
       xProp: 'foo',
-      data,
+      data
     });
 
     let [xDomainLow, xDomainHigh] = chart.xScale.domain();
@@ -36,13 +36,17 @@ module('Unit | Component | line-chart', function(hooks) {
     chart.args.data = [...data, { foo: 12, bar: 600 }];
 
     [, xDomainHigh] = chart.xScale.domain();
-    assert.equal(xDomainHigh, 12, 'When the data changes, the xScale is recalculated');
+    assert.equal(
+      xDomainHigh,
+      12,
+      'When the data changes, the xScale is recalculated'
+    );
   });
 
   test('y scale domain uses the max value in the data based off of yProp, but is always zero-based', function(assert) {
     const chart = this.createComponent({
       yProp: 'bar',
-      data,
+      data
     });
 
     let [yDomainLow, yDomainHigh] = chart.yScale.domain();
@@ -56,13 +60,17 @@ module('Unit | Component | line-chart', function(hooks) {
     chart.args.data = [...data, { foo: 12, bar: 600 }];
 
     [, yDomainHigh] = chart.yScale.domain();
-    assert.equal(yDomainHigh, 600, 'When the data changes, the yScale is recalculated');
+    assert.equal(
+      yDomainHigh,
+      600,
+      'When the data changes, the yScale is recalculated'
+    );
   });
 
   test('the number of yTicks is always odd (to always have a mid-line) and is based off the chart height', function(assert) {
     const chart = this.createComponent({
       yProp: 'bar',
-      data,
+      data
     });
 
     chart.height = 100;
@@ -78,7 +86,7 @@ module('Unit | Component | line-chart', function(hooks) {
   test('the values for yTicks are rounded to whole numbers', function(assert) {
     const chart = this.createComponent({
       yProp: 'bar',
-      data,
+      data
     });
 
     chart.height = 100;
@@ -99,8 +107,8 @@ module('Unit | Component | line-chart', function(hooks) {
         { foo: 2, bar: 0.2 },
         { foo: 3, bar: 0.3 },
         { foo: 8, bar: 0.4 },
-        { foo: 4, bar: 0.5 },
-      ],
+        { foo: 4, bar: 0.5 }
+      ]
     });
 
     chart.height = 100;
@@ -111,7 +119,7 @@ module('Unit | Component | line-chart', function(hooks) {
     const chart = this.createComponent({
       xProp: 'foo',
       yProp: 'bar',
-      data,
+      data
     });
 
     chart.activeDatum = data[1];
@@ -127,7 +135,7 @@ module('Unit | Component | line-chart', function(hooks) {
     const chart = this.createComponent({
       xProp: 'foo',
       yProp: 'bar',
-      data,
+      data
     });
 
     chart.activeDatum = data[1];

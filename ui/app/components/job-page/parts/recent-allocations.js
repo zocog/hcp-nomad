@@ -21,7 +21,7 @@ export default class RecentAllocations extends Component {
           .sortBy('modifyIndex')
           .reverse()
           .slice(0, 5)
-      ),
+      )
     });
   }
 

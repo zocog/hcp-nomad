@@ -1,3 +1,5 @@
+/* eslint-disable qunit/require-expect */
+/* eslint-disable qunit/no-conditional-assertions */
 import { currentURL } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
@@ -19,7 +21,10 @@ module('Acceptance | job versions', function(hooks) {
     server.create('namespace');
     namespace = server.create('namespace');
 
-    job = server.create('job', { namespaceId: namespace.id, createAllocations: false });
+    job = server.create('job', {
+      namespaceId: namespace.id,
+      createAllocations: false
+    });
     versions = server.db.jobVersions.where({ jobId: job.id });
 
     const managementToken = server.create('token');
@@ -33,7 +38,11 @@ module('Acceptance | job versions', function(hooks) {
   });
 
   test('/jobs/:id/versions should list all job versions', async function(assert) {
-    assert.ok(Versions.versions.length, versions.length, 'Each version gets a row in the timeline');
+    assert.equal(
+      Versions.versions.length,
+      versions.length,
+      'Each version gets a row in the timeline'
+    );
     assert.equal(document.title, `Job ${job.name} versions - Nomad`);
   });
 
@@ -44,7 +53,10 @@ module('Acceptance | job versions', function(hooks) {
     );
     const versionRow = Versions.versions.objectAt(0);
 
-    assert.ok(versionRow.text.includes(`Version #${version.version}`), 'Version #');
+    assert.ok(
+      versionRow.text.includes(`Version #${version.version}`),
+      'Version #'
+    );
     assert.equal(versionRow.stability, version.stable.toString(), 'Stability');
     assert.equal(versionRow.submitTime, formattedSubmitTime, 'Submit time');
   });
@@ -67,15 +79,18 @@ module('Acceptance | job versions', function(hooks) {
       await versionRowToRevertTo.revertToButton.idle();
       await versionRowToRevertTo.revertToButton.confirm();
 
-      const revertRequest = this.server.pretender.handledRequests.find(request =>
-        request.url.includes('revert')
+      const revertRequest = this.server.pretender.handledRequests.find(
+        request => request.url.includes('revert')
       );
 
-      assert.equal(revertRequest.url, `/v1/job/${job.id}/revert?namespace=${namespace.id}`);
+      assert.equal(
+        revertRequest.url,
+        `/v1/job/${job.id}/revert?namespace=${namespace.id}`
+      );
 
       assert.deepEqual(JSON.parse(revertRequest.requestBody), {
         JobID: job.id,
-        JobVersion: versionNumberRevertingTo,
+        JobVersion: versionNumberRevertingTo
       });
 
       assert.equal(currentURL(), `/jobs/${job.id}?namespace=${namespace.id}`);
@@ -141,7 +156,11 @@ module('Acceptance | job versions', function(hooks) {
       '/v1/job/not-a-real-job',
       'A request to the nonexistent job is made'
     );
-    assert.equal(currentURL(), '/jobs/not-a-real-job/versions', 'The URL persists');
+    assert.equal(
+      currentURL(),
+      '/jobs/not-a-real-job/versions',
+      'The URL persists'
+    );
     assert.ok(Versions.error.isPresent, 'Error message is shown');
     assert.equal(Versions.error.title, 'Not Found', 'Error message is for 404');
   });
@@ -188,7 +207,7 @@ module('Acceptance | job versions (with client token)', function(hooks) {
       createAllocations: false,
       shallow: true,
       noActiveDeployment: true,
-      namespaceId: REVERT_NAMESPACE,
+      namespaceId: REVERT_NAMESPACE
     });
 
     const policy = server.create('policy', {
@@ -198,10 +217,10 @@ module('Acceptance | job versions (with client token)', function(hooks) {
         Namespaces: [
           {
             Name: REVERT_NAMESPACE,
-            Capabilities: ['submit-job'],
-          },
-        ],
-      },
+            Capabilities: ['submit-job']
+          }
+        ]
+      }
     });
 
     clientToken.policyIds = [policy.id];

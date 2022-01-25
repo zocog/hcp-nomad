@@ -5,7 +5,7 @@ import {
   hasClass,
   isPresent,
   text,
-  triggerable,
+  triggerable
 } from 'ember-cli-page-object';
 
 const allocationRect = {
@@ -18,7 +18,7 @@ const allocationRect = {
   isSelected: hasClass('is-selected'),
   running: hasClass('running'),
   failed: hasClass('failed'),
-  pending: hasClass('pending'),
+  pending: hasClass('pending')
 };
 
 export default scope => ({
@@ -35,15 +35,15 @@ export default scope => ({
 
   memoryRects: collection('[data-test-memory-rect]', {
     ...allocationRect,
-    id: attribute('data-test-memory-rect'),
+    id: attribute('data-test-memory-rect')
   }),
   cpuRects: collection('[data-test-cpu-rect]', {
     ...allocationRect,
-    id: attribute('data-test-cpu-rect'),
+    id: attribute('data-test-cpu-rect')
   }),
 
   mouseout: triggerable('mouseout', '[data-test-topo-node-svg]'),
 
   emptyMessage: text('[data-test-empty-message]'),
-  isEmpty: hasClass('is-empty'),
+  isEmpty: hasClass('is-empty')
 });

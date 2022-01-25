@@ -22,7 +22,7 @@ export default class IndexController extends Controller {
     } catch (err) {
       this.set('error', {
         title: 'Could Not Restart Task',
-        description: messageForError(err, 'manage allocation lifecycle'),
+        description: messageForError(err, 'manage allocation lifecycle')
       });
     }
   })

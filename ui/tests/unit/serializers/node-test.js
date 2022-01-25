@@ -16,10 +16,14 @@ module('Unit | Serializer | Node', function(hooks) {
     const findAllResponse = [
       makeNode('1', 'One', '127.0.0.1:4646'),
       makeNode('2', 'Two', '127.0.0.2:4646'),
-      makeNode('3', 'Three', '127.0.0.3:4646'),
+      makeNode('3', 'Three', '127.0.0.3:4646')
     ];
 
-    const payload = this.subject().normalizeFindAllResponse(this.store, NodeModel, findAllResponse);
+    const payload = this.subject().normalizeFindAllResponse(
+      this.store,
+      NodeModel,
+      findAllResponse
+    );
     pushPayloadToStore(this.store, payload, NodeModel.modelName);
 
     assert.equal(
@@ -40,7 +44,7 @@ module('Unit | Serializer | Node', function(hooks) {
     const newFindAllResponse = [
       makeNode('2', 'Two', '127.0.0.2:4646'),
       makeNode('3', 'Three', '127.0.0.3:4646'),
-      makeNode('4', 'Four', '127.0.0.4:4646'),
+      makeNode('4', 'Four', '127.0.0.4:4646')
     ];
 
     let newPayload;
@@ -69,7 +73,10 @@ module('Unit | Serializer | Node', function(hooks) {
       'The node length in the store reflects the new response'
     );
 
-    assert.notOk(this.store.peekAll('node').findBy('id', '1'), 'Record One is no longer found');
+    assert.notOk(
+      this.store.peekAll('node').findBy('id', '1'),
+      'Record One is no longer found'
+    );
   });
 
   function makeNode(id, name, ip) {
@@ -86,19 +93,19 @@ module('Unit | Serializer | Node', function(hooks) {
         Drivers: {
           docker: {
             Detected: true,
-            Healthy: false,
-          },
+            Healthy: false
+          }
         },
         HostVolumes: {
           one: {
             Name: 'one',
-            ReadOnly: true,
+            ReadOnly: true
           },
           two: {
             Name: 'two',
-            ReadOnly: false,
-          },
-        },
+            ReadOnly: false
+          }
+        }
       },
       out: {
         data: {
@@ -111,20 +118,23 @@ module('Unit | Serializer | Node', function(hooks) {
               {
                 name: 'docker',
                 detected: true,
-                healthy: false,
-              },
+                healthy: false
+              }
             ],
-            hostVolumes: [{ name: 'one', readOnly: true }, { name: 'two', readOnly: false }],
+            hostVolumes: [
+              { name: 'one', readOnly: true },
+              { name: 'two', readOnly: false }
+            ]
           },
           relationships: {
             allocations: {
               links: {
-                related: '/v1/node/test-node/allocations',
-              },
-            },
-          },
-        },
-      },
+                related: '/v1/node/test-node/allocations'
+              }
+            }
+          }
+        }
+      }
     },
 
     {
@@ -136,13 +146,13 @@ module('Unit | Serializer | Node', function(hooks) {
         Drivers: {
           'my.driver': {
             Detected: true,
-            Healthy: false,
+            Healthy: false
           },
           'my.other.driver': {
             Detected: false,
-            Healthy: false,
-          },
-        },
+            Healthy: false
+          }
+        }
       },
       out: {
         data: {
@@ -155,25 +165,25 @@ module('Unit | Serializer | Node', function(hooks) {
               {
                 name: 'my.driver',
                 detected: true,
-                healthy: false,
+                healthy: false
               },
               {
                 name: 'my.other.driver',
                 detected: false,
-                healthy: false,
-              },
+                healthy: false
+              }
             ],
-            hostVolumes: [],
+            hostVolumes: []
           },
           relationships: {
             allocations: {
               links: {
-                related: '/v1/node/test-node/allocations',
-              },
-            },
-          },
-        },
-      },
+                related: '/v1/node/test-node/allocations'
+              }
+            }
+          }
+        }
+      }
     },
 
     {
@@ -181,7 +191,7 @@ module('Unit | Serializer | Node', function(hooks) {
       in: {
         ID: 'test-node',
         Drivers: null,
-        HostVolumes: null,
+        HostVolumes: null
       },
       out: {
         data: {
@@ -189,23 +199,26 @@ module('Unit | Serializer | Node', function(hooks) {
           type: 'node',
           attributes: {
             hostVolumes: [],
-            drivers: [],
+            drivers: []
           },
           relationships: {
             allocations: {
               links: {
-                related: '/v1/node/test-node/allocations',
-              },
-            },
-          },
-        },
-      },
-    },
+                related: '/v1/node/test-node/allocations'
+              }
+            }
+          }
+        }
+      }
+    }
   ];
 
   normalizationTestCases.forEach(testCase => {
     test(`normalization: ${testCase.name}`, async function(assert) {
-      assert.deepEqual(this.subject().normalize(NodeModel, testCase.in), testCase.out);
+      assert.deepEqual(
+        this.subject().normalize(NodeModel, testCase.in),
+        testCase.out
+      );
     });
   });
 });

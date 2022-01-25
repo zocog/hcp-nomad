@@ -32,10 +32,12 @@ module('Integration | Component | job-page/parts/body', function(hooks) {
   });
 
   test('the subnav includes the deployments link when the job is a service', async function(assert) {
+    assert.expect(4);
+
     const store = this.owner.lookup('service:store');
     const job = await store.createRecord('job', {
       id: 'service-job',
-      type: 'service',
+      type: 'service'
     });
 
     this.set('job', job);
@@ -46,10 +48,21 @@ module('Integration | Component | job-page/parts/body', function(hooks) {
       </JobPage::Parts::Body>
     `);
 
-    const subnavLabels = findAll('[data-test-tab]').map(anchor => anchor.textContent);
-    assert.ok(subnavLabels.some(label => label === 'Definition'), 'Definition link');
-    assert.ok(subnavLabels.some(label => label === 'Versions'), 'Versions link');
-    assert.ok(subnavLabels.some(label => label === 'Deployments'), 'Deployments link');
+    const subnavLabels = findAll('[data-test-tab]').map(
+      anchor => anchor.textContent
+    );
+    assert.ok(
+      subnavLabels.some(label => label === 'Definition'),
+      'Definition link'
+    );
+    assert.ok(
+      subnavLabels.some(label => label === 'Versions'),
+      'Versions link'
+    );
+    assert.ok(
+      subnavLabels.some(label => label === 'Deployments'),
+      'Deployments link'
+    );
 
     await componentA11yAudit(this.element, assert);
   });
@@ -58,7 +71,7 @@ module('Integration | Component | job-page/parts/body', function(hooks) {
     const store = this.owner.lookup('service:store');
     const job = await store.createRecord('job', {
       id: 'batch-job',
-      type: 'batch',
+      type: 'batch'
     });
 
     this.set('job', job);
@@ -69,10 +82,21 @@ module('Integration | Component | job-page/parts/body', function(hooks) {
       </JobPage::Parts::Body>
     `);
 
-    const subnavLabels = findAll('[data-test-tab]').map(anchor => anchor.textContent);
-    assert.ok(subnavLabels.some(label => label === 'Definition'), 'Definition link');
-    assert.ok(subnavLabels.some(label => label === 'Versions'), 'Versions link');
-    assert.notOk(subnavLabels.some(label => label === 'Deployments'), 'Deployments link');
+    const subnavLabels = findAll('[data-test-tab]').map(
+      anchor => anchor.textContent
+    );
+    assert.ok(
+      subnavLabels.some(label => label === 'Definition'),
+      'Definition link'
+    );
+    assert.ok(
+      subnavLabels.some(label => label === 'Versions'),
+      'Versions link'
+    );
+    assert.notOk(
+      subnavLabels.some(label => label === 'Deployments'),
+      'Deployments link'
+    );
   });
 
   test('body yields content to a section after the subnav', async function(assert) {

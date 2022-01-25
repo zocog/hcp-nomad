@@ -4,31 +4,34 @@ import { action, computed } from '@ember/object';
 import { alias, readOnly } from '@ember/object/computed';
 import SortableFactory from 'nomad-ui/mixins/sortable-factory';
 import { lazyClick } from 'nomad-ui/helpers/lazy-click';
-import { serialize, deserializedQueryParam as selection } from 'nomad-ui/utils/qp-serialize';
+import {
+  serialize,
+  deserializedQueryParam as selection
+} from 'nomad-ui/utils/qp-serialize';
 import classic from 'ember-classic-decorator';
 
 @classic
 export default class AllocationsController extends Controller.extend(
-    SortableFactory(['updateTime', 'healthy'])
-  ) {
+  SortableFactory(['updateTime', 'healthy'])
+) {
   @service userSettings;
 
   queryParams = [
     {
-      currentPage: 'page',
+      currentPage: 'page'
     },
     {
-      sortProperty: 'sort',
+      sortProperty: 'sort'
     },
     {
-      sortDescending: 'desc',
+      sortDescending: 'desc'
     },
     {
-      qpHealth: 'healthy',
+      qpHealth: 'healthy'
     },
     {
-      qpType: 'type',
-    },
+      qpType: 'type'
+    }
   ];
 
   currentPage = 1;
@@ -45,12 +48,18 @@ export default class AllocationsController extends Controller.extend(
 
   @computed
   get optionsType() {
-    return [{ key: 'controller', label: 'Controller' }, { key: 'node', label: 'Node' }];
+    return [
+      { key: 'controller', label: 'Controller' },
+      { key: 'node', label: 'Node' }
+    ];
   }
 
   @computed
   get optionsHealth() {
-    return [{ key: 'true', label: 'Healthy' }, { key: 'false', label: 'Unhealthy' }];
+    return [
+      { key: 'true', label: 'Healthy' },
+      { key: 'false', label: 'Unhealthy' }
+    ];
   }
 
   @computed('model.{controllers.[],nodes.[]}')
@@ -76,7 +85,8 @@ export default class AllocationsController extends Controller.extend(
       listToFilter = this.model.nodes;
     }
 
-    if (healths.length === 1 && healths[0] === 'true') return listToFilter.filterBy('healthy');
+    if (healths.length === 1 && healths[0] === 'true')
+      return listToFilter.filterBy('healthy');
     if (healths.length === 1 && healths[0] === 'false')
       return listToFilter.filterBy('healthy', false);
     return listToFilter;
@@ -97,6 +107,9 @@ export default class AllocationsController extends Controller.extend(
 
   @action
   gotoAllocation(allocation, event) {
-    lazyClick([() => this.transitionToRoute('allocations.allocation', allocation), event]);
+    lazyClick([
+      () => this.transitionToRoute('allocations.allocation', allocation),
+      event
+    ]);
   }
 }

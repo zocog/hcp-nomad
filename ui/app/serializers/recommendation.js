@@ -6,13 +6,16 @@ import queryString from 'query-string';
 @classic
 export default class RecommendationSerializer extends ApplicationSerializer {
   attrs = {
-    taskName: 'Task',
+    taskName: 'Task'
   };
 
   separateNanos = ['SubmitTime'];
 
   extractRelationships(modelClass, hash) {
-    const namespace = !hash.Namespace || hash.Namespace === 'default' ? undefined : hash.Namespace;
+    const namespace =
+      !hash.Namespace || hash.Namespace === 'default'
+        ? undefined
+        : hash.Namespace;
 
     const [jobURL] = this.store
       .adapterFor('job')
@@ -22,9 +25,9 @@ export default class RecommendationSerializer extends ApplicationSerializer {
     return assign(super.extractRelationships(...arguments), {
       job: {
         links: {
-          related: buildURL(jobURL, { namespace }),
-        },
-      },
+          related: buildURL(jobURL, { namespace })
+        }
+      }
     });
   }
 }

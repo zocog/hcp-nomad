@@ -1,6 +1,15 @@
-import { create, clickable, isPresent, text, visitable } from 'ember-cli-page-object';
+import {
+  create,
+  clickable,
+  isPresent,
+  text,
+  visitable
+} from 'ember-cli-page-object';
 import { run } from '@ember/runloop';
-import { selectOpen, selectOpenChoose } from '../../utils/ember-power-select-extensions';
+import {
+  selectOpen,
+  selectOpenChoose
+} from '../../utils/ember-power-select-extensions';
 
 export default create({
   visit: visitable('/clients/:id/monitor'),
@@ -11,12 +20,12 @@ export default create({
     isShown: isPresent('[data-test-error]'),
     title: text('[data-test-error-title]'),
     message: text('[data-test-error-message]'),
-    seekHelp: clickable('[data-test-error-message] a'),
+    seekHelp: clickable('[data-test-error-message] a')
   },
 
   async selectLogLevel(level) {
     const contentId = await selectOpen('[data-test-level-switcher-parent]');
     run.later(run, run.cancelTimers, 500);
     await selectOpenChoose(contentId, level);
-  },
+  }
 });

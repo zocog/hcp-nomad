@@ -19,30 +19,30 @@ module('Unit | Model | task-group', function(hooks) {
             driver: 'docker',
             reservedMemory: 512,
             reservedCPU: 500,
-            reservedDisk: 1024,
+            reservedDisk: 1024
           },
           {
             name: 'task-two',
             driver: 'docker',
             reservedMemory: 256,
             reservedCPU: 1000,
-            reservedDisk: 512,
+            reservedDisk: 512
           },
           {
             name: 'task-three',
             driver: 'docker',
             reservedMemory: 1024,
             reservedCPU: 1500,
-            reservedDisk: 4096,
+            reservedDisk: 4096
           },
           {
             name: 'task-four',
             driver: 'docker',
             reservedMemory: 2048,
             reservedCPU: 500,
-            reservedDisk: 128,
-          },
-        ],
+            reservedDisk: 128
+          }
+        ]
       })
     );
 
@@ -64,29 +64,33 @@ module('Unit | Model | task-group', function(hooks) {
   });
 
   test("should expose mergedMeta as merged with the job's meta", function(assert) {
+    assert.expect(8);
+
     const store = this.owner.lookup('service:store');
 
     const jobWithMeta = run(() =>
       store.createRecord('job', {
         name: 'example-with-meta',
-        meta: store.createFragment('structured-attributes', { raw: { a: 'b' } }),
+        meta: store.createFragment('structured-attributes', {
+          raw: { a: 'b' }
+        }),
         taskGroups: [
           {
             name: 'one',
-            meta: { c: 'd' },
+            meta: { c: 'd' }
           },
           {
-            name: 'two',
+            name: 'two'
           },
           {
             name: 'three',
-            meta: null,
+            meta: null
           },
           {
             name: 'four',
-            meta: {},
-          },
-        ],
+            meta: {}
+          }
+        ]
       })
     );
 
@@ -108,20 +112,20 @@ module('Unit | Model | task-group', function(hooks) {
         taskGroups: [
           {
             name: 'one',
-            meta: { c: 'd' },
+            meta: { c: 'd' }
           },
           {
-            name: 'two',
+            name: 'two'
           },
           {
             name: 'three',
-            meta: null,
+            meta: null
           },
           {
             name: 'four',
-            meta: {},
-          },
-        ],
+            meta: {}
+          }
+        ]
       })
     );
 

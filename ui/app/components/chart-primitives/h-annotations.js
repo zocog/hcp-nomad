@@ -8,7 +8,7 @@ export default class ChartPrimitiveVAnnotations extends Component {
   get chartAnnotationsStyle() {
     return {
       width: this.args.width,
-      left: this.args.left,
+      left: this.args.left
     };
   }
 
@@ -29,7 +29,7 @@ export default class ChartPrimitiveVAnnotations extends Component {
         style: htmlSafe(`transform:translate(${x}px,${y}px)`),
         label: annotation[labelProp],
         a11yLabel: `${annotation[labelProp]} at ${formattedY}`,
-        isActive: this.annotationIsActive(annotation),
+        isActive: this.annotationIsActive(annotation)
       };
     });
   }

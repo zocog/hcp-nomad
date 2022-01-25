@@ -54,13 +54,19 @@ export default class JobDispatch extends Component {
             name: x,
             required,
             title: titleCase(noCase(x)),
-            value: this.args.job.meta ? this.args.job.meta.get(x) : '',
+            value: this.args.job.meta ? this.args.job.meta.get(x) : ''
           })
       );
 
     // Fetch the different types of parameters.
-    const required = mapper(this.args.job.parameterizedDetails.MetaRequired || [], true);
-    const optional = mapper(this.args.job.parameterizedDetails.MetaOptional || [], false);
+    const required = mapper(
+      this.args.job.parameterizedDetails.MetaRequired || [],
+      true
+    );
+    const optional = mapper(
+      this.args.job.parameterizedDetails.MetaOptional || [],
+      false
+    );
 
     // Merge them, required before optional.
     this.metaFields = required.concat(optional);
@@ -99,7 +105,7 @@ export default class JobDispatch extends Component {
 
       // Navigate to the newly created instance.
       this.router.transitionTo('jobs.job', dispatch.DispatchedJobID, {
-        queryParams: { namespace: this.args.job.get('namespace.name') },
+        queryParams: { namespace: this.args.job.get('namespace.name') }
       });
     } catch (err) {
       const error = messageFromAdapterError(err) || 'Could not dispatch job';

@@ -8,7 +8,9 @@ export default class OptimizeSummaryRoute extends Route {
     );
 
     if (!model) {
-      const error = new Error(`Unable to find summary for ${slug} in namespace ${jobNamespace}`);
+      const error = new Error(
+        `Unable to find summary for ${slug} in namespace ${jobNamespace}`
+      );
       error.code = 404;
       notifyError(this)(error);
     } else {

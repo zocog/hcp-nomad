@@ -10,7 +10,9 @@ export default class TopoVizNode extends Component {
   @tracked activeAllocation = null;
 
   get height() {
-    return this.args.heightScale ? this.args.heightScale(this.args.node.memory) : 15;
+    return this.args.heightScale
+      ? this.args.heightScale(this.args.node.memory)
+      : 15;
   }
 
   get labelHeight() {
@@ -57,11 +59,13 @@ export default class TopoVizNode extends Component {
   get allocations() {
     // Sort by the delta between memory and cpu percent. This creates the least amount of
     // drift between the positional alignment of an alloc's cpu and memory representations.
-    return this.args.node.allocations.filterBy('allocation.isScheduled').sort((a, b) => {
-      const deltaA = Math.abs(a.memoryPercent - a.cpuPercent);
-      const deltaB = Math.abs(b.memoryPercent - b.cpuPercent);
-      return deltaA - deltaB;
-    });
+    return this.args.node.allocations
+      .filterBy('allocation.isScheduled')
+      .sort((a, b) => {
+        const deltaA = Math.abs(a.memoryPercent - a.cpuPercent);
+        const deltaB = Math.abs(b.memoryPercent - b.cpuPercent);
+        return deltaA - deltaB;
+      });
   }
 
   @action
@@ -91,7 +95,8 @@ export default class TopoVizNode extends Component {
   @action
   highlightAllocation(allocation, { target }) {
     this.activeAllocation = allocation;
-    this.args.onAllocationFocus && this.args.onAllocationFocus(allocation, target);
+    this.args.onAllocationFocus &&
+      this.args.onAllocationFocus(allocation, target);
   }
 
   @action
@@ -152,7 +157,7 @@ export default class TopoVizNode extends Component {
         percent: cpuPercent * 100,
         width: Math.max(cpuWidth, 0),
         x: cpuOffset * width + (isFirst ? 0 : 0.5) + (isSelected ? 0.5 : 0),
-        className: allocation.allocation.clientStatus,
+        className: allocation.allocation.clientStatus
       });
       memory.push({
         allocation,
@@ -160,7 +165,7 @@ export default class TopoVizNode extends Component {
         percent: memoryPercent * 100,
         width: Math.max(memoryWidth, 0),
         x: memoryOffset * width + (isFirst ? 0 : 0.5) + (isSelected ? 0.5 : 0),
-        className: allocation.allocation.clientStatus,
+        className: allocation.allocation.clientStatus
       });
 
       cpuOffset += cpuPercent;
@@ -169,11 +174,11 @@ export default class TopoVizNode extends Component {
 
     const cpuRemainder = {
       x: cpuOffset * width + 0.5,
-      width: Math.max(width - cpuOffset * width, 0),
+      width: Math.max(width - cpuOffset * width, 0)
     };
     const memoryRemainder = {
       x: memoryOffset * width + 0.5,
-      width: Math.max(width - memoryOffset * width, 0),
+      width: Math.max(width - memoryOffset * width, 0)
     };
 
     return {
@@ -182,7 +187,7 @@ export default class TopoVizNode extends Component {
       cpuRemainder,
       memoryRemainder,
       cpuLabel: { x: -this.paddingLeft / 2, y: this.height / 2 + this.yOffset },
-      memoryLabel: { x: -this.paddingLeft / 2, y: this.height / 2 },
+      memoryLabel: { x: -this.paddingLeft / 2, y: this.height / 2 }
     };
   }
 }

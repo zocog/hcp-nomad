@@ -6,12 +6,15 @@ const testCases = [
   {
     name: 'Forbidden Error',
     in: [new ForbiddenError([], "Can't do that"), 'run tests'],
-    out: 'Your ACL token does not grant permission to run tests.',
+    out: 'Your ACL token does not grant permission to run tests.'
   },
   {
     name: 'Generic Error',
-    in: [new ServerError([{ detail: 'DB Max Connections' }], 'Server Error'), 'run tests'],
-    out: 'DB Max Connections',
+    in: [
+      new ServerError([{ detail: 'DB Max Connections' }], 'Server Error'),
+      'run tests'
+    ],
+    out: 'DB Max Connections'
   },
   {
     name: 'Multiple Errors',
@@ -20,15 +23,16 @@ const testCases = [
         [{ detail: 'DB Max Connections' }, { detail: 'Service timeout' }],
         'Server Error'
       ),
-      'run tests',
+      'run tests'
     ],
-    out: 'DB Max Connections\n\nService timeout',
+    out: 'DB Max Connections\n\nService timeout'
   },
   {
-    name: 'Malformed Error (not from Ember Data which should always have an errors list)',
+    name:
+      'Malformed Error (not from Ember Data which should always have an errors list)',
     in: [new Error('Go boom'), 'handle custom error messages'],
-    out: 'Unknown Error',
-  },
+    out: 'Unknown Error'
+  }
 ];
 
 module('Unit | Util | messageFromAdapterError', function() {

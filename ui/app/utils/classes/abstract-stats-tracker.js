@@ -18,7 +18,9 @@ export default Mixin.create({
   maxFrameMisses: 5,
 
   fetch() {
-    assert('StatsTrackers need a fetch method, which should have an interface like window.fetch');
+    assert(
+      'StatsTrackers need a fetch method, which should have an interface like window.fetch'
+    );
   },
 
   append(/* frame */) {
@@ -79,5 +81,5 @@ export default Mixin.create({
     yield timeout(Ember.testing ? 0 : 2000);
     // if no poll called in 2 seconds, pause
     this.pause();
-  }).drop(),
+  }).drop()
 });

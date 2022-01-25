@@ -12,7 +12,7 @@ module('Unit | Serializer | Job', function(hooks) {
   test('`default` is used as the namespace in the job ID when there is no namespace in the payload', async function(assert) {
     const original = {
       ID: 'example',
-      Name: 'example',
+      Name: 'example'
     };
 
     const { data } = this.subject().normalize(JobModel, original);
@@ -23,13 +23,16 @@ module('Unit | Serializer | Job', function(hooks) {
     const original = {
       ID: 'example',
       Name: 'example',
-      Namespace: 'special-namespace',
+      Namespace: 'special-namespace'
     };
 
     const { data } = this.subject().normalize(JobModel, original);
     assert.equal(
       data.id,
-      JSON.stringify([data.attributes.name, data.relationships.namespace.data.id])
+      JSON.stringify([
+        data.attributes.name,
+        data.relationships.namespace.data.id
+      ])
     );
   });
 });

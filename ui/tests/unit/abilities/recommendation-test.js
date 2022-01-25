@@ -8,10 +8,12 @@ module('Unit | Ability | recommendation', function(hooks) {
   setupTest(hooks);
   setupAbility('recommendation')(hooks);
 
-  module('when the Dynamic Application Sizing feature is present', function(hooks) {
+  module('when the Dynamic Application Sizing feature is present', function(
+    hooks
+  ) {
     hooks.beforeEach(function() {
       const mockSystem = Service.extend({
-        features: ['Dynamic Application Sizing'],
+        features: ['Dynamic Application Sizing']
       });
 
       this.owner.register('service:system', mockSystem);
@@ -19,7 +21,7 @@ module('Unit | Ability | recommendation', function(hooks) {
 
     test('it permits accepting recommendations when ACLs are disabled', function(assert) {
       const mockToken = Service.extend({
-        aclEnabled: false,
+        aclEnabled: false
       });
 
       this.owner.register('service:token', mockToken);
@@ -29,7 +31,7 @@ module('Unit | Ability | recommendation', function(hooks) {
 
     test('it permits accepting recommendations for client tokens where any namespace has submit-job capabilities', function(assert) {
       this.owner.lookup('service:system').set('activeNamespace', {
-        name: 'anotherNamespace',
+        name: 'anotherNamespace'
       });
 
       const mockToken = Service.extend({
@@ -41,16 +43,16 @@ module('Unit | Ability | recommendation', function(hooks) {
               Namespaces: [
                 {
                   Name: 'aNamespace',
-                  Capabilities: [],
+                  Capabilities: []
                 },
                 {
                   Name: 'bNamespace',
-                  Capabilities: ['submit-job'],
-                },
-              ],
-            },
-          },
-        ],
+                  Capabilities: ['submit-job']
+                }
+              ]
+            }
+          }
+        ]
       });
 
       this.owner.register('service:token', mockToken);
@@ -59,10 +61,12 @@ module('Unit | Ability | recommendation', function(hooks) {
     });
   });
 
-  module('when the Dynamic Application Sizing feature is not present', function(hooks) {
+  module('when the Dynamic Application Sizing feature is not present', function(
+    hooks
+  ) {
     hooks.beforeEach(function() {
       const mockSystem = Service.extend({
-        features: [],
+        features: []
       });
 
       this.owner.register('service:system', mockSystem);
@@ -70,7 +74,7 @@ module('Unit | Ability | recommendation', function(hooks) {
 
     test('it does not permit accepting recommendations regardless of ACL status', function(assert) {
       const mockToken = Service.extend({
-        aclEnabled: false,
+        aclEnabled: false
       });
 
       this.owner.register('service:token', mockToken);

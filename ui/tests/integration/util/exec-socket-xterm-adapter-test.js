@@ -1,3 +1,4 @@
+/* eslint-disable qunit/no-conditional-assertions */
 import ExecSocketXtermAdapter from 'nomad-ui/utils/classes/exec-socket-xterm-adapter';
 import { setupRenderingTest } from 'ember-qunit';
 import { module, test } from 'qunit';
@@ -11,6 +12,8 @@ module('Integration | Utility | exec-socket-xterm-adapter', function(hooks) {
   setupRenderingTest(hooks);
 
   test('initiating socket sends authentication handshake', async function(assert) {
+    assert.expect(1);
+
     let done = assert.async();
 
     let terminal = new Terminal();
@@ -20,18 +23,19 @@ module('Integration | Utility | exec-socket-xterm-adapter', function(hooks) {
       <ExecTerminal @terminal={{terminal}} />
     `);
 
-    await settled();
-
     let firstMessage = true;
     let mockSocket = new Object({
       send(message) {
         if (firstMessage) {
           firstMessage = false;
-          assert.deepEqual(message, JSON.stringify({ version: 1, auth_token: 'mysecrettoken' }));
+          assert.deepEqual(
+            message,
+            JSON.stringify({ version: 1, auth_token: 'mysecrettoken' })
+          );
           mockSocket.onclose();
           done();
         }
-      },
+      }
     });
 
     new ExecSocketXtermAdapter(terminal, mockSocket, 'mysecrettoken');
@@ -42,6 +46,8 @@ module('Integration | Utility | exec-socket-xterm-adapter', function(hooks) {
   });
 
   test('initiating socket sends authentication handshake even if unauthenticated', async function(assert) {
+    assert.expect(1);
+
     let done = assert.async();
 
     let terminal = new Terminal();
@@ -51,18 +57,19 @@ module('Integration | Utility | exec-socket-xterm-adapter', function(hooks) {
       <ExecTerminal @terminal={{terminal}} />
     `);
 
-    await settled();
-
     let firstMessage = true;
     let mockSocket = new Object({
       send(message) {
         if (firstMessage) {
           firstMessage = false;
-          assert.deepEqual(message, JSON.stringify({ version: 1, auth_token: '' }));
+          assert.deepEqual(
+            message,
+            JSON.stringify({ version: 1, auth_token: '' })
+          );
           mockSocket.onclose();
           done();
         }
-      },
+      }
     });
 
     new ExecSocketXtermAdapter(terminal, mockSocket, null);
@@ -73,11 +80,13 @@ module('Integration | Utility | exec-socket-xterm-adapter', function(hooks) {
   });
 
   test('a heartbeat is sent periodically', async function(assert) {
+    assert.expect(1);
+
     let done = assert.async();
 
     const clock = sinon.useFakeTimers({
       now: new Date(),
-      shouldAdvanceTime: true,
+      shouldAdvanceTime: true
     });
 
     let terminal = new Terminal();
@@ -86,8 +95,6 @@ module('Integration | Utility | exec-socket-xterm-adapter', function(hooks) {
     await render(hbs`
       <ExecTerminal @terminal={{terminal}} />
     `);
-
-    await settled();
 
     let mockSocket = new Object({
       send(message) {
@@ -97,7 +104,7 @@ module('Integration | Utility | exec-socket-xterm-adapter', function(hooks) {
           mockSocket.onclose();
           done();
         }
-      },
+      }
     });
 
     new ExecSocketXtermAdapter(terminal, mockSocket, null);
@@ -107,6 +114,8 @@ module('Integration | Utility | exec-socket-xterm-adapter', function(hooks) {
   });
 
   test('resizing the window passes a resize message through the socket', async function(assert) {
+    assert.expect(1);
+
     let done = assert.async();
 
     let terminal = new Terminal();
@@ -116,17 +125,17 @@ module('Integration | Utility | exec-socket-xterm-adapter', function(hooks) {
       <ExecTerminal @terminal={{terminal}} />
     `);
 
-    await settled();
-
     let mockSocket = new Object({
       send(message) {
         assert.deepEqual(
           message,
-          JSON.stringify({ tty_size: { width: terminal.cols, height: terminal.rows } })
+          JSON.stringify({
+            tty_size: { width: terminal.cols, height: terminal.rows }
+          })
         );
         mockSocket.onclose();
         done();
-      },
+      }
     });
 
     new ExecSocketXtermAdapter(terminal, mockSocket, '');
@@ -146,16 +155,14 @@ module('Integration | Utility | exec-socket-xterm-adapter', function(hooks) {
       <ExecTerminal @terminal={{terminal}} />
     `);
 
-    await settled();
-
     let mockSocket = new Object({
-      send() {},
+      send() {}
     });
 
     new ExecSocketXtermAdapter(terminal, mockSocket, '');
 
     mockSocket.onmessage({
-      data: '{"stdout":{"exited":"true"}}',
+      data: '{"stdout":{"exited":"true"}}'
     });
 
     await settled();
@@ -170,20 +177,18 @@ module('Integration | Utility | exec-socket-xterm-adapter', function(hooks) {
       <ExecTerminal @terminal={{terminal}} />
     `);
 
-    await settled();
-
     let mockSocket = new Object({
-      send() {},
+      send() {}
     });
 
     new ExecSocketXtermAdapter(terminal, mockSocket, '');
 
     mockSocket.onmessage({
-      data: '{"stdout":{"data":"c2gtMy4yIPCfpbMk"}}',
+      data: '{"stdout":{"data":"c2gtMy4yIPCfpbMk"}}'
     });
 
     mockSocket.onmessage({
-      data: '{"stderr":{"data":"c2gtMy4yIPCfpbMk"}}',
+      data: '{"stderr":{"data":"c2gtMy4yIPCfpbMk"}}'
     });
 
     await settled();

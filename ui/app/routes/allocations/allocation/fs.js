@@ -15,23 +15,34 @@ export default class FsRoute extends Route {
           return RSVP.hash({
             path: decodedPath,
             allocation,
-            directoryEntries: allocation.ls(decodedPath).catch(notifyError(this)),
-            isFile: false,
+            directoryEntries: allocation
+              .ls(decodedPath)
+              .catch(notifyError(this)),
+            isFile: false
           });
         } else {
           return {
             path: decodedPath,
             allocation,
             isFile: true,
-            stat: statJson,
+            stat: statJson
           };
         }
       })
       .catch(notifyError(this));
   }
 
-  setupController(controller, { path, allocation, directoryEntries, isFile, stat } = {}) {
+  setupController(
+    controller,
+    { path, allocation, directoryEntries, isFile, stat } = {}
+  ) {
     super.setupController(...arguments);
-    controller.setProperties({ path, allocation, directoryEntries, isFile, stat });
+    controller.setProperties({
+      path,
+      allocation,
+      directoryEntries,
+      isFile,
+      stat
+    });
   }
 }

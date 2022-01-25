@@ -1,4 +1,4 @@
-import { find, settled } from '@ember/test-helpers';
+import { find, render } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
@@ -15,15 +15,18 @@ module('Integration | Component | image file', function(hooks) {
   `;
 
   const commonProperties = {
-    src: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    src:
+      'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
     alt: 'This is the alt text',
-    size: 123456,
+    size: 123456
   };
 
   test('component displays the image', async function(assert) {
+    assert.expect(3);
+
     this.setProperties(commonProperties);
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     assert.ok(find('img'), 'Image is in the DOM');
     assert.equal(
@@ -38,7 +41,7 @@ module('Integration | Component | image file', function(hooks) {
   test('the image is wrapped in an anchor that links directly to the image', async function(assert) {
     this.setProperties(commonProperties);
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     assert.ok(find('a'), 'Anchor');
     assert.ok(find('a > img'), 'Image in anchor');
@@ -47,7 +50,11 @@ module('Integration | Component | image file', function(hooks) {
       commonProperties.src,
       `href is ${commonProperties.src}`
     );
-    assert.equal(find('a').getAttribute('target'), '_blank', 'Anchor opens to a new tab');
+    assert.equal(
+      find('a').getAttribute('target'),
+      '_blank',
+      'Anchor opens to a new tab'
+    );
     assert.equal(
       find('a').getAttribute('rel'),
       'noopener noreferrer',
@@ -61,7 +68,7 @@ module('Integration | Component | image file', function(hooks) {
     this.setProperties(commonProperties);
     this.set('spy', wrapper);
 
-    this.render(hbs`
+    render(hbs`
       <ImageFile @src={{src}} @alt={{alt}} @size={{size}} @updateImageMeta={{spy}} />
     `);
 
@@ -72,8 +79,7 @@ module('Integration | Component | image file', function(hooks) {
   test('component shows the width, height, and size of the image', async function(assert) {
     this.setProperties(commonProperties);
 
-    await this.render(commonTemplate);
-    await settled();
+    await render(commonTemplate);
 
     const statsEl = find('[data-test-file-stats]');
     assert.ok(
@@ -81,7 +87,9 @@ module('Integration | Component | image file', function(hooks) {
       'Width and height are formatted correctly'
     );
     assert.ok(
-      statsEl.textContent.trim().endsWith(formatBytes(commonProperties.size) + ')'),
+      statsEl.textContent
+        .trim()
+        .endsWith(formatBytes(commonProperties.size) + ')'),
       'Human-formatted size is included'
     );
   });

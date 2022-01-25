@@ -14,12 +14,12 @@ const commonProps = {
   allocation: {
     id: 'alloc-1',
     node: {
-      httpAddr: HOST,
-    },
+      httpAddr: HOST
+    }
   },
   taskState: 'task-name',
   clientTimeout: allowedConnectionTime,
-  serverTimeout: allowedConnectionTime,
+  serverTimeout: allowedConnectionTime
 };
 
 const logHead = [logEncode(['HEAD'], 0)];
@@ -45,10 +45,14 @@ module('Integration | Component | task log', function(hooks) {
       }
 
       if (frames === streamFrames) {
-        data = queryParams.plain ? frames[streamPointer] : logEncode(frames, streamPointer);
+        data = queryParams.plain
+          ? frames[streamPointer]
+          : logEncode(frames, streamPointer);
         streamPointer++;
       } else {
-        data = queryParams.plain ? frames.join('') : logEncode(frames, frames.length - 1);
+        data = queryParams.plain
+          ? frames.join('')
+          : logEncode(frames, frames.length - 1);
       }
 
       return [200, {}, data];
@@ -69,18 +73,28 @@ module('Integration | Component | task log', function(hooks) {
   });
 
   test('Basic appearance', async function(assert) {
+    assert.expect(8);
+
     run.later(run, run.cancelTimers, commonProps.interval);
 
     this.setProperties(commonProps);
-    await render(hbs`<TaskLog @allocation={{allocation}} @task={{taskState}} />`);
+    await render(
+      hbs`<TaskLog @allocation={{allocation}} @task={{taskState}} />`
+    );
 
     assert.ok(find('[data-test-log-action="stdout"]'), 'Stdout button');
     assert.ok(find('[data-test-log-action="stderr"]'), 'Stderr button');
     assert.ok(find('[data-test-log-action="head"]'), 'Head button');
     assert.ok(find('[data-test-log-action="tail"]'), 'Tail button');
-    assert.ok(find('[data-test-log-action="toggle-stream"]'), 'Stream toggle button');
+    assert.ok(
+      find('[data-test-log-action="toggle-stream"]'),
+      'Stream toggle button'
+    );
 
-    assert.ok(find('[data-test-log-box].is-full-bleed.is-dark'), 'Body is full-bleed and dark');
+    assert.ok(
+      find('[data-test-log-box].is-full-bleed.is-dark'),
+      'Body is full-bleed and dark'
+    );
 
     assert.ok(
       find('pre.cli-window'),
@@ -91,14 +105,21 @@ module('Integration | Component | task log', function(hooks) {
   });
 
   test('Streaming starts on creation', async function(assert) {
+    assert.expect(3);
+
     run.later(run, run.cancelTimers, commonProps.interval);
 
     this.setProperties(commonProps);
-    await render(hbs`<TaskLog @allocation={{allocation}} @task={{taskState}} />`);
+    await render(
+      hbs`<TaskLog @allocation={{allocation}} @task={{taskState}} />`
+    );
 
-    const logUrlRegex = new RegExp(`${HOST}/v1/client/fs/logs/${commonProps.allocation.id}`);
+    const logUrlRegex = new RegExp(
+      `${HOST}/v1/client/fs/logs/${commonProps.allocation.id}`
+    );
     assert.ok(
-      this.server.handledRequests.filter(req => logUrlRegex.test(req.url)).length,
+      this.server.handledRequests.filter(req => logUrlRegex.test(req.url))
+        .length,
       'Log requests were made'
     );
 
@@ -117,7 +138,9 @@ module('Integration | Component | task log', function(hooks) {
     run.later(run, run.cancelTimers, commonProps.interval);
 
     this.setProperties(commonProps);
-    await render(hbs`<TaskLog @allocation={{allocation}} @task={{taskState}} />`);
+    await render(
+      hbs`<TaskLog @allocation={{allocation}} @task={{taskState}} />`
+    );
 
     click('[data-test-log-action="head"]');
 
@@ -128,7 +151,11 @@ module('Integration | Component | task log', function(hooks) {
       ),
       'Log head request was made'
     );
-    assert.equal(find('[data-test-log-cli]').textContent, logHead[0], 'Head of the log is shown');
+    assert.equal(
+      find('[data-test-log-cli]').textContent,
+      logHead[0],
+      'Head of the log is shown'
+    );
   });
 
   test('Clicking Tail loads the log tail', async function(assert) {
@@ -136,19 +163,29 @@ module('Integration | Component | task log', function(hooks) {
     run.later(run, run.cancelTimers, commonProps.interval);
 
     this.setProperties(commonProps);
-    await render(hbs`<TaskLog @allocation={{allocation}} @task={{taskState}} />`);
+    await render(
+      hbs`<TaskLog @allocation={{allocation}} @task={{taskState}} />`
+    );
 
     click('[data-test-log-action="tail"]');
 
     await settled();
     assert.ok(
-      this.server.handledRequests.find(({ queryParams: qp }) => qp.origin === 'end'),
+      this.server.handledRequests.find(
+        ({ queryParams: qp }) => qp.origin === 'end'
+      ),
       'Log tail request was made'
     );
-    assert.equal(find('[data-test-log-cli]').textContent, logTail[0], 'Tail of the log is shown');
+    assert.equal(
+      find('[data-test-log-cli]').textContent,
+      logTail[0],
+      'Tail of the log is shown'
+    );
   });
 
   test('Clicking toggleStream starts and stops the log stream', async function(assert) {
+    assert.expect(3);
+
     run.later(run, run.cancelTimers, commonProps.interval);
 
     const { interval } = commonProps;
@@ -162,7 +199,11 @@ module('Integration | Component | task log', function(hooks) {
     }, interval);
 
     await settled();
-    assert.equal(find('[data-test-log-cli]').textContent, streamFrames[0], 'First frame loaded');
+    assert.equal(
+      find('[data-test-log-cli]').textContent,
+      streamFrames[0],
+      'First frame loaded'
+    );
 
     run.later(() => {
       assert.equal(
@@ -186,14 +227,18 @@ module('Integration | Component | task log', function(hooks) {
     run.later(run, run.cancelTimers, commonProps.interval);
 
     this.setProperties(commonProps);
-    await render(hbs`<TaskLog @allocation={{allocation}} @task={{taskState}} />`);
+    await render(
+      hbs`<TaskLog @allocation={{allocation}} @task={{taskState}} />`
+    );
 
     click('[data-test-log-action="stderr"]');
     run.later(run, run.cancelTimers, commonProps.interval);
 
     await settled();
     assert.ok(
-      this.server.handledRequests.filter(req => req.queryParams.type === 'stderr').length,
+      this.server.handledRequests.filter(
+        req => req.queryParams.type === 'stderr'
+      ).length,
       'stderr log requests were made'
     );
   });
@@ -207,9 +252,10 @@ module('Integration | Component | task log', function(hooks) {
     }, interval * 2);
 
     this.setProperties(commonProps);
-    await render(hbs`<TaskLog @allocation={{allocation}} @task={{taskState}} />`);
+    await render(
+      hbs`<TaskLog @allocation={{allocation}} @task={{taskState}} />`
+    );
 
-    await settled();
     assert.equal(
       find('[data-test-log-cli]').textContent,
       streamFrames[0] + streamFrames[0] + streamFrames[1],
@@ -234,26 +280,33 @@ module('Integration | Component | task log', function(hooks) {
       @clientTimeout={{clientTimeout}}
       @serverTimeout={{serverTimeout}} />`);
 
-    const clientUrlRegex = new RegExp(`${HOST}/v1/client/fs/logs/${commonProps.allocation.id}`);
+    const clientUrlRegex = new RegExp(
+      `${HOST}/v1/client/fs/logs/${commonProps.allocation.id}`
+    );
     assert.ok(
-      this.server.handledRequests.filter(req => clientUrlRegex.test(req.url)).length,
+      this.server.handledRequests.filter(req => clientUrlRegex.test(req.url))
+        .length,
       'Log request was initially made directly to the client'
     );
 
     await settled();
     const serverUrl = `/v1/client/fs/logs/${commonProps.allocation.id}`;
     assert.ok(
-      this.server.handledRequests.filter(req => req.url.startsWith(serverUrl)).length,
+      this.server.handledRequests.filter(req => req.url.startsWith(serverUrl))
+        .length,
       'Log request was later made to the server'
     );
 
     assert.ok(
-      this.server.handledRequests.filter(req => clientUrlRegex.test(req.url))[0].aborted,
+      this.server.handledRequests.filter(req => clientUrlRegex.test(req.url))[0]
+        .aborted,
       'Client log request was aborted'
     );
   });
 
   test('When both the client and the server are inaccessible, an error message is shown', async function(assert) {
+    assert.expect(5);
+
     run.later(run, run.cancelTimers, allowedConnectionTime * 5);
 
     // override client and server responses to timeout
@@ -275,21 +328,30 @@ module('Integration | Component | task log', function(hooks) {
       @clientTimeout={{clientTimeout}}
       @serverTimeout={{serverTimeout}} />`);
 
-    await settled();
-    const clientUrlRegex = new RegExp(`${HOST}/v1/client/fs/logs/${commonProps.allocation.id}`);
+    const clientUrlRegex = new RegExp(
+      `${HOST}/v1/client/fs/logs/${commonProps.allocation.id}`
+    );
     assert.ok(
-      this.server.handledRequests.filter(req => clientUrlRegex.test(req.url)).length,
+      this.server.handledRequests.filter(req => clientUrlRegex.test(req.url))
+        .length,
       'Log request was initially made directly to the client'
     );
     const serverUrl = `/v1/client/fs/logs/${commonProps.allocation.id}`;
     assert.ok(
-      this.server.handledRequests.filter(req => req.url.startsWith(serverUrl)).length,
+      this.server.handledRequests.filter(req => req.url.startsWith(serverUrl))
+        .length,
       'Log request was later made to the server'
     );
-    assert.ok(find('[data-test-connection-error]'), 'An error message is shown');
+    assert.ok(
+      find('[data-test-connection-error]'),
+      'An error message is shown'
+    );
 
     await click('[data-test-connection-error-dismiss]');
-    assert.notOk(find('[data-test-connection-error]'), 'The error message is dismissable');
+    assert.notOk(
+      find('[data-test-connection-error]'),
+      'The error message is dismissable'
+    );
 
     await componentA11yAudit(this.element, assert);
   });
@@ -315,10 +377,12 @@ module('Integration | Component | task log', function(hooks) {
       @clientTimeout={{clientTimeout}}
       @serverTimeout={{serverTimeout}} />`);
 
-    await settled();
-
-    const clientUrlRegex = new RegExp(`${HOST}/v1/client/fs/logs/${commonProps.allocation.id}`);
-    const clientRequests = this.server.handledRequests.filter(req => clientUrlRegex.test(req.url));
+    const clientUrlRegex = new RegExp(
+      `${HOST}/v1/client/fs/logs/${commonProps.allocation.id}`
+    );
+    const clientRequests = this.server.handledRequests.filter(req =>
+      clientUrlRegex.test(req.url)
+    );
     assert.ok(
       clientRequests.find(req => req.queryParams.type === 'stdout'),
       'Client request for stdout'
@@ -336,7 +400,10 @@ module('Integration | Component | task log', function(hooks) {
       'Server request for stderr'
     );
 
-    assert.notOk(find('[data-test-connection-error]'), 'An error message is not shown');
+    assert.notOk(
+      find('[data-test-connection-error]'),
+      'An error message is not shown'
+    );
   });
 
   test('The log streaming mode is persisted in localStorage', async function(assert) {
@@ -345,19 +412,30 @@ module('Integration | Component | task log', function(hooks) {
     run.later(run, run.cancelTimers, commonProps.interval);
 
     this.setProperties(commonProps);
-    await render(hbs`<TaskLog @allocation={{allocation}} @task={{taskState}} />`);
+    await render(
+      hbs`<TaskLog @allocation={{allocation}} @task={{taskState}} />`
+    );
 
-    await settled();
-    assert.ok(this.server.handledRequests.filter(req => req.queryParams.type === 'stderr').length);
+    assert.ok(
+      this.server.handledRequests.filter(
+        req => req.queryParams.type === 'stderr'
+      ).length
+    );
     assert.notOk(
-      this.server.handledRequests.filter(req => req.queryParams.type === 'stdout').length
+      this.server.handledRequests.filter(
+        req => req.queryParams.type === 'stdout'
+      ).length
     );
 
     click('[data-test-log-action="stdout"]');
     run.later(run, run.cancelTimers, commonProps.interval);
 
     await settled();
-    assert.ok(this.server.handledRequests.filter(req => req.queryParams.type === 'stdout').length);
+    assert.ok(
+      this.server.handledRequests.filter(
+        req => req.queryParams.type === 'stdout'
+      ).length
+    );
     assert.equal(window.localStorage.nomadLogMode, JSON.stringify('stdout'));
   });
 });

@@ -7,7 +7,7 @@ const MockResponse = json => ({
   ok: true,
   json() {
     return resolve(json);
-  },
+  }
 });
 
 export default function statsTrackerFrameMissing({
@@ -15,7 +15,7 @@ export default function statsTrackerFrameMissing({
   TrackerConstructor,
   ResourceConstructor,
   mockFrame,
-  compileResources,
+  compileResources
 }) {
   test('a bad response from a fetch request is handled gracefully', async function(assert) {
     const frame = mockFrame(1);
@@ -27,27 +27,46 @@ export default function statsTrackerFrameMissing({
     };
 
     const resource = ResourceConstructor();
-    const tracker = TrackerConstructor.create({ fetch, [resourceName]: resource });
+    const tracker = TrackerConstructor.create({
+      fetch,
+      [resourceName]: resource
+    });
 
     tracker.get('poll').perform();
     await settled();
 
     assert.deepEqual(tracker.get('cpu'), [compiledCPU], 'One frame of cpu');
-    assert.deepEqual(tracker.get('memory'), [compiledMemory], 'One frame of memory');
+    assert.deepEqual(
+      tracker.get('memory'),
+      [compiledMemory],
+      'One frame of memory'
+    );
 
     shouldFail = true;
     tracker.get('poll').perform();
     await settled();
 
-    assert.deepEqual(tracker.get('cpu'), [compiledCPU], 'Still one frame of cpu');
-    assert.deepEqual(tracker.get('memory'), [compiledMemory], 'Still one frame of memory');
+    assert.deepEqual(
+      tracker.get('cpu'),
+      [compiledCPU],
+      'Still one frame of cpu'
+    );
+    assert.deepEqual(
+      tracker.get('memory'),
+      [compiledMemory],
+      'Still one frame of memory'
+    );
     assert.equal(tracker.get('frameMisses'), 1, 'Frame miss is tracked');
 
     shouldFail = false;
     tracker.get('poll').perform();
     await settled();
 
-    assert.deepEqual(tracker.get('cpu'), [compiledCPU, compiledCPU], 'Still one frame of cpu');
+    assert.deepEqual(
+      tracker.get('cpu'),
+      [compiledCPU, compiledCPU],
+      'Still one frame of cpu'
+    );
     assert.deepEqual(
       tracker.get('memory'),
       [compiledMemory, compiledMemory],
@@ -66,7 +85,7 @@ export default function statsTrackerFrameMissing({
       fetch,
       [resourceName]: resource,
       maxFrameMisses: 3,
-      pause: sinon.spy(),
+      pause: sinon.spy()
     });
 
     tracker.get('poll').perform();
@@ -85,6 +104,9 @@ export default function statsTrackerFrameMissing({
     await settled();
 
     assert.equal(tracker.get('frameMisses'), 0, 'Misses reset');
-    assert.ok(tracker.pause.called, 'Pause called now that frameMisses == maxFrameMisses');
+    assert.ok(
+      tracker.pause.called,
+      'Pause called now that frameMisses == maxFrameMisses'
+    );
   });
 }

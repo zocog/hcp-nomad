@@ -19,8 +19,12 @@ module('Acceptance | task fs', function(hooks) {
     server.create('node', 'forceIPv4');
     const job = server.create('job', { createAllocations: false });
 
-    allocation = server.create('allocation', { jobId: job.id, clientStatus: 'running' });
-    task = server.schema.taskStates.where({ allocationId: allocation.id }).models[0];
+    allocation = server.create('allocation', {
+      jobId: job.id,
+      clientStatus: 'running'
+    });
+    task = server.schema.taskStates.where({ allocationId: allocation.id })
+      .models[0];
     task.name = 'task-name';
     task.save();
 
@@ -30,21 +34,24 @@ module('Acceptance | task fs', function(hooks) {
     // Reset files
     files = [];
 
-    taskDirectory = server.create('allocFile', { isDir: true, name: task.name });
+    taskDirectory = server.create('allocFile', {
+      isDir: true,
+      name: task.name
+    });
     files.push(taskDirectory);
 
     // Nested files
     directory = server.create('allocFile', {
       isDir: true,
       name: 'directory',
-      parent: taskDirectory,
+      parent: taskDirectory
     });
     files.push(directory);
 
     nestedDirectory = server.create('allocFile', {
       isDir: true,
       name: 'another',
-      parent: directory,
+      parent: directory
     });
     files.push(nestedDirectory);
 
@@ -52,15 +59,29 @@ module('Acceptance | task fs', function(hooks) {
       server.create('allocFile', 'file', {
         name: 'something.txt',
         fileType: 'txt',
-        parent: nestedDirectory,
+        parent: nestedDirectory
       })
     );
 
     files.push(
-      server.create('allocFile', { isDir: true, name: 'empty-directory', parent: taskDirectory })
+      server.create('allocFile', {
+        isDir: true,
+        name: 'empty-directory',
+        parent: taskDirectory
+      })
     );
-    files.push(server.create('allocFile', 'file', { fileType: 'txt', parent: taskDirectory }));
-    files.push(server.create('allocFile', 'file', { fileType: 'txt', parent: taskDirectory }));
+    files.push(
+      server.create('allocFile', 'file', {
+        fileType: 'txt',
+        parent: taskDirectory
+      })
+    );
+    files.push(
+      server.create('allocFile', 'file', {
+        fileType: 'txt',
+        parent: taskDirectory
+      })
+    );
 
     this.files = files;
     this.directory = directory;
@@ -68,12 +89,16 @@ module('Acceptance | task fs', function(hooks) {
   });
 
   browseFilesystem({
-    visitSegments: ({ allocation, task }) => ({ id: allocation.id, name: task.name }),
-    getExpectedPathBase: ({ allocation, task }) => `/allocations/${allocation.id}/${task.name}/fs/`,
+    visitSegments: ({ allocation, task }) => ({
+      id: allocation.id,
+      name: task.name
+    }),
+    getExpectedPathBase: ({ allocation, task }) =>
+      `/allocations/${allocation.id}/${task.name}/fs/`,
     getTitleComponent: ({ task }) => `Task ${task.name} filesystem`,
     getBreadcrumbComponent: ({ task }) => task.name,
     getFilesystemRoot: ({ task }) => task.name,
     pageObjectVisitFunctionName: 'visitTask',
-    pageObjectVisitPathFunctionName: 'visitTaskPath',
+    pageObjectVisitPathFunctionName: 'visitTaskPath'
   });
 });

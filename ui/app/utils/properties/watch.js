@@ -25,9 +25,9 @@ export function watchRecord(modelName) {
         yield RSVP.all([
           this.store.findRecord(modelName, id, {
             reload: true,
-            adapterOptions: { watch: true, abortController: controller },
+            adapterOptions: { watch: true, abortController: controller }
           }),
-          wait(throttle),
+          wait(throttle)
         ]);
       } catch (e) {
         yield e;
@@ -53,9 +53,9 @@ export function watchRelationship(relationshipName) {
             .adapterFor(model.constructor.modelName)
             .reloadRelationship(model, relationshipName, {
               watch: true,
-              abortController: controller,
+              abortController: controller
             }),
-          wait(throttle),
+          wait(throttle)
         ]);
       } catch (e) {
         yield e;
@@ -79,9 +79,9 @@ export function watchAll(modelName) {
         yield RSVP.all([
           this.store.findAll(modelName, {
             reload: true,
-            adapterOptions: { watch: true, abortController: controller },
+            adapterOptions: { watch: true, abortController: controller }
           }),
-          wait(throttle),
+          wait(throttle)
         ]);
       } catch (e) {
         yield e;
@@ -105,9 +105,9 @@ export function watchQuery(modelName) {
         yield RSVP.all([
           this.store.query(modelName, params, {
             reload: true,
-            adapterOptions: { watch: true, abortController: controller },
+            adapterOptions: { watch: true, abortController: controller }
           }),
-          wait(throttle),
+          wait(throttle)
         ]);
       } catch (e) {
         yield e;

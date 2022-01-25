@@ -12,7 +12,7 @@ let startSpy, stopSpy, initSpy, fetchSpy;
 const MockStreamer = EmberObject.extend({
   init() {
     this.poll = {
-      isRunning: false,
+      isRunning: false
     };
 
     initSpy(...arguments);
@@ -32,15 +32,20 @@ const MockStreamer = EmberObject.extend({
     if (this.poll.isRunning) {
       this.write(chunk);
     }
-  },
+  }
 });
 
 const Log = _Log.extend({
   init() {
     this._super();
-    const props = this.logStreamer.getProperties('url', 'params', 'logFetch', 'write');
+    const props = this.logStreamer.getProperties(
+      'url',
+      'params',
+      'logFetch',
+      'write'
+    );
     this.set('logStreamer', MockStreamer.create(props));
-  },
+  }
 });
 
 module('Unit | Util | Log', function(hooks) {
@@ -55,16 +60,16 @@ module('Unit | Util | Log', function(hooks) {
     url: '/test-url/',
     params: {
       a: 'param',
-      another: 'one',
+      another: 'one'
     },
     logFetch: function() {
       fetchSpy(...arguments);
       return RSVP.Promise.resolve({
         text() {
           return output;
-        },
+        }
       });
-    },
+    }
   });
 
   test('logStreamer is created on init', async function(assert) {
@@ -75,13 +80,18 @@ module('Unit | Util | Log', function(hooks) {
   });
 
   test('gotoHead builds the correct URL', async function(assert) {
+    assert.expect(1);
+
     const mocks = makeMocks('');
     const expectedUrl = `${mocks.url}?a=param&another=one&offset=0&origin=start`;
     const log = Log.create(mocks);
 
     run(() => {
       log.get('gotoHead').perform();
-      assert.ok(fetchSpy.calledWith(expectedUrl), `gotoHead URL was ${expectedUrl}`);
+      assert.ok(
+        fetchSpy.calledWith(expectedUrl),
+        `gotoHead URL was ${expectedUrl}`
+      );
     });
   });
 
@@ -116,13 +126,18 @@ module('Unit | Util | Log', function(hooks) {
   });
 
   test('gotoTail builds the correct URL', async function(assert) {
+    assert.expect(1);
+
     const mocks = makeMocks('');
     const expectedUrl = `${mocks.url}?a=param&another=one&offset=50000&origin=end`;
     const log = Log.create(mocks);
 
     run(() => {
       log.get('gotoTail').perform();
-      assert.ok(fetchSpy.calledWith(expectedUrl), `gotoTail URL was ${expectedUrl}`);
+      assert.ok(
+        fetchSpy.calledWith(expectedUrl),
+        `gotoTail URL was ${expectedUrl}`
+      );
     });
   });
 
@@ -131,7 +146,11 @@ module('Unit | Util | Log', function(hooks) {
 
     log.startStreaming();
     assert.ok(startSpy.calledOnce, 'Streaming started');
-    assert.equal(log.get('logPointer'), 'tail', 'Streaming points the log to the tail');
+    assert.equal(
+      log.get('logPointer'),
+      'tail',
+      'Streaming points the log to the tail'
+    );
   });
 
   test('When the log streamer calls `write`, the output is appended', async function(assert) {
@@ -150,7 +169,11 @@ module('Unit | Util | Log', function(hooks) {
     assert.equal(log.get('output'), chunk1 + chunk2, 'Second chunk written');
 
     log.get('logStreamer').step(chunk3);
-    assert.equal(log.get('output'), chunk1 + chunk2 + chunk3, 'Third chunk written');
+    assert.equal(
+      log.get('output'),
+      chunk1 + chunk2 + chunk3,
+      'Third chunk written'
+    );
   });
 
   test('stop stops the log streamer', async function(assert) {

@@ -1,4 +1,10 @@
-import { find, findAll, click, render, triggerEvent } from '@ember/test-helpers';
+import {
+  find,
+  findAll,
+  click,
+  render,
+  triggerEvent
+} from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
@@ -12,17 +18,16 @@ module('Integration | Component | line-chart', function(hooks) {
   setupRenderingTest(hooks);
 
   test('when a chart has annotations, they are rendered in order', async function(assert) {
+    assert.expect(4);
+
     const annotations = [
       { x: 2, type: 'info' },
       { x: 1, type: 'error' },
-      { x: 3, type: 'info' },
+      { x: 3, type: 'info' }
     ];
     this.setProperties({
       annotations,
-      data: [
-        { x: 1, y: 1 },
-        { x: 10, y: 10 },
-      ],
+      data: [{ x: 1, y: 1 }, { x: 10, y: 10 }]
     });
 
     await render(hbs`
@@ -49,32 +54,31 @@ module('Integration | Component | line-chart', function(hooks) {
   });
 
   test('when a chart has annotations and is timeseries, annotations are sorted reverse-chronologically', async function(assert) {
+    assert.expect(3);
+
     const annotations = [
       {
         x: moment(REF_DATE)
           .add(2, 'd')
           .toDate(),
-        type: 'info',
+        type: 'info'
       },
       {
         x: moment(REF_DATE)
           .add(1, 'd')
           .toDate(),
-        type: 'error',
+        type: 'error'
       },
       {
         x: moment(REF_DATE)
           .add(3, 'd')
           .toDate(),
-        type: 'info',
-      },
+        type: 'info'
+      }
     ];
     this.setProperties({
       annotations,
-      data: [
-        { x: 1, y: 1 },
-        { x: 10, y: 10 },
-      ],
+      data: [{ x: 1, y: 1 }, { x: 10, y: 10 }]
     });
 
     await render(hbs`
@@ -103,11 +107,8 @@ module('Integration | Component | line-chart', function(hooks) {
     const annotations = [{ x: 2, type: 'info', meta: { data: 'here' } }];
     this.setProperties({
       annotations,
-      data: [
-        { x: 1, y: 1 },
-        { x: 10, y: 10 },
-      ],
-      click: sinon.spy(),
+      data: [{ x: 1, y: 1 }, { x: 10, y: 10 }],
+      click: sinon.spy()
     });
 
     await render(hbs`
@@ -126,18 +127,17 @@ module('Integration | Component | line-chart', function(hooks) {
   });
 
   test('annotations will have staggered heights when too close to be positioned side-by-side', async function(assert) {
+    assert.expect(4);
+
     const annotations = [
       { x: 2, type: 'info' },
       { x: 2.4, type: 'error' },
-      { x: 9, type: 'info' },
+      { x: 9, type: 'info' }
     ];
     this.setProperties({
       annotations,
-      data: [
-        { x: 1, y: 1 },
-        { x: 10, y: 10 },
-      ],
-      click: sinon.spy(),
+      data: [{ x: 1, y: 1 }, { x: 10, y: 10 }],
+      click: sinon.spy()
     });
 
     await render(hbs`
@@ -162,17 +162,16 @@ module('Integration | Component | line-chart', function(hooks) {
   });
 
   test('horizontal annotations render in order', async function(assert) {
+    assert.expect(3);
+
     const annotations = [
       { y: 2, label: 'label one' },
       { y: 9, label: 'label three' },
-      { y: 2.4, label: 'label two' },
+      { y: 2.4, label: 'label two' }
     ];
     this.setProperties({
       annotations,
-      data: [
-        { x: 1, y: 1 },
-        { x: 10, y: 10 },
-      ],
+      data: [{ x: 1, y: 1 }, { x: 10, y: 10 }]
     });
 
     await render(hbs`
@@ -196,21 +195,12 @@ module('Integration | Component | line-chart', function(hooks) {
   });
 
   test('the tooltip includes information on the data closest to the mouse', async function(assert) {
-    const series1 = [
-      { x: 1, y: 2 },
-      { x: 3, y: 3 },
-      { x: 5, y: 4 },
-    ];
-    const series2 = [
-      { x: 2, y: 10 },
-      { x: 4, y: 9 },
-      { x: 6, y: 8 },
-    ];
+    assert.expect(8);
+
+    const series1 = [{ x: 1, y: 2 }, { x: 3, y: 3 }, { x: 5, y: 4 }];
+    const series2 = [{ x: 2, y: 10 }, { x: 4, y: 9 }, { x: 6, y: 8 }];
     this.setProperties({
-      data: [
-        { series: 'One', data: series1 },
-        { series: 'Two', data: series2 },
-      ],
+      data: [{ series: 'One', data: series1 }, { series: 'Two', data: series2 }]
     });
 
     await render(hbs`
@@ -251,9 +241,14 @@ module('Integration | Component | line-chart', function(hooks) {
     // MouseEnter triggers the tooltip visibility
     await triggerEvent(hoverTarget, 'mouseenter');
     // MouseMove positions the tooltip and updates the active datum
-    await triggerEvent(hoverTarget, 'mousemove', { clientX: xOffset + interval * 1 + 5 });
+    await triggerEvent(hoverTarget, 'mousemove', {
+      clientX: xOffset + interval * 1 + 5
+    });
     assert.equal(findAll('[data-test-chart-tooltip] li').length, 1);
-    assert.equal(find('[data-test-chart-tooltip] .label').textContent.trim(), this.data[1].series);
+    assert.equal(
+      find('[data-test-chart-tooltip] .label').textContent.trim(),
+      this.data[1].series
+    );
     assert.equal(
       find('[data-test-chart-tooltip] .value').textContent.trim(),
       series2.find(d => d.x === 2).y
@@ -265,13 +260,21 @@ module('Integration | Component | line-chart', function(hooks) {
     // This event is intentionally between points such that both points are within proximity.
     const expected = [
       { label: this.data[0].series, value: series1.find(d => d.x === 3).y },
-      { label: this.data[1].series, value: series2.find(d => d.x === 2).y },
+      { label: this.data[1].series, value: series2.find(d => d.x === 2).y }
     ];
-    await triggerEvent(hoverTarget, 'mousemove', { clientX: xOffset + interval * 1.5 + 5 });
+    await triggerEvent(hoverTarget, 'mousemove', {
+      clientX: xOffset + interval * 1.5 + 5
+    });
     assert.equal(findAll('[data-test-chart-tooltip] li').length, 2);
     findAll('[data-test-chart-tooltip] li').forEach((tooltipEntry, index) => {
-      assert.equal(tooltipEntry.querySelector('.label').textContent.trim(), expected[index].label);
-      assert.equal(tooltipEntry.querySelector('.value').textContent.trim(), expected[index].value);
+      assert.equal(
+        tooltipEntry.querySelector('.label').textContent.trim(),
+        expected[index].label
+      );
+      assert.equal(
+        tooltipEntry.querySelector('.value').textContent.trim(),
+        expected[index].value
+      );
     });
   });
 });

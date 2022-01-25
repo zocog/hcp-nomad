@@ -1,4 +1,10 @@
-import { attribute, clickable, hasClass, isPresent, text } from 'ember-cli-page-object';
+import {
+  attribute,
+  clickable,
+  hasClass,
+  isPresent,
+  text
+} from 'ember-cli-page-object';
 
 export default scope => ({
   scope,
@@ -18,5 +24,5 @@ export default scope => ({
   idleText: text('[data-test-idle-button]'),
   cancelText: text('[data-test-cancel-button]'),
   confirmText: text('[data-test-confirm-button]'),
-  confirmationMessage: text('[data-test-confirmation-message]'),
+  confirmationMessage: text('[data-test-confirmation-message]')
 });

@@ -69,6 +69,7 @@ export default class TaskRow extends Component {
   fetchStats;
 
   didReceiveAttrs() {
+    super.didReceiveAttrs();
     const allocation = this.get('task.allocation');
 
     if (allocation) {

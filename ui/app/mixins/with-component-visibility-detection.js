@@ -20,5 +20,5 @@ export default Mixin.create({
     if (!Ember.testing) {
       document.removeEventListener('visibilitychange', this._visibilityHandler);
     }
-  }),
+  })
 });

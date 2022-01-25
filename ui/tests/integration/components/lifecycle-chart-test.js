@@ -1,3 +1,4 @@
+/* eslint-disable qunit/no-conditional-assertions */
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import { render, settled } from '@ember/test-helpers';
@@ -12,38 +13,40 @@ const Chart = create(LifecycleChart);
 const tasks = [
   {
     lifecycleName: 'main',
-    name: 'main two: 3',
+    name: 'main two: 3'
   },
   {
     lifecycleName: 'main',
-    name: 'main one: 2',
+    name: 'main one: 2'
   },
   {
     lifecycleName: 'prestart-ephemeral',
-    name: 'prestart ephemeral: 0',
+    name: 'prestart ephemeral: 0'
   },
   {
     lifecycleName: 'prestart-sidecar',
-    name: 'prestart sidecar: 1',
+    name: 'prestart sidecar: 1'
   },
   {
     lifecycleName: 'poststart-ephemeral',
-    name: 'poststart ephemeral: 5',
+    name: 'poststart ephemeral: 5'
   },
   {
     lifecycleName: 'poststart-sidecar',
-    name: 'poststart sidecar: 4',
+    name: 'poststart sidecar: 4'
   },
   {
     lifecycleName: 'poststop',
-    name: 'poststop: 6',
-  },
+    name: 'poststop: 6'
+  }
 ];
 
 module('Integration | Component | lifecycle-chart', function(hooks) {
   setupRenderingTest(hooks);
 
   test('it renders stateless phases and lifecycle- and name-sorted tasks', async function(assert) {
+    assert.expect(32);
+
     this.set('tasks', tasks);
 
     await render(hbs`<LifecycleChart @tasks={{tasks}} />`);
@@ -63,7 +66,7 @@ module('Integration | Component | lifecycle-chart', function(hooks) {
       'main two: 3',
       'poststart sidecar: 4',
       'poststart ephemeral: 5',
-      'poststop: 6',
+      'poststop: 6'
     ]);
     assert.deepEqual(Chart.tasks.mapBy('lifecycle'), [
       'Prestart Task',
@@ -72,7 +75,7 @@ module('Integration | Component | lifecycle-chart', function(hooks) {
       'Main Task',
       'Sidecar Task',
       'Poststart Task',
-      'Poststop Task',
+      'Poststop Task'
     ]);
 
     assert.ok(Chart.tasks[0].isPrestartEphemeral);
@@ -93,8 +96,8 @@ module('Integration | Component | lifecycle-chart', function(hooks) {
   test('it doesn’t render when there’s only one phase', async function(assert) {
     this.set('tasks', [
       {
-        lifecycleName: 'main',
-      },
+        lifecycleName: 'main'
+      }
     ]);
 
     await render(hbs`<LifecycleChart @tasks={{tasks}} />`);
@@ -109,6 +112,8 @@ module('Integration | Component | lifecycle-chart', function(hooks) {
   });
 
   test('it reflects phase and task states when states are passed in', async function(assert) {
+    assert.expect(24);
+
     this.set(
       'taskStates',
       tasks.map(task => {
@@ -150,20 +155,23 @@ module('Integration | Component | lifecycle-chart', function(hooks) {
     {
       testName: 'expected active phases',
       runningTaskNames: ['prestart ephemeral', 'main one', 'poststop'],
-      activePhaseNames: ['Prestart', 'Main', 'Poststop'],
+      activePhaseNames: ['Prestart', 'Main', 'Poststop']
     },
     {
       testName: 'sidecar task states don’t affect phase active states',
       runningTaskNames: ['prestart sidecar', 'poststart sidecar'],
-      activePhaseNames: [],
+      activePhaseNames: []
     },
     {
-      testName: 'poststart ephemeral task states affect main phase active state',
+      testName:
+        'poststart ephemeral task states affect main phase active state',
       runningTaskNames: ['poststart ephemeral'],
-      activePhaseNames: ['Main'],
-    },
+      activePhaseNames: ['Main']
+    }
   ].forEach(async ({ testName, runningTaskNames, activePhaseNames }) => {
     test(testName, async function(assert) {
+      assert.expect(4);
+
       this.set('taskStates', tasks.map(task => ({ task })));
 
       await render(hbs`<LifecycleChart @taskStates={{taskStates}} />`);
@@ -181,7 +189,10 @@ module('Integration | Component | lifecycle-chart', function(hooks) {
         if (activePhaseNames.includes(Phase.name)) {
           assert.ok(Phase.isActive, `expected ${Phase.name} not to be active`);
         } else {
-          assert.notOk(Phase.isActive, `expected ${Phase.name} phase not to be active`);
+          assert.notOk(
+            Phase.isActive,
+            `expected ${Phase.name} phase not to be active`
+          );
         }
       });
     });

@@ -1,3 +1,4 @@
+import { set } from '@ember/object';
 import { inject as service } from '@ember/service';
 import { action, computed } from '@ember/object';
 import { alias, readOnly } from '@ember/object/computed';
@@ -11,15 +12,15 @@ import classic from 'ember-classic-decorator';
 
 @classic
 export default class IndexController extends Controller.extend(
-    SortableFactory([
-      'id',
-      'schedulable',
-      'controllersHealthyProportion',
-      'nodesHealthyProportion',
-      'provider',
-    ]),
-    Searchable
-  ) {
+  SortableFactory([
+    'id',
+    'schedulable',
+    'controllersHealthyProportion',
+    'nodesHealthyProportion',
+    'provider'
+  ]),
+  Searchable
+) {
   @service system;
   @service userSettings;
   @controller('csi/volumes') volumesController;
@@ -29,20 +30,20 @@ export default class IndexController extends Controller.extend(
 
   queryParams = [
     {
-      currentPage: 'page',
+      currentPage: 'page'
     },
     {
-      searchTerm: 'search',
+      searchTerm: 'search'
     },
     {
-      sortProperty: 'sort',
+      sortProperty: 'sort'
     },
     {
-      sortDescending: 'desc',
+      sortDescending: 'desc'
     },
     {
-      qpNamespace: 'namespace',
-    },
+      qpNamespace: 'namespace'
+    }
   ];
 
   currentPage = 1;
@@ -67,12 +68,12 @@ export default class IndexController extends Controller.extend(
   get optionsNamespaces() {
     const availableNamespaces = this.model.namespaces.map(namespace => ({
       key: namespace.name,
-      label: namespace.name,
+      label: namespace.name
     }));
 
     availableNamespaces.unshift({
       key: '*',
-      label: 'All (*)',
+      label: 'All (*)'
     });
 
     // Unset the namespace selection if it was server-side deleted
@@ -102,7 +103,7 @@ export default class IndexController extends Controller.extend(
 
   @action
   cacheNamespace(namespace) {
-    this.system.cachedNamespace = namespace;
+    set(this, 'system.cachedNamespace', namespace);
   }
 
   setFacetQueryParam(queryParam, selection) {
@@ -114,9 +115,9 @@ export default class IndexController extends Controller.extend(
     lazyClick([
       () =>
         this.transitionToRoute('csi.volumes.volume', volume.get('plainId'), {
-          queryParams: { volumeNamespace: volume.get('namespace.name') },
+          queryParams: { volumeNamespace: volume.get('namespace.name') }
         }),
-      event,
+      event
     ]);
   }
 }

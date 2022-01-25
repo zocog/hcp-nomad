@@ -10,7 +10,7 @@ module('Unit | Ability | job', function(hooks) {
 
   test('it permits job run when ACLs are disabled', function(assert) {
     const mockToken = Service.extend({
-      aclEnabled: false,
+      aclEnabled: false
     });
 
     this.owner.register('service:token', mockToken);
@@ -21,7 +21,7 @@ module('Unit | Ability | job', function(hooks) {
   test('it permits job run for management tokens', function(assert) {
     const mockToken = Service.extend({
       aclEnabled: true,
-      selfToken: { type: 'management' },
+      selfToken: { type: 'management' }
     });
 
     this.owner.register('service:token', mockToken);
@@ -31,7 +31,7 @@ module('Unit | Ability | job', function(hooks) {
 
   test('it permits job run for client tokens with a policy that has namespace submit-job', function(assert) {
     const mockSystem = Service.extend({
-      aclEnabled: true,
+      aclEnabled: true
     });
 
     const mockToken = Service.extend({
@@ -43,12 +43,12 @@ module('Unit | Ability | job', function(hooks) {
             Namespaces: [
               {
                 Name: 'aNamespace',
-                Capabilities: ['submit-job'],
-              },
-            ],
-          },
-        },
-      ],
+                Capabilities: ['submit-job']
+              }
+            ]
+          }
+        }
+      ]
     });
 
     this.owner.register('service:system', mockSystem);
@@ -59,7 +59,7 @@ module('Unit | Ability | job', function(hooks) {
 
   test('it permits job run for client tokens with a policy that has default namespace submit-job and no capabilities for active namespace', function(assert) {
     const mockSystem = Service.extend({
-      aclEnabled: true,
+      aclEnabled: true
     });
 
     const mockToken = Service.extend({
@@ -71,16 +71,16 @@ module('Unit | Ability | job', function(hooks) {
             Namespaces: [
               {
                 Name: 'aNamespace',
-                Capabilities: [],
+                Capabilities: []
               },
               {
                 Name: 'default',
-                Capabilities: ['submit-job'],
-              },
-            ],
-          },
-        },
-      ],
+                Capabilities: ['submit-job']
+              }
+            ]
+          }
+        }
+      ]
     });
 
     this.owner.register('service:system', mockSystem);
@@ -91,7 +91,7 @@ module('Unit | Ability | job', function(hooks) {
 
   test('it blocks job run for client tokens with a policy that has no submit-job capability', function(assert) {
     const mockSystem = Service.extend({
-      aclEnabled: true,
+      aclEnabled: true
     });
 
     const mockToken = Service.extend({
@@ -103,12 +103,12 @@ module('Unit | Ability | job', function(hooks) {
             Namespaces: [
               {
                 Name: 'aNamespace',
-                Capabilities: ['list-jobs'],
-              },
-            ],
-          },
-        },
-      ],
+                Capabilities: ['list-jobs']
+              }
+            ]
+          }
+        }
+      ]
     });
 
     this.owner.register('service:system', mockSystem);
@@ -124,21 +124,21 @@ module('Unit | Ability | job', function(hooks) {
           Namespaces: [
             {
               Name: namespace,
-              Capabilities: capabilities,
-            },
-          ],
-        },
-      },
+              Capabilities: capabilities
+            }
+          ]
+        }
+      }
     ];
 
     const mockSystem = Service.extend({
-      aclEnabled: true,
+      aclEnabled: true
     });
 
     const mockToken = Service.extend({
       aclEnabled: true,
       selfToken: { type: 'client' },
-      selfTokenPolicies: makePolicies('aNamespace'),
+      selfTokenPolicies: makePolicies('aNamespace')
     });
 
     this.owner.register('service:system', mockSystem);
@@ -147,13 +147,22 @@ module('Unit | Ability | job', function(hooks) {
 
     assert.ok(this.can.cannot('scale job', null, { namespace: 'aNamespace' }));
 
-    tokenService.set('selfTokenPolicies', makePolicies('aNamespace', 'scale-job'));
+    tokenService.set(
+      'selfTokenPolicies',
+      makePolicies('aNamespace', 'scale-job')
+    );
     assert.ok(this.can.can('scale job', null, { namespace: 'aNamespace' }));
 
-    tokenService.set('selfTokenPolicies', makePolicies('aNamespace', 'submit-job'));
+    tokenService.set(
+      'selfTokenPolicies',
+      makePolicies('aNamespace', 'submit-job')
+    );
     assert.ok(this.can.can('scale job', null, { namespace: 'aNamespace' }));
 
-    tokenService.set('selfTokenPolicies', makePolicies('bNamespace', 'scale-job'));
+    tokenService.set(
+      'selfTokenPolicies',
+      makePolicies('bNamespace', 'scale-job')
+    );
     assert.ok(this.can.cannot('scale job', null, { namespace: 'aNamespace' }));
   });
 
@@ -164,36 +173,41 @@ module('Unit | Ability | job', function(hooks) {
           Namespaces: [
             {
               Name: namespace,
-              Capabilities: capabilities,
-            },
-          ],
-        },
-      },
+              Capabilities: capabilities
+            }
+          ]
+        }
+      }
     ];
 
     const mockSystem = Service.extend({
-      aclEnabled: true,
+      aclEnabled: true
     });
 
     const mockToken = Service.extend({
       aclEnabled: true,
       selfToken: { type: 'client' },
-      selfTokenPolicies: makePolicies('aNamespace'),
+      selfTokenPolicies: makePolicies('aNamespace')
     });
 
     this.owner.register('service:system', mockSystem);
     this.owner.register('service:token', mockToken);
     const tokenService = this.owner.lookup('service:token');
 
-    assert.ok(this.can.cannot('dispatch job', null, { namespace: 'aNamespace' }));
+    assert.ok(
+      this.can.cannot('dispatch job', null, { namespace: 'aNamespace' })
+    );
 
-    tokenService.set('selfTokenPolicies', makePolicies('aNamespace', 'dispatch-job'));
+    tokenService.set(
+      'selfTokenPolicies',
+      makePolicies('aNamespace', 'dispatch-job')
+    );
     assert.ok(this.can.can('dispatch job', null, { namespace: 'aNamespace' }));
   });
 
   test('it handles globs in namespace names', function(assert) {
     const mockSystem = Service.extend({
-      aclEnabled: true,
+      aclEnabled: true
     });
 
     const mockToken = Service.extend({
@@ -205,43 +219,49 @@ module('Unit | Ability | job', function(hooks) {
             Namespaces: [
               {
                 Name: 'production-*',
-                Capabilities: ['submit-job'],
+                Capabilities: ['submit-job']
               },
               {
                 Name: 'production-api',
-                Capabilities: ['submit-job'],
+                Capabilities: ['submit-job']
               },
               {
                 Name: 'production-web',
-                Capabilities: [],
+                Capabilities: []
               },
               {
                 Name: '*-suffixed',
-                Capabilities: ['submit-job'],
+                Capabilities: ['submit-job']
               },
               {
                 Name: '*-more-suffixed',
-                Capabilities: [],
+                Capabilities: []
               },
               {
                 Name: '*-abc-*',
-                Capabilities: ['submit-job'],
-              },
-            ],
-          },
-        },
-      ],
+                Capabilities: ['submit-job']
+              }
+            ]
+          }
+        }
+      ]
     });
 
     this.owner.register('service:system', mockSystem);
     this.owner.register('service:token', mockToken);
 
-    assert.ok(this.can.cannot('run job', null, { namespace: 'production-web' }));
+    assert.ok(
+      this.can.cannot('run job', null, { namespace: 'production-web' })
+    );
     assert.ok(this.can.can('run job', null, { namespace: 'production-api' }));
     assert.ok(this.can.can('run job', null, { namespace: 'production-other' }));
-    assert.ok(this.can.can('run job', null, { namespace: 'something-suffixed' }));
     assert.ok(
-      this.can.cannot('run job', null, { namespace: 'something-more-suffixed' }),
+      this.can.can('run job', null, { namespace: 'something-suffixed' })
+    );
+    assert.ok(
+      this.can.cannot('run job', null, {
+        namespace: 'something-more-suffixed'
+      }),
       'expected the namespace with the greatest number of matched characters to be chosen'
     );
     assert.ok(

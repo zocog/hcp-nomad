@@ -1,4 +1,4 @@
-import { findAll } from '@ember/test-helpers';
+import { findAll, render } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
@@ -8,7 +8,10 @@ import faker from 'nomad-ui/mirage/faker';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
 import { setupMirage } from 'ember-cli-mirage/test-support';
 import topoVisNodePageObject from 'nomad-ui/tests/pages/components/topo-viz/node';
-import { formatScheduledBytes, formatScheduledHertz } from 'nomad-ui/utils/units';
+import {
+  formatScheduledBytes,
+  formatScheduledHertz
+} from 'nomad-ui/utils/units';
 
 const TopoVizNode = create(topoVisNodePageObject());
 
@@ -20,8 +23,8 @@ const nodeGen = (name, datacenter, memory, cpu, flags = {}) => ({
   node: {
     name,
     isEligible: flags.isEligible || flags.isEligible == null,
-    isDraining: !!flags.isDraining,
-  },
+    isDraining: !!flags.isDraining
+  }
 });
 
 const allocGen = (node, memory, cpu, isScheduled = true) => ({
@@ -32,8 +35,8 @@ const allocGen = (node, memory, cpu, isScheduled = true) => ({
   cpuPercent: cpu / node.cpu,
   allocation: {
     id: faker.random.uuid(),
-    isScheduled,
-  },
+    isScheduled
+  }
 });
 
 const props = overrides => ({
@@ -43,7 +46,7 @@ const props = overrides => ({
   onNodeSelect: sinon.spy(),
   onAllocationFocus: sinon.spy(),
   onAllocationBlur: sinon.spy(),
-  ...overrides,
+  ...overrides
 });
 
 module('Integration | Component | TopoViz::Node', function(hooks) {
@@ -62,6 +65,8 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
   `;
 
   test('presents as a div with a label and an svg with CPU and memory rows', async function(assert) {
+    assert.expect(4);
+
     const node = nodeGen('Node One', 'dc1', 1000, 1000);
     this.setProperties(
       props({
@@ -70,13 +75,13 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
           allocations: [
             allocGen(node, 100, 100),
             allocGen(node, 250, 250),
-            allocGen(node, 300, 300, false),
-          ],
-        },
+            allocGen(node, 300, 300, false)
+          ]
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     assert.ok(TopoVizNode.isPresent);
     assert.equal(
@@ -97,22 +102,32 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
           allocations: [
             allocGen(node, 100, 100),
             allocGen(node, 250, 250),
-            allocGen(node, 300, 300, false),
-          ],
-        },
+            allocGen(node, 300, 300, false)
+          ]
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     assert.ok(TopoVizNode.label.includes(node.node.name));
     assert.ok(
       TopoVizNode.label.includes(
-        `${this.node.allocations.filterBy('allocation.isScheduled').length} Allocs`
+        `${
+          this.node.allocations.filterBy('allocation.isScheduled').length
+        } Allocs`
       )
     );
-    assert.ok(TopoVizNode.label.includes(`${formatScheduledBytes(this.node.memory, 'MiB')}`));
-    assert.ok(TopoVizNode.label.includes(`${formatScheduledHertz(this.node.cpu, 'MHz')}`));
+    assert.ok(
+      TopoVizNode.label.includes(
+        `${formatScheduledBytes(this.node.memory, 'MiB')}`
+      )
+    );
+    assert.ok(
+      TopoVizNode.label.includes(
+        `${formatScheduledHertz(this.node.cpu, 'MHz')}`
+      )
+    );
   });
 
   test('the status icon indicates when the node is draining', async function(assert) {
@@ -121,12 +136,12 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
       props({
         node: {
           ...node,
-          allocations: [],
-        },
+          allocations: []
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     assert.ok(TopoVizNode.statusIcon.includes('icon-is-clock-outline'));
     assert.equal(TopoVizNode.statusIconLabel, 'Client is draining');
@@ -138,12 +153,12 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
       props({
         node: {
           ...node,
-          allocations: [],
-        },
+          allocations: []
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     assert.ok(TopoVizNode.statusIcon.includes('icon-is-lock-closed'));
     assert.equal(TopoVizNode.statusIconLabel, 'Client is ineligible');
@@ -156,12 +171,12 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
         isDense: false,
         node: {
           ...node,
-          allocations: [],
-        },
+          allocations: []
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
     await TopoVizNode.selectNode();
 
     assert.notOk(TopoVizNode.nodeIsInteractive);
@@ -175,12 +190,12 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
         isDense: true,
         node: {
           ...node,
-          allocations: [],
-        },
+          allocations: []
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
     await TopoVizNode.selectNode();
 
     assert.ok(TopoVizNode.nodeIsInteractive);
@@ -195,12 +210,12 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
         isDense: true,
         node: {
           ...node,
-          allocations: [],
-        },
+          allocations: []
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     assert.ok(TopoVizNode.nodeIsSelected);
   });
@@ -217,12 +232,12 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
         },
         node: {
           ...node,
-          allocations: [allocGen(node, 100, 100), allocGen(node, 250, 250)],
-        },
+          allocations: [allocGen(node, 100, 100), allocGen(node, 250, 250)]
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     assert.ok(heightSpy.called);
     assert.ok(heightSpy.calledWith(this.node.memory));
@@ -235,29 +250,31 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
       props({
         node: {
           ...node,
-          allocations: [allocGen(node, 100, 100), allocGen(node, 250, 250)],
-        },
+          allocations: [allocGen(node, 100, 100), allocGen(node, 250, 250)]
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     assert.equal(TopoVizNode.memoryRects.length, this.node.allocations.length);
     assert.equal(TopoVizNode.cpuRects.length, this.node.allocations.length);
   });
 
   test('each allocation is sized according to its percentage of utilization', async function(assert) {
+    assert.expect(4);
+
     const node = nodeGen('Node One', 'dc1', 1000, 1000);
     this.setProperties(
       props({
         node: {
           ...node,
-          allocations: [allocGen(node, 100, 100), allocGen(node, 250, 250)],
-        },
+          allocations: [allocGen(node, 100, 100), allocGen(node, 250, 250)]
+        }
       })
     );
 
-    await this.render(hbs`
+    await render(hbs`
       <div style="width:100px">
         <TopoViz::Node
           @node={{this.node}}
@@ -284,12 +301,12 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
       props({
         node: {
           ...node,
-          allocations: [allocGen(node, 100, 100), allocGen(node, 250, 250)],
-        },
+          allocations: [allocGen(node, 100, 100), allocGen(node, 250, 250)]
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     await TopoVizNode.memoryRects[0].select();
     assert.equal(this.onAllocationSelect.callCount, 1);
@@ -312,12 +329,12 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
       props({
         node: {
           ...node,
-          allocations: [allocGen(node, 100, 100), allocGen(node, 250, 250)],
-        },
+          allocations: [allocGen(node, 100, 100), allocGen(node, 250, 250)]
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     await TopoVizNode.memoryRects[0].hover();
     assert.equal(this.onAllocationFocus.callCount, 1);
@@ -325,7 +342,10 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
       this.onAllocationFocus.getCall(0).args[0].allocation,
       this.node.allocations[0].allocation
     );
-    assert.equal(this.onAllocationFocus.getCall(0).args[1], findAll('[data-test-memory-rect]')[0]);
+    assert.equal(
+      this.onAllocationFocus.getCall(0).args[1],
+      findAll('[data-test-memory-rect]')[0]
+    );
 
     await TopoVizNode.cpuRects[1].hover();
     assert.equal(this.onAllocationFocus.callCount, 2);
@@ -333,7 +353,10 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
       this.onAllocationFocus.getCall(1).args[0].allocation,
       this.node.allocations[1].allocation
     );
-    assert.equal(this.onAllocationFocus.getCall(1).args[1], findAll('[data-test-cpu-rect]')[1]);
+    assert.equal(
+      this.onAllocationFocus.getCall(1).args[1],
+      findAll('[data-test-cpu-rect]')[1]
+    );
   });
 
   test('leaving the entire node will call onAllocationBlur, which allows for the tooltip transitions', async function(assert) {
@@ -342,12 +365,12 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
       props({
         node: {
           ...node,
-          allocations: [allocGen(node, 100, 100), allocGen(node, 250, 250)],
-        },
+          allocations: [allocGen(node, 100, 100), allocGen(node, 250, 250)]
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     await TopoVizNode.memoryRects[0].hover();
     assert.equal(this.onAllocationFocus.callCount, 1);
@@ -361,6 +384,8 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
   });
 
   test('allocations are sorted by smallest to largest delta of memory to cpu percent utilizations', async function(assert) {
+    assert.expect(10);
+
     const node = nodeGen('Node One', 'dc1', 1000, 1000);
 
     const evenAlloc = allocGen(node, 100, 100);
@@ -378,20 +403,20 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
             mediumCPUAlloc,
             evenAlloc,
             mediumMemoryAlloc,
-            largeMemoryAlloc,
-          ],
-        },
+            largeMemoryAlloc
+          ]
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
 
     const expectedOrder = [
       evenAlloc,
       mediumCPUAlloc,
       mediumMemoryAlloc,
       largeCPUAlloc,
-      largeMemoryAlloc,
+      largeMemoryAlloc
     ];
     expectedOrder.forEach((alloc, index) => {
       assert.equal(TopoVizNode.memoryRects[index].id, alloc.allocation.id);
@@ -405,12 +430,12 @@ module('Integration | Component | TopoViz::Node', function(hooks) {
       props({
         node: {
           ...node,
-          allocations: [],
-        },
+          allocations: []
+        }
       })
     );
 
-    await this.render(commonTemplate);
+    await render(commonTemplate);
     assert.equal(TopoVizNode.emptyMessage, 'Empty Client');
   });
 });

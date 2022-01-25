@@ -24,9 +24,9 @@ module('Unit | Serializer | Allocation', function(hooks) {
         TaskStates: {
           testTask: {
             State: 'running',
-            Failed: false,
-          },
-        },
+            Failed: false
+          }
+        }
       },
       out: {
         data: {
@@ -42,37 +42,37 @@ module('Unit | Serializer | Allocation', function(hooks) {
               {
                 name: 'testTask',
                 state: 'running',
-                failed: false,
-              },
+                failed: false
+              }
             ],
             wasPreempted: false,
-            allocationTaskGroup: null,
+            allocationTaskGroup: null
           },
           relationships: {
             followUpEvaluation: {
-              data: null,
+              data: null
             },
             nextAllocation: {
-              data: null,
+              data: null
             },
             previousAllocation: {
-              data: null,
+              data: null
             },
             preemptedAllocations: {
-              data: [],
+              data: []
             },
             preemptedByAllocation: {
-              data: null,
+              data: null
             },
             job: {
               data: {
                 id: '["test-summary","test-namespace"]',
-                type: 'job',
-              },
-            },
-          },
-        },
-      },
+                type: 'job'
+              }
+            }
+          }
+        }
+      }
     },
 
     {
@@ -88,13 +88,13 @@ module('Unit | Serializer | Allocation', function(hooks) {
         TaskStates: {
           'one.two': {
             State: 'running',
-            Failed: false,
+            Failed: false
           },
           'three.four': {
             State: 'pending',
-            Failed: true,
-          },
-        },
+            Failed: true
+          }
+        }
       },
       out: {
         data: {
@@ -110,42 +110,42 @@ module('Unit | Serializer | Allocation', function(hooks) {
               {
                 name: 'one.two',
                 state: 'running',
-                failed: false,
+                failed: false
               },
               {
                 name: 'three.four',
                 state: 'pending',
-                failed: true,
-              },
+                failed: true
+              }
             ],
             wasPreempted: false,
-            allocationTaskGroup: null,
+            allocationTaskGroup: null
           },
           relationships: {
             followUpEvaluation: {
-              data: null,
+              data: null
             },
             nextAllocation: {
-              data: null,
+              data: null
             },
             previousAllocation: {
-              data: null,
+              data: null
             },
             preemptedAllocations: {
-              data: [],
+              data: []
             },
             preemptedByAllocation: {
-              data: null,
+              data: null
             },
             job: {
               data: {
                 id: '["test-summary","test-namespace"]',
-                type: 'job',
-              },
-            },
-          },
-        },
-      },
+                type: 'job'
+              }
+            }
+          }
+        }
+      }
     },
 
     {
@@ -161,11 +161,14 @@ module('Unit | Serializer | Allocation', function(hooks) {
         TaskStates: {
           task: {
             State: 'running',
-            Failed: false,
-          },
+            Failed: false
+          }
         },
         PreemptedByAllocation: 'preempter-allocation',
-        PreemptedAllocations: ['preempted-one-allocation', 'preempted-two-allocation'],
+        PreemptedAllocations: [
+          'preempted-one-allocation',
+          'preempted-two-allocation'
+        ]
       },
       out: {
         data: {
@@ -181,43 +184,43 @@ module('Unit | Serializer | Allocation', function(hooks) {
               {
                 name: 'task',
                 state: 'running',
-                failed: false,
-              },
+                failed: false
+              }
             ],
             wasPreempted: true,
-            allocationTaskGroup: null,
+            allocationTaskGroup: null
           },
           relationships: {
             followUpEvaluation: {
-              data: null,
+              data: null
             },
             nextAllocation: {
-              data: null,
+              data: null
             },
             previousAllocation: {
-              data: null,
+              data: null
             },
             preemptedAllocations: {
               data: [
                 { id: 'preempted-one-allocation', type: 'allocation' },
-                { id: 'preempted-two-allocation', type: 'allocation' },
-              ],
+                { id: 'preempted-two-allocation', type: 'allocation' }
+              ]
             },
             preemptedByAllocation: {
               data: {
                 id: 'preempter-allocation',
-                type: 'allocation',
-              },
+                type: 'allocation'
+              }
             },
             job: {
               data: {
                 id: '["test-summary","test-namespace"]',
-                type: 'job',
-              },
-            },
-          },
-        },
-      },
+                type: 'job'
+              }
+            }
+          }
+        }
+      }
     },
 
     {
@@ -233,8 +236,8 @@ module('Unit | Serializer | Allocation', function(hooks) {
         TaskStates: {
           task: {
             State: 'running',
-            Failed: false,
-          },
+            Failed: false
+          }
         },
         Job: {
           ID: 'test-summary',
@@ -244,16 +247,16 @@ module('Unit | Serializer | Allocation', function(hooks) {
               Name: 'fake-group',
               Count: 2,
               Tasks: [],
-              EphemeralDisk: {},
+              EphemeralDisk: {}
             },
             {
               Name: 'test-group',
               Count: 3,
               Tasks: [],
-              EphemeralDisk: {},
-            },
-          ],
-        },
+              EphemeralDisk: {}
+            }
+          ]
+        }
       },
       out: {
         data: {
@@ -269,8 +272,8 @@ module('Unit | Serializer | Allocation', function(hooks) {
               {
                 name: 'task',
                 state: 'running',
-                failed: false,
-              },
+                failed: false
+              }
             ],
             wasPreempted: false,
             allocationTaskGroup: {
@@ -278,34 +281,34 @@ module('Unit | Serializer | Allocation', function(hooks) {
               count: 3,
               tasks: [],
               services: [],
-              volumes: [],
-            },
+              volumes: []
+            }
           },
           relationships: {
             followUpEvaluation: {
-              data: null,
+              data: null
             },
             nextAllocation: {
-              data: null,
+              data: null
             },
             previousAllocation: {
-              data: null,
+              data: null
             },
             preemptedAllocations: {
-              data: [],
+              data: []
             },
             preemptedByAllocation: {
-              data: null,
+              data: null
             },
             job: {
               data: {
                 id: '["test-summary","test-namespace"]',
-                type: 'job',
-              },
-            },
-          },
-        },
-      },
+                type: 'job'
+              }
+            }
+          }
+        }
+      }
     },
 
     {
@@ -321,13 +324,13 @@ module('Unit | Serializer | Allocation', function(hooks) {
         TaskStates: {
           xyz: {
             State: 'running',
-            Failed: false,
+            Failed: false
           },
           abc: {
             State: 'running',
-            Failed: false,
-          },
-        },
+            Failed: false
+          }
+        }
       },
       out: {
         data: {
@@ -343,48 +346,51 @@ module('Unit | Serializer | Allocation', function(hooks) {
               {
                 name: 'abc',
                 state: 'running',
-                failed: false,
+                failed: false
               },
               {
                 name: 'xyz',
                 state: 'running',
-                failed: false,
-              },
+                failed: false
+              }
             ],
             wasPreempted: false,
-            allocationTaskGroup: null,
+            allocationTaskGroup: null
           },
           relationships: {
             followUpEvaluation: {
-              data: null,
+              data: null
             },
             nextAllocation: {
-              data: null,
+              data: null
             },
             previousAllocation: {
-              data: null,
+              data: null
             },
             preemptedAllocations: {
-              data: [],
+              data: []
             },
             preemptedByAllocation: {
-              data: null,
+              data: null
             },
             job: {
               data: {
                 id: '["test-summary","test-namespace"]',
-                type: 'job',
-              },
-            },
-          },
-        },
-      },
-    },
+                type: 'job'
+              }
+            }
+          }
+        }
+      }
+    }
   ];
 
   normalizationTestCases.forEach(testCase => {
     test(`normalization: ${testCase.name}`, async function(assert) {
-      assert.deepEqual(this.subject().normalize(AllocationModel, testCase.in), testCase.out);
+      assert.deepEqual(
+        this.subject().normalize(AllocationModel, testCase.in),
+        testCase.out
+      );
     });
   });
 });
