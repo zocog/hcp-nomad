@@ -7,16 +7,16 @@ import setupCodeMirror from 'nomad-ui/tests/helpers/codemirror';
 import { initialize as fragmentSerializerInitializer } from 'nomad-ui/initializers/fragment-serializer';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
 
-module('Integration | Component | scale-events-accordion', function(hooks) {
+module('Integration | Component | scale-events-accordion', function (hooks) {
   setupRenderingTest(hooks);
   setupCodeMirror(hooks);
 
-  hooks.beforeEach(function() {
+  hooks.beforeEach(function () {
     fragmentSerializerInitializer(this.owner);
     this.store = this.owner.lookup('service:store');
     this.server = startMirage();
     this.server.create('node');
-    this.taskGroupWithEvents = async function(events) {
+    this.taskGroupWithEvents = async function (events) {
       const job = this.server.create('job', { createAllocations: false });
       const group = job.taskGroups.models[0];
       job.jobScale.taskGroupScales.models
@@ -32,13 +32,13 @@ module('Integration | Component | scale-events-accordion', function(hooks) {
     };
   });
 
-  hooks.afterEach(function() {
+  hooks.afterEach(function () {
     this.server.shutdown();
   });
 
   const commonTemplate = hbs`<ScaleEventsAccordion @events={{this.events}} />`;
 
-  test('it shows an accordion with an entry for each event', async function(assert) {
+  test('it shows an accordion with an entry for each event', async function (assert) {
     assert.expect(2);
 
     const eventCount = 5;
@@ -56,7 +56,7 @@ module('Integration | Component | scale-events-accordion', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('when an event is an error, an error icon is shown', async function(assert) {
+  test('when an event is an error, an error icon is shown', async function (assert) {
     assert.expect(2);
 
     const taskGroup = await this.taskGroupWithEvents(
@@ -70,7 +70,7 @@ module('Integration | Component | scale-events-accordion', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('when an event has a count higher than previous count, a danger up arrow is shown', async function(assert) {
+  test('when an event has a count higher than previous count, a danger up arrow is shown', async function (assert) {
     assert.expect(4);
 
     const count = 5;
@@ -78,7 +78,7 @@ module('Integration | Component | scale-events-accordion', function(hooks) {
       server.createList('scale-event', 1, {
         count,
         previousCount: count - 1,
-        error: false
+        error: false,
       })
     );
     this.set('events', taskGroup.scaleState.events);
@@ -95,13 +95,13 @@ module('Integration | Component | scale-events-accordion', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('when an event has a count lower than previous count, a primary down arrow is shown', async function(assert) {
+  test('when an event has a count lower than previous count, a primary down arrow is shown', async function (assert) {
     const count = 5;
     const taskGroup = await this.taskGroupWithEvents(
       server.createList('scale-event', 1, {
         count,
         previousCount: count + 1,
-        error: false
+        error: false,
       })
     );
     this.set('events', taskGroup.scaleState.events);
@@ -117,7 +117,7 @@ module('Integration | Component | scale-events-accordion', function(hooks) {
     );
   });
 
-  test('when an event has no count, the count is omitted', async function(assert) {
+  test('when an event has no count, the count is omitted', async function (assert) {
     const taskGroup = await this.taskGroupWithEvents(
       server.createList('scale-event', 1, { count: null })
     );
@@ -129,7 +129,7 @@ module('Integration | Component | scale-events-accordion', function(hooks) {
     assert.notOk(find('[data-test-count-icon]'));
   });
 
-  test('when an event has no meta properties, the accordion entry is not expandable', async function(assert) {
+  test('when an event has no meta properties, the accordion entry is not expandable', async function (assert) {
     assert.expect(2);
 
     const taskGroup = await this.taskGroupWithEvents(
@@ -145,7 +145,7 @@ module('Integration | Component | scale-events-accordion', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('when an event has meta properties, the accordion entry is expanding, presenting the meta properties in a json viewer', async function(assert) {
+  test('when an event has meta properties, the accordion entry is expanding, presenting the meta properties in a json viewer', async function (assert) {
     assert.expect(4);
 
     const meta = {
@@ -153,8 +153,8 @@ module('Integration | Component | scale-events-accordion', function(hooks) {
       prop2: 'two',
       deep: {
         prop: 'here',
-        'dot.separate.prop': 12
-      }
+        'dot.separate.prop': 12,
+      },
     };
     const taskGroup = await this.taskGroupWithEvents(
       server.createList('scale-event', 1, { meta })

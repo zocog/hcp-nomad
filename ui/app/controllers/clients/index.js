@@ -9,7 +9,7 @@ import SortableFactory from 'nomad-ui/mixins/sortable-factory';
 import Searchable from 'nomad-ui/mixins/searchable';
 import {
   serialize,
-  deserializedQueryParam as selection
+  deserializedQueryParam as selection,
 } from 'nomad-ui/utils/qp-serialize';
 import classic from 'ember-classic-decorator';
 
@@ -26,32 +26,32 @@ export default class IndexController extends Controller.extend(
 
   queryParams = [
     {
-      currentPage: 'page'
+      currentPage: 'page',
     },
     {
-      searchTerm: 'search'
+      searchTerm: 'search',
     },
     {
-      sortProperty: 'sort'
+      sortProperty: 'sort',
     },
     {
-      sortDescending: 'desc'
+      sortDescending: 'desc',
     },
     {
-      qpClass: 'class'
+      qpClass: 'class',
     },
     {
-      qpState: 'state'
+      qpState: 'state',
     },
     {
-      qpDatacenter: 'dc'
+      qpDatacenter: 'dc',
     },
     {
-      qpVersion: 'version'
+      qpVersion: 'version',
     },
     {
-      qpVolume: 'volume'
-    }
+      qpVolume: 'volume',
+    },
   ];
 
   currentPage = 1;
@@ -92,7 +92,7 @@ export default class IndexController extends Controller.extend(
       );
     });
 
-    return classes.sort().map(dc => ({ key: dc, label: dc }));
+    return classes.sort().map((dc) => ({ key: dc, label: dc }));
   }
 
   @computed
@@ -102,7 +102,7 @@ export default class IndexController extends Controller.extend(
       { key: 'ready', label: 'Ready' },
       { key: 'down', label: 'Down' },
       { key: 'ineligible', label: 'Ineligible' },
-      { key: 'draining', label: 'Draining' }
+      { key: 'draining', label: 'Draining' },
     ];
   }
 
@@ -121,7 +121,7 @@ export default class IndexController extends Controller.extend(
       );
     });
 
-    return datacenters.sort().map(dc => ({ key: dc, label: dc }));
+    return datacenters.sort().map((dc) => ({ key: dc, label: dc }));
   }
 
   @computed('nodes.[]', 'selectionVersion')
@@ -137,7 +137,7 @@ export default class IndexController extends Controller.extend(
       );
     });
 
-    return versions.sort().map(v => ({ key: v, label: v }));
+    return versions.sort().map((v) => ({ key: v, label: v }));
   }
 
   @computed('nodes.[]', 'selectionVolume')
@@ -155,7 +155,7 @@ export default class IndexController extends Controller.extend(
       );
     });
 
-    return volumes.sort().map(volume => ({ key: volume, label: volume }));
+    return volumes.sort().map((volume) => ({ key: volume, label: volume }));
   }
 
   @computed(
@@ -172,7 +172,7 @@ export default class IndexController extends Controller.extend(
       selectionState: states,
       selectionDatacenter: datacenters,
       selectionVersion: versions,
-      selectionVolume: volumes
+      selectionVolume: volumes,
     } = this;
 
     const onlyIneligible = states.includes('ineligible');
@@ -181,7 +181,7 @@ export default class IndexController extends Controller.extend(
     // states is a composite of node status and other node states
     const statuses = states.without('ineligible').without('draining');
 
-    return this.nodes.filter(node => {
+    return this.nodes.filter((node) => {
       if (classes.length && !classes.includes(node.get('nodeClass')))
         return false;
       if (statuses.length && !statuses.includes(node.get('status')))
@@ -192,7 +192,7 @@ export default class IndexController extends Controller.extend(
         return false;
       if (
         volumes.length &&
-        !node.hostVolumes.find(volume => volumes.includes(volume.name))
+        !node.hostVolumes.find((volume) => volumes.includes(volume.name))
       )
         return false;
 

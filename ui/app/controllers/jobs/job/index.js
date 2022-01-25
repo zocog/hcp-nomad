@@ -13,14 +13,14 @@ export default class IndexController extends Controller.extend(
 
   queryParams = [
     {
-      currentPage: 'page'
+      currentPage: 'page',
     },
     {
-      sortProperty: 'sort'
+      sortProperty: 'sort',
     },
     {
-      sortDescending: 'desc'
-    }
+      sortDescending: 'desc',
+    },
   ];
 
   currentPage = 1;
@@ -50,7 +50,7 @@ export default class IndexController extends Controller.extend(
   @action
   gotoJob(job) {
     this.transitionToRoute('jobs.job', job, {
-      queryParams: { jobNamespace: job.get('namespace.name') }
+      queryParams: { jobNamespace: job.get('namespace.name') },
     });
   }
 
@@ -59,8 +59,8 @@ export default class IndexController extends Controller.extend(
     this.transitionToRoute('jobs.job.clients', this.job, {
       queryParams: {
         status: JSON.stringify(statusFilter),
-        namespace: this.job.get('namespace.name')
-      }
+        namespace: this.job.get('namespace.name'),
+      },
     });
   }
 }

@@ -3,7 +3,7 @@ import Route from '@ember/routing/route';
 import { collect } from '@ember/object/computed';
 import {
   watchRecord,
-  watchRelationship
+  watchRelationship,
 } from 'nomad-ui/utils/properties/watch';
 import WithWatchers from 'nomad-ui/mixins/with-watchers';
 
@@ -24,7 +24,7 @@ export default class ClientRoute extends Route.extend(WithWatchers) {
       flagAsDraining: false,
       showDrainNotification: false,
       showDrainUpdateNotification: false,
-      showDrainStoppedNotification: false
+      showDrainStoppedNotification: false,
     });
   }
 

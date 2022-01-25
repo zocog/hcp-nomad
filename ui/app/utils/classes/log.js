@@ -16,7 +16,7 @@ import classic from 'ember-classic-decorator';
 const MAX_OUTPUT_LENGTH = 50000;
 
 // eslint-disable-next-line
-export const fetchFailure = url => () =>
+export const fetchFailure = (url) => () =>
   console.warn(`LOG FETCH: Couldn't connect to ${url}`);
 
 @classic
@@ -64,7 +64,7 @@ class Log extends EmberObject.extend(Evented) {
     super.init();
 
     const args = this.getProperties('url', 'params', 'logFetch');
-    args.write = chunk => {
+    args.write = (chunk) => {
       let newTail = this.tail + chunk;
       if (newTail.length > MAX_OUTPUT_LENGTH) {
         newTail = newTail.substr(newTail.length - MAX_OUTPUT_LENGTH);
@@ -85,13 +85,13 @@ class Log extends EmberObject.extend(Evented) {
     super.destroy();
   }
 
-  @task(function*() {
+  @task(function* () {
     const logFetch = this.logFetch;
     const queryParams = queryString.stringify(
       assign(
         {
           origin: 'start',
-          offset: 0
+          offset: 0,
         },
         this.params
       )
@@ -100,7 +100,7 @@ class Log extends EmberObject.extend(Evented) {
 
     this.stop();
     const response = yield logFetch(url).then(
-      res => res.text(),
+      (res) => res.text(),
       fetchFailure(url)
     );
     let text = this.plainText ? response : decode(response).message;
@@ -115,13 +115,13 @@ class Log extends EmberObject.extend(Evented) {
   })
   gotoHead;
 
-  @task(function*() {
+  @task(function* () {
     const logFetch = this.logFetch;
     const queryParams = queryString.stringify(
       assign(
         {
           origin: 'end',
-          offset: MAX_OUTPUT_LENGTH
+          offset: MAX_OUTPUT_LENGTH,
         },
         this.params
       )
@@ -130,7 +130,7 @@ class Log extends EmberObject.extend(Evented) {
 
     this.stop();
     const response = yield logFetch(url).then(
-      res => res.text(),
+      (res) => res.text(),
       fetchFailure(url)
     );
     let text = this.plainText ? response : decode(response).message;
@@ -153,11 +153,11 @@ class Log extends EmberObject.extend(Evented) {
 export default Log;
 
 export function logger(urlProp, params, logFetch) {
-  return computed(urlProp, params, function() {
+  return computed(urlProp, params, function () {
     return Log.create({
       logFetch: logFetch.call(this),
       params: this.get(params),
-      url: this.get(urlProp)
+      url: this.get(urlProp),
     });
   });
 }

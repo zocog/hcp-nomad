@@ -9,7 +9,7 @@ import Searchable from 'nomad-ui/mixins/searchable';
 import WithNamespaceResetting from 'nomad-ui/mixins/with-namespace-resetting';
 import {
   serialize,
-  deserializedQueryParam as selection
+  deserializedQueryParam as selection,
 } from 'nomad-ui/utils/qp-serialize';
 import classic from 'ember-classic-decorator';
 
@@ -21,26 +21,26 @@ export default class AllocationsController extends Controller.extend(
 ) {
   queryParams = [
     {
-      currentPage: 'page'
+      currentPage: 'page',
     },
     {
-      searchTerm: 'search'
+      searchTerm: 'search',
     },
     {
-      sortProperty: 'sort'
+      sortProperty: 'sort',
     },
     {
-      sortDescending: 'desc'
+      sortDescending: 'desc',
     },
     {
-      qpStatus: 'status'
+      qpStatus: 'status',
     },
     {
-      qpClient: 'client'
+      qpClient: 'client',
     },
     {
-      qpTaskGroup: 'taskGroup'
-    }
+      qpTaskGroup: 'taskGroup',
+    },
   ];
 
   qpStatus = '';
@@ -73,7 +73,7 @@ export default class AllocationsController extends Controller.extend(
   get filteredAllocations() {
     const { selectionStatus, selectionClient, selectionTaskGroup } = this;
 
-    return this.allocations.filter(alloc => {
+    return this.allocations.filter((alloc) => {
       if (
         selectionStatus.length &&
         !selectionStatus.includes(alloc.clientStatus)
@@ -115,7 +115,7 @@ export default class AllocationsController extends Controller.extend(
       { key: 'running', label: 'Running' },
       { key: 'complete', label: 'Complete' },
       { key: 'failed', label: 'Failed' },
-      { key: 'lost', label: 'Lost' }
+      { key: 'lost', label: 'Lost' },
     ];
   }
 
@@ -134,7 +134,7 @@ export default class AllocationsController extends Controller.extend(
       );
     });
 
-    return clients.sort().map(c => ({ key: c, label: c }));
+    return clients.sort().map((c) => ({ key: c, label: c }));
   }
 
   @computed('model.allocations.[]', 'selectionTaskGroup')
@@ -152,7 +152,7 @@ export default class AllocationsController extends Controller.extend(
       );
     });
 
-    return taskGroups.sort().map(tg => ({ key: tg, label: tg }));
+    return taskGroups.sort().map((tg) => ({ key: tg, label: tg }));
   }
 
   setFacetQueryParam(queryParam, selection) {

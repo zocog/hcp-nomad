@@ -4,10 +4,10 @@ import {
   clickable,
   hasClass,
   isPresent,
-  text
+  text,
 } from 'ember-cli-page-object';
 
-export default scope => ({
+export default (scope) => ({
   scope,
 
   isPresent: isPresent(),
@@ -20,5 +20,5 @@ export default scope => ({
   label: text('[data-test-label]'),
   title: attribute('title'),
 
-  toggle: clickable('[data-test-input]')
+  toggle: clickable('[data-test-input]'),
 });

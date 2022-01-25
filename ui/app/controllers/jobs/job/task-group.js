@@ -11,7 +11,7 @@ import Searchable from 'nomad-ui/mixins/searchable';
 import WithNamespaceResetting from 'nomad-ui/mixins/with-namespace-resetting';
 import {
   serialize,
-  deserializedQueryParam as selection
+  deserializedQueryParam as selection,
 } from 'nomad-ui/utils/qp-serialize';
 import classic from 'ember-classic-decorator';
 
@@ -26,23 +26,23 @@ export default class TaskGroupController extends Controller.extend(
 
   queryParams = [
     {
-      currentPage: 'page'
+      currentPage: 'page',
     },
     {
-      searchTerm: 'search'
+      searchTerm: 'search',
     },
     {
-      sortProperty: 'sort'
+      sortProperty: 'sort',
     },
     {
-      sortDescending: 'desc'
+      sortDescending: 'desc',
     },
     {
-      qpStatus: 'status'
+      qpStatus: 'status',
     },
     {
-      qpClient: 'client'
-    }
+      qpClient: 'client',
+    },
   ];
 
   currentPage = 1;
@@ -67,7 +67,7 @@ export default class TaskGroupController extends Controller.extend(
   get filteredAllocations() {
     const { selectionStatus, selectionClient } = this;
 
-    return this.allocations.filter(alloc => {
+    return this.allocations.filter((alloc) => {
       if (
         selectionStatus.length &&
         !selectionStatus.includes(alloc.clientStatus)
@@ -92,7 +92,7 @@ export default class TaskGroupController extends Controller.extend(
   @selection('qpStatus') selectionStatus;
   @selection('qpClient') selectionClient;
 
-  @computed('model.scaleState.events.@each.time', function() {
+  @computed('model.scaleState.events.@each.time', function () {
     const events = get(this, 'model.scaleState.events');
     if (events) {
       return events.sortBy('time').reverse();
@@ -101,7 +101,7 @@ export default class TaskGroupController extends Controller.extend(
   })
   sortedScaleEvents;
 
-  @computed('sortedScaleEvents.@each.hasCount', function() {
+  @computed('sortedScaleEvents.@each.hasCount', function () {
     const countEventsCount = this.sortedScaleEvents.filterBy('hasCount').length;
     return (
       countEventsCount > 1 &&
@@ -114,7 +114,7 @@ export default class TaskGroupController extends Controller.extend(
   get tooltipText() {
     if (
       this.can.cannot('scale job', null, {
-        namespace: this.model.job.namespace.get('name')
+        namespace: this.model.job.namespace.get('name'),
       })
     )
       return "You aren't allowed to scale task groups";
@@ -139,7 +139,7 @@ export default class TaskGroupController extends Controller.extend(
       { key: 'running', label: 'Running' },
       { key: 'complete', label: 'Complete' },
       { key: 'failed', label: 'Failed' },
-      { key: 'lost', label: 'Lost' }
+      { key: 'lost', label: 'Lost' },
     ];
   }
 
@@ -158,7 +158,7 @@ export default class TaskGroupController extends Controller.extend(
       );
     });
 
-    return clients.sort().map(dc => ({ key: dc, label: dc }));
+    return clients.sort().map((dc) => ({ key: dc, label: dc }));
   }
 
   setFacetQueryParam(queryParam, selection) {
@@ -178,8 +178,8 @@ export default class TaskGroupController extends Controller.extend(
         'jobs.job.task-group',
         job,
         name,
-        qpBuilder({ jobNamespace: job.get('namespace.name') || 'default' })
-      ]
+        qpBuilder({ jobNamespace: job.get('namespace.name') || 'default' }),
+      ],
     };
   }
 }

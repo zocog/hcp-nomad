@@ -26,7 +26,7 @@ export default class AllocationsAllocationController extends Controller {
   get breadcrumbs() {
     const { allocation, job, jobNamespace } = this;
     const jobQueryParams = qpBuilder({
-      jobNamespace
+      jobNamespace,
     });
 
     return [
@@ -39,14 +39,14 @@ export default class AllocationsAllocationController extends Controller {
           'jobs.job.task-group',
           job.plainId,
           allocation.taskGroupName,
-          jobQueryParams
-        ]
+          jobQueryParams,
+        ],
       },
       {
         title: 'Allocation',
         label: allocation.shortId,
-        args: ['allocations.allocation', allocation]
-      }
+        args: ['allocations.allocation', allocation],
+      },
     ];
   }
 }

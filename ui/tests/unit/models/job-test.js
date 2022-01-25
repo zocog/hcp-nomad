@@ -2,10 +2,10 @@ import { run } from '@ember/runloop';
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 
-module('Unit | Model | job', function(hooks) {
+module('Unit | Model | job', function (hooks) {
   setupTest(hooks);
 
-  test('should expose aggregate allocations derived from task groups', function(assert) {
+  test('should expose aggregate allocations derived from task groups', function (assert) {
     const store = this.owner.lookup('service:store');
     let summary;
     run(() => {
@@ -18,7 +18,7 @@ module('Unit | Model | job', function(hooks) {
             runningAllocs: 3,
             completeAllocs: 4,
             failedAllocs: 5,
-            lostAllocs: 6
+            lostAllocs: 6,
           },
           {
             name: 'two',
@@ -27,7 +27,7 @@ module('Unit | Model | job', function(hooks) {
             runningAllocs: 6,
             completeAllocs: 8,
             failedAllocs: 10,
-            lostAllocs: 12
+            lostAllocs: 12,
           },
           {
             name: 'three',
@@ -36,9 +36,9 @@ module('Unit | Model | job', function(hooks) {
             runningAllocs: 9,
             completeAllocs: 12,
             failedAllocs: 15,
-            lostAllocs: 18
-          }
-        ]
+            lostAllocs: 18,
+          },
+        ],
       });
     });
 
@@ -50,19 +50,19 @@ module('Unit | Model | job', function(hooks) {
           {
             name: 'one',
             count: 0,
-            tasks: []
+            tasks: [],
           },
           {
             name: 'two',
             count: 0,
-            tasks: []
+            tasks: [],
           },
           {
             name: 'three',
             count: 0,
-            tasks: []
-          }
-        ]
+            tasks: [],
+          },
+        ],
       })
     );
 

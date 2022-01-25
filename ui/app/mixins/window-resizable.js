@@ -12,7 +12,7 @@ export default Mixin.create({
     );
   },
 
-  setupWindowResize: on('didInsertElement', function() {
+  setupWindowResize: on('didInsertElement', function () {
     run.scheduleOnce('afterRender', this, this.addResizeListener);
   }),
 
@@ -21,7 +21,7 @@ export default Mixin.create({
     window.addEventListener('resize', this._windowResizeHandler);
   },
 
-  removeWindowResize: on('willDestroyElement', function() {
+  removeWindowResize: on('willDestroyElement', function () {
     window.removeEventListener('resize', this._windowResizeHandler);
-  })
+  }),
 });

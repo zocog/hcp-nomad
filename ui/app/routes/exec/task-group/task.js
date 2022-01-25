@@ -12,7 +12,7 @@ export default class TaskRoute extends Route {
     return {
       allocationShortId: allocationQueryParam,
       taskName: task_name,
-      taskGroupName
+      taskGroupName,
     };
   }
 
@@ -20,7 +20,7 @@ export default class TaskRoute extends Route {
     this.controllerFor('exec').send('setTaskProperties', {
       allocationShortId,
       taskName,
-      taskGroupName
+      taskGroupName,
     });
 
     super.setupController(...arguments);

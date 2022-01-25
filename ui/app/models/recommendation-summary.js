@@ -31,9 +31,8 @@ export default class RecommendationSummary extends Model {
   @action
   toggleRecommendation(recommendation) {
     if (this.excludedRecommendations.includes(recommendation)) {
-      this.excludedRecommendations = this.excludedRecommendations.removeObject(
-        recommendation
-      );
+      this.excludedRecommendations =
+        this.excludedRecommendations.removeObject(recommendation);
     } else {
       this.excludedRecommendations.pushObject(recommendation);
     }

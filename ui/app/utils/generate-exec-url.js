@@ -19,7 +19,7 @@ export default function generateExecUrl(
 
   if (task) {
     const queryParamsOptions = {
-      ...queryParams
+      ...queryParams,
     };
 
     if (allocation) {
@@ -32,7 +32,7 @@ export default function generateExecUrl(
       get(taskGroup, 'name'),
       get(task, 'name'),
       {
-        queryParams: queryParamsOptions
+        queryParams: queryParamsOptions,
       }
     );
   } else if (taskGroup) {
@@ -41,7 +41,7 @@ export default function generateExecUrl(
       get(job, 'plainId'),
       get(taskGroup, 'name'),
       {
-        queryParams
+        queryParams,
       }
     );
   } else if (allocation) {
@@ -54,8 +54,8 @@ export default function generateExecUrl(
         {
           queryParams: {
             allocation: get(allocation, 'shortId'),
-            ...queryParams
-          }
+            ...queryParams,
+          },
         }
       );
     } else {
@@ -66,8 +66,8 @@ export default function generateExecUrl(
         {
           queryParams: {
             allocation: get(allocation, 'shortId'),
-            ...queryParams
-          }
+            ...queryParams,
+          },
         }
       );
     }

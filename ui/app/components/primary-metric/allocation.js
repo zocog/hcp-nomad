@@ -37,9 +37,9 @@ export default class AllocationPrimaryMetric extends Component {
   @computed('tracker.tasks.[]', 'metric')
   get series() {
     const ret = this.tracker.tasks
-      .map(task => ({
+      .map((task) => ({
         name: task.task,
-        data: task[this.metric]
+        data: task[this.metric],
       }))
       .reverse();
 
@@ -64,7 +64,7 @@ export default class AllocationPrimaryMetric extends Component {
     return 'ordinal';
   }
 
-  @task(function*() {
+  @task(function* () {
     do {
       this.tracker.poll.perform();
       yield timeout(100);

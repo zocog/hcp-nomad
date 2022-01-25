@@ -26,7 +26,7 @@ export default class RecommendationSummaryAdapter extends ApplicationAdapter {
 
     const data = {
       Apply: includedRecommendationIds,
-      Dismiss: excludedRecommendationIds
+      Dismiss: excludedRecommendationIds,
     };
 
     return this.ajax(url, 'POST', { data });

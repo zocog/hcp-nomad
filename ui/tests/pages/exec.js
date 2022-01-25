@@ -6,7 +6,7 @@ import {
   isPresent,
   text,
   triggerable,
-  visitable
+  visitable,
 } from 'ember-cli-page-object';
 
 export default create({
@@ -17,7 +17,7 @@ export default create({
   header: {
     region: { scope: '[data-test-region]' },
     namespace: { scope: '[data-test-namespace]' },
-    job: text('[data-test-job]')
+    job: text('[data-test-job]'),
   },
 
   taskGroups: collection('[data-test-task-group]', {
@@ -29,24 +29,24 @@ export default create({
     chevron: {
       scope: '.toggle-button .icon',
       isDown: hasClass('icon-is-chevron-down'),
-      isRight: hasClass('icon-is-chevron-right')
+      isRight: hasClass('icon-is-chevron-right'),
     },
 
     tasks: collection('[data-test-task]', {
       name: text(),
-      isActive: isPresent('[data-test-task-active]')
-    })
+      isActive: isPresent('[data-test-task-active]'),
+    }),
   }),
 
   terminal: {
     scope: '.xterm-helper-textarea',
     pressEnter: triggerable('keydown', '', {
-      eventProperties: { keyCode: 13 }
-    })
+      eventProperties: { keyCode: 13 },
+    }),
   },
 
   jobDead: {
     scope: '[data-test-exec-job-dead]',
-    message: text('[data-test-exec-job-dead-message]')
-  }
+    message: text('[data-test-exec-job-dead-message]'),
+  },
 });

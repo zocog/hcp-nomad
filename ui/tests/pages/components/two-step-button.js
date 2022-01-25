@@ -3,10 +3,10 @@ import {
   clickable,
   hasClass,
   isPresent,
-  text
+  text,
 } from 'ember-cli-page-object';
 
-export default scope => ({
+export default (scope) => ({
   scope,
 
   isPresent: isPresent(),
@@ -24,5 +24,5 @@ export default scope => ({
   idleText: text('[data-test-idle-button]'),
   cancelText: text('[data-test-cancel-button]'),
   confirmText: text('[data-test-confirm-button]'),
-  confirmationMessage: text('[data-test-confirmation-message]')
+  confirmationMessage: text('[data-test-confirmation-message]'),
 });

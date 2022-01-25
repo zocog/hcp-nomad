@@ -50,7 +50,7 @@ export default class TaskLog extends Component {
   get logParams() {
     return {
       task: this.task,
-      type: this.mode
+      type: this.mode,
     };
   }
 
@@ -66,15 +66,15 @@ export default class TaskLog extends Component {
     // Capture the state of useServer at logger create time to avoid a race
     // between the stdout logger and stderr logger running at once.
     const useServer = this.useServer;
-    return url =>
+    return (url) =>
       RSVP.race([
         this.token.authorizedRequest(url, { signal: aborter.signal }),
-        timeout(timing)
+        timeout(timing),
       ]).then(
-        response => {
+        (response) => {
           return response;
         },
-        error => {
+        (error) => {
           aborter.abort();
           if (useServer) {
             this.set('noConnection', true);

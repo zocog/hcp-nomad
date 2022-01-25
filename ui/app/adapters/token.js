@@ -8,10 +8,10 @@ export default class TokenAdapter extends ApplicationAdapter {
   namespace = namespace + '/acl';
 
   findSelf() {
-    return this.ajax(`${this.buildURL()}/token/self`, 'GET').then(token => {
+    return this.ajax(`${this.buildURL()}/token/self`, 'GET').then((token) => {
       const store = this.store;
       store.pushPayload('token', {
-        tokens: [token]
+        tokens: [token],
       });
 
       return store.peekRecord('token', store.normalize('token', token).data.id);
@@ -21,13 +21,13 @@ export default class TokenAdapter extends ApplicationAdapter {
   exchangeOneTimeToken(oneTimeToken) {
     return this.ajax(`${this.buildURL()}/token/onetime/exchange`, 'POST', {
       data: {
-        OneTimeSecretID: oneTimeToken
-      }
+        OneTimeSecretID: oneTimeToken,
+      },
     })
       .then(({ Token: token }) => {
         const store = this.store;
         store.pushPayload('token', {
-          tokens: [token]
+          tokens: [token],
         });
 
         return store.peekRecord(

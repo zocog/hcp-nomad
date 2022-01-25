@@ -6,7 +6,7 @@ import { inject as service } from '@ember/service';
 import { action, get } from '@ember/object';
 import {
   formatScheduledBytes,
-  formatScheduledHertz
+  formatScheduledHertz,
 } from 'nomad-ui/utils/units';
 
 export default class NodePrimaryMetric extends Component {
@@ -49,8 +49,8 @@ export default class NodePrimaryMetric extends Component {
       return [
         {
           label: `${formatScheduledHertz(cpu, 'MHz')} reserved`,
-          percent: cpu / this.reservedAmount
-        }
+          percent: cpu / this.reservedAmount,
+        },
       ];
     }
 
@@ -59,15 +59,15 @@ export default class NodePrimaryMetric extends Component {
       return [
         {
           label: `${formatScheduledBytes(memory, 'MiB')} reserved`,
-          percent: memory / this.reservedAmount
-        }
+          percent: memory / this.reservedAmount,
+        },
       ];
     }
 
     return [];
   }
 
-  @task(function*() {
+  @task(function* () {
     do {
       this.tracker.poll.perform();
       yield timeout(100);

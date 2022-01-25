@@ -12,10 +12,10 @@ export default class Periodic extends AbstractJobPage {
 
   @action
   forceLaunch() {
-    this.job.forcePeriodic().catch(err => {
+    this.job.forcePeriodic().catch((err) => {
       this.set('errorMessage', {
         title: 'Could Not Force Launch',
-        description: messageForError(err, 'submit jobs')
+        description: messageForError(err, 'submit jobs'),
       });
     });
   }

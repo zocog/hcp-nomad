@@ -9,8 +9,8 @@ export default class VolumeController extends Controller {
 
   queryParams = [
     {
-      volumeNamespace: 'namespace'
-    }
+      volumeNamespace: 'namespace',
+    },
   ];
   volumeNamespace = 'default';
 
@@ -26,9 +26,9 @@ export default class VolumeController extends Controller {
         args: [
           'csi.volumes',
           qpBuilder({
-            volumeNamespace: volume.get('namespace.name') || 'default'
-          })
-        ]
+            volumeNamespace: volume.get('namespace.name') || 'default',
+          }),
+        ],
       },
       {
         label: volume.name,
@@ -36,10 +36,10 @@ export default class VolumeController extends Controller {
           'csi.volumes.volume',
           volume.plainId,
           qpBuilder({
-            volumeNamespace: volume.get('namespace.name') || 'default'
-          })
-        ]
-      }
+            volumeNamespace: volume.get('namespace.name') || 'default',
+          }),
+        ],
+      },
     ];
   }
 

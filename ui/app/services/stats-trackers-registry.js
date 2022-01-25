@@ -54,8 +54,8 @@ export default class StatsTrackersRegistryService extends Service {
     }
 
     const tracker = Constructor.create({
-      fetch: url => this.token.authorizedRequest(url),
-      [resourceProp]: resource
+      fetch: (url) => this.token.authorizedRequest(url),
+      [resourceProp]: resource,
     });
 
     registry.set(key, tracker);

@@ -5,7 +5,7 @@ import { attr } from '@ember-data/model';
 import {
   fragment,
   fragmentOwner,
-  fragmentArray
+  fragmentArray,
 } from 'ember-data-model-fragments/attributes';
 import classic from 'ember-classic-decorator';
 
@@ -52,7 +52,7 @@ export default class TaskState extends Fragment {
       pending: 'is-pending',
       running: 'is-primary',
       finished: 'is-complete',
-      failed: 'is-error'
+      failed: 'is-error',
     };
 
     return classMap[this.state] || 'is-dark';

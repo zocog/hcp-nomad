@@ -25,14 +25,14 @@ export default class ChildrenStatusBar extends DistributionBar {
       {
         label: 'Pending',
         value: children.pendingChildren,
-        className: 'queued'
+        className: 'queued',
       },
       {
         label: 'Running',
         value: children.runningChildren,
-        className: 'running'
+        className: 'running',
       },
-      { label: 'Dead', value: children.deadChildren, className: 'complete' }
+      { label: 'Dead', value: children.deadChildren, className: 'complete' },
     ];
   }
 }

@@ -9,7 +9,7 @@ import { task } from 'ember-concurrency';
 import intersection from 'lodash.intersection';
 import {
   serialize,
-  deserializedQueryParam as selection
+  deserializedQueryParam as selection,
 } from 'nomad-ui/utils/qp-serialize';
 
 import EmberObject, { computed } from '@ember/object';
@@ -24,30 +24,30 @@ export default class OptimizeController extends Controller {
 
   queryParams = [
     {
-      searchTerm: 'search'
+      searchTerm: 'search',
     },
     {
-      qpNamespace: 'namespacefilter'
+      qpNamespace: 'namespacefilter',
     },
     {
-      qpType: 'type'
+      qpType: 'type',
     },
     {
-      qpStatus: 'status'
+      qpStatus: 'status',
     },
     {
-      qpDatacenter: 'dc'
+      qpDatacenter: 'dc',
     },
     {
-      qpPrefix: 'prefix'
-    }
+      qpPrefix: 'prefix',
+    },
   ];
 
   constructor() {
     super(...arguments);
 
     this.summarySearch = RecommendationSummarySearch.create({
-      dataSource: this
+      dataSource: this,
     });
   }
 
@@ -73,14 +73,14 @@ export default class OptimizeController extends Controller {
   @selection('qpPrefix') selectionPrefix;
 
   get optionsNamespaces() {
-    const availableNamespaces = this.namespaces.map(namespace => ({
+    const availableNamespaces = this.namespaces.map((namespace) => ({
       key: namespace.name,
-      label: namespace.name
+      label: namespace.name,
     }));
 
     availableNamespaces.unshift({
       key: '*',
-      label: 'All (*)'
+      label: 'All (*)',
     });
 
     // Unset the namespace selection if it was server-side deleted
@@ -96,13 +96,13 @@ export default class OptimizeController extends Controller {
 
   optionsType = [
     { key: 'service', label: 'Service' },
-    { key: 'system', label: 'System' }
+    { key: 'system', label: 'System' },
   ];
 
   optionsStatus = [
     { key: 'pending', label: 'Pending' },
     { key: 'running', label: 'Running' },
-    { key: 'dead', label: 'Dead' }
+    { key: 'dead', label: 'Dead' },
   ];
 
   get optionsDatacenter() {
@@ -120,7 +120,7 @@ export default class OptimizeController extends Controller {
       );
     });
 
-    return availableDatacenters.sort().map(dc => ({ key: dc, label: dc }));
+    return availableDatacenters.sort().map((dc) => ({ key: dc, label: dc }));
   }
 
   get optionsPrefix() {
@@ -139,13 +139,13 @@ export default class OptimizeController extends Controller {
     }, {});
 
     // Convert to an array
-    const nameTable = Object.keys(nameHistogram).map(key => ({
+    const nameTable = Object.keys(nameHistogram).map((key) => ({
       prefix: key,
-      count: nameHistogram[key]
+      count: nameHistogram[key],
     }));
 
     // Only consider prefixes that match more than one name
-    const prefixes = nameTable.filter(name => name.count > 1);
+    const prefixes = nameTable.filter((name) => name.count > 1);
 
     // Remove any invalid prefixes from the query param/selection
     const availablePrefixes = prefixes.mapBy('prefix');
@@ -157,9 +157,9 @@ export default class OptimizeController extends Controller {
     });
 
     // Sort, format, and include the count in the label
-    return prefixes.sortBy('prefix').map(name => ({
+    return prefixes.sortBy('prefix').map((name) => ({
       key: name.prefix,
-      label: `${name.prefix} (${name.count})`
+      label: `${name.prefix} (${name.count})`,
     }));
   }
 
@@ -168,12 +168,12 @@ export default class OptimizeController extends Controller {
       selectionType: types,
       selectionStatus: statuses,
       selectionDatacenter: datacenters,
-      selectionPrefix: prefixes
+      selectionPrefix: prefixes,
     } = this;
 
     // A summary’s job must match ALL filter facets, but it can match ANY selection within a facet
     // Always return early to prevent unnecessary facet predicates.
-    return this.summarySearch.listSearched.filter(summary => {
+    return this.summarySearch.listSearched.filter((summary) => {
       const job = summary.get('job');
 
       if (job.isDestroying) {
@@ -197,7 +197,7 @@ export default class OptimizeController extends Controller {
 
       if (
         datacenters.length &&
-        !job.get('datacenters').find(dc => datacenters.includes(dc))
+        !job.get('datacenters').find((dc) => datacenters.includes(dc))
       ) {
         return false;
       }
@@ -205,7 +205,7 @@ export default class OptimizeController extends Controller {
       const name = job.get('name');
       if (
         prefixes.length &&
-        !prefixes.find(prefix => name.startsWith(prefix))
+        !prefixes.find((prefix) => name.startsWith(prefix))
       ) {
         return false;
       }
@@ -224,7 +224,7 @@ export default class OptimizeController extends Controller {
 
   // This is a task because the accordion uses timeouts for animation
   // eslint-disable-next-line require-yield
-  @(task(function*() {
+  @(task(function* () {
     const currentSummaryIndex = this.filteredSummaries.indexOf(
       this.activeRecommendationSummary
     );
@@ -243,7 +243,7 @@ export default class OptimizeController extends Controller {
   @action
   transitionToSummary(summary) {
     this.transitionToRoute('optimize.summary', summary.slug, {
-      queryParams: { jobNamespace: summary.jobNamespace }
+      queryParams: { jobNamespace: summary.jobNamespace },
     });
   }
 

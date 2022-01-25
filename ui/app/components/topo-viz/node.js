@@ -123,7 +123,7 @@ export default class TopoVizNode extends Component {
 
   containsActiveTaskGroup() {
     return this.args.node.allocations.some(
-      allocation =>
+      (allocation) =>
         allocation.taskGroupName === this.args.activeTaskGroup &&
         allocation.belongsTo('job').id() === this.args.activeJobId
     );
@@ -157,7 +157,7 @@ export default class TopoVizNode extends Component {
         percent: cpuPercent * 100,
         width: Math.max(cpuWidth, 0),
         x: cpuOffset * width + (isFirst ? 0 : 0.5) + (isSelected ? 0.5 : 0),
-        className: allocation.allocation.clientStatus
+        className: allocation.allocation.clientStatus,
       });
       memory.push({
         allocation,
@@ -165,7 +165,7 @@ export default class TopoVizNode extends Component {
         percent: memoryPercent * 100,
         width: Math.max(memoryWidth, 0),
         x: memoryOffset * width + (isFirst ? 0 : 0.5) + (isSelected ? 0.5 : 0),
-        className: allocation.allocation.clientStatus
+        className: allocation.allocation.clientStatus,
       });
 
       cpuOffset += cpuPercent;
@@ -174,11 +174,11 @@ export default class TopoVizNode extends Component {
 
     const cpuRemainder = {
       x: cpuOffset * width + 0.5,
-      width: Math.max(width - cpuOffset * width, 0)
+      width: Math.max(width - cpuOffset * width, 0),
     };
     const memoryRemainder = {
       x: memoryOffset * width + 0.5,
-      width: Math.max(width - memoryOffset * width, 0)
+      width: Math.max(width - memoryOffset * width, 0),
     };
 
     return {
@@ -187,7 +187,7 @@ export default class TopoVizNode extends Component {
       cpuRemainder,
       memoryRemainder,
       cpuLabel: { x: -this.paddingLeft / 2, y: this.height / 2 + this.yOffset },
-      memoryLabel: { x: -this.paddingLeft / 2, y: this.height / 2 }
+      memoryLabel: { x: -this.paddingLeft / 2, y: this.height / 2 },
     };
   }
 }

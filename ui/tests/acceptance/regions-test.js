@@ -11,25 +11,25 @@ import ClientsList from 'nomad-ui/tests/pages/clients/list';
 import Layout from 'nomad-ui/tests/pages/layout';
 import Allocation from 'nomad-ui/tests/pages/allocations/detail';
 
-module('Acceptance | regions (only one)', function(hooks) {
+module('Acceptance | regions (only one)', function (hooks) {
   setupApplicationTest(hooks);
   setupMirage(hooks);
 
-  hooks.beforeEach(function() {
+  hooks.beforeEach(function () {
     server.create('agent');
     server.create('node');
     server.createList('job', 2, {
       createAllocations: false,
-      noDeployments: true
+      noDeployments: true,
     });
   });
 
-  test('it passes an accessibility audit', async function(assert) {
+  test('it passes an accessibility audit', async function (assert) {
     await JobsList.visit();
     await a11yAudit(assert);
   });
 
-  test('when there is only one region, the region switcher is not shown in the nav bar and the region is not in the page title', async function(assert) {
+  test('when there is only one region, the region switcher is not shown in the nav bar and the region is not in the page title', async function (assert) {
     server.create('region', { id: 'global' });
 
     await JobsList.visit();
@@ -38,7 +38,7 @@ module('Acceptance | regions (only one)', function(hooks) {
     assert.equal(document.title, 'Jobs - Nomad');
   });
 
-  test('when the only region is not named "global", the region switcher still is not shown', async function(assert) {
+  test('when the only region is not named "global", the region switcher still is not shown', async function (assert) {
     server.create('region', { id: 'some-region' });
 
     await JobsList.visit();
@@ -46,7 +46,7 @@ module('Acceptance | regions (only one)', function(hooks) {
     assert.notOk(Layout.navbar.regionSwitcher.isPresent, 'No region switcher');
   });
 
-  test('pages do not include the region query param', async function(assert) {
+  test('pages do not include the region query param', async function (assert) {
     server.create('region', { id: 'global' });
 
     await JobsList.visit();
@@ -60,36 +60,36 @@ module('Acceptance | regions (only one)', function(hooks) {
     assert.equal(currentURL(), '/clients', 'No region query param');
   });
 
-  test('api requests do not include the region query param', async function(assert) {
+  test('api requests do not include the region query param', async function (assert) {
     server.create('region', { id: 'global' });
 
     await JobsList.visit();
     await JobsList.jobs.objectAt(0).clickRow();
     await Layout.gutter.visitClients();
     await Layout.gutter.visitServers();
-    server.pretender.handledRequests.forEach(req => {
+    server.pretender.handledRequests.forEach((req) => {
       assert.notOk(req.url.includes('region='), req.url);
     });
   });
 });
 
-module('Acceptance | regions (many)', function(hooks) {
+module('Acceptance | regions (many)', function (hooks) {
   setupApplicationTest(hooks);
   setupMirage(hooks);
 
-  hooks.beforeEach(function() {
+  hooks.beforeEach(function () {
     server.create('agent');
     server.create('node');
     server.createList('job', 2, {
       createAllocations: false,
-      noDeployments: true
+      noDeployments: true,
     });
     server.create('allocation');
     server.create('region', { id: 'global' });
     server.create('region', { id: 'region-2' });
   });
 
-  test('the region switcher is rendered in the nav bar and the region is in the page title', async function(assert) {
+  test('the region switcher is rendered in the nav bar and the region is in the page title', async function (assert) {
     await JobsList.visit();
 
     assert.ok(
@@ -99,7 +99,7 @@ module('Acceptance | regions (many)', function(hooks) {
     assert.equal(document.title, 'Jobs - global - Nomad');
   });
 
-  test('when on the default region, pages do not include the region query param', async function(assert) {
+  test('when on the default region, pages do not include the region query param', async function (assert) {
     await JobsList.visit();
 
     assert.equal(currentURL(), '/jobs', 'No region query param');
@@ -110,7 +110,7 @@ module('Acceptance | regions (many)', function(hooks) {
     );
   });
 
-  test('switching regions sets localStorage and the region query param', async function(assert) {
+  test('switching regions sets localStorage and the region query param', async function (assert) {
     const newRegion = server.db.regions[1].id;
 
     await JobsList.visit();
@@ -128,7 +128,7 @@ module('Acceptance | regions (many)', function(hooks) {
     );
   });
 
-  test('switching regions to the default region, unsets the region query param', async function(assert) {
+  test('switching regions to the default region, unsets the region query param', async function (assert) {
     const startingRegion = server.db.regions[1].id;
     const defaultRegion = server.db.regions[0].id;
 
@@ -147,7 +147,7 @@ module('Acceptance | regions (many)', function(hooks) {
     );
   });
 
-  test('switching regions on deep pages redirects to the application root', async function(assert) {
+  test('switching regions on deep pages redirects to the application root', async function (assert) {
     const newRegion = server.db.regions[1].id;
 
     await Allocation.visit({ id: server.db.allocations[0].id });
@@ -157,7 +157,7 @@ module('Acceptance | regions (many)', function(hooks) {
     assert.ok(currentURL().includes('/jobs?'), 'Back at the jobs page');
   });
 
-  test('navigating directly to a page with the region query param sets the application to that region', async function(assert) {
+  test('navigating directly to a page with the region query param sets the application to that region', async function (assert) {
     const allocation = server.db.allocations[0];
     const region = server.db.regions[1].id;
     await Allocation.visit({ id: allocation.id, region });
@@ -174,7 +174,7 @@ module('Acceptance | regions (many)', function(hooks) {
     );
   });
 
-  test('when the region is not the default region, all api requests other than the agent/self request include the region query param', async function(assert) {
+  test('when the region is not the default region, all api requests other than the agent/self request include the region query param', async function (assert) {
     window.localStorage.removeItem('nomadTokenSecret');
     const region = server.db.regions[1].id;
 
@@ -204,7 +204,7 @@ module('Acceptance | regions (many)', function(hooks) {
       'The default region request is made without a region qp'
     );
 
-    appRequests.forEach(req => {
+    appRequests.forEach((req) => {
       if (req.url === '/v1/agent/self') {
         assert.notOk(req.url.includes('region='), `(no region) ${req.url}`);
       } else {

@@ -2,9 +2,9 @@ import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import JobPlanModel from 'nomad-ui/models/job-plan';
 
-module('Unit | Serializer | JobPlan', function(hooks) {
+module('Unit | Serializer | JobPlan', function (hooks) {
   setupTest(hooks);
-  hooks.beforeEach(function() {
+  hooks.beforeEach(function () {
     this.store = this.owner.lookup('service:store');
     this.subject = () => this.store.serializerFor('job-plan');
   });
@@ -15,13 +15,13 @@ module('Unit | Serializer | JobPlan', function(hooks) {
       in: {
         ID: 'test-plan',
         Diff: {
-          Arbitrary: 'Value'
+          Arbitrary: 'Value',
         },
         FailedTGAllocs: {
           taskGroup: {
-            NodesAvailable: 10
-          }
-        }
+            NodesAvailable: 10,
+          },
+        },
       },
       out: {
         data: {
@@ -29,22 +29,22 @@ module('Unit | Serializer | JobPlan', function(hooks) {
           type: 'job-plan',
           attributes: {
             diff: {
-              Arbitrary: 'Value'
+              Arbitrary: 'Value',
             },
             failedTGAllocs: [
               {
                 name: 'taskGroup',
-                nodesAvailable: 10
-              }
-            ]
+                nodesAvailable: 10,
+              },
+            ],
           },
           relationships: {
             preemptions: {
-              data: []
-            }
-          }
-        }
-      }
+              data: [],
+            },
+          },
+        },
+      },
     },
 
     {
@@ -52,16 +52,16 @@ module('Unit | Serializer | JobPlan', function(hooks) {
       in: {
         ID: 'test-plan',
         Diff: {
-          Arbitrary: 'Value'
+          Arbitrary: 'Value',
         },
         FailedTGAllocs: {
           'one.two': {
-            NodesAvailable: 10
+            NodesAvailable: 10,
           },
           'three.four': {
-            NodesAvailable: 25
-          }
-        }
+            NodesAvailable: 25,
+          },
+        },
       },
       out: {
         data: {
@@ -69,26 +69,26 @@ module('Unit | Serializer | JobPlan', function(hooks) {
           type: 'job-plan',
           attributes: {
             diff: {
-              Arbitrary: 'Value'
+              Arbitrary: 'Value',
             },
             failedTGAllocs: [
               {
                 name: 'one.two',
-                nodesAvailable: 10
+                nodesAvailable: 10,
               },
               {
                 name: 'three.four',
-                nodesAvailable: 25
-              }
-            ]
+                nodesAvailable: 25,
+              },
+            ],
           },
           relationships: {
             preemptions: {
-              data: []
-            }
-          }
-        }
-      }
+              data: [],
+            },
+          },
+        },
+      },
     },
 
     {
@@ -96,19 +96,19 @@ module('Unit | Serializer | JobPlan', function(hooks) {
       in: {
         ID: 'test-plan',
         Diff: {
-          Arbitrary: 'Value'
+          Arbitrary: 'Value',
         },
         FailedTGAllocs: {
           task: {
-            NodesAvailable: 10
-          }
+            NodesAvailable: 10,
+          },
         },
         Annotations: {
           PreemptedAllocs: [
             { ID: 'preemption-one-allocation' },
-            { ID: 'preemption-two-allocation' }
-          ]
-        }
+            { ID: 'preemption-two-allocation' },
+          ],
+        },
       },
       out: {
         data: {
@@ -116,30 +116,30 @@ module('Unit | Serializer | JobPlan', function(hooks) {
           type: 'job-plan',
           attributes: {
             diff: {
-              Arbitrary: 'Value'
+              Arbitrary: 'Value',
             },
             failedTGAllocs: [
               {
                 name: 'task',
-                nodesAvailable: 10
-              }
-            ]
+                nodesAvailable: 10,
+              },
+            ],
           },
           relationships: {
             preemptions: {
               data: [
                 { id: 'preemption-one-allocation', type: 'allocation' },
-                { id: 'preemption-two-allocation', type: 'allocation' }
-              ]
-            }
-          }
-        }
-      }
-    }
+                { id: 'preemption-two-allocation', type: 'allocation' },
+              ],
+            },
+          },
+        },
+      },
+    },
   ];
 
-  normalizationTestCases.forEach(testCase => {
-    test(`normalization: ${testCase.name}`, async function(assert) {
+  normalizationTestCases.forEach((testCase) => {
+    test(`normalization: ${testCase.name}`, async function (assert) {
       assert.deepEqual(
         this.subject().normalize(JobPlanModel, testCase.in),
         testCase.out

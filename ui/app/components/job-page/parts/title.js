@@ -12,7 +12,7 @@ export default class Title extends Component {
 
   handleError() {}
 
-  @task(function*() {
+  @task(function* () {
     try {
       const job = this.job;
       yield job.stop();
@@ -21,13 +21,13 @@ export default class Title extends Component {
     } catch (err) {
       this.handleError({
         title: 'Could Not Stop Job',
-        description: messageFromAdapterError(err, 'stop jobs')
+        description: messageFromAdapterError(err, 'stop jobs'),
       });
     }
   })
   stopJob;
 
-  @task(function*() {
+  @task(function* () {
     const job = this.job;
     const definition = yield job.fetchRawDefinition();
 
@@ -42,7 +42,7 @@ export default class Title extends Component {
     } catch (err) {
       this.handleError({
         title: 'Could Not Start Job',
-        description: messageFromAdapterError(err, 'start jobs')
+        description: messageFromAdapterError(err, 'start jobs'),
       });
     }
   })

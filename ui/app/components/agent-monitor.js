@@ -35,7 +35,7 @@ export default class AgentMonitor extends Component {
 
     const params = {
       log_level: this.level,
-      [type]: id
+      [type]: id,
     };
 
     if (this.server) {
@@ -58,10 +58,10 @@ export default class AgentMonitor extends Component {
     this.set(
       'logger',
       Log.create({
-        logFetch: url => this.token.authorizedRequest(url),
+        logFetch: (url) => this.token.authorizedRequest(url),
         params: this.monitorParams,
         url: this.monitorUrl,
-        tail: currentTail
+        tail: currentTail,
       })
     );
   }

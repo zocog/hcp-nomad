@@ -12,7 +12,7 @@ import Searchable from 'nomad-ui/mixins/searchable';
 import messageFromAdapterError from 'nomad-ui/utils/message-from-adapter-error';
 import {
   serialize,
-  deserializedQueryParam as selection
+  deserializedQueryParam as selection,
 } from 'nomad-ui/utils/qp-serialize';
 import classic from 'ember-classic-decorator';
 
@@ -23,29 +23,29 @@ export default class ClientController extends Controller.extend(
 ) {
   queryParams = [
     {
-      currentPage: 'page'
+      currentPage: 'page',
     },
     {
-      searchTerm: 'search'
+      searchTerm: 'search',
     },
     {
-      sortProperty: 'sort'
+      sortProperty: 'sort',
     },
     {
-      sortDescending: 'desc'
+      sortDescending: 'desc',
     },
     {
-      onlyPreemptions: 'preemptions'
+      onlyPreemptions: 'preemptions',
     },
     {
-      qpNamespace: 'namespace'
+      qpNamespace: 'namespace',
     },
     {
-      qpJob: 'job'
+      qpJob: 'job',
     },
     {
-      qpStatus: 'status'
-    }
+      qpStatus: 'status',
+    },
   ];
 
   // Set in the route
@@ -81,7 +81,7 @@ export default class ClientController extends Controller.extend(
   get filteredAllocations() {
     const { selectionNamespace, selectionJob, selectionStatus } = this;
 
-    return this.visibleAllocations.filter(alloc => {
+    return this.visibleAllocations.filter((alloc) => {
       if (
         selectionNamespace.length &&
         !selectionNamespace.includes(alloc.get('namespace'))
@@ -126,9 +126,7 @@ export default class ClientController extends Controller.extend(
 
   @computed('model.events.@each.time')
   get sortedEvents() {
-    return this.get('model.events')
-      .sortBy('time')
-      .reverse();
+    return this.get('model.events').sortBy('time').reverse();
   }
 
   @computed('model.drivers.@each.name')
@@ -141,7 +139,7 @@ export default class ClientController extends Controller.extend(
     return this.model.hostVolumes.sortBy('name');
   }
 
-  @(task(function*(value) {
+  @(task(function* (value) {
     try {
       yield value ? this.model.setEligible() : this.model.setIneligible();
     } catch (err) {
@@ -151,7 +149,7 @@ export default class ClientController extends Controller.extend(
   }).drop())
   setEligibility;
 
-  @(task(function*() {
+  @(task(function* () {
     try {
       this.set('flagAsDraining', false);
       yield this.model.cancelDrain();
@@ -164,10 +162,10 @@ export default class ClientController extends Controller.extend(
   }).drop())
   stopDrain;
 
-  @(task(function*() {
+  @(task(function* () {
     try {
       yield this.model.forceDrain({
-        IgnoreSystemJobs: this.model.drainStrategy.ignoreSystemJobs
+        IgnoreSystemJobs: this.model.drainStrategy.ignoreSystemJobs,
       });
     } catch (err) {
       const error = messageFromAdapterError(err) || 'Could not force drain';
@@ -212,7 +210,7 @@ export default class ClientController extends Controller.extend(
       { key: 'running', label: 'Running' },
       { key: 'complete', label: 'Complete' },
       { key: 'failed', label: 'Failed' },
-      { key: 'lost', label: 'Lost' }
+      { key: 'lost', label: 'Lost' },
     ];
   }
 
@@ -223,7 +221,7 @@ export default class ClientController extends Controller.extend(
     const jobs = Array.from(
       new Set(
         this.model.allocations
-          .filter(a => ns.length === 0 || ns.includes(a.namespace))
+          .filter((a) => ns.length === 0 || ns.includes(a.namespace))
           .mapBy('plainJobId')
       )
     ).compact();
@@ -234,7 +232,7 @@ export default class ClientController extends Controller.extend(
       this.set('qpJob', serialize(intersection(jobs, this.selectionJob)));
     });
 
-    return jobs.sort().map(job => ({ key: job, label: job }));
+    return jobs.sort().map((job) => ({ key: job, label: job }));
   }
 
   @computed('model.allocations.[]', 'selectionNamespace')
@@ -252,7 +250,7 @@ export default class ClientController extends Controller.extend(
       );
     });
 
-    return ns.sort().map(n => ({ key: n, label: n }));
+    return ns.sort().map((n) => ({ key: n, label: n }));
   }
 
   setFacetQueryParam(queryParam, selection) {

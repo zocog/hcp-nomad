@@ -19,10 +19,10 @@ export default class LifecycleChart extends Component {
       'poststart-ephemerals': [],
       'poststart-sidecars': [],
       poststops: [],
-      mains: []
+      mains: [],
     };
 
-    tasksOrStates.forEach(taskOrState => {
+    tasksOrStates.forEach((taskOrState) => {
       const task = taskOrState.task || taskOrState;
 
       if (task.lifecycleName) {
@@ -31,41 +31,41 @@ export default class LifecycleChart extends Component {
     });
 
     const phases = [];
-    const stateActiveIterator = state => state.state === 'running';
+    const stateActiveIterator = (state) => state.state === 'running';
 
     if (lifecycles.mains.length < tasksOrStates.length) {
       phases.push({
         name: 'Prestart',
-        isActive: lifecycles['prestart-ephemerals'].some(stateActiveIterator)
+        isActive: lifecycles['prestart-ephemerals'].some(stateActiveIterator),
       });
 
       phases.push({
         name: 'Main',
         isActive:
           lifecycles.mains.some(stateActiveIterator) ||
-          lifecycles['poststart-ephemerals'].some(stateActiveIterator)
+          lifecycles['poststart-ephemerals'].some(stateActiveIterator),
       });
 
       // Poststart is rendered as a subphase of main and therefore has no independent active state
       phases.push({
-        name: 'Poststart'
+        name: 'Poststart',
       });
 
       phases.push({
         name: 'Poststop',
-        isActive: lifecycles.poststops.some(stateActiveIterator)
+        isActive: lifecycles.poststops.some(stateActiveIterator),
       });
     }
 
     return phases;
   }
 
-  @sort('taskStates', function(a, b) {
+  @sort('taskStates', function (a, b) {
     return getTaskSortPrefix(a.task).localeCompare(getTaskSortPrefix(b.task));
   })
   sortedLifecycleTaskStates;
 
-  @sort('tasks', function(a, b) {
+  @sort('tasks', function (a, b) {
     return getTaskSortPrefix(a).localeCompare(getTaskSortPrefix(b));
   })
   sortedLifecycleTasks;
@@ -77,7 +77,7 @@ const lifecycleNameSortPrefix = {
   main: 2,
   'poststart-sidecar': 3,
   'poststart-ephemeral': 4,
-  poststop: 5
+  poststop: 5,
 };
 
 function getTaskSortPrefix(task) {

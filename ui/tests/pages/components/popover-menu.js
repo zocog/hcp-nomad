@@ -3,14 +3,14 @@ import {
   focusable,
   isPresent,
   text,
-  triggerable
+  triggerable,
 } from 'ember-cli-page-object';
 
 const ARROW_DOWN = 40;
 const ESC = 27;
 const TAB = 9;
 
-export default scope => ({
+export default (scope) => ({
   scope,
 
   isPresent: isPresent(),
@@ -20,19 +20,19 @@ export default scope => ({
   toggle: clickable('[data-test-popover-trigger]'),
   focus: focusable('[data-test-popover-trigger]'),
   downArrow: triggerable('keydown', '[data-test-popover-trigger]', {
-    eventProperties: { keyCode: ARROW_DOWN }
+    eventProperties: { keyCode: ARROW_DOWN },
   }),
   focusNext: triggerable('keydown', '[data-test-popover-trigger]', {
-    eventProperties: { keyCode: TAB }
+    eventProperties: { keyCode: TAB },
   }),
   esc: triggerable('keydown', '[data-test-popover-trigger]', {
-    eventProperties: { keyCode: ESC }
+    eventProperties: { keyCode: ESC },
   }),
 
   menu: {
     scope: '[data-test-popover-menu]',
     testContainer: '#ember-testing',
     resetScope: true,
-    isOpen: isPresent()
-  }
+    isOpen: isPresent(),
+  },
 });

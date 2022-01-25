@@ -11,7 +11,7 @@ const percent = (numerator, denominator) => {
   return numerator / denominator;
 };
 
-const empty = ts => ({ timestamp: ts, used: null, percent: null });
+const empty = (ts) => ({ timestamp: ts, used: null, percent: null });
 
 // Tasks are sorted by their lifecycle phase in this order:
 const sortMap = [
@@ -20,7 +20,7 @@ const sortMap = [
   'poststart-sidecar',
   'prestart-ephemeral',
   'poststart-ephemeral',
-  'poststop'
+  'poststop',
 ].reduce((map, phase, index) => {
   map[phase] = index;
   return map;
@@ -46,14 +46,14 @@ class AllocationStatsTracker extends EmberObject.extend(AbstractStatsTracker) {
     this.cpu.pushObject({
       timestamp,
       used: cpuUsed,
-      percent: percent(cpuUsed, this.reservedCPU)
+      percent: percent(cpuUsed, this.reservedCPU),
     });
 
     const memoryUsed = frame.ResourceUsage.MemoryStats.RSS;
     this.memory.pushObject({
       timestamp,
       used: memoryUsed,
-      percent: percent(memoryUsed / 1024 / 1024, this.reservedMemory)
+      percent: percent(memoryUsed / 1024 / 1024, this.reservedMemory),
     });
 
     let aggregateCpu = 0;
@@ -77,7 +77,7 @@ class AllocationStatsTracker extends EmberObject.extend(AbstractStatsTracker) {
         used: taskCpuUsed,
         percent: percent(taskCpuUsed, stats.reservedCPU),
         percentTotal: percentCpuTotal,
-        percentStack: percentCpuTotal + aggregateCpu
+        percentStack: percentCpuTotal + aggregateCpu,
       });
 
       const taskMemoryUsed = taskFrame.ResourceUsage.MemoryStats.RSS;
@@ -90,7 +90,7 @@ class AllocationStatsTracker extends EmberObject.extend(AbstractStatsTracker) {
         used: taskMemoryUsed,
         percent: percent(taskMemoryUsed / 1024 / 1024, stats.reservedMemory),
         percentTotal: percentMemoryTotal,
-        percentStack: percentMemoryTotal + aggregateMemory
+        percentStack: percentMemoryTotal + aggregateMemory,
       });
 
       aggregateCpu += percentCpuTotal;
@@ -102,7 +102,7 @@ class AllocationStatsTracker extends EmberObject.extend(AbstractStatsTracker) {
     const ts = new Date();
     this.memory.pushObject(empty(ts));
     this.cpu.pushObject(empty(ts));
-    this.tasks.forEach(task => {
+    this.tasks.forEach((task) => {
       task.memory.pushObject(empty(ts));
       task.cpu.pushObject(empty(ts));
     });
@@ -131,7 +131,7 @@ class AllocationStatsTracker extends EmberObject.extend(AbstractStatsTracker) {
     return tasks
       .slice()
       .sort(taskPrioritySort)
-      .map(task => ({
+      .map((task) => ({
         task: get(task, 'name'),
 
         // Static figures, denominators for stats
@@ -141,7 +141,7 @@ class AllocationStatsTracker extends EmberObject.extend(AbstractStatsTracker) {
         // Dynamic figures, collected over time
         // []{ timestamp: Date, used: Number, percent: Number }
         cpu: RollingArray(bufferSize),
-        memory: RollingArray(bufferSize)
+        memory: RollingArray(bufferSize),
       }));
   }
 }
@@ -149,10 +149,10 @@ class AllocationStatsTracker extends EmberObject.extend(AbstractStatsTracker) {
 export default AllocationStatsTracker;
 
 export function stats(allocationProp, fetch) {
-  return computed(allocationProp, function() {
+  return computed(allocationProp, function () {
     return AllocationStatsTracker.create({
       fetch: fetch.call(this),
-      allocation: this.get(allocationProp)
+      allocation: this.get(allocationProp),
     });
   });
 }

@@ -17,32 +17,32 @@ const nodeGen = (name, datacenter, memory, cpu, allocations = []) => ({
   memory,
   cpu,
   node: { name },
-  allocations: allocations.map(alloc => ({
+  allocations: allocations.map((alloc) => ({
     memory: alloc.memory,
     cpu: alloc.cpu,
     memoryPercent: alloc.memory / memory,
     cpuPercent: alloc.cpu / cpu,
     allocation: {
       id: faker.random.uuid(),
-      isScheduled: true
-    }
-  }))
+      isScheduled: true,
+    },
+  })),
 });
 
 // Used in Array#reduce to sum by a property common to an array of objects
-const sumBy = prop => (sum, obj) => (sum += obj[prop]);
+const sumBy = (prop) => (sum, obj) => (sum += obj[prop]);
 
-module('Integration | Component | TopoViz::Datacenter', function(hooks) {
+module('Integration | Component | TopoViz::Datacenter', function (hooks) {
   setupRenderingTest(hooks);
   setupMirage(hooks);
 
-  const commonProps = props => ({
+  const commonProps = (props) => ({
     isSingleColumn: true,
     isDense: false,
     heightScale: () => 50,
     onAllocationSelect: sinon.spy(),
     onNodeSelect: sinon.spy(),
-    ...props
+    ...props,
   });
 
   const commonTemplate = hbs`
@@ -55,15 +55,15 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
       @onNodeSelect={{this.onNodeSelect}} />
   `;
 
-  test('presents as a div with a label and a FlexMasonry with a collection of nodes', async function(assert) {
+  test('presents as a div with a label and a FlexMasonry with a collection of nodes', async function (assert) {
     assert.expect(3);
 
     this.setProperties(
       commonProps({
         datacenter: {
           name: 'dc1',
-          nodes: [nodeGen('node-1', 'dc1', 1000, 500)]
-        }
+          nodes: [nodeGen('node-1', 'dc1', 1000, 500)],
+        },
       })
     );
 
@@ -75,7 +75,7 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('datacenter stats are an aggregate of node stats', async function(assert) {
+  test('datacenter stats are an aggregate of node stats', async function (assert) {
     this.setProperties(
       commonProps({
         datacenter: {
@@ -83,16 +83,16 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
           nodes: [
             nodeGen('node-1', 'dc1', 1000, 500, [
               { memory: 100, cpu: 300 },
-              { memory: 200, cpu: 50 }
+              { memory: 200, cpu: 50 },
             ]),
             nodeGen('node-2', 'dc1', 1500, 100, [
               { memory: 50, cpu: 80 },
-              { memory: 100, cpu: 20 }
+              { memory: 100, cpu: 20 },
             ]),
             nodeGen('node-3', 'dc1', 2000, 300),
-            nodeGen('node-4', 'dc1', 3000, 200)
-          ]
-        }
+            nodeGen('node-4', 'dc1', 3000, 200),
+          ],
+        },
       })
     );
 
@@ -127,7 +127,7 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
     );
   });
 
-  test('when @isSingleColumn is true, the FlexMasonry layout gets one column, otherwise it gets two', async function(assert) {
+  test('when @isSingleColumn is true, the FlexMasonry layout gets one column, otherwise it gets two', async function (assert) {
     this.setProperties(
       commonProps({
         isSingleColumn: true,
@@ -135,9 +135,9 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
           name: 'dc1',
           nodes: [
             nodeGen('node-1', 'dc1', 1000, 500),
-            nodeGen('node-2', 'dc1', 1000, 500)
-          ]
-        }
+            nodeGen('node-2', 'dc1', 1000, 500),
+          ],
+        },
       })
     );
 
@@ -149,7 +149,7 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
     assert.ok(find('[data-test-flex-masonry].flex-masonry-columns-2'));
   });
 
-  test('args get passed down to the TopViz::Node children', async function(assert) {
+  test('args get passed down to the TopViz::Node children', async function (assert) {
     assert.expect(4);
 
     const heightSpy = sinon.spy();
@@ -163,15 +163,15 @@ module('Integration | Component | TopoViz::Datacenter', function(hooks) {
         datacenter: {
           name: 'dc1',
           nodes: [
-            nodeGen('node-1', 'dc1', 1000, 500, [{ memory: 100, cpu: 300 }])
-          ]
-        }
+            nodeGen('node-1', 'dc1', 1000, 500, [{ memory: 100, cpu: 300 }]),
+          ],
+        },
       })
     );
 
     await render(commonTemplate);
 
-    TopoVizDatacenter.nodes[0].as(async TopoVizNode => {
+    TopoVizDatacenter.nodes[0].as(async (TopoVizNode) => {
       assert.notOk(TopoVizNode.labelIsPresent);
       assert.ok(heightSpy.calledWith(this.datacenter.nodes[0].memory));
 

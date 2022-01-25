@@ -47,7 +47,7 @@ export default class JobVersion extends Component {
     this.toggleProperty('isOpen');
   }
 
-  @task(function*() {
+  @task(function* () {
     try {
       const versionBeforeReversion = this.get('version.job.version');
 
@@ -61,20 +61,20 @@ export default class JobVersion extends Component {
           level: 'warn',
           title: 'Reversion Had No Effect',
           description:
-            'Reverting to an identical older version doesn’t produce a new version'
+            'Reverting to an identical older version doesn’t produce a new version',
         });
       } else {
         const job = this.get('version.job');
 
         this.router.transitionTo('jobs.job', job.get('plainId'), {
-          queryParams: { namespace: job.get('namespace.name') }
+          queryParams: { namespace: job.get('namespace.name') },
         });
       }
     } catch (e) {
       this.handleError({
         level: 'danger',
         title: 'Could Not Revert',
-        description: messageForError(e, 'revert')
+        description: messageForError(e, 'revert'),
       });
     }
   })

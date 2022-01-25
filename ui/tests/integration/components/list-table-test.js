@@ -5,7 +5,7 @@ import faker from 'nomad-ui/mirage/faker';
 import hbs from 'htmlbars-inline-precompile';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
 
-module('Integration | Component | list table', function(hooks) {
+module('Integration | Component | list table', function (hooks) {
   setupRenderingTest(hooks);
 
   const commonTable = Array(10)
@@ -13,11 +13,11 @@ module('Integration | Component | list table', function(hooks) {
     .map(() => ({
       firstName: faker.name.firstName(),
       lastName: faker.name.lastName(),
-      age: faker.random.number({ min: 18, max: 60 })
+      age: faker.random.number({ min: 18, max: 60 }),
     }));
 
   // thead
-  test('component exposes a thead contextual component', async function(assert) {
+  test('component exposes a thead contextual component', async function (assert) {
     this.set('source', commonTable);
     await render(hbs`
       <ListTable @source={{source}} @sortProperty={{sortProperty}} @sortDescending={{sortDescending}} as |t|>
@@ -38,13 +38,13 @@ module('Integration | Component | list table', function(hooks) {
   });
 
   // tbody
-  test('component exposes a tbody contextual component', async function(assert) {
+  test('component exposes a tbody contextual component', async function (assert) {
     assert.expect(44);
 
     this.setProperties({
       source: commonTable,
       sortProperty: 'firstName',
-      sortDescending: false
+      sortDescending: false,
     });
     await render(hbs`
       <ListTable @source={{source}} @sortProperty={{sortProperty}} @sortDescending={{sortDescending}} as |t|>
@@ -104,5 +104,5 @@ module('Integration | Component | list table', function(hooks) {
   // Ember doesn't support query params (or controllers or routes) in integration tests,
   // so sorting links can only be tested in acceptance tests.
   // Leaving this test here for posterity.
-  skip('sort-by creates links using the appropriate links given sort property and sort descending', function() {});
+  skip('sort-by creates links using the appropriate links given sort property and sort descending', function () {});
 });

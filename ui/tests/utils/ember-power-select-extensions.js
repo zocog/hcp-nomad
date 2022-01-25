@@ -69,7 +69,7 @@ export async function selectOpenChoose(
   );
   let potentialTargets = [].slice
     .apply(options)
-    .filter(opt => opt.textContent.indexOf(valueOrSelector) > -1);
+    .filter((opt) => opt.textContent.indexOf(valueOrSelector) > -1);
   if (potentialTargets.length === 0) {
     potentialTargets = document.querySelectorAll(
       `#${contentId} ${valueOrSelector}`
@@ -78,7 +78,7 @@ export async function selectOpenChoose(
   if (potentialTargets.length > 1) {
     let filteredTargets = [].slice
       .apply(potentialTargets)
-      .filter(t => t.textContent.trim() === valueOrSelector);
+      .filter((t) => t.textContent.trim() === valueOrSelector);
     if (optionIndex === undefined) {
       target = filteredTargets[0] || potentialTargets[0];
     } else {

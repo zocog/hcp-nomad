@@ -3,7 +3,7 @@ import {
   render,
   settled,
   triggerEvent,
-  waitUntil
+  waitUntil,
 } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
@@ -19,7 +19,7 @@ const valueChange = () => {
   return () => StepperInput.input.value !== initial;
 };
 
-module('Integration | Component | stepper input', function(hooks) {
+module('Integration | Component | stepper input', function (hooks) {
   setupRenderingTest(hooks);
 
   const commonProperties = () => ({
@@ -29,7 +29,7 @@ module('Integration | Component | stepper input', function(hooks) {
     label: 'Stepper',
     classVariant: 'is-primary',
     disabled: false,
-    onChange: sinon.spy()
+    onChange: sinon.spy(),
   });
 
   const commonTemplate = hbs`
@@ -45,7 +45,7 @@ module('Integration | Component | stepper input', function(hooks) {
     </StepperInput>
   `;
 
-  test('basic appearance includes a label, an input, and two buttons', async function(assert) {
+  test('basic appearance includes a label, an input, and two buttons', async function (assert) {
     assert.expect(7);
 
     this.setProperties(commonProperties());
@@ -66,7 +66,7 @@ module('Integration | Component | stepper input', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('clicking the increment and decrement buttons immediately changes the shown value in the input but debounces the onUpdate call', async function(assert) {
+  test('clicking the increment and decrement buttons immediately changes the shown value in the input but debounces the onUpdate call', async function (assert) {
     this.setProperties(commonProperties());
 
     const baseValue = this.value;
@@ -92,7 +92,7 @@ module('Integration | Component | stepper input', function(hooks) {
     assert.ok(this.onChange.calledWith(baseValue - 1));
   });
 
-  test('the increment button is disabled when the internal value is the max value', async function(assert) {
+  test('the increment button is disabled when the internal value is the max value', async function (assert) {
     this.setProperties(commonProperties());
     this.set('value', this.max);
 
@@ -101,7 +101,7 @@ module('Integration | Component | stepper input', function(hooks) {
     assert.ok(StepperInput.increment.isDisabled);
   });
 
-  test('the decrement button is disabled when the internal value is the min value', async function(assert) {
+  test('the decrement button is disabled when the internal value is the min value', async function (assert) {
     this.setProperties(commonProperties());
     this.set('value', this.min);
 
@@ -110,7 +110,7 @@ module('Integration | Component | stepper input', function(hooks) {
     assert.ok(StepperInput.decrement.isDisabled);
   });
 
-  test('the text input does not call the onUpdate function on oninput', async function(assert) {
+  test('the text input does not call the onUpdate function on oninput', async function (assert) {
     this.setProperties(commonProperties());
     const newValue = 8;
 
@@ -131,7 +131,7 @@ module('Integration | Component | stepper input', function(hooks) {
     assert.ok(this.onChange.calledWith(newValue));
   });
 
-  test('the text input does call the onUpdate function on onchange', async function(assert) {
+  test('the text input does call the onUpdate function on onchange', async function (assert) {
     this.setProperties(commonProperties());
     const newValue = 8;
 
@@ -144,7 +144,7 @@ module('Integration | Component | stepper input', function(hooks) {
     assert.ok(this.onChange.calledWith(newValue));
   });
 
-  test('text input limits input to the bounds of the min/max range', async function(assert) {
+  test('text input limits input to the bounds of the min/max range', async function (assert) {
     this.setProperties(commonProperties());
     let newValue = this.max + 1;
 
@@ -165,7 +165,7 @@ module('Integration | Component | stepper input', function(hooks) {
     assert.ok(this.onChange.calledWith(this.min));
   });
 
-  test('pressing ESC in the text input reverts the text value back to the current value', async function(assert) {
+  test('pressing ESC in the text input reverts the text value back to the current value', async function (assert) {
     this.setProperties(commonProperties());
     const newValue = 8;
 
@@ -180,7 +180,7 @@ module('Integration | Component | stepper input', function(hooks) {
     assert.equal(StepperInput.input.value, this.value);
   });
 
-  test('clicking the label focuses in the input', async function(assert) {
+  test('clicking the label focuses in the input', async function (assert) {
     this.setProperties(commonProperties());
 
     await render(commonTemplate);
@@ -190,22 +190,19 @@ module('Integration | Component | stepper input', function(hooks) {
     assert.equal(document.activeElement, input);
   });
 
-  test('focusing the input selects the input value', async function(assert) {
+  test('focusing the input selects the input value', async function (assert) {
     this.setProperties(commonProperties());
 
     await render(commonTemplate);
     await StepperInput.input.focus();
 
     assert.equal(
-      window
-        .getSelection()
-        .toString()
-        .trim(),
+      window.getSelection().toString().trim(),
       this.value.toString()
     );
   });
 
-  test('entering a fractional value floors the value', async function(assert) {
+  test('entering a fractional value floors the value', async function (assert) {
     this.setProperties(commonProperties());
     const newValue = 3.14159;
 
@@ -218,7 +215,7 @@ module('Integration | Component | stepper input', function(hooks) {
     assert.ok(this.onChange.calledWith(Math.floor(newValue)));
   });
 
-  test('entering an invalid value reverts the value', async function(assert) {
+  test('entering an invalid value reverts the value', async function (assert) {
     this.setProperties(commonProperties());
     const newValue = 'NaN';
 

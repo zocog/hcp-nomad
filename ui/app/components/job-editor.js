@@ -48,7 +48,7 @@ export default class JobEditor extends Component {
     return this.planOutput ? 'plan' : 'editor';
   }
 
-  @(task(function*() {
+  @(task(function* () {
     this.reset();
 
     try {
@@ -71,7 +71,7 @@ export default class JobEditor extends Component {
   }).drop())
   plan;
 
-  @task(function*() {
+  @task(function* () {
     try {
       if (this.context === 'new') {
         yield this.job.run();

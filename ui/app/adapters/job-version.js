@@ -14,8 +14,8 @@ export default class JobVersionAdapter extends ApplicationAdapter {
     return this.ajax(url, 'POST', {
       data: {
         JobID: jobName,
-        JobVersion: jobVersion.number
-      }
+        JobVersion: jobVersion.number,
+      },
     });
   }
 }

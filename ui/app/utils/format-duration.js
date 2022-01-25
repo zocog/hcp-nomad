@@ -18,25 +18,25 @@ const allUnits = [
     suffix: 'h',
     longSuffix: 'hour',
     inMoment: true,
-    pluralizable: false
+    pluralizable: false,
   },
   {
     name: 'minutes',
     suffix: 'm',
     longSuffix: 'minute',
     inMoment: true,
-    pluralizable: false
+    pluralizable: false,
   },
   {
     name: 'seconds',
     suffix: 's',
     longSuffix: 'second',
     inMoment: true,
-    pluralizable: false
+    pluralizable: false,
   },
   { name: 'milliseconds', suffix: 'ms', inMoment: true, pluralizable: false },
   { name: 'microseconds', suffix: 'µs', inMoment: false, pluralizable: false },
-  { name: 'nanoseconds', suffix: 'ns', inMoment: false, pluralizable: false }
+  { name: 'nanoseconds', suffix: 'ns', inMoment: false, pluralizable: false },
 ];
 
 const pluralizeUnits = (amount, unit, longForm) => {
@@ -95,7 +95,7 @@ export default function formatDuration(
   allUnits
     .filterBy('inMoment')
     .mapBy('name')
-    .forEach(unit => {
+    .forEach((unit) => {
       durationParts[unit] = momentDuration[unit]();
     });
 

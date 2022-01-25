@@ -33,8 +33,8 @@ export default class AllocationRow extends Component {
     if (!this.get('allocation.isRunning')) return undefined;
 
     return AllocationStatsTracker.create({
-      fetch: url => this.token.authorizedRequest(url),
-      allocation: this.allocation
+      fetch: (url) => this.token.authorizedRequest(url),
+      allocation: this.allocation,
     });
   }
 
@@ -62,13 +62,11 @@ export default class AllocationRow extends Component {
     }
   }
 
-  @(task(function*() {
+  @(task(function* () {
     do {
       if (this.stats) {
         try {
-          yield this.get('stats.poll')
-            .linked()
-            .perform();
+          yield this.get('stats.poll').linked().perform();
           this.set('statsError', false);
         } catch (error) {
           this.set('statsError', true);
@@ -88,7 +86,7 @@ async function qualifyAllocation() {
   // can show information such as preemptions and rescheduled allocation.
   if (allocation.isPartial) {
     await this.store.findRecord('allocation', allocation.id, {
-      backgroundReload: false
+      backgroundReload: false,
     });
   }
 

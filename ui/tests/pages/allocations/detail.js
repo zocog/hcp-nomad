@@ -5,7 +5,7 @@ import {
   collection,
   isPresent,
   text,
-  visitable
+  visitable,
 } from 'ember-cli-page-object';
 
 import allocations from 'nomad-ui/tests/pages/components/allocations';
@@ -21,7 +21,7 @@ export default create({
   restart: twoStepButton('[data-test-restart]'),
 
   execButton: {
-    scope: '[data-test-exec-button]'
+    scope: '[data-test-exec-button]',
   },
 
   details: {
@@ -31,12 +31,12 @@ export default create({
     visitJob: clickable('[data-test-job-link]'),
 
     client: text('[data-test-client-link]'),
-    visitClient: clickable('[data-test-client-link]')
+    visitClient: clickable('[data-test-client-link]'),
   },
 
   resourceCharts: collection('[data-test-primary-metric]', {
     name: text('[data-test-primary-metric-title]'),
-    chartClass: attribute('class', '[data-test-percentage-chart] progress')
+    chartClass: attribute('class', '[data-test-percentage-chart] progress'),
   }),
 
   resourceEmptyMessage: text('[data-test-resource-error-headline]'),
@@ -54,7 +54,7 @@ export default create({
     hasProxyTag: isPresent('[data-test-proxy-tag]'),
 
     clickLink: clickable('[data-test-name] a'),
-    clickRow: clickable('[data-test-name]')
+    clickRow: clickable('[data-test-name]'),
   }),
 
   firstUnhealthyTask() {
@@ -77,7 +77,7 @@ export default create({
 
     visit: clickable('[data-test-allocation-id]'),
     visitJob: clickable('[data-test-job-link]'),
-    visitClient: clickable('[data-test-client-link]')
+    visitClient: clickable('[data-test-client-link]'),
   },
 
   preempted: isPresent('[data-test-preemptions]'),
@@ -89,7 +89,7 @@ export default create({
   ports: collection('[data-test-allocation-port]', {
     name: text('[data-test-allocation-port-name]'),
     address: text('[data-test-allocation-port-address]'),
-    to: text('[data-test-allocation-port-to]')
+    to: text('[data-test-allocation-port-to]'),
   }),
 
   services: collection('[data-test-service]', {
@@ -98,20 +98,20 @@ export default create({
     tags: text('[data-test-service-tags]'),
     onUpdate: text('[data-test-service-onupdate]'),
     connect: text('[data-test-service-connect]'),
-    upstreams: text('[data-test-service-upstreams]')
+    upstreams: text('[data-test-service-upstreams]'),
   }),
 
   error: {
     isShown: isPresent('[data-test-error]'),
     title: text('[data-test-error-title]'),
     message: text('[data-test-error-message]'),
-    seekHelp: clickable('[data-test-error-message] a')
+    seekHelp: clickable('[data-test-error-message] a'),
   },
 
   inlineError: {
     isShown: isPresent('[data-test-inline-error]'),
     title: text('[data-test-inline-error-title]'),
     message: text('[data-test-inline-error-body]'),
-    dismiss: clickable('[data-test-inline-error-close]')
-  }
+    dismiss: clickable('[data-test-inline-error-close]'),
+  },
 });

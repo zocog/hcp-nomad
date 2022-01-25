@@ -3,7 +3,7 @@ import {
   create,
   isPresent,
   text,
-  visitable
+  visitable,
 } from 'ember-cli-page-object';
 
 import allocations from 'nomad-ui/tests/pages/components/allocations';
@@ -39,11 +39,11 @@ export default create({
 
   controllerTableIsEmpty: isPresent('[data-test-empty-controller-allocations]'),
   controllerEmptyState: {
-    headline: text('[data-test-empty-controller-allocations-headline]')
+    headline: text('[data-test-empty-controller-allocations-headline]'),
   },
 
   nodeTableIsEmpty: isPresent('[data-test-empty-node-allocations]'),
   nodeEmptyState: {
-    headline: text('[data-test-empty-node-allocations-headline]')
-  }
+    headline: text('[data-test-empty-node-allocations-headline]'),
+  },
 });

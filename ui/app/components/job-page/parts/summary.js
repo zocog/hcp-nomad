@@ -17,8 +17,8 @@ export default class Summary extends Component {
     this.router.transitionTo('jobs.job.allocations', this.job, {
       queryParams: {
         status: JSON.stringify(status),
-        namespace: this.job.get('namespace.name')
-      }
+        namespace: this.job.get('namespace.name'),
+      },
     });
   }
 

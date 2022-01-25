@@ -2,9 +2,9 @@ import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import DeploymentModel from 'nomad-ui/models/deployment';
 
-module('Unit | Serializer | Deployment', function(hooks) {
+module('Unit | Serializer | Deployment', function (hooks) {
   setupTest(hooks);
-  hooks.beforeEach(function() {
+  hooks.beforeEach(function () {
     this.store = this.owner.lookup('service:store');
     this.subject = () => this.store.serializerFor('deployment');
   });
@@ -19,9 +19,9 @@ module('Unit | Serializer | Deployment', function(hooks) {
         Status: 'canceled',
         TaskGroups: {
           taskGroup: {
-            DesiredCanaries: 2
-          }
-        }
+            DesiredCanaries: 2,
+          },
+        },
       },
       out: {
         data: {
@@ -33,31 +33,31 @@ module('Unit | Serializer | Deployment', function(hooks) {
               {
                 name: 'taskGroup',
                 desiredCanaries: 2,
-                placedCanaryAllocations: []
-              }
-            ]
+                placedCanaryAllocations: [],
+              },
+            ],
           },
           relationships: {
             allocations: {
               links: {
-                related: '/v1/deployment/allocations/test-deployment'
-              }
+                related: '/v1/deployment/allocations/test-deployment',
+              },
             },
             job: {
               data: {
                 id: '["test-job","test-namespace"]',
-                type: 'job'
-              }
+                type: 'job',
+              },
             },
             jobForLatest: {
               data: {
                 id: '["test-job","test-namespace"]',
-                type: 'job'
-              }
-            }
-          }
-        }
-      }
+                type: 'job',
+              },
+            },
+          },
+        },
+      },
     },
 
     {
@@ -69,12 +69,12 @@ module('Unit | Serializer | Deployment', function(hooks) {
         Status: 'canceled',
         TaskGroups: {
           'one.two': {
-            DesiredCanaries: 2
+            DesiredCanaries: 2,
           },
           'three.four': {
-            DesiredCanaries: 3
-          }
-        }
+            DesiredCanaries: 3,
+          },
+        },
       },
       out: {
         data: {
@@ -86,41 +86,41 @@ module('Unit | Serializer | Deployment', function(hooks) {
               {
                 name: 'one.two',
                 desiredCanaries: 2,
-                placedCanaryAllocations: []
+                placedCanaryAllocations: [],
               },
               {
                 name: 'three.four',
                 desiredCanaries: 3,
-                placedCanaryAllocations: []
-              }
-            ]
+                placedCanaryAllocations: [],
+              },
+            ],
           },
           relationships: {
             allocations: {
               links: {
-                related: '/v1/deployment/allocations/test-deployment'
-              }
+                related: '/v1/deployment/allocations/test-deployment',
+              },
             },
             job: {
               data: {
                 id: '["test-job","test-namespace"]',
-                type: 'job'
-              }
+                type: 'job',
+              },
             },
             jobForLatest: {
               data: {
                 id: '["test-job","test-namespace"]',
-                type: 'job'
-              }
-            }
-          }
-        }
-      }
-    }
+                type: 'job',
+              },
+            },
+          },
+        },
+      },
+    },
   ];
 
-  normalizationTestCases.forEach(testCase => {
-    test(`normalization: ${testCase.name}`, async function(assert) {
+  normalizationTestCases.forEach((testCase) => {
+    test(`normalization: ${testCase.name}`, async function (assert) {
       assert.deepEqual(
         this.subject().normalize(DeploymentModel, testCase.in),
         testCase.out

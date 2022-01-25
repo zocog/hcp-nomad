@@ -2,9 +2,9 @@ import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import EvaluationModel from 'nomad-ui/models/evaluation';
 
-module('Unit | Serializer | Evaluation', function(hooks) {
+module('Unit | Serializer | Evaluation', function (hooks) {
   setupTest(hooks);
-  hooks.beforeEach(function() {
+  hooks.beforeEach(function () {
     this.store = this.owner.lookup('service:store');
     this.subject = () => this.store.serializerFor('evaluation');
   });
@@ -19,13 +19,13 @@ module('Unit | Serializer | Evaluation', function(hooks) {
         ModifyTime: +sampleDate * 1000000,
         FailedTGAllocs: {
           taskGroup: {
-            NodesAvailable: 10
-          }
+            NodesAvailable: 10,
+          },
         },
         JobID: 'some-job-id',
         Job: {
-          Namespace: 'test-namespace'
-        }
+          Namespace: 'test-namespace',
+        },
       },
       out: {
         data: {
@@ -37,20 +37,20 @@ module('Unit | Serializer | Evaluation', function(hooks) {
             failedTGAllocs: [
               {
                 name: 'taskGroup',
-                nodesAvailable: 10
-              }
-            ]
+                nodesAvailable: 10,
+              },
+            ],
           },
           relationships: {
             job: {
               data: {
                 id: '["some-job-id","test-namespace"]',
-                type: 'job'
-              }
-            }
-          }
-        }
-      }
+                type: 'job',
+              },
+            },
+          },
+        },
+      },
     },
 
     {
@@ -61,16 +61,16 @@ module('Unit | Serializer | Evaluation', function(hooks) {
         ModifyTime: +sampleDate * 1000000,
         FailedTGAllocs: {
           'one.two': {
-            NodesAvailable: 10
+            NodesAvailable: 10,
           },
           'three.four': {
-            NodesAvailable: 25
-          }
+            NodesAvailable: 25,
+          },
         },
         JobID: 'some-job-id',
         Job: {
-          Namespace: 'test-namespace'
-        }
+          Namespace: 'test-namespace',
+        },
       },
       out: {
         data: {
@@ -82,29 +82,29 @@ module('Unit | Serializer | Evaluation', function(hooks) {
             failedTGAllocs: [
               {
                 name: 'one.two',
-                nodesAvailable: 10
+                nodesAvailable: 10,
               },
               {
                 name: 'three.four',
-                nodesAvailable: 25
-              }
-            ]
+                nodesAvailable: 25,
+              },
+            ],
           },
           relationships: {
             job: {
               data: {
                 id: '["some-job-id","test-namespace"]',
-                type: 'job'
-              }
-            }
-          }
-        }
-      }
-    }
+                type: 'job',
+              },
+            },
+          },
+        },
+      },
+    },
   ];
 
-  normalizationTestCases.forEach(testCase => {
-    test(`normalization: ${testCase.name}`, async function(assert) {
+  normalizationTestCases.forEach((testCase) => {
+    test(`normalization: ${testCase.name}`, async function (assert) {
       assert.deepEqual(
         this.subject().normalize(EvaluationModel, testCase.in),
         testCase.out

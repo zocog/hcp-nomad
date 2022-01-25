@@ -32,7 +32,7 @@ export default class TaskGroupParent extends Component {
   @computed('taskGroup.allocations.@each.clientStatus')
   get hasPendingAllocations() {
     return this.taskGroup.allocations.any(
-      allocation => allocation.clientStatus === 'pending'
+      (allocation) => allocation.clientStatus === 'pending'
     );
   }
 
@@ -60,7 +60,7 @@ export default class TaskGroupParent extends Component {
   )
   get tasksWithRunningStates() {
     const activeTaskStateNames = this.activeTaskStates
-      .filter(taskState => {
+      .filter((taskState) => {
         return (
           taskState.task &&
           taskState.task.taskGroup.name === this.taskGroup.name
@@ -68,7 +68,7 @@ export default class TaskGroupParent extends Component {
       })
       .mapBy('name');
 
-    return this.taskGroup.tasks.filter(task =>
+    return this.taskGroup.tasks.filter((task) =>
       activeTaskStateNames.includes(task.name)
     );
   }
@@ -88,7 +88,7 @@ export default class TaskGroupParent extends Component {
     let url = generateExecUrl(this.router, {
       job,
       taskGroup,
-      task
+      task,
     });
 
     openExecUrl(url);

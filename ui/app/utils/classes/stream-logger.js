@@ -13,7 +13,7 @@ export default class StreamLogger extends EmberObject.extend(AbstractLogger) {
   @computed()
   get additionalParams() {
     return {
-      follow: true
+      follow: true,
     };
   }
 
@@ -29,11 +29,11 @@ export default class StreamLogger extends EmberObject.extend(AbstractLogger) {
     return this.poll.cancelAll();
   }
 
-  @task(function*() {
+  @task(function* () {
     const url = this.fullUrl;
     const logFetch = this.logFetch;
 
-    const reader = yield logFetch(url).then(res => {
+    const reader = yield logFetch(url).then((res) => {
       const reader = res.body.getReader();
       // It's possible that the logger was stopped between the time
       // polling was started and the log request responded.
@@ -89,5 +89,5 @@ export default class StreamLogger extends EmberObject.extend(AbstractLogger) {
 }
 
 StreamLogger.reopenClass({
-  isSupported: !!window.ReadableStream
+  isSupported: !!window.ReadableStream,
 });

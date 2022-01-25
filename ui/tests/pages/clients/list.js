@@ -8,7 +8,7 @@ import {
   isHidden,
   isPresent,
   text,
-  visitable
+  visitable,
 } from 'ember-cli-page-object';
 
 import { multiFacet } from 'nomad-ui/tests/pages/components/facet';
@@ -23,14 +23,11 @@ export default create({
 
   sortOptions: collection('[data-test-sort-by]', {
     id: attribute('data-test-sort-by'),
-    sort: clickable()
+    sort: clickable(),
   }),
 
   sortBy(id) {
-    return this.sortOptions
-      .toArray()
-      .findBy('id', id)
-      .sort();
+    return this.sortOptions.toArray().findBy('id', id).sort();
   },
 
   nodes: collection('[data-test-client-node-row]', {
@@ -44,7 +41,7 @@ export default create({
 
       isInfo: hasClass('is-info', '.status-text'),
       isWarning: hasClass('is-warning', '.status-text'),
-      isUnformatted: isHidden('.status-text')
+      isUnformatted: isHidden('.status-text'),
     },
 
     address: text('[data-test-client-address]'),
@@ -53,14 +50,14 @@ export default create({
     allocations: text('[data-test-client-allocations]'),
 
     clickRow: clickable(),
-    clickName: clickable('[data-test-client-name] a')
+    clickName: clickable('[data-test-client-name] a'),
   }),
 
   hasPagination: isPresent('[data-test-pagination]'),
 
   isEmpty: isPresent('[data-test-empty-clients-list]'),
   empty: {
-    headline: text('[data-test-empty-clients-list-headline]')
+    headline: text('[data-test-empty-clients-list-headline]'),
   },
 
   pageSizeSelect: pageSizeSelect(),
@@ -69,7 +66,7 @@ export default create({
     isPresent: isPresent('[data-test-error]'),
     title: text('[data-test-error-title]'),
     message: text('[data-test-error-message]'),
-    seekHelp: clickable('[data-test-error-message] a')
+    seekHelp: clickable('[data-test-error-message] a'),
   },
 
   facets: {
@@ -77,6 +74,6 @@ export default create({
     state: multiFacet('[data-test-state-facet]'),
     datacenter: multiFacet('[data-test-datacenter-facet]'),
     version: multiFacet('[data-test-version-facet]'),
-    volume: multiFacet('[data-test-volume-facet]')
-  }
+    volume: multiFacet('[data-test-volume-facet]'),
+  },
 });

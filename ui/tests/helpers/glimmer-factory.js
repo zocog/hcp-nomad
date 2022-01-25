@@ -18,14 +18,14 @@
 */
 
 export default function setupGlimmerComponentFactory(hooks, componentKey) {
-  hooks.beforeEach(function() {
+  hooks.beforeEach(function () {
     this.createComponent = glimmerComponentInstantiator(
       this.owner,
       componentKey
     );
   });
 
-  hooks.afterEach(function() {
+  hooks.afterEach(function () {
     delete this.createComponent;
   });
 }

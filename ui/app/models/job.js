@@ -167,7 +167,7 @@ export default class Job extends Model {
   get hasBlockedEvaluation() {
     return this.evaluations
       .toArray()
-      .some(evaluation => evaluation.get('isBlocked'));
+      .some((evaluation) => evaluation.get('isBlocked'));
   }
 
   @and('latestFailureEvaluation', 'hasBlockedEvaluation') hasPlacementFailures;
@@ -255,7 +255,7 @@ export default class Job extends Model {
       promise = this.store
         .adapterFor('job')
         .parse(this._newDefinition)
-        .then(response => {
+        .then((response) => {
           this.set('_newDefinitionJSON', response);
           this.setIdByPayload(response);
         });
@@ -299,7 +299,7 @@ export default class Job extends Model {
     const classMap = {
       pending: 'is-pending',
       running: 'is-primary',
-      dead: 'is-light'
+      dead: 'is-light',
     };
 
     return classMap[this.status] || 'is-dark';

@@ -11,7 +11,7 @@ const FOCUSABLE = [
   'button:not([disabled])',
   'input:not([disabled]):not([type="hidden"])',
   'textarea:not([disabled])',
-  '[tabindex]:not([disabled]):not([tabindex="-1"])'
+  '[tabindex]:not([disabled]):not([tabindex="-1"])',
 ].join(', ');
 
 @classic

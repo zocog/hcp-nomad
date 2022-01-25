@@ -7,13 +7,10 @@ import moment from 'moment';
 import DelayedArray from '../utils/delayed-array';
 
 export default {
-  title: 'Charts/Stats Time Series'
+  title: 'Charts/Stats Time Series',
 };
 
-let ts = offset =>
-  moment()
-    .subtract(offset, 'm')
-    .toDate();
+let ts = (offset) => moment().subtract(offset, 'm').toDate();
 
 export let Standard = () => {
   return {
@@ -37,9 +34,9 @@ export let Standard = () => {
         { timestamp: ts(6), percent: 0.4 },
         { timestamp: ts(4), percent: 0.5 },
         { timestamp: ts(2), percent: 0.6 },
-        { timestamp: ts(0), percent: 0.6 }
-      ])
-    }
+        { timestamp: ts(0), percent: 0.6 },
+      ]),
+    },
   };
 };
 
@@ -66,7 +63,7 @@ export let HighLowComparison = () => {
       data: EmberObject.extend({
         timerTicks: 0,
 
-        startTimer: on('init', function() {
+        startTimer: on('init', function () {
           this.set(
             'timer',
             setInterval(() => {
@@ -94,7 +91,7 @@ export let HighLowComparison = () => {
         appendTSValue(array, percent, maxLength = 300) {
           array.addObject({
             timestamp: Date.now(),
-            percent
+            percent,
           });
 
           if (array.length > maxLength) {
@@ -106,18 +103,18 @@ export let HighLowComparison = () => {
           clearInterval(this.timer);
         },
 
-        metricsHigh: computed(function() {
+        metricsHigh: computed(function () {
           return [];
         }),
 
-        metricsLow: computed(function() {
+        metricsLow: computed(function () {
           return [];
         }),
 
         secondsFormat() {
-          return date => moment(date).format('HH:mm:ss');
-        }
-      }).create()
-    }
+          return (date) => moment(date).format('HH:mm:ss');
+        },
+      }).create(),
+    },
   };
 };

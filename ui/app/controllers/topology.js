@@ -8,7 +8,7 @@ import { reduceBytes, reduceHertz } from 'nomad-ui/utils/units';
 
 const sumAggregator = (sum, value) => sum + (value || 0);
 const formatter = new Intl.NumberFormat(window.navigator.locale || 'en', {
-  maximumFractionDigits: 2
+  maximumFractionDigits: 2,
 });
 
 @classic
@@ -100,7 +100,7 @@ export default class TopologyControllers extends Controller {
     const taskGroup = this.activeAllocation.taskGroupName;
     const jobId = this.activeAllocation.belongsTo('job').id();
 
-    return this.scheduledAllocations.filter(allocation => {
+    return this.scheduledAllocations.filter((allocation) => {
       return (
         allocation.taskGroupName === taskGroup &&
         allocation.belongsTo('job').id() === jobId
@@ -131,7 +131,7 @@ export default class TopologyControllers extends Controller {
 
       totalCPU: node.cpu,
       totalReservedCPU,
-      reservedCPUPercent: totalReservedCPU / node.cpu
+      reservedCPUPercent: totalReservedCPU / node.cpu,
     };
   }
 

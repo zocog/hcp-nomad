@@ -33,15 +33,15 @@ export default class DrainPopover extends Component {
       'customDuration',
       'forceDrain',
       'drainSystemJobs',
-      'selectedDurationQuickOption'
-    ].forEach(k => {
+      'selectedDurationQuickOption',
+    ].forEach((k) => {
       if (k in this.drainOptions) {
         this[k] = this.drainOptions[k];
       }
     });
   }
 
-  @overridable(function() {
+  @overridable(function () {
     return this.durationQuickOptions[0];
   })
   selectedDurationQuickOption;
@@ -57,7 +57,7 @@ export default class DrainPopover extends Component {
       { label: '8 Hours', value: '8h' },
       { label: '12 Hours', value: '12h' },
       { label: '1 Day', value: '1d' },
-      { label: 'Custom', value: 'custom' }
+      { label: 'Custom', value: 'custom' },
     ];
   }
 
@@ -73,7 +73,7 @@ export default class DrainPopover extends Component {
     return this.selectedDurationQuickOption.value;
   }
 
-  @task(function*(close) {
+  @task(function* (close) {
     if (!this.client) return;
     const isUpdating = this.client.isDraining;
 
@@ -87,7 +87,7 @@ export default class DrainPopover extends Component {
 
     const spec = {
       Deadline: deadline,
-      IgnoreSystemJobs: !this.drainSystemJobs
+      IgnoreSystemJobs: !this.drainSystemJobs,
     };
 
     this.drainOptions = {
@@ -95,7 +95,7 @@ export default class DrainPopover extends Component {
       customDuration: this.deadline,
       selectedDurationQuickOption: this.selectedDurationQuickOption,
       drainSystemJobs: this.drainSystemJobs,
-      forceDrain: this.forceDrain
+      forceDrain: this.forceDrain,
     };
 
     close();

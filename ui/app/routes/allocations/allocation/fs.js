@@ -18,14 +18,14 @@ export default class FsRoute extends Route {
             directoryEntries: allocation
               .ls(decodedPath)
               .catch(notifyError(this)),
-            isFile: false
+            isFile: false,
           });
         } else {
           return {
             path: decodedPath,
             allocation,
             isFile: true,
-            stat: statJson
+            stat: statJson,
           };
         }
       })
@@ -42,7 +42,7 @@ export default class FsRoute extends Route {
       allocation,
       directoryEntries,
       isFile,
-      stat
+      stat,
     });
   }
 }

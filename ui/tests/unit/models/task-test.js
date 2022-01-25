@@ -3,10 +3,10 @@ import { setupTest } from 'ember-qunit';
 
 import { run } from '@ember/runloop';
 
-module('Unit | Model | task', function(hooks) {
+module('Unit | Model | task', function (hooks) {
   setupTest(hooks);
 
-  test("should expose mergedMeta as merged with the job's and task groups's meta", function(assert) {
+  test("should expose mergedMeta as merged with the job's and task groups's meta", function (assert) {
     assert.expect(8);
 
     const job = run(() =>
@@ -19,42 +19,42 @@ module('Unit | Model | task', function(hooks) {
             tasks: [
               {
                 name: 'task-one',
-                meta: { c: 'd' }
+                meta: { c: 'd' },
               },
               {
-                name: 'task-two'
+                name: 'task-two',
               },
               {
                 name: 'task-three',
-                meta: null
+                meta: null,
               },
               {
                 name: 'task-four',
-                meta: {}
-              }
-            ]
+                meta: {},
+              },
+            ],
           },
           {
             name: 'two',
             tasks: [
               {
                 name: 'task-one',
-                meta: { c: 'd' }
+                meta: { c: 'd' },
               },
               {
-                name: 'task-two'
+                name: 'task-two',
               },
               {
                 name: 'task-three',
-                meta: null
+                meta: null,
               },
               {
                 name: 'task-four',
-                meta: {}
-              }
-            ]
-          }
-        ]
+                meta: {},
+              },
+            ],
+          },
+        ],
       })
     );
 
@@ -63,10 +63,7 @@ module('Unit | Model | task', function(hooks) {
 
     expected.forEach((exp, i) => {
       assert.deepEqual(
-        tg
-          .get('tasks')
-          .objectAt(i)
-          .get('mergedMeta'),
+        tg.get('tasks').objectAt(i).get('mergedMeta'),
         exp,
         'mergedMeta is merged with task meta'
       );
@@ -77,10 +74,7 @@ module('Unit | Model | task', function(hooks) {
 
     expected.forEach((exp, i) => {
       assert.deepEqual(
-        tg
-          .get('tasks')
-          .objectAt(i)
-          .get('mergedMeta'),
+        tg.get('tasks').objectAt(i).get('mergedMeta'),
         exp,
         'mergedMeta is merged with job meta'
       );

@@ -6,14 +6,14 @@ import hbs from 'htmlbars-inline-precompile';
 import cleanWhitespace from '../../utils/clean-whitespace';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
 
-module('Integration | Component | placement failures', function(hooks) {
+module('Integration | Component | placement failures', function (hooks) {
   setupRenderingTest(hooks);
 
   const commonTemplate = hbs`
       <PlacementFailure @taskGroup={{taskGroup}} />
   `;
 
-  test('should render the placement failure (basic render)', async function(assert) {
+  test('should render the placement failure (basic render)', async function (assert) {
     assert.expect(12);
 
     const name = 'Placement Failure';
@@ -22,7 +22,7 @@ module('Integration | Component | placement failures', function(hooks) {
       'taskGroup',
       createFixture(
         {
-          coalescedFailures: failures - 1
+          coalescedFailures: failures - 1,
         },
         name
       )
@@ -93,14 +93,14 @@ module('Integration | Component | placement failures', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('should render correctly when a node is not evaluated', async function(assert) {
+  test('should render correctly when a node is not evaluated', async function (assert) {
     assert.expect(3);
 
     this.set(
       'taskGroup',
       createFixture({
         nodesEvaluated: 1,
-        nodesExhausted: 0
+        nodesExhausted: 0,
       })
     );
 
@@ -129,30 +129,30 @@ module('Integration | Component | placement failures', function(hooks) {
           coalescedFailures: 10,
           nodesEvaluated: 0,
           nodesAvailable: {
-            datacenter: 0
+            datacenter: 0,
           },
           classFiltered: {
-            filtered: 1
+            filtered: 1,
           },
           constraintFiltered: {
-            'prop = val': 1
+            'prop = val': 1,
           },
           nodesExhausted: 3,
           classExhausted: {
-            class: 3
+            class: 3,
           },
           dimensionExhausted: {
-            iops: 3
+            iops: 3,
           },
           quotaExhausted: {
-            quota: 'dimension'
+            quota: 'dimension',
           },
           scores: {
-            name: 3
-          }
+            name: 3,
+          },
         },
         obj
-      )
+      ),
     };
   }
 });

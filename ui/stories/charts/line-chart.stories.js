@@ -7,7 +7,7 @@ import moment from 'moment';
 import DelayedArray from '../utils/delayed-array';
 
 export default {
-  title: 'Charts/Line Chart'
+  title: 'Charts/Line Chart',
 };
 
 let data1 = [
@@ -19,7 +19,7 @@ let data1 = [
   { year: 2015, value: 80 },
   { year: 2016, value: 130 },
   { year: 2017, value: 210 },
-  { year: 2018, value: 340 }
+  { year: 2018, value: 340 },
 ];
 
 let data2 = [
@@ -31,7 +31,7 @@ let data2 = [
   { year: 2015, value: 105 },
   { year: 2016, value: 90 },
   { year: 2017, value: 85 },
-  { year: 2018, value: 90 }
+  { year: 2018, value: 90 },
 ];
 
 export let Standard = () => {
@@ -75,8 +75,8 @@ export let Standard = () => {
       `,
     context: {
       lineChartData: DelayedArray.create(data1),
-      lineChartMild: DelayedArray.create(data2)
-    }
+      lineChartMild: DelayedArray.create(data2),
+    },
   };
 };
 
@@ -122,8 +122,8 @@ export let FluidWidth = () => {
       `,
     context: {
       lineChartData: DelayedArray.create(data1),
-      lineChartMild: DelayedArray.create(data2)
-    }
+      lineChartMild: DelayedArray.create(data2),
+    },
   };
 };
 
@@ -148,7 +148,7 @@ export let LiveData = () => {
       `,
     context: {
       controller: EmberObject.extend({
-        startTimer: on('init', function() {
+        startTimer: on('init', function () {
           this.lineChartLive = [];
 
           this.set(
@@ -170,10 +170,10 @@ export let LiveData = () => {
         },
 
         get secondsFormat() {
-          return date => moment(date).format('HH:mm:ss');
-        }
-      }).create()
-    }
+          return (date) => moment(date).format('HH:mm:ss');
+        },
+      }).create(),
+    },
   };
 };
 
@@ -209,9 +209,9 @@ export let Gaps = () => {
         { year: 2015, value: 80 },
         { year: 2016, value: null },
         { year: 2017, value: 210 },
-        { year: 2018, value: 340 }
-      ])
-    }
+        { year: 2018, value: 340 },
+      ]),
+    },
   };
 };
 
@@ -272,54 +272,46 @@ export let VerticalAnnotations = () => {
       data: DelayedArray.create(
         new Array(180).fill(null).map((_, idx) => ({
           y: Math.sin((idx * 4 * Math.PI) / 180) * 100 + 200,
-          x: moment()
-            .add(idx, 'd')
-            .toDate()
+          x: moment().add(idx, 'd').toDate(),
         }))
       ),
       annotations: [
         {
           x: moment().toDate(),
           type: 'info',
-          info: 'Far left'
+          info: 'Far left',
         },
         {
           x: moment()
             .add(90 / 4, 'd')
             .toDate(),
           type: 'error',
-          info: 'This is the max of the sine curve'
+          info: 'This is the max of the sine curve',
         },
         {
-          x: moment()
-            .add(89, 'd')
-            .toDate(),
+          x: moment().add(89, 'd').toDate(),
           type: 'info',
-          info: 'This is the end of the first period'
+          info: 'This is the end of the first period',
         },
         {
-          x: moment()
-            .add(96, 'd')
-            .toDate(),
+          x: moment().add(96, 'd').toDate(),
           type: 'info',
-          info: 'A close annotation for staggering purposes'
+          info: 'A close annotation for staggering purposes',
         },
         {
           x: moment()
             .add((90 / 4) * 3, 'd')
             .toDate(),
           type: 'error',
-          info: 'This is the min of the sine curve'
+          info: 'This is the min of the sine curve',
         },
         {
-          x: moment()
-            .add(179, 'd')
-            .toDate(),
+          x: moment().add(179, 'd').toDate(),
           type: 'info',
-          info: 'Far right'
-        }
-      ]
-    }
+          info: 'Far right',
+        },
+      ],
+    },
   };
 };
 
@@ -348,22 +340,20 @@ export let HorizontalAnnotations = () => {
       data: DelayedArray.create(
         new Array(180).fill(null).map((_, idx) => ({
           y: Math.sin((idx * 4 * Math.PI) / 180) * 100 + 200,
-          x: moment()
-            .add(idx, 'd')
-            .toDate()
+          x: moment().add(idx, 'd').toDate(),
         }))
       ),
       annotations: [
         {
           y: 300,
-          info: 'High'
+          info: 'High',
         },
         {
           y: 100,
-          info: 'Low'
-        }
-      ]
-    }
+          info: 'Low',
+        },
+      ],
+    },
   };
 };
 
@@ -403,9 +393,9 @@ export let StepLine = () => {
         { x: 6, y: 3 },
         { x: 7, y: 4 },
         { x: 8, y: 1 },
-        { x: 9, y: 5 }
-      ])
-    }
+        { x: 9, y: 5 },
+      ]),
+    },
   };
 };
 
@@ -448,8 +438,8 @@ export let MultiLine = () => ({
           { x: 6, y: 9 },
           { x: 7, y: 10 },
           { x: 8, y: 8 },
-          { x: 9, y: 6 }
-        ]
+          { x: 9, y: 6 },
+        ],
       },
       {
         name: 'Series 2',
@@ -460,9 +450,9 @@ export let MultiLine = () => ({
           { x: 4, y: 2 },
           { x: 5, y: 9 },
           { x: 6, y: 3 },
-          { x: 7, y: 4 }
-        ]
-      }
-    ])
-  }
+          { x: 7, y: 4 },
+        ],
+      },
+    ]),
+  },
 });

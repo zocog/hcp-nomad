@@ -3,7 +3,7 @@ import {
   create,
   isPresent,
   text,
-  visitable
+  visitable,
 } from 'ember-cli-page-object';
 
 import allocations from 'nomad-ui/tests/pages/components/allocations';
@@ -20,7 +20,7 @@ export default create({
 
   isEmpty: isPresent('[data-test-empty-jobs-list]'),
   emptyState: {
-    headline: text('[data-test-empty-jobs-list-headline]')
+    headline: text('[data-test-empty-jobs-list-headline]'),
   },
 
   ...allocations('[data-test-allocation]', 'allocations'),
@@ -29,6 +29,6 @@ export default create({
 
   facets: {
     health: multiFacet('[data-test-health-facet]'),
-    type: multiFacet('[data-test-type-facet]')
-  }
+    type: multiFacet('[data-test-type-facet]'),
+  },
 });

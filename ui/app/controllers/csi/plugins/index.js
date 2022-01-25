@@ -13,7 +13,7 @@ export default class IndexController extends Controller.extend(
     'plainId',
     'controllersHealthyProportion',
     'nodesHealthyProportion',
-    'provider'
+    'provider',
   ]),
   Searchable
 ) {
@@ -24,17 +24,17 @@ export default class IndexController extends Controller.extend(
 
   queryParams = [
     {
-      currentPage: 'page'
+      currentPage: 'page',
     },
     {
-      searchTerm: 'search'
+      searchTerm: 'search',
     },
     {
-      sortProperty: 'sort'
+      sortProperty: 'sort',
     },
     {
-      sortDescending: 'desc'
-    }
+      sortDescending: 'desc',
+    },
   ];
 
   currentPage = 1;
@@ -61,7 +61,7 @@ export default class IndexController extends Controller.extend(
   gotoPlugin(plugin, event) {
     lazyClick([
       () => this.transitionToRoute('csi.plugins.plugin', plugin.plainId),
-      event
+      event,
     ]);
   }
 }

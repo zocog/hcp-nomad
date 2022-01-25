@@ -16,7 +16,7 @@ export default class FsRoute extends Route {
 
     return RSVP.all([
       allocation.stat(pathWithTaskName),
-      taskState.get('allocation.node')
+      taskState.get('allocation.node'),
     ])
       .then(([statJson]) => {
         if (statJson.IsDir) {
@@ -26,14 +26,14 @@ export default class FsRoute extends Route {
             directoryEntries: allocation
               .ls(pathWithTaskName)
               .catch(notifyError(this)),
-            isFile: false
+            isFile: false,
           });
         } else {
           return {
             path: decodedPath,
             taskState,
             isFile: true,
-            stat: statJson
+            stat: statJson,
           };
         }
       })
@@ -50,7 +50,7 @@ export default class FsRoute extends Route {
       taskState,
       directoryEntries,
       isFile,
-      stat
+      stat,
     });
   }
 }

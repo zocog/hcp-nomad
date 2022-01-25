@@ -10,9 +10,9 @@ export default class ServerController extends Controller {
   get sortedTags() {
     const tags = this.get('model.tags') || {};
     return Object.keys(tags)
-      .map(name => ({
+      .map((name) => ({
         name,
-        value: tags[name]
+        value: tags[name],
       }))
       .sortBy('name');
   }

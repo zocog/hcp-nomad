@@ -10,7 +10,7 @@ export default class ResourcesDiffs {
     this.model = model;
     this.multiplier = multiplier;
     this.recommendations = recommendations;
-    this.excludedRecommendations = excludedRecommendations.filter(r =>
+    this.excludedRecommendations = excludedRecommendations.filter((r) =>
       recommendations.includes(r)
     );
   }
@@ -50,7 +50,7 @@ export default class ResourcesDiffs {
   }
 
   get includedRecommendations() {
-    return this.recommendations.reject(r =>
+    return this.recommendations.reject((r) =>
       this.excludedRecommendations.includes(r)
     );
   }

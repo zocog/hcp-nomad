@@ -64,7 +64,7 @@ export default class Node extends Model {
   @computed('allocations.@each.{isMigrating,isRunning}')
   get migratingAllocations() {
     return this.allocations.filter(
-      alloc => alloc.isRunning && alloc.isMigrating
+      (alloc) => alloc.isRunning && alloc.isMigrating
     );
   }
 

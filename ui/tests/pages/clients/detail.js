@@ -7,7 +7,7 @@ import {
   text,
   isPresent,
   value,
-  visitable
+  visitable,
 } from 'ember-cli-page-object';
 
 import allocations from 'nomad-ui/tests/pages/components/allocations';
@@ -24,7 +24,7 @@ export default create({
 
   statusLight: collection('[data-test-node-status]', {
     id: attribute('data-test-node-status'),
-    text: text()
+    text: text(),
   }),
 
   statusDefinition: text('[data-test-status-definition]'),
@@ -37,7 +37,7 @@ export default create({
 
   resourceCharts: collection('[data-test-primary-metric]', {
     name: text('[data-test-primary-metric-title]'),
-    chartClass: attribute('class', '[data-test-percentage-chart] progress')
+    chartClass: attribute('class', '[data-test-percentage-chart] progress'),
   }),
 
   ...allocations(),
@@ -45,20 +45,20 @@ export default create({
   emptyAllocations: {
     scope: '[data-test-empty-allocations-list]',
     headline: text('[data-test-empty-allocations-list-headline]'),
-    body: text('[data-test-empty-allocations-list-body]')
+    body: text('[data-test-empty-allocations-list-body]'),
   },
 
   allocationFilter: {
     preemptions: clickable('[data-test-filter-preemptions]'),
     all: clickable('[data-test-filter-all]'),
     preemptionsCount: text('[data-test-filter-preemptions]'),
-    allCount: text('[data-test-filter-all]')
+    allCount: text('[data-test-filter-all]'),
   },
 
   facets: {
     namespace: multiFacet('[data-test-allocation-namespace-facet]'),
     job: multiFacet('[data-test-allocation-job-facet]'),
-    status: multiFacet('[data-test-allocation-status-facet]')
+    status: multiFacet('[data-test-allocation-status-facet]'),
   },
 
   attributesTable: isPresent('[data-test-attributes]'),
@@ -69,7 +69,7 @@ export default create({
     '[data-test-meta] [data-test-attributes-section]',
     {
       key: text('[data-test-key]'),
-      value: text('[data-test-value]')
+      value: text('[data-test-value]'),
     }
   ),
 
@@ -77,21 +77,21 @@ export default create({
     isShown: isPresent('[data-test-error]'),
     title: text('[data-test-error-title]'),
     message: text('[data-test-error-message]'),
-    seekHelp: clickable('[data-test-error-message] a')
+    seekHelp: clickable('[data-test-error-message] a'),
   },
 
   hasEvents: isPresent('[data-test-client-events]'),
   events: collection('[data-test-client-event]', {
     time: text('[data-test-client-event-time]'),
     subsystem: text('[data-test-client-event-subsystem]'),
-    message: text('[data-test-client-event-message]')
+    message: text('[data-test-client-event-message]'),
   }),
 
   hasHostVolumes: isPresent('[data-test-client-host-volumes]'),
   hostVolumes: collection('[data-test-client-host-volume]', {
     name: text('[data-test-name]'),
     path: text('[data-test-path]'),
-    permissions: text('[data-test-permissions]')
+    permissions: text('[data-test-permissions]'),
   }),
 
   driverHeads: collection(
@@ -104,7 +104,7 @@ export default create({
       health: text('[data-test-health]'),
       healthClass: attribute('class', '[data-test-health] .color-swatch'),
 
-      toggle: clickable('[data-test-accordion-toggle]')
+      toggle: clickable('[data-test-accordion-toggle]'),
     }
   ),
 
@@ -113,7 +113,7 @@ export default create({
     {
       description: text('[data-test-health-description]'),
       descriptionIsShown: isPresent('[data-test-health-description]'),
-      attributesAreShown: isPresent('[data-test-driver-attributes]')
+      attributesAreShown: isPresent('[data-test-driver-attributes]'),
     }
   ),
 
@@ -133,7 +133,7 @@ export default create({
     migratingCount: text('[data-test-migrating-count]'),
     remainingCount: text('[data-test-remaining-count]'),
     status: text('[data-test-status]'),
-    force: twoStepButton('[data-test-force]')
+    force: twoStepButton('[data-test-force]'),
   },
 
   drainPopover: {
@@ -149,8 +149,8 @@ export default create({
       ),
       options: collection('.ember-power-select-option', {
         label: text(),
-        choose: clickable()
-      })
+        choose: clickable(),
+      }),
     },
 
     setCustomDeadline: fillable('[data-test-drain-custom-deadline]'),
@@ -163,11 +163,8 @@ export default create({
 
     setDeadline(label) {
       this.deadlineOptions.open();
-      this.deadlineOptions.options
-        .toArray()
-        .findBy('label', label)
-        .choose();
-    }
+      this.deadlineOptions.options.toArray().findBy('label', label).choose();
+    },
   },
 
   stopDrain: twoStepButton('[data-test-drain-stop]'),
@@ -186,5 +183,5 @@ export default create({
   ),
   drainCompleteNotification: notification(
     '[data-test-drain-complete-notification]'
-  )
+  ),
 });

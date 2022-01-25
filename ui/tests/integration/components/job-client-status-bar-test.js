@@ -9,15 +9,15 @@ import jobClientStatusBar from 'nomad-ui/tests/pages/components/job-client-statu
 
 const JobClientStatusBar = create(jobClientStatusBar());
 
-module('Integration | Component | job-client-status-bar', function(hooks) {
+module('Integration | Component | job-client-status-bar', function (hooks) {
   setupRenderingTest(hooks);
 
   const commonProperties = () => ({
     onSliceClick: sinon.spy(),
     job: {
       namespace: {
-        get: () => 'my-namespace'
-      }
+        get: () => 'my-namespace',
+      },
     },
     jobClientStatus: {
       byStatus: {
@@ -28,10 +28,10 @@ module('Integration | Component | job-client-status-bar', function(hooks) {
         degraded: [],
         failed: [],
         lost: [],
-        notScheduled: []
-      }
+        notScheduled: [],
+      },
     },
-    isNarrow: true
+    isNarrow: true,
   });
 
   const commonTemplate = hbs`
@@ -42,7 +42,7 @@ module('Integration | Component | job-client-status-bar', function(hooks) {
       @isNarrow={{isNarrow}}
     />`;
 
-  test('it renders', async function(assert) {
+  test('it renders', async function (assert) {
     assert.expect(2);
 
     const props = commonProperties();
@@ -53,7 +53,7 @@ module('Integration | Component | job-client-status-bar', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('it fires the onBarClick handler method when clicking a bar in the chart', async function(assert) {
+  test('it fires the onBarClick handler method when clicking a bar in the chart', async function (assert) {
     const props = commonProperties();
     this.setProperties(props);
     await render(commonTemplate);
@@ -61,7 +61,7 @@ module('Integration | Component | job-client-status-bar', function(hooks) {
     assert.ok(props.onSliceClick.calledOnce);
   });
 
-  test('it handles an update to client status property', async function(assert) {
+  test('it handles an update to client status property', async function (assert) {
     const props = commonProperties();
     this.setProperties(props);
     await render(commonTemplate);
@@ -72,9 +72,9 @@ module('Integration | Component | job-client-status-bar', function(hooks) {
         byStatus: {
           ...props.jobClientStatus.byStatus,
           starting: [],
-          running: ['someNodeId']
-        }
-      }
+          running: ['someNodeId'],
+        },
+      },
     };
     this.setProperties(newProps);
     await JobClientStatusBar.visitSlice('running');

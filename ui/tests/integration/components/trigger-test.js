@@ -4,11 +4,11 @@ import { setupRenderingTest } from 'ember-qunit';
 import { render, click, waitFor } from '@ember/test-helpers';
 import { hbs } from 'ember-cli-htmlbars';
 
-module('Integration | Component | trigger', function(hooks) {
+module('Integration | Component | trigger', function (hooks) {
   setupRenderingTest(hooks);
 
-  module('Synchronous Interactions', function() {
-    test('it can trigger a synchronous action', async function(assert) {
+  module('Synchronous Interactions', function () {
+    test('it can trigger a synchronous action', async function (assert) {
       this.set('name', 'Tomster');
       this.set('changeName', () => this.set('name', 'Zoey'));
       await render(hbs`
@@ -31,7 +31,7 @@ module('Integration | Component | trigger', function(hooks) {
         );
     });
 
-    test('it sets the result of the action', async function(assert) {
+    test('it sets the result of the action', async function (assert) {
       this.set('tomster', () => 'Tomster');
       await render(hbs`
       <Trigger @do={{this.tomster}} as |trigger|>
@@ -58,12 +58,12 @@ module('Integration | Component | trigger', function(hooks) {
     });
   });
 
-  module('Asynchronous Interactions', function() {
-    test('it can trigger an asynchronous action', async function(assert) {
+  module('Asynchronous Interactions', function () {
+    test('it can trigger an asynchronous action', async function (assert) {
       this.set(
         'onTrigger',
         () =>
-          new Promise(resolve => {
+          new Promise((resolve) => {
             this.set('resolve', resolve);
           })
       );
@@ -133,11 +133,11 @@ module('Integration | Component | trigger', function(hooks) {
         );
     });
 
-    test('it handles the success state', async function(assert) {
+    test('it handles the success state', async function (assert) {
       this.set(
         'onTrigger',
         () =>
-          new Promise(resolve => {
+          new Promise((resolve) => {
             this.set('resolve', resolve);
           })
       );
@@ -163,7 +163,7 @@ module('Integration | Component | trigger', function(hooks) {
       assert.verifySteps(['On success happened']);
     });
 
-    test('it handles the error state', async function(assert) {
+    test('it handles the error state', async function (assert) {
       this.set(
         'onTrigger',
         () =>

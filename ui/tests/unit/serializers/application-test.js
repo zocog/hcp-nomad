@@ -12,8 +12,8 @@ class TestSerializer extends ApplicationSerializer {
     'ArrayableMap',
     {
       beforeName: 'OriginalNameArrayableMap',
-      afterName: 'RenamedArrayableMap'
-    }
+      afterName: 'RenamedArrayableMap',
+    },
   ];
 
   separateNanos = ['Time'];
@@ -29,10 +29,10 @@ class TestModel extends Model {
   @attr() timeNanos;
 }
 
-module('Unit | Serializer | Application', function(hooks) {
+module('Unit | Serializer | Application', function (hooks) {
   setupTest(hooks);
 
-  hooks.beforeEach(function() {
+  hooks.beforeEach(function () {
     this.store = this.owner.lookup('service:store');
     this.owner.register('model:test', TestModel);
     this.owner.register('serializer:test', TestSerializer);
@@ -48,7 +48,7 @@ module('Unit | Serializer | Application', function(hooks) {
         Things: null,
         ArrayableMap: null,
         OriginalNameArrayableMap: null,
-        Time: 1607839992000100000
+        Time: 1607839992000100000,
       },
       out: {
         data: {
@@ -58,12 +58,12 @@ module('Unit | Serializer | Application', function(hooks) {
             arrayableMap: [],
             renamedArrayableMap: [],
             time: 1607839992000,
-            timeNanos: 100096
+            timeNanos: 100096,
           },
           relationships: {},
-          type: 'test'
-        }
-      }
+          type: 'test',
+        },
+      },
     },
     {
       name: 'Non-null array and maps',
@@ -73,13 +73,13 @@ module('Unit | Serializer | Application', function(hooks) {
         ArrayableMap: {
           b: { Order: 2 },
           a: { Order: 1 },
-          'c.d': { Order: 3 }
+          'c.d': { Order: 3 },
         },
         OriginalNameArrayableMap: {
-          a: { X: 1 }
+          a: { X: 1 },
         },
         Time: 1607839992000100000,
-        SomethingExtra: 'xyz'
+        SomethingExtra: 'xyz',
       },
       out: {
         data: {
@@ -89,21 +89,21 @@ module('Unit | Serializer | Application', function(hooks) {
             arrayableMap: [
               { Name: 'a', Order: 1 },
               { Name: 'b', Order: 2 },
-              { Name: 'c.d', Order: 3 }
+              { Name: 'c.d', Order: 3 },
             ],
             renamedArrayableMap: [{ Name: 'a', X: 1 }],
             time: 1607839992000,
-            timeNanos: 100096
+            timeNanos: 100096,
           },
           relationships: {},
-          type: 'test'
-        }
-      }
-    }
+          type: 'test',
+        },
+      },
+    },
   ];
 
-  normalizationTestCases.forEach(testCase => {
-    test(`normalization: ${testCase.name}`, async function(assert) {
+  normalizationTestCases.forEach((testCase) => {
+    test(`normalization: ${testCase.name}`, async function (assert) {
       assert.deepEqual(
         this.subject().normalize(TestModel, testCase.in),
         testCase.out

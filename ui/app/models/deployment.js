@@ -25,7 +25,7 @@ export default class Deployment extends Model {
       this.taskGroupSummaries
         .toArray()
         .some(
-          summary =>
+          (summary) =>
             summary.get('requiresPromotion') && !summary.get('promoted')
         )
     );
@@ -64,7 +64,7 @@ export default class Deployment extends Model {
       successful: 'is-primary',
       paused: 'is-light',
       failed: 'is-error',
-      cancelled: 'is-cancelled'
+      cancelled: 'is-cancelled',
     };
 
     return classMap[this.status] || 'is-dark';

@@ -5,7 +5,7 @@ export default class AgentSerializer extends ApplicationSerializer {
   attrs = {
     datacenter: 'dc',
     address: 'Addr',
-    serfPort: 'Port'
+    serfPort: 'Port',
   };
 
   normalize(typeHash, hash) {

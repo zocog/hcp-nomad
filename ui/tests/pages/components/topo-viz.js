@@ -1,7 +1,7 @@
 import { collection, isPresent } from 'ember-cli-page-object';
 import TopoVizDatacenter from './topo-viz/datacenter';
 
-export default scope => ({
+export default (scope) => ({
   scope,
 
   datacenters: collection(
@@ -12,5 +12,5 @@ export default scope => ({
   allocationAssociationsArePresent: isPresent(
     '[data-test-allocation-associations]'
   ),
-  allocationAssociations: collection('[data-test-allocation-association]')
+  allocationAssociations: collection('[data-test-allocation-association]'),
 });

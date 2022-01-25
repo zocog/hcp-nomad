@@ -15,8 +15,8 @@ export default class IndexRoute extends Route.extend(
 
   queryParams = {
     qpNamespace: {
-      refreshModel: true
-    }
+      refreshModel: true,
+    },
   };
 
   model(params) {
@@ -24,7 +24,7 @@ export default class IndexRoute extends Route.extend(
       volumes: this.store
         .query('volume', { type: 'csi', namespace: params.qpNamespace })
         .catch(notifyForbidden(this)),
-      namespaces: this.store.findAll('namespace')
+      namespaces: this.store.findAll('namespace'),
     });
   }
 
@@ -34,7 +34,7 @@ export default class IndexRoute extends Route.extend(
       'modelWatch',
       this.watchVolumes.perform({
         type: 'csi',
-        namespace: controller.qpNamespace
+        namespace: controller.qpNamespace,
       })
     );
   }

@@ -3,13 +3,13 @@ import { Promise } from 'rsvp';
 import sinon from 'sinon';
 import StreamLogger from 'nomad-ui/utils/classes/stream-logger';
 
-module('Unit | Util | StreamLogger', function() {
-  test('when a StreamLogger is stopped before the poll request responds, the request is immediately canceled upon completion', async function(assert) {
+module('Unit | Util | StreamLogger', function () {
+  test('when a StreamLogger is stopped before the poll request responds, the request is immediately canceled upon completion', async function (assert) {
     const fetchMock = new FetchMock();
     const fetch = fetchMock.request();
 
     const logger = StreamLogger.create({
-      logFetch: () => fetch
+      logFetch: () => fetch,
     });
 
     logger.start();
@@ -24,12 +24,12 @@ module('Unit | Util | StreamLogger', function() {
     assert.equal(fetchMock.reader.cancel.callCount, 1);
   });
 
-  test('when the streaming request sends the done flag, the poll task completes', async function(assert) {
+  test('when the streaming request sends the done flag, the poll task completes', async function (assert) {
     const fetchMock = new FetchMock();
     const fetch = fetchMock.request();
 
     const logger = StreamLogger.create({
-      logFetch: () => fetch
+      logFetch: () => fetch,
     });
 
     logger.start();
@@ -56,7 +56,7 @@ class FetchMock {
     if (this._closeRequest) {
       throw new Error('Can only call FetchMock.request once');
     }
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this._closeRequest = resolve;
     });
   }
@@ -78,7 +78,7 @@ class FetchResponseMock {
     this.body = {
       getReader() {
         return reader;
-      }
+      },
     };
   }
 }
@@ -91,7 +91,7 @@ class ReadableStreamMock {
 
   read() {
     this.readSpy();
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       resolve({ value: new ArrayBuffer(0), done: true });
     });
   }

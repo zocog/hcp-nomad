@@ -5,18 +5,18 @@ import NodeModel from 'nomad-ui/models/node';
 import pushPayloadToStore from '../../utils/push-payload-to-store';
 import { settled } from '@ember/test-helpers';
 
-module('Unit | Serializer | Node', function(hooks) {
+module('Unit | Serializer | Node', function (hooks) {
   setupTest(hooks);
-  hooks.beforeEach(function() {
+  hooks.beforeEach(function () {
     this.store = this.owner.lookup('service:store');
     this.subject = () => this.store.serializerFor('node');
   });
 
-  test('local store is culled to reflect the state of findAll requests', async function(assert) {
+  test('local store is culled to reflect the state of findAll requests', async function (assert) {
     const findAllResponse = [
       makeNode('1', 'One', '127.0.0.1:4646'),
       makeNode('2', 'Two', '127.0.0.2:4646'),
-      makeNode('3', 'Three', '127.0.0.3:4646')
+      makeNode('3', 'Three', '127.0.0.3:4646'),
     ];
 
     const payload = this.subject().normalizeFindAllResponse(
@@ -33,10 +33,7 @@ module('Unit | Serializer | Node', function(hooks) {
     );
 
     assert.equal(
-      this.store
-        .peekAll('node')
-        .filterBy('id')
-        .get('length'),
+      this.store.peekAll('node').filterBy('id').get('length'),
       findAllResponse.length,
       'Each original record is now in the store'
     );
@@ -44,7 +41,7 @@ module('Unit | Serializer | Node', function(hooks) {
     const newFindAllResponse = [
       makeNode('2', 'Two', '127.0.0.2:4646'),
       makeNode('3', 'Three', '127.0.0.3:4646'),
-      makeNode('4', 'Four', '127.0.0.4:4646')
+      makeNode('4', 'Four', '127.0.0.4:4646'),
     ];
 
     let newPayload;
@@ -65,10 +62,7 @@ module('Unit | Serializer | Node', function(hooks) {
     );
 
     assert.equal(
-      this.store
-        .peekAll('node')
-        .filterBy('id')
-        .get('length'),
+      this.store.peekAll('node').filterBy('id').get('length'),
       newFindAllResponse.length,
       'The node length in the store reflects the new response'
     );
@@ -93,19 +87,19 @@ module('Unit | Serializer | Node', function(hooks) {
         Drivers: {
           docker: {
             Detected: true,
-            Healthy: false
-          }
+            Healthy: false,
+          },
         },
         HostVolumes: {
           one: {
             Name: 'one',
-            ReadOnly: true
+            ReadOnly: true,
           },
           two: {
             Name: 'two',
-            ReadOnly: false
-          }
-        }
+            ReadOnly: false,
+          },
+        },
       },
       out: {
         data: {
@@ -118,23 +112,23 @@ module('Unit | Serializer | Node', function(hooks) {
               {
                 name: 'docker',
                 detected: true,
-                healthy: false
-              }
+                healthy: false,
+              },
             ],
             hostVolumes: [
               { name: 'one', readOnly: true },
-              { name: 'two', readOnly: false }
-            ]
+              { name: 'two', readOnly: false },
+            ],
           },
           relationships: {
             allocations: {
               links: {
-                related: '/v1/node/test-node/allocations'
-              }
-            }
-          }
-        }
-      }
+                related: '/v1/node/test-node/allocations',
+              },
+            },
+          },
+        },
+      },
     },
 
     {
@@ -146,13 +140,13 @@ module('Unit | Serializer | Node', function(hooks) {
         Drivers: {
           'my.driver': {
             Detected: true,
-            Healthy: false
+            Healthy: false,
           },
           'my.other.driver': {
             Detected: false,
-            Healthy: false
-          }
-        }
+            Healthy: false,
+          },
+        },
       },
       out: {
         data: {
@@ -165,25 +159,25 @@ module('Unit | Serializer | Node', function(hooks) {
               {
                 name: 'my.driver',
                 detected: true,
-                healthy: false
+                healthy: false,
               },
               {
                 name: 'my.other.driver',
                 detected: false,
-                healthy: false
-              }
+                healthy: false,
+              },
             ],
-            hostVolumes: []
+            hostVolumes: [],
           },
           relationships: {
             allocations: {
               links: {
-                related: '/v1/node/test-node/allocations'
-              }
-            }
-          }
-        }
-      }
+                related: '/v1/node/test-node/allocations',
+              },
+            },
+          },
+        },
+      },
     },
 
     {
@@ -191,7 +185,7 @@ module('Unit | Serializer | Node', function(hooks) {
       in: {
         ID: 'test-node',
         Drivers: null,
-        HostVolumes: null
+        HostVolumes: null,
       },
       out: {
         data: {
@@ -199,22 +193,22 @@ module('Unit | Serializer | Node', function(hooks) {
           type: 'node',
           attributes: {
             hostVolumes: [],
-            drivers: []
+            drivers: [],
           },
           relationships: {
             allocations: {
               links: {
-                related: '/v1/node/test-node/allocations'
-              }
-            }
-          }
-        }
-      }
-    }
+                related: '/v1/node/test-node/allocations',
+              },
+            },
+          },
+        },
+      },
+    },
   ];
 
-  normalizationTestCases.forEach(testCase => {
-    test(`normalization: ${testCase.name}`, async function(assert) {
+  normalizationTestCases.forEach((testCase) => {
+    test(`normalization: ${testCase.name}`, async function (assert) {
       assert.deepEqual(
         this.subject().normalize(NodeModel, testCase.in),
         testCase.out

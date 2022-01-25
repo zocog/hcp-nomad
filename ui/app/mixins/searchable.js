@@ -25,7 +25,7 @@ import Fuse from 'fuse.js';
 // eslint-disable-next-line ember/no-new-mixins
 export default Mixin.create({
   searchTerm: '',
-  listToSearch: computed(function() {
+  listToSearch: computed(function () {
     return [];
   }),
 
@@ -54,7 +54,7 @@ export default Mixin.create({
     'fuzzySearchProps.[]',
     'includeFuzzySearchMatches',
     'listToSearch.[]',
-    function() {
+    function () {
       return new Fuse(this.listToSearch, {
         shouldSort: true,
         threshold: 0.4,
@@ -68,7 +68,7 @@ export default Mixin.create({
         keys: this.fuzzySearchProps || [],
         getFn(item, key) {
           return get(item, key);
-        }
+        },
       });
     }
   ),
@@ -84,7 +84,7 @@ export default Mixin.create({
     'regexEnabled',
     'regexSearchProps.[]',
     'searchTerm',
-    function() {
+    function () {
       const searchTerm = this.searchTerm.trim();
 
       if (!searchTerm || !searchTerm.length) {
@@ -107,7 +107,7 @@ export default Mixin.create({
         let fuseSearchResults = this.fuse.search(searchTerm);
 
         if (this.includeFuzzySearchMatches) {
-          fuseSearchResults = fuseSearchResults.map(result => {
+          fuseSearchResults = fuseSearchResults.map((result) => {
             const item = result.item;
             item.set('fuzzySearchMatches', result.matches);
             return item;
@@ -125,12 +125,12 @@ export default Mixin.create({
 
       return results.uniq();
     }
-  )
+  ),
 });
 
 function exactMatchSearch(term, list, keys) {
   if (term.length) {
-    return list.filter(item => keys.some(key => get(item, key) === term));
+    return list.filter((item) => keys.some((key) => get(item, key) === term));
   }
 }
 
@@ -140,7 +140,9 @@ function regexSearch(term, list, keys) {
       const regex = new RegExp(term, 'i');
       // Test the value of each key for each object against the regex
       // All that match are returned.
-      return list.filter(item => keys.some(key => regex.test(get(item, key))));
+      return list.filter((item) =>
+        keys.some((key) => regex.test(get(item, key)))
+      );
     } catch (e) {
       // Swallow the error; most likely due to an eager search of an incomplete regex
     }

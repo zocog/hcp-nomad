@@ -13,7 +13,7 @@ const STATUS_ORDER = {
   running: 2,
   complete: 3,
   failed: 4,
-  lost: 5
+  lost: 5,
 };
 
 @classic
@@ -35,9 +35,7 @@ export default class Allocation extends Model {
   @attr('string') nodeName;
   @computed
   get shortNodeId() {
-    return this.belongsTo('node')
-      .id()
-      .split('-')[0];
+    return this.belongsTo('node').id().split('-')[0];
   }
 
   @attr('number') modifyIndex;
@@ -92,7 +90,7 @@ export default class Allocation extends Model {
       running: 'is-primary',
       complete: 'is-complete',
       failed: 'is-error',
-      lost: 'is-light'
+      lost: 'is-light',
     };
 
     return classMap[this.clientStatus] || 'is-dark';

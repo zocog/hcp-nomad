@@ -25,7 +25,7 @@ export default class ExecController extends Controller {
   @computed('model.allocations.@each.clientStatus')
   get pendingAndRunningAllocations() {
     return this.model.allocations.filter(
-      allocation =>
+      (allocation) =>
         allocation.clientStatus === 'pending' ||
         allocation.clientStatus === 'running'
     );
@@ -42,7 +42,7 @@ export default class ExecController extends Controller {
   setUpTerminal(Terminal) {
     this.terminal = new Terminal({
       fontFamily: 'monospace',
-      fontWeight: '400'
+      fontWeight: '400',
     });
     window.execTerminal = this.terminal; // Issue to improve: https://github.com/hashicorp/nomad/issues/7457
 
@@ -70,7 +70,7 @@ export default class ExecController extends Controller {
     if (this.allocationShortId) {
       allocation = this.allocations.findBy('shortId', this.allocationShortId);
     } else {
-      allocation = this.allocations.find(allocation =>
+      allocation = this.allocations.find((allocation) =>
         allocation.states
           .filterBy('isActive')
           .mapBy('name')
@@ -79,7 +79,7 @@ export default class ExecController extends Controller {
     }
 
     if (allocation) {
-      return allocation.states.find(state => state.name === this.taskName);
+      return allocation.states.find((state) => state.name === this.taskName);
     }
 
     return undefined;
@@ -90,7 +90,7 @@ export default class ExecController extends Controller {
     this.setProperties({
       allocationShortId,
       taskName,
-      taskGroupName
+      taskGroupName,
     });
 
     if (this.taskState) {

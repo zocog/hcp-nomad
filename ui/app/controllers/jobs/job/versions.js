@@ -8,7 +8,7 @@ const alertClassFallback = 'is-info';
 
 const errorLevelToAlertClass = {
   danger: 'is-danger',
-  warn: 'is-warning'
+  warn: 'is-warning',
 };
 
 @classic

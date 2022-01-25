@@ -16,8 +16,8 @@ export default class ApplicationRoute extends Route {
 
   queryParams = {
     region: {
-      refreshModel: true
-    }
+      refreshModel: true,
+    },
   };
 
   resetController(controller, isExiting) {
@@ -56,9 +56,7 @@ export default class ApplicationRoute extends Route {
         .perform()
         .catch();
 
-      const fetchLicense = this.get('system.fetchLicense')
-        .perform()
-        .catch();
+      const fetchLicense = this.get('system.fetchLicense').perform().catch();
 
       const checkFuzzySearchPresence = this.get(
         'system.checkFuzzySearchPresence'
@@ -71,7 +69,7 @@ export default class ApplicationRoute extends Route {
         this.get('system.defaultRegion'),
         fetchLicense,
         fetchSelfTokenAndPolicies,
-        checkFuzzySearchPresence
+        checkFuzzySearchPresence,
       ]);
     }
 
@@ -100,13 +98,13 @@ export default class ApplicationRoute extends Route {
     { region },
     {
       to: {
-        queryParams: { ott }
-      }
+        queryParams: { ott },
+      },
     }
   ) {
     return {
       region,
-      hasOneTimeToken: ott
+      hasOneTimeToken: ott,
     };
   }
 

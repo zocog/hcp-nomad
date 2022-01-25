@@ -2,7 +2,7 @@ import hbs from 'htmlbars-inline-precompile';
 import { htmlSafe } from '@ember/string';
 
 export default {
-  title: 'Theme/Font Stacks'
+  title: 'Theme/Font Stacks',
 };
 
 export let FontStacks = () => {
@@ -32,13 +32,13 @@ export let FontStacks = () => {
         'Cantarell',
         'Helvetica Neue',
         'sans-serif',
-        'monospace'
-      ].map(family => {
+        'monospace',
+      ].map((family) => {
         return {
           name: family,
-          style: htmlSafe(`font-family: ${family}`)
+          style: htmlSafe(`font-family: ${family}`),
         };
-      })
-    }
+      }),
+    },
   };
 };

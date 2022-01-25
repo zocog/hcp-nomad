@@ -6,15 +6,15 @@ import classic from 'ember-classic-decorator';
 const taskGroupFromJob = (job, taskGroupName) => {
   const taskGroups = job && job.TaskGroups;
   const taskGroup =
-    taskGroups && taskGroups.find(group => group.Name === taskGroupName);
+    taskGroups && taskGroups.find((group) => group.Name === taskGroupName);
   return taskGroup ? taskGroup : null;
 };
 
-const merge = tasks => {
+const merge = (tasks) => {
   const mergedResources = {
     Cpu: { CpuShares: 0 },
     Memory: { MemoryMB: 0 },
-    Disk: { DiskMB: 0 }
+    Disk: { DiskMB: 0 },
   };
 
   return tasks.reduce((resources, task) => {
@@ -31,7 +31,7 @@ export default class AllocationSerializer extends ApplicationSerializer {
 
   attrs = {
     taskGroupName: 'TaskGroup',
-    states: 'TaskStates'
+    states: 'TaskStates',
   };
 
   separateNanos = ['CreateTime', 'ModifyTime'];
@@ -42,11 +42,11 @@ export default class AllocationSerializer extends ApplicationSerializer {
     const states = hash.TaskStates || {};
     hash.TaskStates = Object.keys(states)
       .sort()
-      .map(key => {
+      .map((key) => {
         const state = states[key] || {};
         const summary = { Name: key };
         Object.keys(state).forEach(
-          stateKey => (summary[stateKey] = state[stateKey])
+          (stateKey) => (summary[stateKey] = state[stateKey])
         );
         summary.Resources =
           hash.AllocatedResources && hash.AllocatedResources.Tasks[key];

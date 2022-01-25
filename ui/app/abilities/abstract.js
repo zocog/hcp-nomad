@@ -39,7 +39,7 @@ export default class Abstract extends Ability {
         if (matchingNamespace) {
           rules.push(
             policyNamespaces.find(
-              namespace => namespace.Name === matchingNamespace
+              (namespace) => namespace.Name === matchingNamespace
             )
           );
         }
@@ -63,7 +63,7 @@ export default class Abstract extends Ability {
   }
 
   namespaceIncludesCapability(capability) {
-    return this.rulesForNamespace.some(rules => {
+    return this.rulesForNamespace.some((rules) => {
       let capabilities = get(rules, 'Capabilities') || [];
       return capabilities.includes(capability);
     });
@@ -87,7 +87,7 @@ export default class Abstract extends Ability {
       return namespace;
     }
 
-    let globNamespaceNames = namespaceNames.filter(namespaceName =>
+    let globNamespaceNames = namespaceNames.filter((namespaceName) =>
       namespaceName.includes('*')
     );
 
@@ -105,7 +105,7 @@ export default class Abstract extends Ability {
         ) {
           return {
             mostMatchingNamespaceName: namespaceName,
-            mostMatchingCharacterDifference: characterDifference
+            mostMatchingCharacterDifference: characterDifference,
           };
         } else {
           return mostMatching;
@@ -113,7 +113,7 @@ export default class Abstract extends Ability {
       },
       {
         mostMatchingNamespaceName: null,
-        mostMatchingCharacterDifference: Number.MAX_SAFE_INTEGER
+        mostMatchingCharacterDifference: Number.MAX_SAFE_INTEGER,
       }
     ).mostMatchingNamespaceName;
 

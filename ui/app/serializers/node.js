@@ -8,7 +8,7 @@ export default class NodeSerializer extends ApplicationSerializer {
     isDraining: 'Drain',
     httpAddr: 'HTTPAddr',
     resources: 'NodeResources',
-    reserved: 'ReservedResources'
+    reserved: 'ReservedResources',
   };
 
   mapToArray = ['Drivers', 'HostVolumes'];
@@ -27,9 +27,9 @@ export default class NodeSerializer extends ApplicationSerializer {
     return {
       allocations: {
         links: {
-          related: `${nodeURL}/allocations`
-        }
-      }
+          related: `${nodeURL}/allocations`,
+        },
+      },
     };
   }
 }

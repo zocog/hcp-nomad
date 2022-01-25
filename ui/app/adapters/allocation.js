@@ -8,7 +8,7 @@ export default class AllocationAdapter extends Watchable {
     const prefix = `${this.host || '/'}${this.urlPrefix()}`;
     const url = `${prefix}/client/allocation/${allocation.id}/restart`;
     return this.ajax(url, 'PUT', {
-      data: taskName && { TaskName: taskName }
+      data: taskName && { TaskName: taskName },
     });
   }
 
@@ -37,13 +37,13 @@ async function handleFSResponse(response) {
 
     throw {
       code: response.status,
-      toString: () => body
+      toString: () => body,
     };
   }
 }
 
 function adapterAction(path, verb = 'POST') {
-  return function(allocation) {
+  return function (allocation) {
     const url = addToPath(
       this.urlForFindRecord(allocation.id, 'allocation'),
       path

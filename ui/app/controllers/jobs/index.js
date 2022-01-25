@@ -10,7 +10,7 @@ import Sortable from 'nomad-ui/mixins/sortable';
 import Searchable from 'nomad-ui/mixins/searchable';
 import {
   serialize,
-  deserializedQueryParam as selection
+  deserializedQueryParam as selection,
 } from 'nomad-ui/utils/qp-serialize';
 import classic from 'ember-classic-decorator';
 
@@ -26,32 +26,32 @@ export default class IndexController extends Controller.extend(
 
   queryParams = [
     {
-      currentPage: 'page'
+      currentPage: 'page',
     },
     {
-      searchTerm: 'search'
+      searchTerm: 'search',
     },
     {
-      sortProperty: 'sort'
+      sortProperty: 'sort',
     },
     {
-      sortDescending: 'desc'
+      sortDescending: 'desc',
     },
     {
-      qpType: 'type'
+      qpType: 'type',
     },
     {
-      qpStatus: 'status'
+      qpStatus: 'status',
     },
     {
-      qpDatacenter: 'dc'
+      qpDatacenter: 'dc',
     },
     {
-      qpPrefix: 'prefix'
+      qpPrefix: 'prefix',
     },
     {
-      qpNamespace: 'namespace'
-    }
+      qpNamespace: 'namespace',
+    },
   ];
 
   currentPage = 1;
@@ -90,7 +90,7 @@ export default class IndexController extends Controller.extend(
       { key: 'periodic', label: 'Periodic' },
       { key: 'service', label: 'Service' },
       { key: 'system', label: 'System' },
-      { key: 'sysbatch', label: 'System Batch' }
+      { key: 'sysbatch', label: 'System Batch' },
     ];
   }
 
@@ -99,7 +99,7 @@ export default class IndexController extends Controller.extend(
     return [
       { key: 'pending', label: 'Pending' },
       { key: 'running', label: 'Running' },
-      { key: 'dead', label: 'Dead' }
+      { key: 'dead', label: 'Dead' },
     ];
   }
 
@@ -120,7 +120,7 @@ export default class IndexController extends Controller.extend(
       );
     });
 
-    return availableDatacenters.sort().map(dc => ({ key: dc, label: dc }));
+    return availableDatacenters.sort().map((dc) => ({ key: dc, label: dc }));
   }
 
   @computed('selectionPrefix', 'visibleJobs.[]')
@@ -140,13 +140,13 @@ export default class IndexController extends Controller.extend(
     }, {});
 
     // Convert to an array
-    const nameTable = Object.keys(nameHistogram).map(key => ({
+    const nameTable = Object.keys(nameHistogram).map((key) => ({
       prefix: key,
-      count: nameHistogram[key]
+      count: nameHistogram[key],
     }));
 
     // Only consider prefixes that match more than one name
-    const prefixes = nameTable.filter(name => name.count > 1);
+    const prefixes = nameTable.filter((name) => name.count > 1);
 
     // Remove any invalid prefixes from the query param/selection
     const availablePrefixes = prefixes.mapBy('prefix');
@@ -159,22 +159,22 @@ export default class IndexController extends Controller.extend(
     });
 
     // Sort, format, and include the count in the label
-    return prefixes.sortBy('prefix').map(name => ({
+    return prefixes.sortBy('prefix').map((name) => ({
       key: name.prefix,
-      label: `${name.prefix} (${name.count})`
+      label: `${name.prefix} (${name.count})`,
     }));
   }
 
   @computed('qpNamespace', 'model.namespaces.[]', 'system.cachedNamespace')
   get optionsNamespaces() {
-    const availableNamespaces = this.model.namespaces.map(namespace => ({
+    const availableNamespaces = this.model.namespaces.map((namespace) => ({
       key: namespace.name,
-      label: namespace.name
+      label: namespace.name,
     }));
 
     availableNamespaces.unshift({
       key: '*',
-      label: 'All (*)'
+      label: 'All (*)',
     });
 
     // Unset the namespace selection if it was server-side deleted
@@ -197,8 +197,8 @@ export default class IndexController extends Controller.extend(
     if (!this.model || !this.model.jobs) return [];
     return this.model.jobs
       .compact()
-      .filter(job => !job.isNew)
-      .filter(job => !job.get('parent.content'));
+      .filter((job) => !job.isNew)
+      .filter((job) => !job.get('parent.content'));
   }
 
   @computed(
@@ -213,12 +213,12 @@ export default class IndexController extends Controller.extend(
       selectionType: types,
       selectionStatus: statuses,
       selectionDatacenter: datacenters,
-      selectionPrefix: prefixes
+      selectionPrefix: prefixes,
     } = this;
 
     // A job must match ALL filter facets, but it can match ANY selection within a facet
     // Always return early to prevent unnecessary facet predicates.
-    return this.visibleJobs.filter(job => {
+    return this.visibleJobs.filter((job) => {
       if (types.length && !types.includes(job.get('displayType'))) {
         return false;
       }
@@ -229,7 +229,7 @@ export default class IndexController extends Controller.extend(
 
       if (
         datacenters.length &&
-        !job.get('datacenters').find(dc => datacenters.includes(dc))
+        !job.get('datacenters').find((dc) => datacenters.includes(dc))
       ) {
         return false;
       }
@@ -237,7 +237,7 @@ export default class IndexController extends Controller.extend(
       const name = job.get('name');
       if (
         prefixes.length &&
-        !prefixes.find(prefix => name.startsWith(prefix))
+        !prefixes.find((prefix) => name.startsWith(prefix))
       ) {
         return false;
       }
@@ -264,7 +264,7 @@ export default class IndexController extends Controller.extend(
   @action
   gotoJob(job) {
     this.transitionToRoute('jobs.job', job.get('plainId'), {
-      queryParams: { namespace: job.get('namespace.name') }
+      queryParams: { namespace: job.get('namespace.name') },
     });
   }
 }

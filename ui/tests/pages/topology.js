@@ -5,7 +5,7 @@ import {
   create,
   hasClass,
   text,
-  visitable
+  visitable,
 } from 'ember-cli-page-object';
 
 import TopoViz from 'nomad-ui/tests/pages/components/topo-viz';
@@ -27,7 +27,7 @@ export default create({
     memoryProgressValue: attribute('value', '[data-test-memory-progress-bar]'),
     memoryAbsoluteValue: text('[data-test-memory-absolute-value]'),
     cpuProgressValue: attribute('value', '[data-test-cpu-progress-bar]'),
-    cpuAbsoluteValue: text('[data-test-cpu-absolute-value]')
+    cpuAbsoluteValue: text('[data-test-cpu-absolute-value]'),
   },
 
   nodeInfoPanel: {
@@ -50,7 +50,7 @@ export default create({
     memoryProgressValue: attribute('value', '[data-test-memory-progress-bar]'),
     memoryAbsoluteValue: text('[data-test-memory-absolute-value]'),
     cpuProgressValue: attribute('value', '[data-test-cpu-progress-bar]'),
-    cpuAbsoluteValue: text('[data-test-cpu-absolute-value]')
+    cpuAbsoluteValue: text('[data-test-cpu-absolute-value]'),
   },
 
   allocInfoPanel: {
@@ -70,8 +70,8 @@ export default create({
 
     charts: collection('[data-test-primary-metric]', {
       areas: collection('[data-test-chart-area]', {
-        taskName: attribute('data-test-task-name')
-      })
-    })
-  }
+        taskName: attribute('data-test-task-name'),
+      }),
+    }),
+  },
 });

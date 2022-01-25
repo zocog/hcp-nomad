@@ -12,7 +12,7 @@ let startSpy, stopSpy, initSpy, fetchSpy;
 const MockStreamer = EmberObject.extend({
   init() {
     this.poll = {
-      isRunning: false
+      isRunning: false,
     };
 
     initSpy(...arguments);
@@ -32,7 +32,7 @@ const MockStreamer = EmberObject.extend({
     if (this.poll.isRunning) {
       this.write(chunk);
     }
-  }
+  },
 });
 
 const Log = _Log.extend({
@@ -45,41 +45,41 @@ const Log = _Log.extend({
       'write'
     );
     this.set('logStreamer', MockStreamer.create(props));
-  }
+  },
 });
 
-module('Unit | Util | Log', function(hooks) {
-  hooks.beforeEach(function() {
+module('Unit | Util | Log', function (hooks) {
+  hooks.beforeEach(function () {
     initSpy = sinon.spy();
     startSpy = sinon.spy();
     stopSpy = sinon.spy();
     fetchSpy = sinon.spy();
   });
 
-  const makeMocks = output => ({
+  const makeMocks = (output) => ({
     url: '/test-url/',
     params: {
       a: 'param',
-      another: 'one'
+      another: 'one',
     },
-    logFetch: function() {
+    logFetch: function () {
       fetchSpy(...arguments);
       return RSVP.Promise.resolve({
         text() {
           return output;
-        }
+        },
       });
-    }
+    },
   });
 
-  test('logStreamer is created on init', async function(assert) {
+  test('logStreamer is created on init', async function (assert) {
     const log = Log.create(makeMocks(''));
 
     assert.ok(log.get('logStreamer'), 'logStreamer property is defined');
     assert.ok(initSpy.calledOnce, 'logStreamer init was called');
   });
 
-  test('gotoHead builds the correct URL', async function(assert) {
+  test('gotoHead builds the correct URL', async function (assert) {
     assert.expect(1);
 
     const mocks = makeMocks('');
@@ -95,10 +95,8 @@ module('Unit | Util | Log', function(hooks) {
     });
   });
 
-  test('When gotoHead returns too large of a log, the log is truncated', async function(assert) {
-    const longLog = Array(50001)
-      .fill('a')
-      .join('');
+  test('When gotoHead returns too large of a log, the log is truncated', async function (assert) {
+    const longLog = Array(50001).fill('a').join('');
     const encodedLongLog = `{"Offset":0,"Data":"${window.btoa(longLog)}"}`;
     const truncationMessage =
       '\n\n---------- TRUNCATED: Click "tail" to view the bottom of the log ----------';
@@ -112,10 +110,7 @@ module('Unit | Util | Log', function(hooks) {
 
     await settled();
     assert.ok(
-      log
-        .get('output')
-        .toString()
-        .endsWith(truncationMessage),
+      log.get('output').toString().endsWith(truncationMessage),
       'Truncation message is shown'
     );
     assert.equal(
@@ -125,7 +120,7 @@ module('Unit | Util | Log', function(hooks) {
     );
   });
 
-  test('gotoTail builds the correct URL', async function(assert) {
+  test('gotoTail builds the correct URL', async function (assert) {
     assert.expect(1);
 
     const mocks = makeMocks('');
@@ -141,7 +136,7 @@ module('Unit | Util | Log', function(hooks) {
     });
   });
 
-  test('startStreaming starts the log streamer', async function(assert) {
+  test('startStreaming starts the log streamer', async function (assert) {
     const log = Log.create(makeMocks(''));
 
     log.startStreaming();
@@ -153,7 +148,7 @@ module('Unit | Util | Log', function(hooks) {
     );
   });
 
-  test('When the log streamer calls `write`, the output is appended', async function(assert) {
+  test('When the log streamer calls `write`, the output is appended', async function (assert) {
     const log = Log.create(makeMocks(''));
     const chunk1 = 'Hello';
     const chunk2 = ' World';
@@ -176,7 +171,7 @@ module('Unit | Util | Log', function(hooks) {
     );
   });
 
-  test('stop stops the log streamer', async function(assert) {
+  test('stop stops the log streamer', async function (assert) {
     const log = Log.create(makeMocks(''));
 
     log.stop();

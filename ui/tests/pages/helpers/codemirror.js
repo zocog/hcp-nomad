@@ -7,12 +7,12 @@ export function codeFillable(selector) {
     isDescriptor: true,
 
     get() {
-      return function(code) {
+      return function (code) {
         const cm = getCodeMirrorInstance(selector);
         cm.setValue(code);
         return this;
       };
-    }
+    },
   };
 }
 
@@ -27,6 +27,6 @@ export function code(selector) {
     get() {
       const cm = getCodeMirrorInstance(selector);
       return cm.getValue();
-    }
+    },
   };
 }

@@ -3,7 +3,7 @@ import { withKnobs, text } from '@storybook/addon-knobs';
 
 export default {
   title: 'Components/Copy Button',
-  decorators: [withKnobs]
+  decorators: [withKnobs],
 };
 
 export let CopyButton = () => {
@@ -23,7 +23,7 @@ export let CopyButton = () => {
       clipboardText: text(
         'Clipboard Text',
         'e8c898a0-794b-9063-7a7f-bf0c4a405f83'
-      )
-    }
+      ),
+    },
   };
 };

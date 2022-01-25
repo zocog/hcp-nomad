@@ -18,11 +18,11 @@ export default class IndexController extends Controller.extend(Sortable) {
 
   queryParams = [
     {
-      sortProperty: 'sort'
+      sortProperty: 'sort',
     },
     {
-      sortDescending: 'desc'
-    }
+      sortDescending: 'desc',
+    },
   ];
 
   sortProperty = 'name';
@@ -34,7 +34,7 @@ export default class IndexController extends Controller.extend(Sortable) {
   // Set in the route
   preempter = null;
 
-  @overridable(function() {
+  @overridable(function () {
     // { title, description }
     return null;
   })
@@ -66,7 +66,7 @@ export default class IndexController extends Controller.extend(Sortable) {
     }
   }
 
-  @task(function*() {
+  @task(function* () {
     try {
       yield this.model.stop();
       // Eagerly update the allocation clientStatus to avoid flickering
@@ -74,19 +74,19 @@ export default class IndexController extends Controller.extend(Sortable) {
     } catch (err) {
       this.set('error', {
         title: 'Could Not Stop Allocation',
-        description: messageForError(err, 'manage allocation lifecycle')
+        description: messageForError(err, 'manage allocation lifecycle'),
       });
     }
   })
   stopAllocation;
 
-  @task(function*() {
+  @task(function* () {
     try {
       yield this.model.restart();
     } catch (err) {
       this.set('error', {
         title: 'Could Not Restart Allocation',
-        description: messageForError(err, 'manage allocation lifecycle')
+        description: messageForError(err, 'manage allocation lifecycle'),
       });
     }
   })

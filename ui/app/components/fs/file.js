@@ -126,22 +126,22 @@ export default class File extends Component {
     // If the file request can't settle in one second, the client
     // must be unavailable and the server should be used instead
     const timing = this.useServer ? this.serverTimeout : this.clientTimeout;
-    const logFetch = url =>
+    const logFetch = (url) =>
       RSVP.race([this.token.authorizedRequest(url), timeout(timing)]).then(
-        response => {
+        (response) => {
           if (!response || !response.ok) {
             this.nextErrorState(response);
           }
           return response;
         },
-        error => this.nextErrorState(error)
+        (error) => this.nextErrorState(error)
       );
 
     return Log.create({
       logFetch,
       plainText,
       params: this.fileParams,
-      url: this.fileUrl
+      url: this.fileUrl,
     });
   }
 
@@ -184,7 +184,7 @@ export default class File extends Component {
     try {
       const response = await RSVP.race([
         this.token.authorizedRequest(this.catUrlWithoutRegion),
-        timeout(timing)
+        timeout(timing),
       ]);
 
       if (!response || !response.ok) throw new Error('file download timeout');

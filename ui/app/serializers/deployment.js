@@ -6,7 +6,7 @@ import classic from 'ember-classic-decorator';
 @classic
 export default class DeploymentSerializer extends ApplicationSerializer {
   attrs = {
-    versionNumber: 'JobVersion'
+    versionNumber: 'JobVersion',
   };
 
   mapToArray = [{ beforeName: 'TaskGroups', afterName: 'TaskGroupSummaries' }];
@@ -23,7 +23,7 @@ export default class DeploymentSerializer extends ApplicationSerializer {
       // same job.
       hash.JobID = hash.JobForLatestID = JSON.stringify([
         hash.JobID,
-        hash.Namespace
+        hash.Namespace,
       ]);
     }
 
@@ -40,9 +40,9 @@ export default class DeploymentSerializer extends ApplicationSerializer {
       {
         allocations: {
           links: {
-            related: `/${namespace}/deployment/allocations/${id}`
-          }
-        }
+            related: `/${namespace}/deployment/allocations/${id}`,
+          },
+        },
       },
       super.extractRelationships(modelClass, hash)
     );

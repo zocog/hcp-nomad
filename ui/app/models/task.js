@@ -3,7 +3,7 @@ import Fragment from 'ember-data-model-fragments/fragment';
 import {
   fragment,
   fragmentArray,
-  fragmentOwner
+  fragmentOwner,
 } from 'ember-data-model-fragments/attributes';
 import { computed } from '@ember/object';
 
@@ -20,7 +20,7 @@ export default class Task extends Fragment {
   get mergedMeta() {
     return {
       ...this.taskGroup.mergedMeta,
-      ...this.meta
+      ...this.meta,
     };
   }
 

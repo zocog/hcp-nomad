@@ -7,7 +7,7 @@ import flat from 'flat';
 
 const { flatten } = flat;
 
-module('Integration | Component | attributes table', function(hooks) {
+module('Integration | Component | attributes table', function (hooks) {
   setupRenderingTest(hooks);
 
   const commonAttributes = {
@@ -15,19 +15,19 @@ module('Integration | Component | attributes table', function(hooks) {
     nested: {
       props: 'are',
       supported: 'just',
-      fine: null
+      fine: null,
     },
     so: {
       are: {
         deeply: {
           nested: 'properties',
-          like: 'these ones'
-        }
-      }
-    }
+          like: 'these ones',
+        },
+      },
+    },
   };
 
-  test('should render a row for each key/value pair in a deep object', async function(assert) {
+  test('should render a row for each key/value pair in a deep object', async function (assert) {
     assert.expect(2);
 
     this.set('attributes', commonAttributes);
@@ -45,7 +45,7 @@ module('Integration | Component | attributes table', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('should render the full path of key/value pair from the root of the object', async function(assert) {
+  test('should render the full path of key/value pair from the root of the object', async function (assert) {
     this.set('attributes', commonAttributes);
     await render(hbs`<AttributesTable @attributePairs={{attributes}} />`);
 
@@ -77,7 +77,7 @@ module('Integration | Component | attributes table', function(hooks) {
     );
   });
 
-  test('should render a row for key/value pairs even when the value is another object', async function(assert) {
+  test('should render a row for key/value pairs even when the value is another object', async function (assert) {
     this.set('attributes', commonAttributes);
     await render(hbs`<AttributesTable @attributePairs={{attributes}} />`);
 

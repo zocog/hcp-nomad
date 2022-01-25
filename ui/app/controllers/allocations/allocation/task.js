@@ -12,8 +12,8 @@ export default class AllocationsAllocationTaskController extends Controller {
       args: [
         'allocations.allocation.task',
         this.task.get('allocation'),
-        this.task
-      ]
+        this.task,
+      ],
     };
   }
 }

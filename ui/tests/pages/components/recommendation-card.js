@@ -3,7 +3,7 @@ import {
   collection,
   hasClass,
   isPresent,
-  text
+  text,
 } from 'ember-cli-page-object';
 import { getter } from 'ember-cli-page-object/macros';
 
@@ -14,14 +14,14 @@ export default {
 
   slug: {
     jobName: text('[data-test-job-name]'),
-    groupName: text('[data-test-task-group-name]')
+    groupName: text('[data-test-task-group-name]'),
   },
 
   namespace: text('[data-test-namespace]'),
 
   copyButton: {
     scope: '[data-test-copy-button]',
-    clipboardText: attribute('data-clipboard-text', 'button')
+    clipboardText: attribute('data-clipboard-text', 'button'),
   },
 
   totalsTable: totalsTableComponent('[data-test-group-totals]'),
@@ -40,8 +40,8 @@ export default {
       cpu: toggle('[data-test-cpu-toggle]'),
       memory: toggle('[data-test-memory-toggle]'),
 
-      isActive: hasClass('active')
-    })
+      isActive: hasClass('active'),
+    }),
   },
 
   activeTask: {
@@ -51,21 +51,21 @@ export default {
     totalsTable: totalsTableComponent(''),
 
     charts: collection('[data-test-chart-for]', {
-      resource: text('text.resource')
+      resource: text('text.resource'),
     }),
 
     cpuChart: resourceChartComponent('[data-test-chart-for=CPU]'),
-    memoryChart: resourceChartComponent('[data-test-chart-for=MemoryMB]')
+    memoryChart: resourceChartComponent('[data-test-chart-for=MemoryMB]'),
   },
 
   acceptButton: {
     scope: '[data-test-accept]',
-    isDisabled: attribute('disabled')
+    isDisabled: attribute('disabled'),
   },
 
   dismissButton: {
-    scope: '[data-test-dismiss]'
-  }
+    scope: '[data-test-dismiss]',
+  },
 };
 
 function totalsTableCell(scope) {
@@ -73,9 +73,9 @@ function totalsTableCell(scope) {
     scope,
     isIncrease: hasClass('increase'),
     isDecrease: hasClass('decrease'),
-    isNeutral: getter(function() {
+    isNeutral: getter(function () {
       return !this.isIncrease && !this.isDecrease;
-    })
+    }),
   };
 }
 
@@ -86,24 +86,24 @@ function totalsTableComponent(scope) {
     current: {
       scope: '[data-test-current]',
       cpu: totalsTableCell('[data-test-cpu]'),
-      memory: totalsTableCell('[data-test-memory]')
+      memory: totalsTableCell('[data-test-memory]'),
     },
 
     recommended: {
       scope: '[data-test-recommended]',
       cpu: totalsTableCell('[data-test-cpu]'),
-      memory: totalsTableCell('[data-test-memory]')
+      memory: totalsTableCell('[data-test-memory]'),
     },
 
     unitDiff: {
       cpu: text('[data-test-cpu-unit-diff]'),
-      memory: text('[data-test-memory-unit-diff]')
+      memory: text('[data-test-memory-unit-diff]'),
     },
 
     percentDiff: {
       cpu: text('[data-test-cpu-percent-diff]'),
-      memory: text('[data-test-memory-percent-diff]')
-    }
+      memory: text('[data-test-memory-percent-diff]'),
+    },
   };
 }
 
@@ -113,6 +113,6 @@ function resourceChartComponent(scope) {
 
     isIncrease: hasClass('increase'),
     isDecrease: hasClass('decrease'),
-    isDisabled: hasClass('disabled')
+    isDisabled: hasClass('disabled'),
   };
 }

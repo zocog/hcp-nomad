@@ -8,7 +8,7 @@ import { on } from '@ember/object/evented';
 import Controller from '@ember/controller';
 
 export default {
-  title: 'Components/Table'
+  title: 'Components/Table',
 };
 
 /**
@@ -20,12 +20,12 @@ export default {
  * as the `controller` property so its query parameters are accessible from the template.
  */
 function injectRoutedController(controllerClass) {
-  return on('init', function() {
+  return on('init', function () {
     let container = getOwner(this);
     container.register('controller:storybook', controllerClass);
 
     let routerFactory = container.factoryFor('router:main');
-    routerFactory.class.map(function() {
+    routerFactory.class.map(function () {
       this.route('storybook');
     });
 
@@ -44,351 +44,351 @@ let longList = [
     growth: 0.048,
     population: '8405837',
     rank: '1',
-    state: 'New York'
+    state: 'New York',
   },
   {
     city: 'Los Angeles',
     growth: 0.048,
     population: '3884307',
     rank: '2',
-    state: 'California'
+    state: 'California',
   },
   {
     city: 'Chicago',
     growth: -0.061,
     population: '2718782',
     rank: '3',
-    state: 'Illinois'
+    state: 'Illinois',
   },
   {
     city: 'Houston',
     growth: 0.11,
     population: '2195914',
     rank: '4',
-    state: 'Texas'
+    state: 'Texas',
   },
   {
     city: 'Philadelphia',
     growth: 0.026,
     population: '1553165',
     rank: '5',
-    state: 'Pennsylvania'
+    state: 'Pennsylvania',
   },
   {
     city: 'Phoenix',
     growth: 0.14,
     population: '1513367',
     rank: '6',
-    state: 'Arizona'
+    state: 'Arizona',
   },
   {
     city: 'San Antonio',
     growth: 0.21,
     population: '1409019',
     rank: '7',
-    state: 'Texas'
+    state: 'Texas',
   },
   {
     city: 'San Diego',
     growth: 0.105,
     population: '1355896',
     rank: '8',
-    state: 'California'
+    state: 'California',
   },
   {
     city: 'Dallas',
     growth: 0.056,
     population: '1257676',
     rank: '9',
-    state: 'Texas'
+    state: 'Texas',
   },
   {
     city: 'San Jose',
     growth: 0.105,
     population: '998537',
     rank: '10',
-    state: 'California'
+    state: 'California',
   },
   {
     city: 'Austin',
     growth: 0.317,
     population: '885400',
     rank: '11',
-    state: 'Texas'
+    state: 'Texas',
   },
   {
     city: 'Indianapolis',
     growth: 0.078,
     population: '843393',
     rank: '12',
-    state: 'Indiana'
+    state: 'Indiana',
   },
   {
     city: 'Jacksonville',
     growth: 0.143,
     population: '842583',
     rank: '13',
-    state: 'Florida'
+    state: 'Florida',
   },
   {
     city: 'San Francisco',
     growth: 0.077,
     population: '837442',
     rank: '14',
-    state: 'California'
+    state: 'California',
   },
   {
     city: 'Columbus',
     growth: 0.148,
     population: '822553',
     rank: '15',
-    state: 'Ohio'
+    state: 'Ohio',
   },
   {
     city: 'Charlotte',
     growth: 0.391,
     population: '792862',
     rank: '16',
-    state: 'North Carolina'
+    state: 'North Carolina',
   },
   {
     city: 'Fort Worth',
     growth: 0.451,
     population: '792727',
     rank: '17',
-    state: 'Texas'
+    state: 'Texas',
   },
   {
     city: 'Detroit',
     growth: -0.271,
     population: '688701',
     rank: '18',
-    state: 'Michigan'
+    state: 'Michigan',
   },
   {
     city: 'El Paso',
     growth: 0.194,
     population: '674433',
     rank: '19',
-    state: 'Texas'
+    state: 'Texas',
   },
   {
     city: 'Memphis',
     growth: -0.053,
     population: '653450',
     rank: '20',
-    state: 'Tennessee'
+    state: 'Tennessee',
   },
   {
     city: 'Seattle',
     growth: 0.156,
     population: '652405',
     rank: '21',
-    state: 'Washington'
+    state: 'Washington',
   },
   {
     city: 'Denver',
     growth: 0.167,
     population: '649495',
     rank: '22',
-    state: 'Colorado'
+    state: 'Colorado',
   },
   {
     city: 'Washington',
     growth: 0.13,
     population: '646449',
     rank: '23',
-    state: 'District of Columbia'
+    state: 'District of Columbia',
   },
   {
     city: 'Boston',
     growth: 0.094,
     population: '645966',
     rank: '24',
-    state: 'Massachusetts'
+    state: 'Massachusetts',
   },
   {
     city: 'Nashville-Davidson',
     growth: 0.162,
     population: '634464',
     rank: '25',
-    state: 'Tennessee'
+    state: 'Tennessee',
   },
   {
     city: 'Baltimore',
     growth: -0.04,
     population: '622104',
     rank: '26',
-    state: 'Maryland'
+    state: 'Maryland',
   },
   {
     city: 'Oklahoma City',
     growth: 0.202,
     population: '610613',
     rank: '27',
-    state: 'Oklahoma'
+    state: 'Oklahoma',
   },
   {
     city: 'Louisville/Jefferson County',
     growth: 0.1,
     population: '609893',
     rank: '28',
-    state: 'Kentucky'
+    state: 'Kentucky',
   },
   {
     city: 'Portland',
     growth: 0.15,
     population: '609456',
     rank: '29',
-    state: 'Oregon'
+    state: 'Oregon',
   },
   {
     city: 'Las Vegas',
     growth: 0.245,
     population: '603488',
     rank: '30',
-    state: 'Nevada'
+    state: 'Nevada',
   },
   {
     city: 'Milwaukee',
     growth: 0.003,
     population: '599164',
     rank: '31',
-    state: 'Wisconsin'
+    state: 'Wisconsin',
   },
   {
     city: 'Albuquerque',
     growth: 0.235,
     population: '556495',
     rank: '32',
-    state: 'New Mexico'
+    state: 'New Mexico',
   },
   {
     city: 'Tucson',
     growth: 0.075,
     population: '526116',
     rank: '33',
-    state: 'Arizona'
+    state: 'Arizona',
   },
   {
     city: 'Fresno',
     growth: 0.183,
     population: '509924',
     rank: '34',
-    state: 'California'
+    state: 'California',
   },
   {
     city: 'Sacramento',
     growth: 0.172,
     population: '479686',
     rank: '35',
-    state: 'California'
+    state: 'California',
   },
   {
     city: 'Long Beach',
     growth: 0.015,
     population: '469428',
     rank: '36',
-    state: 'California'
+    state: 'California',
   },
   {
     city: 'Kansas City',
     growth: 0.055,
     population: '467007',
     rank: '37',
-    state: 'Missouri'
+    state: 'Missouri',
   },
   {
     city: 'Mesa',
     growth: 0.135,
     population: '457587',
     rank: '38',
-    state: 'Arizona'
+    state: 'Arizona',
   },
   {
     city: 'Virginia Beach',
     growth: 0.051,
     population: '448479',
     rank: '39',
-    state: 'Virginia'
+    state: 'Virginia',
   },
   {
     city: 'Atlanta',
     growth: 0.062,
     population: '447841',
     rank: '40',
-    state: 'Georgia'
+    state: 'Georgia',
   },
   {
     city: 'Colorado Springs',
     growth: 0.214,
     population: '439886',
     rank: '41',
-    state: 'Colorado'
+    state: 'Colorado',
   },
   {
     city: 'Omaha',
     growth: 0.059,
     population: '434353',
     rank: '42',
-    state: 'Nebraska'
+    state: 'Nebraska',
   },
   {
     city: 'Raleigh',
     growth: 0.487,
     population: '431746',
     rank: '43',
-    state: 'North Carolina'
+    state: 'North Carolina',
   },
   {
     city: 'Miami',
     growth: 0.149,
     population: '417650',
     rank: '44',
-    state: 'Florida'
+    state: 'Florida',
   },
   {
     city: 'Oakland',
     growth: 0.013,
     population: '406253',
     rank: '45',
-    state: 'California'
+    state: 'California',
   },
   {
     city: 'Minneapolis',
     growth: 0.045,
     population: '400070',
     rank: '46',
-    state: 'Minnesota'
+    state: 'Minnesota',
   },
   {
     city: 'Tulsa',
     growth: 0.013,
     population: '398121',
     rank: '47',
-    state: 'Oklahoma'
+    state: 'Oklahoma',
   },
   {
     city: 'Cleveland',
     growth: -0.181,
     population: '390113',
     rank: '48',
-    state: 'Ohio'
+    state: 'Ohio',
   },
   {
     city: 'Wichita',
     growth: 0.097,
     population: '386552',
     rank: '49',
-    state: 'Kansas'
+    state: 'Kansas',
   },
   {
     city: 'Arlington',
     growth: 0.133,
     population: '379577',
     rank: '50',
-    state: 'Texas'
-  }
+    state: 'Texas',
+  },
 ];
 
 export let Standard = () => {
@@ -412,8 +412,8 @@ export let Standard = () => {
       <p class="annotation">Tables have airy designs with a minimal amount of borders. This maximizes their utility.</p>
       `,
     context: {
-      shortList: productMetadata
-    }
+      shortList: productMetadata,
+    },
   };
 };
 
@@ -460,14 +460,14 @@ export let Search = () => {
       controller: EmberObject.extend({
         searchTerm: '',
 
-        filteredShortList: computed('searchTerm', function() {
+        filteredShortList: computed('searchTerm', function () {
           let term = this.searchTerm.toLowerCase();
-          return productMetadata.filter(product =>
+          return productMetadata.filter((product) =>
             product.name.toLowerCase().includes(term)
           );
-        })
-      }).create()
-    }
+        }),
+      }).create(),
+    },
   };
 };
 
@@ -497,13 +497,13 @@ export let SortableColumns = () => {
         Controller.extend({
           queryParams: ['sortProperty', 'sortDescending'],
           sortProperty: 'name',
-          sortDescending: false
+          sortDescending: false,
         })
       ),
 
       sortedShortList: computed(
         'controller.{sortProperty,sortDescending}',
-        function() {
+        function () {
           let sorted = productMetadata.sortBy(
             this.get('controller.sortProperty') || 'name'
           );
@@ -511,8 +511,8 @@ export let SortableColumns = () => {
             ? sorted.reverse()
             : sorted;
         }
-      )
-    }
+      ),
+    },
   };
 };
 
@@ -542,13 +542,13 @@ export let MultiRow = () => {
         Controller.extend({
           queryParams: ['sortProperty', 'sortDescending'],
           sortProperty: 'name',
-          sortDescending: false
+          sortDescending: false,
         })
       ),
 
       sortedShortList: computed(
         'controller.{sortProperty,sortDescending}',
-        function() {
+        function () {
           let sorted = productMetadata.sortBy(
             this.get('controller.sortProperty') || 'name'
           );
@@ -556,8 +556,8 @@ export let MultiRow = () => {
             ? sorted.reverse()
             : sorted;
         }
-      )
-    }
+      ),
+    },
   };
 };
 
@@ -604,11 +604,11 @@ export let Pagination = () => {
       injectRoutedController: injectRoutedController(
         Controller.extend({
           queryParams: ['currentPage'],
-          currentPage: 1
+          currentPage: 1,
         })
       ),
-      longList
-    }
+      longList,
+    },
   };
 };
 
@@ -641,8 +641,8 @@ export let RowLinks = () => {
       </p>
       `,
     context: {
-      shortList: productMetadata
-    }
+      shortList: productMetadata,
+    },
   };
 };
 
@@ -667,8 +667,8 @@ export let CellLinks = () => {
       <p class="annotation">Links in table cells are just links.</p>
       `,
     context: {
-      shortList: productMetadata
-    }
+      shortList: productMetadata,
+    },
   };
 };
 
@@ -698,8 +698,8 @@ export let CellDecorations = () => {
       <p class="annotation">Small icons and accents of color make tables easier to scan.</p>
       `,
     context: {
-      shortList: productMetadata
-    }
+      shortList: productMetadata,
+    },
   };
 };
 
@@ -749,10 +749,10 @@ export let CellIcons = () => {
       injectRoutedController: injectRoutedController(
         Controller.extend({
           queryParams: ['currentPage'],
-          currentPage: 1
+          currentPage: 1,
         })
       ),
-      longList
-    }
+      longList,
+    },
   };
 };

@@ -6,7 +6,7 @@ import { on } from '@ember/object/evented';
 import DelayedTruth from '../utils/delayed-truth';
 
 export default {
-  title: 'Charts/Distribution Bar'
+  title: 'Charts/Distribution Bar',
 };
 
 export let Standard = () => {
@@ -25,9 +25,9 @@ export let Standard = () => {
       distributionBarData: [
         { label: 'one', value: 10 },
         { label: 'two', value: 20 },
-        { label: 'three', value: 30 }
-      ]
-    }
+        { label: 'three', value: 30 },
+      ],
+    },
   };
 };
 
@@ -47,9 +47,9 @@ export let WithClasses = () => {
       distributionBarDataWithClasses: [
         { label: 'Queued', value: 10, className: 'queued' },
         { label: 'Complete', value: 20, className: 'complete' },
-        { label: 'Failed', value: 30, className: 'failed' }
-      ]
-    }
+        { label: 'Failed', value: 30, className: 'failed' },
+      ],
+    },
   };
 };
 
@@ -74,9 +74,9 @@ export let Flexibility = () => {
       distributionBarData: [
         { label: 'one', value: 10 },
         { label: 'two', value: 20 },
-        { label: 'three', value: 30 }
-      ]
-    }
+        { label: 'three', value: 30 },
+      ],
+    },
   };
 };
 
@@ -98,7 +98,7 @@ export let LiveUpdating = () => {
       controller: EmberObject.extend({
         timerTicks: 0,
 
-        startTimer: on('init', function() {
+        startTimer: on('init', function () {
           this.set(
             'timer',
             setInterval(() => {
@@ -111,15 +111,15 @@ export let LiveUpdating = () => {
           clearInterval(this.timer);
         },
 
-        distributionBarDataRotating: computed('timerTicks', function() {
+        distributionBarDataRotating: computed('timerTicks', function () {
           return [
             { label: 'one', value: Math.round(Math.random() * 50) },
             { label: 'two', value: Math.round(Math.random() * 50) },
-            { label: 'three', value: Math.round(Math.random() * 50) }
+            { label: 'three', value: Math.round(Math.random() * 50) },
           ];
-        })
-      }).create()
-    }
+        }),
+      }).create(),
+    },
   };
 };
 
@@ -135,8 +135,8 @@ export let SingleBar = () => {
       `,
     context: {
       delayedTruth: DelayedTruth.create(),
-      distributionBarDatum: [{ label: 'one', value: 10 }]
-    }
+      distributionBarDatum: [{ label: 'one', value: 10 }],
+    },
   };
 };
 
@@ -167,8 +167,8 @@ export let Jumbo = () => {
         { label: 'one', value: 10 },
         { label: 'two', value: 20 },
         { label: 'three', value: 0 },
-        { label: 'four', value: 35 }
-      ]
-    }
+        { label: 'four', value: 35 },
+      ],
+    },
   };
 };

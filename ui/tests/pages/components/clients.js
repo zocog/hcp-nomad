@@ -1,7 +1,7 @@
 import { attribute, collection, clickable, text } from 'ember-cli-page-object';
 import { singularize } from 'ember-inflector';
 
-export default function(selector = '[data-test-client]', propKey = 'clients') {
+export default function (selector = '[data-test-client]', propKey = 'clients') {
   const lookupKey = `${singularize(propKey)}For`;
   // Remove the bracket notation
   const attr = selector.substring(1, selector.length - 1);
@@ -17,24 +17,24 @@ export default function(selector = '[data-test-client]', propKey = 'clients') {
         scope: '[data-test-create-time]',
         tooltip: {
           scope: '.tooltip',
-          text: attribute('aria-label')
-        }
+          text: attribute('aria-label'),
+        },
       },
 
       modifyTime: {
         scope: '[data-test-modify-time]',
         tooltip: {
           scope: '.tooltip',
-          text: attribute('aria-label')
-        }
+          text: attribute('aria-label'),
+        },
       },
 
       visit: clickable('[data-test-short-id] a'),
-      visitRow: clickable()
+      visitRow: clickable(),
     }),
 
-    [lookupKey]: function(id) {
-      return this[propKey].toArray().find(client => client.id === id);
-    }
+    [lookupKey]: function (id) {
+      return this[propKey].toArray().find((client) => client.id === id);
+    },
   };
 }

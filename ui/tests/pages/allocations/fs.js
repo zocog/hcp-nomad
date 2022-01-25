@@ -6,7 +6,7 @@ import {
   hasClass,
   isPresent,
   text,
-  visitable
+  visitable,
 } from 'ember-cli-page-object';
 
 export default create({
@@ -17,7 +17,7 @@ export default create({
   visitTaskPath: visitable('/allocations/:id/:name/fs/:path'),
 
   fileViewer: {
-    scope: '[data-test-file-viewer]'
+    scope: '[data-test-file-viewer]',
   },
 
   breadcrumbsText: text('[data-test-fs-breadcrumbs]'),
@@ -25,19 +25,16 @@ export default create({
   breadcrumbs: collection('[data-test-fs-breadcrumbs] li', {
     visit: clickable('a'),
     path: attribute('href', 'a'),
-    isActive: hasClass('is-active')
+    isActive: hasClass('is-active'),
   }),
 
   sortOptions: collection('[data-test-sort-by]', {
     id: attribute('data-test-sort-by'),
-    sort: clickable()
+    sort: clickable(),
   }),
 
   sortBy(id) {
-    return this.sortOptions
-      .toArray()
-      .findBy('id', id)
-      .sort();
+    return this.sortOptions.toArray().findBy('id', id).sort();
   },
 
   directoryEntries: collection('[data-test-entry]', {
@@ -50,7 +47,7 @@ export default create({
     lastModified: text('[data-test-last-modified]'),
 
     visit: clickable('a'),
-    path: attribute('href', 'a')
+    path: attribute('href', 'a'),
   }),
 
   isEmptyDirectory: isPresent('[data-test-empty-directory]'),
@@ -61,10 +58,10 @@ export default create({
 
   hasEmptyState: isPresent('[data-test-not-running]'),
   emptyState: {
-    headline: text('[data-test-not-running-headline]')
+    headline: text('[data-test-not-running-headline]'),
   },
 
   error: {
-    title: text('[data-test-error-title]')
-  }
+    title: text('[data-test-error-title]'),
+  },
 });

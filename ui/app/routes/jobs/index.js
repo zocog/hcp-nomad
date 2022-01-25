@@ -15,8 +15,8 @@ export default class IndexRoute extends Route.extend(
 
   queryParams = {
     qpNamespace: {
-      refreshModel: true
-    }
+      refreshModel: true,
+    },
   };
 
   model(params) {
@@ -24,7 +24,7 @@ export default class IndexRoute extends Route.extend(
       jobs: this.store
         .query('job', { namespace: params.qpNamespace })
         .catch(notifyForbidden(this)),
-      namespaces: this.store.findAll('namespace')
+      namespaces: this.store.findAll('namespace'),
     });
   }
 

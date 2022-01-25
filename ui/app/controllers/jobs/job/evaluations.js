@@ -11,11 +11,11 @@ export default class EvaluationsController extends Controller.extend(
 ) {
   queryParams = [
     {
-      sortProperty: 'sort'
+      sortProperty: 'sort',
     },
     {
-      sortDescending: 'desc'
-    }
+      sortDescending: 'desc',
+    },
   ];
 
   sortProperty = 'modifyIndex';

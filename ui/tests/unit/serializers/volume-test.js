@@ -2,9 +2,9 @@ import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import VolumeModel from 'nomad-ui/models/volume';
 
-module('Unit | Serializer | Volume', function(hooks) {
+module('Unit | Serializer | Volume', function (hooks) {
   setupTest(hooks);
-  hooks.beforeEach(function() {
+  hooks.beforeEach(function () {
     this.store = this.owner.lookup('service:store');
     this.subject = () => this.store.serializerFor('volume');
   });
@@ -16,8 +16,7 @@ module('Unit | Serializer | Volume', function(hooks) {
 
   const normalizationTestCases = [
     {
-      name:
-        '`default` is used as the namespace in the volume ID when there is no namespace in the payload',
+      name: '`default` is used as the namespace in the volume ID when there is no namespace in the payload',
       in: {
         ID: 'volume-id',
         Name: 'volume-id',
@@ -37,7 +36,7 @@ module('Unit | Serializer | Volume', function(hooks) {
         CreateIndex: 1,
         ModifyIndex: 38,
         WriteAllocs: {},
-        ReadAllocs: {}
+        ReadAllocs: {},
       },
       out: {
         data: {
@@ -59,30 +58,29 @@ module('Unit | Serializer | Volume', function(hooks) {
             nodesHealthy: 1,
             nodesExpected: 2,
             createIndex: 1,
-            modifyIndex: 38
+            modifyIndex: 38,
           },
           relationships: {
             plugin: {
               data: {
                 id: 'csi/plugin-1',
-                type: 'plugin'
-              }
+                type: 'plugin',
+              },
             },
             readAllocations: {
-              data: []
+              data: [],
             },
             writeAllocations: {
-              data: []
-            }
-          }
+              data: [],
+            },
+          },
         },
-        included: []
-      }
+        included: [],
+      },
     },
 
     {
-      name:
-        'The ID of the record is a composite of both the name and the namespace',
+      name: 'The ID of the record is a composite of both the name and the namespace',
       in: {
         ID: 'volume-id',
         Name: 'volume-id',
@@ -103,7 +101,7 @@ module('Unit | Serializer | Volume', function(hooks) {
         CreateIndex: 1,
         ModifyIndex: 38,
         WriteAllocs: {},
-        ReadAllocs: {}
+        ReadAllocs: {},
       },
       out: {
         data: {
@@ -125,36 +123,35 @@ module('Unit | Serializer | Volume', function(hooks) {
             nodesHealthy: 1,
             nodesExpected: 2,
             createIndex: 1,
-            modifyIndex: 38
+            modifyIndex: 38,
           },
           relationships: {
             plugin: {
               data: {
                 id: 'csi/plugin-1',
-                type: 'plugin'
-              }
+                type: 'plugin',
+              },
             },
             namespace: {
               data: {
                 id: 'namespace-2',
-                type: 'namespace'
-              }
+                type: 'namespace',
+              },
             },
             readAllocations: {
-              data: []
+              data: [],
             },
             writeAllocations: {
-              data: []
-            }
-          }
+              data: [],
+            },
+          },
         },
-        included: []
-      }
+        included: [],
+      },
     },
 
     {
-      name:
-        'Allocations are interpreted as embedded records and are properly normalized into included resources in a JSON API shape',
+      name: 'Allocations are interpreted as embedded records and are properly normalized into included resources in a JSON API shape',
       in: {
         ID: 'volume-id',
         Name: 'volume-id',
@@ -181,7 +178,7 @@ module('Unit | Serializer | Volume', function(hooks) {
             CreateTime: +REF_DATE * 1000000,
             ModifyTime: +REF_DATE * 1000000,
             JobID: 'the-job',
-            Namespace: 'namespace-2'
+            Namespace: 'namespace-2',
           },
           {
             ID: 'alloc-id-2',
@@ -189,7 +186,7 @@ module('Unit | Serializer | Volume', function(hooks) {
             CreateTime: +REF_DATE * 1000000,
             ModifyTime: +REF_DATE * 1000000,
             JobID: 'the-job',
-            Namespace: 'namespace-2'
+            Namespace: 'namespace-2',
           },
           {
             ID: 'alloc-id-3',
@@ -197,16 +194,16 @@ module('Unit | Serializer | Volume', function(hooks) {
             CreateTime: +REF_DATE * 1000000,
             ModifyTime: +REF_DATE * 1000000,
             JobID: 'the-job',
-            Namespace: 'namespace-2'
-          }
+            Namespace: 'namespace-2',
+          },
         ],
         WriteAllocs: {
           'alloc-id-1': null,
-          'alloc-id-2': null
+          'alloc-id-2': null,
         },
         ReadAllocs: {
-          'alloc-id-3': null
-        }
+          'alloc-id-3': null,
+        },
       },
       out: {
         data: {
@@ -228,31 +225,31 @@ module('Unit | Serializer | Volume', function(hooks) {
             nodesHealthy: 1,
             nodesExpected: 2,
             createIndex: 1,
-            modifyIndex: 38
+            modifyIndex: 38,
           },
           relationships: {
             plugin: {
               data: {
                 id: 'csi/plugin-1',
-                type: 'plugin'
-              }
+                type: 'plugin',
+              },
             },
             namespace: {
               data: {
                 id: 'namespace-2',
-                type: 'namespace'
-              }
+                type: 'namespace',
+              },
             },
             readAllocations: {
-              data: [{ type: 'allocation', id: 'alloc-id-3' }]
+              data: [{ type: 'allocation', id: 'alloc-id-3' }],
             },
             writeAllocations: {
               data: [
                 { type: 'allocation', id: 'alloc-id-1' },
-                { type: 'allocation', id: 'alloc-id-2' }
-              ]
-            }
-          }
+                { type: 'allocation', id: 'alloc-id-2' },
+              ],
+            },
+          },
         },
         included: [
           {
@@ -265,28 +262,28 @@ module('Unit | Serializer | Volume', function(hooks) {
               taskGroupName: 'foobar',
               wasPreempted: false,
               states: [],
-              allocationTaskGroup: null
+              allocationTaskGroup: null,
             },
             relationships: {
               followUpEvaluation: {
-                data: null
+                data: null,
               },
               job: {
-                data: { type: 'job', id: '["the-job","namespace-2"]' }
+                data: { type: 'job', id: '["the-job","namespace-2"]' },
               },
               nextAllocation: {
-                data: null
+                data: null,
               },
               previousAllocation: {
-                data: null
+                data: null,
               },
               preemptedAllocations: {
-                data: []
+                data: [],
               },
               preemptedByAllocation: {
-                data: null
-              }
-            }
+                data: null,
+              },
+            },
           },
           {
             id: 'alloc-id-2',
@@ -298,28 +295,28 @@ module('Unit | Serializer | Volume', function(hooks) {
               taskGroupName: 'write-here',
               wasPreempted: false,
               states: [],
-              allocationTaskGroup: null
+              allocationTaskGroup: null,
             },
             relationships: {
               followUpEvaluation: {
-                data: null
+                data: null,
               },
               job: {
-                data: { type: 'job', id: '["the-job","namespace-2"]' }
+                data: { type: 'job', id: '["the-job","namespace-2"]' },
               },
               nextAllocation: {
-                data: null
+                data: null,
               },
               previousAllocation: {
-                data: null
+                data: null,
               },
               preemptedAllocations: {
-                data: []
+                data: [],
               },
               preemptedByAllocation: {
-                data: null
-              }
-            }
+                data: null,
+              },
+            },
           },
           {
             id: 'alloc-id-3',
@@ -331,36 +328,36 @@ module('Unit | Serializer | Volume', function(hooks) {
               taskGroupName: 'look-if-you-must',
               wasPreempted: false,
               states: [],
-              allocationTaskGroup: null
+              allocationTaskGroup: null,
             },
             relationships: {
               followUpEvaluation: {
-                data: null
+                data: null,
               },
               job: {
-                data: { type: 'job', id: '["the-job","namespace-2"]' }
+                data: { type: 'job', id: '["the-job","namespace-2"]' },
               },
               nextAllocation: {
-                data: null
+                data: null,
               },
               previousAllocation: {
-                data: null
+                data: null,
               },
               preemptedAllocations: {
-                data: []
+                data: [],
               },
               preemptedByAllocation: {
-                data: null
-              }
-            }
-          }
-        ]
-      }
-    }
+                data: null,
+              },
+            },
+          },
+        ],
+      },
+    },
   ];
 
-  normalizationTestCases.forEach(testCase => {
-    test(`normalization: ${testCase.name}`, async function(assert) {
+  normalizationTestCases.forEach((testCase) => {
+    test(`normalization: ${testCase.name}`, async function (assert) {
       assert.deepEqual(
         this.subject().normalize(VolumeModel, testCase.in),
         testCase.out

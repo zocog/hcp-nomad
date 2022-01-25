@@ -4,10 +4,10 @@ import { setupRenderingTest } from 'ember-qunit';
 import { click, findAll, render } from '@ember/test-helpers';
 import { hbs } from 'ember-cli-htmlbars';
 
-module('Integration | Component | breadcrumbs', function(hooks) {
+module('Integration | Component | breadcrumbs', function (hooks) {
   setupRenderingTest(hooks);
 
-  test('it declaratively renders a list of registered crumbs', async function(assert) {
+  test('it declaratively renders a list of registered crumbs', async function (assert) {
     this.set('isRegistered', false);
     this.set('toggleCrumb', () => this.set('isRegistered', !this.isRegistered));
     await render(hbs`
@@ -63,7 +63,7 @@ module('Integration | Component | breadcrumbs', function(hooks) {
       );
   });
 
-  test('it can register complex crumb objects', async function(assert) {
+  test('it can register complex crumb objects', async function (assert) {
     await render(hbs`
       <Breadcrumbs as |bb|>
         <ul>

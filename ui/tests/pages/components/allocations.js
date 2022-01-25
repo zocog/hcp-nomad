@@ -3,11 +3,11 @@ import {
   collection,
   clickable,
   isPresent,
-  text
+  text,
 } from 'ember-cli-page-object';
 import { singularize } from 'ember-inflector';
 
-export default function(
+export default function (
   selector = '[data-test-allocation]',
   propKey = 'allocations'
 ) {
@@ -44,11 +44,11 @@ export default function(
       visit: clickable('[data-test-short-id] a'),
       visitRow: clickable(),
       visitJob: clickable('[data-test-job]'),
-      visitClient: clickable('[data-test-client] a')
+      visitClient: clickable('[data-test-client] a'),
     }),
 
-    [lookupKey]: function(id) {
-      return this[propKey].toArray().find(allocation => allocation.id === id);
-    }
+    [lookupKey]: function (id) {
+      return this[propKey].toArray().find((allocation) => allocation.id === id);
+    },
   };
 }

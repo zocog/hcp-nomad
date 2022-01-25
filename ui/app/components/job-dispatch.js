@@ -49,12 +49,12 @@ export default class JobDispatch extends Component {
     // Helper for mapping the params into a useable form.
     const mapper = (values, required) =>
       values.map(
-        x =>
+        (x) =>
           new MetaField({
             name: x,
             required,
             title: titleCase(noCase(x)),
-            value: this.args.job.meta ? this.args.job.meta.get(x) : ''
+            value: this.args.job.meta ? this.args.job.meta.get(x) : '',
           })
       );
 
@@ -100,12 +100,12 @@ export default class JobDispatch extends Component {
     // Try to create the dispatch.
     try {
       let paramValues = {};
-      this.metaFields.forEach(m => (paramValues[m.name] = m.value));
+      this.metaFields.forEach((m) => (paramValues[m.name] = m.value));
       const dispatch = yield this.args.job.dispatch(paramValues, this.payload);
 
       // Navigate to the newly created instance.
       this.router.transitionTo('jobs.job', dispatch.DispatchedJobID, {
-        queryParams: { namespace: this.args.job.get('namespace.name') }
+        queryParams: { namespace: this.args.job.get('namespace.name') },
       });
     } catch (err) {
       const error = messageFromAdapterError(err) || 'Could not dispatch job';
@@ -129,7 +129,7 @@ export default class JobDispatch extends Component {
     this.resetErrors();
 
     // Make sure that we have all of the meta fields that we need.
-    this.metaFields.forEach(f => {
+    this.metaFields.forEach((f) => {
       f.validate();
       if (f.error) {
         this.errors.pushObject(f.error);

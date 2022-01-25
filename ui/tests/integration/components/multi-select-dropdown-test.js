@@ -4,7 +4,7 @@ import {
   click,
   focus,
   render,
-  triggerKeyEvent
+  triggerKeyEvent,
 } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
@@ -18,7 +18,7 @@ const SPACE = 32;
 const ARROW_UP = 38;
 const ARROW_DOWN = 40;
 
-module('Integration | Component | multi-select dropdown', function(hooks) {
+module('Integration | Component | multi-select dropdown', function (hooks) {
   setupRenderingTest(hooks);
 
   const commonProperties = () => ({
@@ -30,9 +30,9 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
       { key: 'terraform', label: 'Terraform' },
       { key: 'packer', label: 'Packer' },
       { key: 'vagrant', label: 'Vagrant' },
-      { key: 'vault', label: 'Vault' }
+      { key: 'vault', label: 'Vault' },
     ],
-    onSelect: sinon.spy()
+    onSelect: sinon.spy(),
   });
 
   const commonTemplate = hbs`
@@ -43,7 +43,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
       @onSelect={{this.onSelect}} />
   `;
 
-  test('component is initially closed', async function(assert) {
+  test('component is initially closed', async function (assert) {
     assert.expect(4);
 
     const props = commonProperties();
@@ -64,7 +64,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('component opens the options dropdown when clicked', async function(assert) {
+  test('component opens the options dropdown when clicked', async function (assert) {
     assert.expect(3);
 
     const props = commonProperties();
@@ -87,7 +87,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     );
   });
 
-  test('all options are shown in the options dropdown, each with a checkbox input', async function(assert) {
+  test('all options are shown in the options dropdown, each with a checkbox input', async function (assert) {
     assert.expect(13);
 
     const props = commonProperties();
@@ -115,7 +115,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     });
   });
 
-  test('onSelect gets called when an option is clicked', async function(assert) {
+  test('onSelect gets called when an option is clicked', async function (assert) {
     const props = commonProperties();
     this.setProperties(props);
     await render(commonTemplate);
@@ -132,7 +132,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     );
   });
 
-  test('the component trigger shows the selection count when there is a selection', async function(assert) {
+  test('the component trigger shows the selection count when there is a selection', async function (assert) {
     assert.expect(4);
 
     const props = commonProperties();
@@ -161,7 +161,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     );
   });
 
-  test('pressing DOWN when the trigger has focus opens the options list', async function(assert) {
+  test('pressing DOWN when the trigger has focus opens the options list', async function (assert) {
     const props = commonProperties();
     this.setProperties(props);
     await render(commonTemplate);
@@ -184,7 +184,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     );
   });
 
-  test('pressing DOWN when the trigger has focus and the options list is open focuses the first option', async function(assert) {
+  test('pressing DOWN when the trigger has focus and the options list is open focuses the first option', async function (assert) {
     const props = commonProperties();
     this.setProperties(props);
     await render(commonTemplate);
@@ -207,7 +207,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     );
   });
 
-  test('pressing TAB when the trigger has focus and the options list is open focuses the first option', async function(assert) {
+  test('pressing TAB when the trigger has focus and the options list is open focuses the first option', async function (assert) {
     const props = commonProperties();
     this.setProperties(props);
     await render(commonTemplate);
@@ -226,7 +226,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     );
   });
 
-  test('pressing UP when the first list option is focused does nothing', async function(assert) {
+  test('pressing UP when the first list option is focused does nothing', async function (assert) {
     const props = commonProperties();
     this.setProperties(props);
     await render(commonTemplate);
@@ -242,7 +242,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     );
   });
 
-  test('pressing DOWN when the a list option is focused moves focus to the next list option', async function(assert) {
+  test('pressing DOWN when the a list option is focused moves focus to the next list option', async function (assert) {
     const props = commonProperties();
     this.setProperties(props);
     await render(commonTemplate);
@@ -258,7 +258,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     );
   });
 
-  test('pressing DOWN when the last list option has focus does nothing', async function(assert) {
+  test('pressing DOWN when the last list option has focus does nothing', async function (assert) {
     assert.expect(6);
 
     const props = commonProperties();
@@ -292,7 +292,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     );
   });
 
-  test('onSelect gets called when pressing SPACE when a list option is focused', async function(assert) {
+  test('onSelect gets called when pressing SPACE when a list option is focused', async function (assert) {
     const props = commonProperties();
     this.setProperties(props);
     await render(commonTemplate);
@@ -311,7 +311,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     );
   });
 
-  test('list options have a zero tabindex and are therefore sequentially navigable', async function(assert) {
+  test('list options have a zero tabindex and are therefore sequentially navigable', async function (assert) {
     assert.expect(6);
 
     const props = commonProperties();
@@ -320,7 +320,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
 
     await click('[data-test-dropdown-trigger]');
 
-    findAll('[data-test-dropdown-option]').forEach(option => {
+    findAll('[data-test-dropdown-option]').forEach((option) => {
       assert.equal(
         parseInt(option.getAttribute('tabindex'), 10),
         0,
@@ -329,7 +329,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     });
   });
 
-  test('the checkboxes inside list options have a negative tabindex and are therefore not sequentially navigable', async function(assert) {
+  test('the checkboxes inside list options have a negative tabindex and are therefore not sequentially navigable', async function (assert) {
     assert.expect(6);
 
     const props = commonProperties();
@@ -338,7 +338,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
 
     await click('[data-test-dropdown-trigger]');
 
-    findAll('[data-test-dropdown-option]').forEach(option => {
+    findAll('[data-test-dropdown-option]').forEach((option) => {
       assert.ok(
         parseInt(
           option
@@ -351,7 +351,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     });
   });
 
-  test('pressing ESC when the options list is open closes the list and returns focus to the dropdown trigger', async function(assert) {
+  test('pressing ESC when the options list is open closes the list and returns focus to the dropdown trigger', async function (assert) {
     const props = commonProperties();
     this.setProperties(props);
     await render(commonTemplate);
@@ -380,7 +380,7 @@ module('Integration | Component | multi-select dropdown', function(hooks) {
     );
   });
 
-  test('when there are no list options, an empty message is shown', async function(assert) {
+  test('when there are no list options, an empty message is shown', async function (assert) {
     assert.expect(4);
 
     const props = commonProperties();

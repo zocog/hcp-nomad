@@ -3,7 +3,7 @@ import hbs from 'htmlbars-inline-precompile';
 import DelayedTruth from '../utils/delayed-truth';
 
 export default {
-  title: 'Components/JSON Viewer'
+  title: 'Components/JSON Viewer',
 };
 
 export let Standard = () => {
@@ -27,17 +27,17 @@ export let Standard = () => {
             'Packer',
             'Terraform',
             'Vagrant',
-            'Vault'
+            'Vault',
           ],
           currentTime: '2019-10-16T14:24:12.378Z',
           nested: {
-            obj: 'ject'
+            obj: 'ject',
           },
           nonexistent: null,
-          isTrue: false
-        }
-      }
-    }
+          isTrue: false,
+        },
+      },
+    },
   };
 };
 
@@ -77,21 +77,21 @@ export let FullDocument = () => {
                 HealthyDeadline: 300000000000,
                 ProgressDeadline: 600000000000,
                 AutoRevert: false,
-                Canary: 0
+                Canary: 0,
               },
               Migrate: null,
               letraints: [
                 {
                   LTarget: '',
                   RTarget: '',
-                  Operand: 'distinct_hosts'
-                }
+                  Operand: 'distinct_hosts',
+                },
               ],
               RestartPolicy: {
                 Attempts: 10,
                 Interval: 300000000000,
                 Delay: 25000000000,
-                Mode: 'delay'
+                Mode: 'delay',
               },
               Tasks: [
                 {
@@ -102,10 +102,10 @@ export let FullDocument = () => {
                     port_map: [
                       {
                         tcp: 601,
-                        udp: 514
-                      }
+                        udp: 514,
+                      },
                     ],
-                    image: 'balabit/syslog-ng:latest'
+                    image: 'balabit/syslog-ng:latest',
                   },
                   Env: null,
                   Services: null,
@@ -126,38 +126,38 @@ export let FullDocument = () => {
                         ReservedPorts: [
                           {
                             Label: 'udp',
-                            Value: 514
+                            Value: 514,
                           },
                           {
                             Label: 'tcp',
-                            Value: 601
-                          }
+                            Value: 601,
+                          },
                         ],
-                        DynamicPorts: null
-                      }
-                    ]
+                        DynamicPorts: null,
+                      },
+                    ],
                   },
                   DispatchPayload: null,
                   Meta: null,
                   KillTimeout: 5000000000,
                   LogConfig: {
                     MaxFiles: 10,
-                    MaxFileSizeMB: 10
+                    MaxFileSizeMB: 10,
                   },
                   Artifacts: null,
                   Leader: false,
                   ShutdownDelay: 0,
-                  KillSignal: ''
-                }
+                  KillSignal: '',
+                },
               ],
               EphemeralDisk: {
                 Sticky: false,
                 SizeMB: 300,
-                Migrate: false
+                Migrate: false,
               },
               Meta: null,
-              ReschedulePolicy: null
-            }
+              ReschedulePolicy: null,
+            },
           ],
           Update: {
             Stagger: 10000000000,
@@ -167,7 +167,7 @@ export let FullDocument = () => {
             HealthyDeadline: 0,
             ProgressDeadline: 0,
             AutoRevert: false,
-            Canary: 0
+            Canary: 0,
           },
           Periodic: null,
           ParameterizedJob: null,
@@ -182,9 +182,9 @@ export let FullDocument = () => {
           SubmitTime: 1530052201331477800,
           CreateIndex: 27,
           ModifyIndex: 27,
-          JobModifyIndex: 27
-        }
-      }
-    }
+          JobModifyIndex: 27,
+        },
+      },
+    },
   };
 };

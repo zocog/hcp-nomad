@@ -4,21 +4,21 @@ import { setupRenderingTest } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
 
-module('Integration | Component | list pagination', function(hooks) {
+module('Integration | Component | list pagination', function (hooks) {
   setupRenderingTest(hooks);
 
   const defaults = {
     source: [],
     size: 25,
     page: 1,
-    spread: 2
+    spread: 2,
   };
 
   const list100 = Array(100)
     .fill(null)
     .map((_, i) => i);
 
-  test('the source property', async function(assert) {
+  test('the source property', async function (assert) {
     assert.expect(36);
 
     this.set('source', list100);
@@ -87,10 +87,10 @@ module('Integration | Component | list pagination', function(hooks) {
     }
   });
 
-  test('the size property', async function(assert) {
+  test('the size property', async function (assert) {
     this.setProperties({
       size: 5,
-      source: list100
+      source: list100,
     });
     await render(hbs`
       <ListPagination @source={{source}} @size={{size}} as |p|>
@@ -106,14 +106,14 @@ module('Integration | Component | list pagination', function(hooks) {
     );
   });
 
-  test('the spread property', async function(assert) {
+  test('the spread property', async function (assert) {
     assert.expect(12);
 
     this.setProperties({
       source: list100,
       spread: 1,
       size: 10,
-      currentPage: 5
+      currentPage: 5,
     });
 
     await render(hbs`
@@ -129,13 +129,13 @@ module('Integration | Component | list pagination', function(hooks) {
     testSpread.call(this, assert);
   });
 
-  test('page property', async function(assert) {
+  test('page property', async function (assert) {
     assert.expect(10);
 
     this.setProperties({
       source: list100,
       size: 5,
-      currentPage: 5
+      currentPage: 5,
     });
 
     await render(hbs`
@@ -154,9 +154,9 @@ module('Integration | Component | list pagination', function(hooks) {
   // Ember doesn't support query params (or controllers or routes) in integration tests,
   // so links can only be tested in acceptance tests.
   // Leaving this test here for posterity.
-  skip('pagination links link with query params', function() {});
+  skip('pagination links link with query params', function () {});
 
-  test('there are no pagination links when source is less than page size', async function(assert) {
+  test('there are no pagination links when source is less than page size', async function (assert) {
     this.set('source', list100.slice(0, 10));
     await render(hbs`
       <ListPagination @source={{source}} as |p|>
@@ -189,14 +189,14 @@ module('Integration | Component | list pagination', function(hooks) {
   });
 
   // when there is less pages than the total spread amount
-  test('when there is less pages than the total spread amount', async function(assert) {
+  test('when there is less pages than the total spread amount', async function (assert) {
     assert.expect(9);
 
     this.setProperties({
       source: list100,
       spread: 4,
       size: 20,
-      page: 3
+      page: 3,
     });
 
     const totalPages = Math.ceil(this.get('source.length') / this.size);
@@ -251,8 +251,9 @@ module('Integration | Component | list pagination', function(hooks) {
       assert.equal(
         findAll('.item')[item].textContent,
         item + (currentPage - 1) * size,
-        `Rendered items are in the current page, ${currentPage} (${item +
-          (currentPage - 1) * size})`
+        `Rendered items are in the current page, ${currentPage} (${
+          item + (currentPage - 1) * size
+        })`
       );
     }
   }

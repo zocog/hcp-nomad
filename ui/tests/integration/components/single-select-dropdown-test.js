@@ -3,13 +3,13 @@ import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import {
   selectChoose,
-  clickTrigger
+  clickTrigger,
 } from 'ember-power-select/test-support/helpers';
 import sinon from 'sinon';
 import hbs from 'htmlbars-inline-precompile';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
 
-module('Integration | Component | single-select dropdown', function(hooks) {
+module('Integration | Component | single-select dropdown', function (hooks) {
   setupRenderingTest(hooks);
 
   const commonProperties = () => ({
@@ -21,9 +21,9 @@ module('Integration | Component | single-select dropdown', function(hooks) {
       { key: 'terraform', label: 'Terraform' },
       { key: 'packer', label: 'Packer' },
       { key: 'vagrant', label: 'Vagrant' },
-      { key: 'vault', label: 'Vault' }
+      { key: 'vault', label: 'Vault' },
     ],
-    onSelect: sinon.spy()
+    onSelect: sinon.spy(),
   });
 
   const commonTemplate = hbs`
@@ -34,7 +34,7 @@ module('Integration | Component | single-select dropdown', function(hooks) {
       @onSelect={{this.onSelect}} />
   `;
 
-  test('component shows label and selection in the trigger', async function(assert) {
+  test('component shows label and selection in the trigger', async function (assert) {
     assert.expect(4);
 
     const props = commonProperties();
@@ -54,7 +54,7 @@ module('Integration | Component | single-select dropdown', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('all options are shown in the dropdown', async function(assert) {
+  test('all options are shown in the dropdown', async function (assert) {
     assert.expect(7);
 
     const props = commonProperties();
@@ -76,7 +76,7 @@ module('Integration | Component | single-select dropdown', function(hooks) {
     });
   });
 
-  test('selecting an option calls `onSelect` with the key for the selected option', async function(assert) {
+  test('selecting an option calls `onSelect` with the key for the selected option', async function (assert) {
     const props = commonProperties();
     this.setProperties(props);
     await render(commonTemplate);

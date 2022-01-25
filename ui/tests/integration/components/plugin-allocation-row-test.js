@@ -6,41 +6,41 @@ import { render, settled } from '@ember/test-helpers';
 import { initialize as fragmentSerializerInitializer } from 'nomad-ui/initializers/fragment-serializer';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
 
-module('Integration | Component | plugin allocation row', function(hooks) {
+module('Integration | Component | plugin allocation row', function (hooks) {
   setupRenderingTest(hooks);
 
-  hooks.beforeEach(function() {
+  hooks.beforeEach(function () {
     fragmentSerializerInitializer(this.owner);
     this.store = this.owner.lookup('service:store');
     this.server = startMirage();
     this.server.create('node');
   });
 
-  hooks.afterEach(function() {
+  hooks.afterEach(function () {
     this.server.shutdown();
   });
 
-  test('Plugin allocation row immediately fetches the plugin allocation', async function(assert) {
+  test('Plugin allocation row immediately fetches the plugin allocation', async function (assert) {
     assert.expect(2);
 
     const plugin = this.server.create('csi-plugin', {
       id: 'plugin',
-      controllerRequired: true
+      controllerRequired: true,
     });
     const storageController = plugin.controllers.models[0];
 
     const pluginRecord = await this.store.find('plugin', 'csi/plugin');
 
     this.setProperties({
-      plugin: pluginRecord.get('controllers.firstObject')
+      plugin: pluginRecord.get('controllers.firstObject'),
     });
 
     await render(hbs`
       <PluginAllocationRow @pluginAllocation={{plugin}} />
     `);
 
-    const allocationRequest = this.server.pretender.handledRequests.find(req =>
-      req.url.startsWith('/v1/allocation')
+    const allocationRequest = this.server.pretender.handledRequests.find(
+      (req) => req.url.startsWith('/v1/allocation')
     );
     assert.equal(
       allocationRequest.url,
@@ -49,17 +49,17 @@ module('Integration | Component | plugin allocation row', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('After the plugin allocation row fetches the plugin allocation, allocation stats are fetched', async function(assert) {
+  test('After the plugin allocation row fetches the plugin allocation, allocation stats are fetched', async function (assert) {
     const plugin = this.server.create('csi-plugin', {
       id: 'plugin',
-      controllerRequired: true
+      controllerRequired: true,
     });
     const storageController = plugin.controllers.models[0];
 
     const pluginRecord = await this.store.find('plugin', 'csi/plugin');
 
     this.setProperties({
-      plugin: pluginRecord.get('controllers.firstObject')
+      plugin: pluginRecord.get('controllers.firstObject'),
     });
 
     await render(hbs`
@@ -74,12 +74,12 @@ module('Integration | Component | plugin allocation row', function(hooks) {
     );
   });
 
-  test('Setting a new plugin fetches the new plugin allocation', async function(assert) {
+  test('Setting a new plugin fetches the new plugin allocation', async function (assert) {
     const plugin = this.server.create('csi-plugin', {
       id: 'plugin',
       isMonolith: false,
       controllerRequired: true,
-      controllersExpected: 2
+      controllersExpected: 2,
     });
     const storageController = plugin.controllers.models[0];
     const storageController2 = plugin.controllers.models[1];
@@ -87,15 +87,15 @@ module('Integration | Component | plugin allocation row', function(hooks) {
     const pluginRecord = await this.store.find('plugin', 'csi/plugin');
 
     this.setProperties({
-      plugin: pluginRecord.get('controllers.firstObject')
+      plugin: pluginRecord.get('controllers.firstObject'),
     });
 
     await render(hbs`
       <PluginAllocationRow @pluginAllocation={{plugin}} />
     `);
 
-    const allocationRequest = this.server.pretender.handledRequests.find(req =>
-      req.url.startsWith('/v1/allocation')
+    const allocationRequest = this.server.pretender.handledRequests.find(
+      (req) => req.url.startsWith('/v1/allocation')
     );
 
     assert.equal(
@@ -107,7 +107,7 @@ module('Integration | Component | plugin allocation row', function(hooks) {
     await settled();
 
     const latestAllocationRequest = this.server.pretender.handledRequests
-      .filter(req => req.url.startsWith('/v1/allocation'))
+      .filter((req) => req.url.startsWith('/v1/allocation'))
       .reverse()[0];
 
     assert.equal(

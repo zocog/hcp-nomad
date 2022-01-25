@@ -4,13 +4,13 @@ import { setupTest } from 'ember-qunit';
 import Service from '@ember/service';
 import setupAbility from 'nomad-ui/tests/helpers/setup-ability';
 
-module('Unit | Ability | job', function(hooks) {
+module('Unit | Ability | job', function (hooks) {
   setupTest(hooks);
   setupAbility('job')(hooks);
 
-  test('it permits job run when ACLs are disabled', function(assert) {
+  test('it permits job run when ACLs are disabled', function (assert) {
     const mockToken = Service.extend({
-      aclEnabled: false
+      aclEnabled: false,
     });
 
     this.owner.register('service:token', mockToken);
@@ -18,10 +18,10 @@ module('Unit | Ability | job', function(hooks) {
     assert.ok(this.ability.canRun);
   });
 
-  test('it permits job run for management tokens', function(assert) {
+  test('it permits job run for management tokens', function (assert) {
     const mockToken = Service.extend({
       aclEnabled: true,
-      selfToken: { type: 'management' }
+      selfToken: { type: 'management' },
     });
 
     this.owner.register('service:token', mockToken);
@@ -29,9 +29,9 @@ module('Unit | Ability | job', function(hooks) {
     assert.ok(this.ability.canRun);
   });
 
-  test('it permits job run for client tokens with a policy that has namespace submit-job', function(assert) {
+  test('it permits job run for client tokens with a policy that has namespace submit-job', function (assert) {
     const mockSystem = Service.extend({
-      aclEnabled: true
+      aclEnabled: true,
     });
 
     const mockToken = Service.extend({
@@ -43,12 +43,12 @@ module('Unit | Ability | job', function(hooks) {
             Namespaces: [
               {
                 Name: 'aNamespace',
-                Capabilities: ['submit-job']
-              }
-            ]
-          }
-        }
-      ]
+                Capabilities: ['submit-job'],
+              },
+            ],
+          },
+        },
+      ],
     });
 
     this.owner.register('service:system', mockSystem);
@@ -57,9 +57,9 @@ module('Unit | Ability | job', function(hooks) {
     assert.ok(this.can.can('run job', null, { namespace: 'aNamespace' }));
   });
 
-  test('it permits job run for client tokens with a policy that has default namespace submit-job and no capabilities for active namespace', function(assert) {
+  test('it permits job run for client tokens with a policy that has default namespace submit-job and no capabilities for active namespace', function (assert) {
     const mockSystem = Service.extend({
-      aclEnabled: true
+      aclEnabled: true,
     });
 
     const mockToken = Service.extend({
@@ -71,16 +71,16 @@ module('Unit | Ability | job', function(hooks) {
             Namespaces: [
               {
                 Name: 'aNamespace',
-                Capabilities: []
+                Capabilities: [],
               },
               {
                 Name: 'default',
-                Capabilities: ['submit-job']
-              }
-            ]
-          }
-        }
-      ]
+                Capabilities: ['submit-job'],
+              },
+            ],
+          },
+        },
+      ],
     });
 
     this.owner.register('service:system', mockSystem);
@@ -89,9 +89,9 @@ module('Unit | Ability | job', function(hooks) {
     assert.ok(this.can.can('run job', null, { namespace: 'anotherNamespace' }));
   });
 
-  test('it blocks job run for client tokens with a policy that has no submit-job capability', function(assert) {
+  test('it blocks job run for client tokens with a policy that has no submit-job capability', function (assert) {
     const mockSystem = Service.extend({
-      aclEnabled: true
+      aclEnabled: true,
     });
 
     const mockToken = Service.extend({
@@ -103,12 +103,12 @@ module('Unit | Ability | job', function(hooks) {
             Namespaces: [
               {
                 Name: 'aNamespace',
-                Capabilities: ['list-jobs']
-              }
-            ]
-          }
-        }
-      ]
+                Capabilities: ['list-jobs'],
+              },
+            ],
+          },
+        },
+      ],
     });
 
     this.owner.register('service:system', mockSystem);
@@ -117,28 +117,28 @@ module('Unit | Ability | job', function(hooks) {
     assert.ok(this.can.cannot('run job', null, { namespace: 'aNamespace' }));
   });
 
-  test('job scale requires a client token with the submit-job or scale-job capability', function(assert) {
+  test('job scale requires a client token with the submit-job or scale-job capability', function (assert) {
     const makePolicies = (namespace, ...capabilities) => [
       {
         rulesJSON: {
           Namespaces: [
             {
               Name: namespace,
-              Capabilities: capabilities
-            }
-          ]
-        }
-      }
+              Capabilities: capabilities,
+            },
+          ],
+        },
+      },
     ];
 
     const mockSystem = Service.extend({
-      aclEnabled: true
+      aclEnabled: true,
     });
 
     const mockToken = Service.extend({
       aclEnabled: true,
       selfToken: { type: 'client' },
-      selfTokenPolicies: makePolicies('aNamespace')
+      selfTokenPolicies: makePolicies('aNamespace'),
     });
 
     this.owner.register('service:system', mockSystem);
@@ -166,28 +166,28 @@ module('Unit | Ability | job', function(hooks) {
     assert.ok(this.can.cannot('scale job', null, { namespace: 'aNamespace' }));
   });
 
-  test('job dispatch requires a client token with the dispatch-job capability', function(assert) {
+  test('job dispatch requires a client token with the dispatch-job capability', function (assert) {
     const makePolicies = (namespace, ...capabilities) => [
       {
         rulesJSON: {
           Namespaces: [
             {
               Name: namespace,
-              Capabilities: capabilities
-            }
-          ]
-        }
-      }
+              Capabilities: capabilities,
+            },
+          ],
+        },
+      },
     ];
 
     const mockSystem = Service.extend({
-      aclEnabled: true
+      aclEnabled: true,
     });
 
     const mockToken = Service.extend({
       aclEnabled: true,
       selfToken: { type: 'client' },
-      selfTokenPolicies: makePolicies('aNamespace')
+      selfTokenPolicies: makePolicies('aNamespace'),
     });
 
     this.owner.register('service:system', mockSystem);
@@ -205,9 +205,9 @@ module('Unit | Ability | job', function(hooks) {
     assert.ok(this.can.can('dispatch job', null, { namespace: 'aNamespace' }));
   });
 
-  test('it handles globs in namespace names', function(assert) {
+  test('it handles globs in namespace names', function (assert) {
     const mockSystem = Service.extend({
-      aclEnabled: true
+      aclEnabled: true,
     });
 
     const mockToken = Service.extend({
@@ -219,32 +219,32 @@ module('Unit | Ability | job', function(hooks) {
             Namespaces: [
               {
                 Name: 'production-*',
-                Capabilities: ['submit-job']
+                Capabilities: ['submit-job'],
               },
               {
                 Name: 'production-api',
-                Capabilities: ['submit-job']
+                Capabilities: ['submit-job'],
               },
               {
                 Name: 'production-web',
-                Capabilities: []
+                Capabilities: [],
               },
               {
                 Name: '*-suffixed',
-                Capabilities: ['submit-job']
+                Capabilities: ['submit-job'],
               },
               {
                 Name: '*-more-suffixed',
-                Capabilities: []
+                Capabilities: [],
               },
               {
                 Name: '*-abc-*',
-                Capabilities: ['submit-job']
-              }
-            ]
-          }
-        }
-      ]
+                Capabilities: ['submit-job'],
+              },
+            ],
+          },
+        },
+      ],
     });
 
     this.owner.register('service:system', mockSystem);
@@ -260,7 +260,7 @@ module('Unit | Ability | job', function(hooks) {
     );
     assert.ok(
       this.can.cannot('run job', null, {
-        namespace: 'something-more-suffixed'
+        namespace: 'something-more-suffixed',
       }),
       'expected the namespace with the greatest number of matched characters to be chosen'
     );

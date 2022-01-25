@@ -21,12 +21,12 @@ export default class JobRoute extends Route {
 
     return this.store
       .findRecord('job', fullId, { reload: true })
-      .then(job => {
+      .then((job) => {
         const relatedModelsQueries = [
           job.get('allocations'),
           job.get('evaluations'),
           this.store.query('job', { namespace }),
-          this.store.findAll('namespace')
+          this.store.findAll('namespace'),
         ];
 
         if (this.can.can('accept recommendation')) {

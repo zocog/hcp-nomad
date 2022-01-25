@@ -3,14 +3,14 @@ import a11yAudit from 'ember-a11y-testing/test-support/audit';
 function appendRuleOverrides(overriddenRules) {
   const rules = {
     'color-contrast': {
-      enabled: false
+      enabled: false,
     },
     'heading-order': {
-      enabled: false
-    }
+      enabled: false,
+    },
   };
 
-  overriddenRules.forEach(rule => (rules[rule] = { enabled: false }));
+  overriddenRules.forEach((rule) => (rules[rule] = { enabled: false }));
 
   return rules;
 }

@@ -16,7 +16,7 @@ export default class Volume extends Model {
   get allocations() {
     return [
       ...this.writeAllocations.toArray(),
-      ...this.readAllocations.toArray()
+      ...this.readAllocations.toArray(),
     ];
   }
 

@@ -23,7 +23,7 @@ export default class DefinitionController extends Controller.extend(
 
   onSubmit(id, jobNamespace) {
     this.transitionToRoute('jobs.job', id, {
-      queryParams: { jobNamespace }
+      queryParams: { jobNamespace },
     });
   }
 }

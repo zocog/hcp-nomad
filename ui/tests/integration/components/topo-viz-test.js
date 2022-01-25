@@ -17,21 +17,21 @@ const alloc = (nodeId, jobId, taskGroupName, memory, cpu, props = {}) => ({
   isScheduled: true,
   allocatedResources: {
     cpu,
-    memory
+    memory,
   },
-  belongsTo: type => ({
-    id: () => (type === 'job' ? jobId : nodeId)
+  belongsTo: (type) => ({
+    id: () => (type === 'job' ? jobId : nodeId),
   }),
-  ...props
+  ...props,
 });
 
 const node = (datacenter, id, memory, cpu) => ({
   datacenter,
   id,
-  resources: { memory, cpu }
+  resources: { memory, cpu },
 });
 
-module('Integration | Component | TopoViz', function(hooks) {
+module('Integration | Component | TopoViz', function (hooks) {
   setupRenderingTest(hooks);
   setupMirage(hooks);
 
@@ -44,7 +44,7 @@ module('Integration | Component | TopoViz', function(hooks) {
       @onDataError={{this.onDataError}} />
   `;
 
-  test('presents as a FlexMasonry of datacenters', async function(assert) {
+  test('presents as a FlexMasonry of datacenters', async function (assert) {
     assert.expect(6);
 
     this.setProperties({
@@ -53,8 +53,8 @@ module('Integration | Component | TopoViz', function(hooks) {
       allocations: [
         alloc('node0', 'job1', 'group', 100, 100),
         alloc('node0', 'job1', 'group', 100, 100),
-        alloc('node1', 'job1', 'group', 100, 100)
-      ]
+        alloc('node1', 'job1', 'group', 100, 100),
+      ],
     });
 
     await render(commonTemplate);
@@ -68,14 +68,14 @@ module('Integration | Component | TopoViz', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('clicking on a node in a deeply nested TopoViz::Node will toggle node selection and call @onNodeSelect', async function(assert) {
+  test('clicking on a node in a deeply nested TopoViz::Node will toggle node selection and call @onNodeSelect', async function (assert) {
     this.setProperties({
       // TopoViz must be dense for node selection to be a feature
       nodes: Array(55)
         .fill(null)
         .map((_, index) => node('dc1', `node${index}`, 1000, 500)),
       allocations: [],
-      onNodeSelect: sinon.spy()
+      onNodeSelect: sinon.spy(),
     });
 
     await render(commonTemplate);
@@ -89,12 +89,12 @@ module('Integration | Component | TopoViz', function(hooks) {
     assert.equal(this.onNodeSelect.getCall(1).args[0], null);
   });
 
-  test('clicking on an allocation in a deeply nested TopoViz::Node will update the topology object with selections and call @onAllocationSelect and @onNodeSelect', async function(assert) {
+  test('clicking on an allocation in a deeply nested TopoViz::Node will update the topology object with selections and call @onAllocationSelect and @onNodeSelect', async function (assert) {
     this.setProperties({
       nodes: [node('dc1', 'node0', 1000, 500)],
       allocations: [alloc('node0', 'job1', 'group', 100, 100)],
       onNodeSelect: sinon.spy(),
-      onAllocationSelect: sinon.spy()
+      onAllocationSelect: sinon.spy(),
     });
 
     await render(commonTemplate);
@@ -114,7 +114,7 @@ module('Integration | Component | TopoViz', function(hooks) {
     assert.ok(this.onNodeSelect.alwaysCalledWith(null));
   });
 
-  test('clicking on an allocation in a deeply nested TopoViz::Node will associate sibling allocations with curves', async function(assert) {
+  test('clicking on an allocation in a deeply nested TopoViz::Node will associate sibling allocations with curves', async function (assert) {
     this.setProperties({
       nodes: [
         node('dc1', 'node0', 1000, 500),
@@ -122,7 +122,7 @@ module('Integration | Component | TopoViz', function(hooks) {
         node('dc1', 'node2', 1000, 500),
         node('dc2', 'node3', 1000, 500),
         node('dc2', 'node4', 1000, 500),
-        node('dc2', 'node5', 1000, 500)
+        node('dc2', 'node5', 1000, 500),
       ],
       allocations: [
         alloc('node0', 'job1', 'group', 100, 100),
@@ -131,14 +131,14 @@ module('Integration | Component | TopoViz', function(hooks) {
         alloc('node2', 'job1', 'group', 100, 100),
         alloc('node0', 'job1', 'groupTwo', 100, 100),
         alloc('node1', 'job2', 'group', 100, 100),
-        alloc('node2', 'job2', 'groupTwo', 100, 100)
+        alloc('node2', 'job2', 'groupTwo', 100, 100),
       ],
       onNodeSelect: sinon.spy(),
-      onAllocationSelect: sinon.spy()
+      onAllocationSelect: sinon.spy(),
     });
 
     const selectedAllocations = this.allocations.filter(
-      alloc =>
+      (alloc) =>
         alloc.belongsTo('job').id() === 'job1' &&
         alloc.taskGroupName === 'group'
     );
@@ -166,7 +166,7 @@ module('Integration | Component | TopoViz', function(hooks) {
     assert.notOk(TopoViz.allocationAssociationsArePresent);
   });
 
-  test('when the count of sibling allocations is high enough relative to the node count, curves are not rendered', async function(assert) {
+  test('when the count of sibling allocations is high enough relative to the node count, curves are not rendered', async function (assert) {
     this.setProperties({
       nodes: [node('dc1', 'node0', 1000, 500), node('dc1', 'node1', 1000, 500)],
       allocations: [
@@ -183,10 +183,10 @@ module('Integration | Component | TopoViz', function(hooks) {
         alloc('node1', 'job1', 'group', 100, 100),
         alloc('node1', 'job1', 'group', 100, 100),
         alloc('node1', 'job1', 'group', 100, 100),
-        alloc('node0', 'job1', 'groupTwo', 100, 100)
+        alloc('node0', 'job1', 'groupTwo', 100, 100),
       ],
       onNodeSelect: sinon.spy(),
-      onAllocationSelect: sinon.spy()
+      onAllocationSelect: sinon.spy(),
     });
 
     await render(commonTemplate);
@@ -200,7 +200,7 @@ module('Integration | Component | TopoViz', function(hooks) {
     assert.equal(TopoViz.allocationAssociations.length, 0);
   });
 
-  test('when one or more nodes are missing the resources property, those nodes are filtered out of the topology view and onDataError is called', async function(assert) {
+  test('when one or more nodes are missing the resources property, those nodes are filtered out of the topology view and onDataError is called', async function (assert) {
     const badNode = node('dc1', 'node0', 1000, 500);
     delete badNode.resources;
 
@@ -211,11 +211,11 @@ module('Integration | Component | TopoViz', function(hooks) {
         alloc('node0', 'job1', 'group', 100, 100),
         alloc('node1', 'job1', 'group', 100, 100),
         alloc('node1', 'job1', 'group', 100, 100),
-        alloc('node0', 'job1', 'groupTwo', 100, 100)
+        alloc('node0', 'job1', 'groupTwo', 100, 100),
       ],
       onNodeSelect: sinon.spy(),
       onAllocationSelect: sinon.spy(),
-      onDataError: sinon.spy()
+      onDataError: sinon.spy(),
     });
 
     await render(commonTemplate);
@@ -224,8 +224,8 @@ module('Integration | Component | TopoViz', function(hooks) {
     assert.deepEqual(this.onDataError.getCall(0).args[0], [
       {
         type: 'filtered-nodes',
-        context: [this.nodes[0]]
-      }
+        context: [this.nodes[0]],
+      },
     ]);
 
     assert.equal(TopoViz.datacenters[0].nodes.length, 1);

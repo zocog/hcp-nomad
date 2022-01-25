@@ -20,7 +20,7 @@ import { warn } from '@ember/debug';
 */
 export default function sortableFactory(properties, fromSortableMixin) {
   const eachProperties = properties.map(
-    property => `listToSort.@each.${property}`
+    (property) => `listToSort.@each.${property}`
   );
 
   // eslint-disable-next-line ember/no-new-mixins
@@ -28,7 +28,7 @@ export default function sortableFactory(properties, fromSortableMixin) {
     // Override in mixin consumer
     sortProperty: null,
     sortDescending: true,
-    listToSort: computed(function() {
+    listToSort: computed(function () {
       return [];
     }),
 
@@ -40,7 +40,7 @@ export default function sortableFactory(properties, fromSortableMixin) {
       'listToSort.[]',
       'sortDescending',
       'sortProperty',
-      function() {
+      function () {
         if (!this._sortableFactoryWarningPrinted && !Ember.testing) {
           let message =
             'Using SortableFactory without property keys means the list will only sort when the members change, not when any of their properties change.';
@@ -51,7 +51,7 @@ export default function sortableFactory(properties, fromSortableMixin) {
           }
 
           warn(message, properties.length > 0, {
-            id: 'nomad.no-sortable-properties'
+            id: 'nomad.no-sortable-properties',
           });
           // eslint-disable-next-line ember/no-side-effects
           this.set('_sortableFactoryWarningPrinted', true);
@@ -63,6 +63,6 @@ export default function sortableFactory(properties, fromSortableMixin) {
         }
         return sorted;
       }
-    )
+    ),
   });
 }

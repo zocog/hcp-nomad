@@ -16,7 +16,7 @@ export default class ScaleEventsChart extends Component {
     // Extend the domain of the chart to the current time
     data.push({
       time: new Date(),
-      count: data.lastObject.count
+      count: data.lastObject.count,
     });
 
     // Make sure the domain of the chart includes the first annotation
@@ -24,7 +24,7 @@ export default class ScaleEventsChart extends Component {
     if (firstAnnotation && firstAnnotation.time < data[0].time) {
       data.unshift({
         time: firstAnnotation.time,
-        count: data[0].count
+        count: data[0].count,
       });
     }
 
@@ -32,10 +32,10 @@ export default class ScaleEventsChart extends Component {
   }
 
   get annotations() {
-    return this.args.events.rejectBy('hasCount').map(ev => ({
+    return this.args.events.rejectBy('hasCount').map((ev) => ({
       type: ev.error ? 'error' : 'info',
       time: ev.time,
-      event: copy(ev)
+      event: copy(ev),
     }));
   }
 

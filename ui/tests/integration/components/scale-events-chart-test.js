@@ -6,7 +6,7 @@ import moment from 'moment';
 import setupCodeMirror from 'nomad-ui/tests/helpers/codemirror';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
 
-module('Integration | Component | scale-events-chart', function(hooks) {
+module('Integration | Component | scale-events-chart', function (hooks) {
   setupRenderingTest(hooks);
   setupCodeMirror(hooks);
 
@@ -17,7 +17,7 @@ module('Integration | Component | scale-events-chart', function(hooks) {
       hasCount: true,
       meta: {},
       message: '',
-      error: false
+      error: false,
     },
     {
       time: new Date('2020-08-06T04:06:00'),
@@ -25,7 +25,7 @@ module('Integration | Component | scale-events-chart', function(hooks) {
       hasCount: true,
       meta: {},
       message: '',
-      error: false
+      error: false,
     },
     {
       time: new Date('2020-08-07T04:06:00'),
@@ -33,25 +33,25 @@ module('Integration | Component | scale-events-chart', function(hooks) {
       hasCount: true,
       meta: {},
       message: '',
-      error: false
+      error: false,
     },
     {
       time: new Date('2020-08-06T04:06:00'),
       hasCount: false,
       meta: { prop: { deep: true }, five: 5 },
       message: 'Something went wrong',
-      error: true
+      error: true,
     },
     {
       time: new Date('2020-08-05T04:06:00'),
       hasCount: false,
       meta: {},
       message: 'Something insightful',
-      error: false
-    }
+      error: false,
+    },
   ];
 
-  test('each event is rendered as an annotation', async function(assert) {
+  test('each event is rendered as an annotation', async function (assert) {
     assert.expect(2);
 
     this.set('events', events);
@@ -59,18 +59,15 @@ module('Integration | Component | scale-events-chart', function(hooks) {
 
     assert.equal(
       findAll('[data-test-annotation]').length,
-      events.filter(ev => ev.count == null).length
+      events.filter((ev) => ev.count == null).length
     );
     await componentA11yAudit(this.element, assert);
   });
 
-  test('clicking an annotation presents details for the event', async function(assert) {
+  test('clicking an annotation presents details for the event', async function (assert) {
     assert.expect(6);
 
-    const annotation = events
-      .rejectBy('hasCount')
-      .sortBy('time')
-      .reverse()[0];
+    const annotation = events.rejectBy('hasCount').sortBy('time').reverse()[0];
 
     this.set('events', events);
     await render(hbs`<ScaleEventsChart @events={{this.events}} />`);
@@ -92,7 +89,7 @@ module('Integration | Component | scale-events-chart', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('clicking an active annotation closes event details', async function(assert) {
+  test('clicking an active annotation closes event details', async function (assert) {
     this.set('events', events);
 
     await render(hbs`<ScaleEventsChart @events={{this.events}} />`);

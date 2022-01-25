@@ -12,11 +12,11 @@ import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
 
 const Editor = create(jobEditor());
 
-module('Integration | Component | job-editor', function(hooks) {
+module('Integration | Component | job-editor', function (hooks) {
   setupRenderingTest(hooks);
   setupCodeMirror(hooks);
 
-  hooks.beforeEach(async function() {
+  hooks.beforeEach(async function () {
     window.localStorage.clear();
 
     fragmentSerializerInitializer(this.owner);
@@ -28,13 +28,13 @@ module('Integration | Component | job-editor', function(hooks) {
     this.server.create('node');
   });
 
-  hooks.afterEach(async function() {
+  hooks.afterEach(async function () {
     this.server.shutdown();
   });
 
   const newJobName = 'new-job';
   const newJobTaskGroupName = 'redis';
-  const jsonJob = overrides => {
+  const jsonJob = (overrides) => {
     return JSON.stringify(
       assign(
         {},
@@ -49,11 +49,11 @@ module('Integration | Component | job-editor', function(hooks) {
               Tasks: [
                 {
                   Name: 'redis',
-                  Driver: 'docker'
-                }
-              ]
-            }
-          ]
+                  Driver: 'docker',
+                },
+              ],
+            },
+          ],
         },
         overrides
       ),
@@ -99,17 +99,17 @@ module('Integration | Component | job-editor', function(hooks) {
       job,
       onSubmit: sinon.spy(),
       onCancel: sinon.spy(),
-      context: 'edit'
+      context: 'edit',
     });
     await component.render(cancelableTemplate);
   };
 
-  const planJob = async spec => {
+  const planJob = async (spec) => {
     await Editor.editor.fillIn(spec);
     await Editor.plan();
   };
 
-  test('the default state is an editor with an explanation popup', async function(assert) {
+  test('the default state is an editor with an explanation popup', async function (assert) {
     assert.expect(3);
 
     const job = await this.store.createRecord('job');
@@ -124,7 +124,7 @@ module('Integration | Component | job-editor', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('the explanation popup can be dismissed', async function(assert) {
+  test('the explanation popup can be dismissed', async function (assert) {
     const job = await this.store.createRecord('job');
 
     await renderNewJob(this, job);
@@ -140,7 +140,7 @@ module('Integration | Component | job-editor', function(hooks) {
     );
   });
 
-  test('the explanation popup is not shown once the dismissal state is set in localStorage', async function(assert) {
+  test('the explanation popup is not shown once the dismissal state is set in localStorage', async function (assert) {
     window.localStorage.nomadMessageJobEditor = 'false';
 
     const job = await this.store.createRecord('job');
@@ -152,7 +152,7 @@ module('Integration | Component | job-editor', function(hooks) {
     );
   });
 
-  test('submitting a json job skips the parse endpoint', async function(assert) {
+  test('submitting a json job skips the parse endpoint', async function (assert) {
     const spec = jsonJob();
     const job = await this.store.createRecord('job');
 
@@ -169,7 +169,7 @@ module('Integration | Component | job-editor', function(hooks) {
     );
   });
 
-  test('submitting an hcl job requires the parse endpoint', async function(assert) {
+  test('submitting an hcl job requires the parse endpoint', async function (assert) {
     const spec = hclJob();
     const job = await this.store.createRecord('job');
 
@@ -191,7 +191,7 @@ module('Integration | Component | job-editor', function(hooks) {
     );
   });
 
-  test('when a job is successfully parsed and planned, the plan is shown to the user', async function(assert) {
+  test('when a job is successfully parsed and planned, the plan is shown to the user', async function (assert) {
     assert.expect(4);
 
     const spec = hclJob();
@@ -209,7 +209,7 @@ module('Integration | Component | job-editor', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('from the plan screen, the cancel button goes back to the editor with the job still in tact', async function(assert) {
+  test('from the plan screen, the cancel button goes back to the editor with the job still in tact', async function (assert) {
     const spec = hclJob();
     const job = await this.store.createRecord('job');
 
@@ -224,7 +224,7 @@ module('Integration | Component | job-editor', function(hooks) {
     );
   });
 
-  test('when parse fails, the parse error message is shown', async function(assert) {
+  test('when parse fails, the parse error message is shown', async function (assert) {
     assert.expect(5);
 
     const spec = hclJob();
@@ -248,7 +248,7 @@ module('Integration | Component | job-editor', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('when plan fails, the plan error message is shown', async function(assert) {
+  test('when plan fails, the plan error message is shown', async function (assert) {
     assert.expect(5);
 
     const spec = hclJob();
@@ -258,7 +258,7 @@ module('Integration | Component | job-editor', function(hooks) {
     this.server.pretender.post(`/v1/job/${newJobName}/plan`, () => [
       400,
       {},
-      errorMessage
+      errorMessage,
     ]);
 
     await renderNewJob(this, job);
@@ -276,7 +276,7 @@ module('Integration | Component | job-editor', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('when run fails, the run error message is shown', async function(assert) {
+  test('when run fails, the run error message is shown', async function (assert) {
     assert.expect(5);
 
     const spec = hclJob();
@@ -301,7 +301,7 @@ module('Integration | Component | job-editor', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('when the scheduler dry-run has warnings, the warnings are shown to the user', async function(assert) {
+  test('when the scheduler dry-run has warnings, the warnings are shown to the user', async function (assert) {
     assert.expect(4);
 
     const spec = jsonJob({ Unschedulable: true });
@@ -325,7 +325,7 @@ module('Integration | Component | job-editor', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('when the scheduler dry-run has no warnings, a success message is shown to the user', async function(assert) {
+  test('when the scheduler dry-run has no warnings, a success message is shown to the user', async function (assert) {
     assert.expect(3);
 
     const spec = hclJob();
@@ -345,7 +345,7 @@ module('Integration | Component | job-editor', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('when a job is submitted in the edit context, a POST request is made to the update job endpoint', async function(assert) {
+  test('when a job is submitted in the edit context, a POST request is made to the update job endpoint', async function (assert) {
     const spec = hclJob();
     const job = await this.store.createRecord('job');
 
@@ -365,7 +365,7 @@ module('Integration | Component | job-editor', function(hooks) {
     );
   });
 
-  test('when a job is submitted in the new context, a POST request is made to the create job endpoint', async function(assert) {
+  test('when a job is submitted in the new context, a POST request is made to the create job endpoint', async function (assert) {
     const spec = hclJob();
     const job = await this.store.createRecord('job');
 
@@ -385,7 +385,7 @@ module('Integration | Component | job-editor', function(hooks) {
     );
   });
 
-  test('when a job is successfully submitted, the onSubmit hook is called', async function(assert) {
+  test('when a job is successfully submitted, the onSubmit hook is called', async function (assert) {
     const spec = hclJob();
     const job = await this.store.createRecord('job');
 
@@ -398,14 +398,14 @@ module('Integration | Component | job-editor', function(hooks) {
     );
   });
 
-  test('when the job-editor cancelable flag is false, there is no cancel button in the header', async function(assert) {
+  test('when the job-editor cancelable flag is false, there is no cancel button in the header', async function (assert) {
     const job = await this.store.createRecord('job');
 
     await renderNewJob(this, job);
     assert.notOk(Editor.cancelEditingIsAvailable, 'No way to cancel editing');
   });
 
-  test('when the job-editor cancelable flag is true, there is a cancel button in the header', async function(assert) {
+  test('when the job-editor cancelable flag is true, there is a cancel button in the header', async function (assert) {
     assert.expect(2);
 
     const job = await this.store.createRecord('job');
@@ -416,7 +416,7 @@ module('Integration | Component | job-editor', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('when the job-editor cancel button is clicked, the onCancel hook is called', async function(assert) {
+  test('when the job-editor cancel button is clicked, the onCancel hook is called', async function (assert) {
     const job = await this.store.createRecord('job');
 
     await renderEditJob(this, job);

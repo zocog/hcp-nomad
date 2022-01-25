@@ -6,7 +6,7 @@ import queryString from 'query-string';
 @classic
 export default class RecommendationSerializer extends ApplicationSerializer {
   attrs = {
-    taskName: 'Task'
+    taskName: 'Task',
   };
 
   separateNanos = ['SubmitTime'];
@@ -25,9 +25,9 @@ export default class RecommendationSerializer extends ApplicationSerializer {
     return assign(super.extractRelationships(...arguments), {
       job: {
         links: {
-          related: buildURL(jobURL, { namespace })
-        }
-      }
+          related: buildURL(jobURL, { namespace }),
+        },
+      },
     });
   }
 }

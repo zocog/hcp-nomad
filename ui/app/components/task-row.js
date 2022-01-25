@@ -50,13 +50,11 @@ export default class TaskRow extends Component {
     lazyClick([this.onClick, event]);
   }
 
-  @(task(function*() {
+  @(task(function* () {
     do {
       if (this.stats) {
         try {
-          yield this.get('stats.poll')
-            .linked()
-            .perform();
+          yield this.get('stats.poll').linked().perform();
           this.set('statsError', false);
         } catch (error) {
           this.set('statsError', true);

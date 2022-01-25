@@ -9,22 +9,22 @@ import {
   formatBytes,
   formatScheduledBytes,
   formatHertz,
-  formatScheduledHertz
+  formatScheduledHertz,
 } from 'nomad-ui/utils/units';
 import queryString from 'query-string';
 
 const sumResources = (list, dimension) =>
   list.reduce((agg, val) => agg + (get(val, dimension) || 0), 0);
 
-module('Acceptance | topology', function(hooks) {
+module('Acceptance | topology', function (hooks) {
   setupApplicationTest(hooks);
   setupMirage(hooks);
 
-  hooks.beforeEach(function() {
+  hooks.beforeEach(function () {
     server.create('job', { createAllocations: false });
   });
 
-  test('it passes an accessibility audit', async function(assert) {
+  test('it passes an accessibility audit', async function (assert) {
     assert.expect(1);
 
     server.createList('node', 3);
@@ -34,7 +34,7 @@ module('Acceptance | topology', function(hooks) {
     await a11yAudit(assert);
   });
 
-  test('by default the info panel shows cluster aggregate stats', async function(assert) {
+  test('by default the info panel shows cluster aggregate stats', async function (assert) {
     server.createList('node', 3);
     server.createList('allocation', 5);
 
@@ -48,7 +48,7 @@ module('Acceptance | topology', function(hooks) {
     );
 
     const allocs = server.schema.allocations.all().models;
-    const scheduledAllocs = allocs.filter(alloc =>
+    const scheduledAllocs = allocs.filter((alloc) =>
       ['pending', 'running'].includes(alloc.clientStatus)
     );
     assert.equal(
@@ -94,7 +94,7 @@ module('Acceptance | topology', function(hooks) {
     );
   });
 
-  test('all allocations for all namespaces and all clients are queried on load', async function(assert) {
+  test('all allocations for all namespaces and all clients are queried on load', async function (assert) {
     server.createList('node', 3);
     server.createList('allocation', 5);
 
@@ -102,7 +102,7 @@ module('Acceptance | topology', function(hooks) {
     const requests = this.server.pretender.handledRequests;
     assert.ok(requests.findBy('url', '/v1/nodes?resources=true'));
 
-    const allocationsRequest = requests.find(req =>
+    const allocationsRequest = requests.find((req) =>
       req.url.startsWith('/v1/allocations')
     );
     assert.ok(allocationsRequest);
@@ -113,25 +113,25 @@ module('Acceptance | topology', function(hooks) {
     assert.deepEqual(allocationRequestParams, {
       namespace: '*',
       task_states: 'false',
-      resources: 'true'
+      resources: 'true',
     });
   });
 
-  test('when an allocation is selected, the info panel shows information on the allocation', async function(assert) {
+  test('when an allocation is selected, the info panel shows information on the allocation', async function (assert) {
     const nodes = server.createList('node', 5);
     const job = server.create('job', { createAllocations: false });
     const taskGroup = server.schema.find('taskGroup', job.taskGroupIds[0]).name;
     const allocs = server.createList('allocation', 5, {
       forceRunningClientStatus: true,
       jobId: job.id,
-      taskGroup
+      taskGroup,
     });
 
     // Get the first alloc of the first node that has an alloc
     const sortedNodes = nodes.sortBy('datacenter');
     let node, alloc;
     for (let n of sortedNodes) {
-      alloc = allocs.find(a => a.nodeId === n.id);
+      alloc = allocs.find((a) => a.nodeId === n.id);
       if (alloc) {
         node = n;
         break;
@@ -187,41 +187,43 @@ module('Acceptance | topology', function(hooks) {
     assert.equal(currentURL(), `/clients/${node.id}`);
   });
 
-  test('changing which allocation is selected changes the metric charts', async function(assert) {
+  test('changing which allocation is selected changes the metric charts', async function (assert) {
     server.create('node');
     const job1 = server.create('job', { createAllocations: false });
-    const taskGroup1 = server.schema.find('taskGroup', job1.taskGroupIds[0])
-      .name;
+    const taskGroup1 = server.schema.find(
+      'taskGroup',
+      job1.taskGroupIds[0]
+    ).name;
     server.create('allocation', {
       forceRunningClientStatus: true,
       jobId: job1.id,
-      taskGroup1
+      taskGroup1,
     });
 
     const job2 = server.create('job', { createAllocations: false });
-    const taskGroup2 = server.schema.find('taskGroup', job2.taskGroupIds[0])
-      .name;
+    const taskGroup2 = server.schema.find(
+      'taskGroup',
+      job2.taskGroupIds[0]
+    ).name;
     server.create('allocation', {
       forceRunningClientStatus: true,
       jobId: job2.id,
-      taskGroup2
+      taskGroup2,
     });
 
     await Topology.visit();
     await Topology.viz.datacenters[0].nodes[0].memoryRects[0].select();
-    const firstAllocationTaskNames = Topology.allocInfoPanel.charts[0].areas.mapBy(
-      'taskName'
-    );
+    const firstAllocationTaskNames =
+      Topology.allocInfoPanel.charts[0].areas.mapBy('taskName');
 
     await Topology.viz.datacenters[0].nodes[0].memoryRects[1].select();
-    const secondAllocationTaskNames = Topology.allocInfoPanel.charts[0].areas.mapBy(
-      'taskName'
-    );
+    const secondAllocationTaskNames =
+      Topology.allocInfoPanel.charts[0].areas.mapBy('taskName');
 
     assert.notDeepEqual(firstAllocationTaskNames, secondAllocationTaskNames);
   });
 
-  test('when a node is selected, the info panel shows information on the node', async function(assert) {
+  test('when a node is selected, the info panel shows information on the node', async function (assert) {
     // A high node count is required for node selection
     const nodes = server.createList('node', 51);
     const node = nodes.sortBy('datacenter')[0];
@@ -292,7 +294,7 @@ module('Acceptance | topology', function(hooks) {
     assert.equal(currentURL(), `/clients/${node.id}`);
   });
 
-  test('when one or more nodes lack the NodeResources property, a warning message is shown', async function(assert) {
+  test('when one or more nodes lack the NodeResources property, a warning message is shown', async function (assert) {
     server.createList('node', 3);
     server.createList('allocation', 5);
 

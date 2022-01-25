@@ -15,7 +15,7 @@ const statsKeyToLabel = {
   p99: '99th',
   max: 'Max',
   current: 'Current',
-  recommended: 'New'
+  recommended: 'New',
 };
 
 const formatPercent = d3Format.format('+.0%');
@@ -49,7 +49,7 @@ export default class RecommendationChartComponent extends Component {
       y: this.resourceLabel.y - this.iconHeight / 2,
       width: 20,
       height: this.iconHeight,
-      name: this.isIncrease ? 'arrow-up' : 'arrow-down'
+      name: this.isIncrease ? 'arrow-up' : 'arrow-down',
     };
   }
 
@@ -121,13 +121,13 @@ export default class RecommendationChartComponent extends Component {
         label,
         x: tickX,
         y: this.tickTextHeight - 5,
-        class: '' // overridden in statsShapes to align/hide based on proximity
+        class: '', // overridden in statsShapes to align/hide based on proximity
       },
       line: {
         x1: tickX,
         y1: this.tickTextHeight,
         x2: tickX,
-        y2: this.centerY - 2
+        y2: this.centerY - 2,
       },
       rect: {
         x: this.gutterWidthLeft,
@@ -136,8 +136,8 @@ export default class RecommendationChartComponent extends Component {
           this.centerTickOffset +
           this.tickTextHeight,
         width: rectWidth,
-        height: rectHeight
-      }
+        height: rectHeight,
+      },
     };
   }
 
@@ -180,7 +180,7 @@ export default class RecommendationChartComponent extends Component {
         x1: this.gutterWidthLeft,
         y1: this.centerY,
         x2: this.width - this.gutterWidthRight,
-        y2: this.centerY
+        y2: this.centerY,
       };
     } else {
       return null;
@@ -193,7 +193,7 @@ export default class RecommendationChartComponent extends Component {
     return {
       text,
       x: this.gutterWidthLeft - 10,
-      y: this.centerY
+      y: this.centerY,
     };
   }
 
@@ -203,14 +203,14 @@ export default class RecommendationChartComponent extends Component {
         x: this.lowerValueWidth,
         y: this.edgeTickY1,
         width: this.shown ? this.higherValueWidth - this.lowerValueWidth : 0,
-        height: this.edgeTickHeight
+        height: this.edgeTickHeight,
       };
     } else {
       return {
         x: this.shown ? this.lowerValueWidth : this.higherValueWidth,
         y: this.edgeTickY1,
         width: this.shown ? this.higherValueWidth - this.lowerValueWidth : 0,
-        height: this.edgeTickHeight
+        height: this.edgeTickHeight,
       };
     }
   }
@@ -238,7 +238,7 @@ export default class RecommendationChartComponent extends Component {
         this.center.y1
       }
         0,${this.center.y1 + this.deltaTriangleHeight / 2}
-      `
+      `,
     };
   }
 
@@ -246,28 +246,28 @@ export default class RecommendationChartComponent extends Component {
     if (this.isIncrease) {
       return {
         original: {
-          x: this.lowerValueWidth
+          x: this.lowerValueWidth,
         },
         delta: {
           style: htmlSafe(
             `transform: translateX(${
               this.shown ? this.higherValueWidth : this.lowerValueWidth
             }px)`
-          )
-        }
+          ),
+        },
       };
     } else {
       return {
         original: {
-          x: this.higherValueWidth
+          x: this.higherValueWidth,
         },
         delta: {
           style: htmlSafe(
             `transform: translateX(${
               this.shown ? this.lowerValueWidth : this.higherValueWidth
             }px)`
-          )
-        }
+          ),
+        },
       };
     }
   }
@@ -279,13 +279,13 @@ export default class RecommendationChartComponent extends Component {
     const lowerValueText = {
       anchor: 'end',
       x: this.lowerValueWidth,
-      y
+      y,
     };
 
     const higherValueText = {
       anchor: 'start',
       x: this.higherValueWidth,
-      y
+      y,
     };
 
     const percentText = formatPercent(
@@ -296,20 +296,20 @@ export default class RecommendationChartComponent extends Component {
     const percent = {
       x: (lowerValueText.x + higherValueText.x) / 2,
       y,
-      text: percentText
+      text: percentText,
     };
 
     if (this.isIncrease) {
       return {
         original: lowerValueText,
         delta: higherValueText,
-        percent
+        percent,
       };
     } else {
       return {
         original: higherValueText,
         delta: lowerValueText,
-        percent
+        percent,
       };
     }
   }
@@ -331,13 +331,13 @@ export default class RecommendationChartComponent extends Component {
       const statsWithCurrentAndRecommended = {
         ...this.args.stats,
         current: this.args.currentValue,
-        recommended: this.args.recommendedValue
+        recommended: this.args.recommendedValue,
       };
 
       return Object.keys(statsWithCurrentAndRecommended)
-        .map(key => ({
+        .map((key) => ({
           label: statsKeyToLabel[key],
-          value: statsWithCurrentAndRecommended[key]
+          value: statsWithCurrentAndRecommended[key],
         }))
         .sortBy('value');
     } else {

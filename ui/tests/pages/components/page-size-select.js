@@ -13,6 +13,6 @@ export default () => ({
   options: collection('.ember-power-select-option', {
     testContainer: '#ember-testing',
     resetScope: true,
-    label: text()
-  })
+    label: text(),
+  }),
 });

@@ -6,7 +6,7 @@ import SortableFactory from 'nomad-ui/mixins/sortable-factory';
 import { lazyClick } from 'nomad-ui/helpers/lazy-click';
 import {
   serialize,
-  deserializedQueryParam as selection
+  deserializedQueryParam as selection,
 } from 'nomad-ui/utils/qp-serialize';
 import classic from 'ember-classic-decorator';
 
@@ -18,20 +18,20 @@ export default class AllocationsController extends Controller.extend(
 
   queryParams = [
     {
-      currentPage: 'page'
+      currentPage: 'page',
     },
     {
-      sortProperty: 'sort'
+      sortProperty: 'sort',
     },
     {
-      sortDescending: 'desc'
+      sortDescending: 'desc',
     },
     {
-      qpHealth: 'healthy'
+      qpHealth: 'healthy',
     },
     {
-      qpType: 'type'
-    }
+      qpType: 'type',
+    },
   ];
 
   currentPage = 1;
@@ -50,7 +50,7 @@ export default class AllocationsController extends Controller.extend(
   get optionsType() {
     return [
       { key: 'controller', label: 'Controller' },
-      { key: 'node', label: 'Node' }
+      { key: 'node', label: 'Node' },
     ];
   }
 
@@ -58,7 +58,7 @@ export default class AllocationsController extends Controller.extend(
   get optionsHealth() {
     return [
       { key: 'true', label: 'Healthy' },
-      { key: 'false', label: 'Unhealthy' }
+      { key: 'false', label: 'Unhealthy' },
     ];
   }
 
@@ -109,7 +109,7 @@ export default class AllocationsController extends Controller.extend(
   gotoAllocation(allocation, event) {
     lazyClick([
       () => this.transitionToRoute('allocations.allocation', allocation),
-      event
+      event,
     ]);
   }
 }

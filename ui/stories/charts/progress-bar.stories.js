@@ -4,7 +4,7 @@ import EmberObject, { computed } from '@ember/object';
 import { on } from '@ember/object/evented';
 
 export default {
-  title: 'Charts/Progress Bar'
+  title: 'Charts/Progress Bar',
 };
 
 export let Standard = () => {
@@ -19,7 +19,7 @@ export let Standard = () => {
           0.33
         </progress>
       </div>
-      `
+      `,
   };
 };
 
@@ -69,7 +69,7 @@ export let Colors = () => {
           </div>
         </div>
       </div>
-      `
+      `,
   };
 };
 
@@ -101,7 +101,7 @@ export let LiveUpdates = () => {
       data: EmberObject.extend({
         timerTicks: 0,
 
-        startTimer: on('init', function() {
+        startTimer: on('init', function () {
           this.set(
             'timer',
             setInterval(() => {
@@ -114,15 +114,15 @@ export let LiveUpdates = () => {
           clearInterval(this.timer);
         },
 
-        denominator: computed('timerTicks', function() {
+        denominator: computed('timerTicks', function () {
           return Math.round(Math.random() * 1000);
         }),
 
-        percentage: computed('timerTicks', function() {
+        percentage: computed('timerTicks', function () {
           return Math.round(Math.random() * 100) / 100;
         }),
 
-        numerator: computed('denominator', 'percentage', function() {
+        numerator: computed('denominator', 'percentage', function () {
           return Math.round(this.denominator * this.percentage * 100) / 100;
         }),
 
@@ -130,11 +130,11 @@ export let LiveUpdates = () => {
           'denominator',
           'numerator',
           'percentage',
-          function() {
+          function () {
             return this.getProperties('denominator', 'numerator', 'percentage');
           }
-        )
-      }).create()
-    }
+        ),
+      }).create(),
+    },
   };
 };

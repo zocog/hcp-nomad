@@ -6,16 +6,16 @@ import hbs from 'htmlbars-inline-precompile';
 import { componentA11yAudit } from 'nomad-ui/tests/helpers/a11y-audit';
 
 // Used to prevent XSS warnings in console
-const h = height => htmlSafe(`height:${height}px`);
+const h = (height) => htmlSafe(`height:${height}px`);
 
-module('Integration | Component | FlexMasonry', function(hooks) {
+module('Integration | Component | FlexMasonry', function (hooks) {
   setupRenderingTest(hooks);
 
-  test('presents as a single div when @items is empty', async function(assert) {
+  test('presents as a single div when @items is empty', async function (assert) {
     assert.expect(4);
 
     this.setProperties({
-      items: []
+      items: [],
     });
 
     await render(hbs`
@@ -33,10 +33,10 @@ module('Integration | Component | FlexMasonry', function(hooks) {
     await componentA11yAudit(this.element, assert);
   });
 
-  test('each item in @items gets wrapped in a flex-masonry-item wrapper', async function(assert) {
+  test('each item in @items gets wrapped in a flex-masonry-item wrapper', async function (assert) {
     this.setProperties({
       items: ['one', 'two', 'three'],
-      columns: 2
+      columns: 2,
     });
 
     await render(hbs`
@@ -53,7 +53,7 @@ module('Integration | Component | FlexMasonry', function(hooks) {
     );
   });
 
-  test('the @withSpacing arg adds the with-spacing class', async function(assert) {
+  test('the @withSpacing arg adds the with-spacing class', async function (assert) {
     await render(hbs`
       <FlexMasonry
         @items={{this.items}}
@@ -67,11 +67,11 @@ module('Integration | Component | FlexMasonry', function(hooks) {
     );
   });
 
-  test('individual items along with the reflow action are yielded', async function(assert) {
+  test('individual items along with the reflow action are yielded', async function (assert) {
     this.setProperties({
       items: ['one', 'two'],
       columns: 2,
-      height: h(50)
+      height: h(50),
     });
 
     await render(hbs`
@@ -97,7 +97,7 @@ module('Integration | Component | FlexMasonry', function(hooks) {
     assert.equal(div.style.maxHeight, '501px');
   });
 
-  test('items are rendered to the DOM in the order they were passed into the component', async function(assert) {
+  test('items are rendered to the DOM in the order they were passed into the component', async function (assert) {
     assert.expect(4);
 
     this.setProperties({
@@ -105,9 +105,9 @@ module('Integration | Component | FlexMasonry', function(hooks) {
         { text: 'One', height: h(20) },
         { text: 'Two', height: h(100) },
         { text: 'Three', height: h(20) },
-        { text: 'Four', height: h(20) }
+        { text: 'Four', height: h(20) },
       ],
-      columns: 2
+      columns: 2,
     });
 
     await render(hbs`
@@ -123,7 +123,7 @@ module('Integration | Component | FlexMasonry', function(hooks) {
     });
   });
 
-  test('each item gets an order property', async function(assert) {
+  test('each item gets an order property', async function (assert) {
     assert.expect(4);
 
     this.setProperties({
@@ -131,9 +131,9 @@ module('Integration | Component | FlexMasonry', function(hooks) {
         { text: 'One', height: h(20), expectedOrder: 0 },
         { text: 'Two', height: h(100), expectedOrder: 3 },
         { text: 'Three', height: h(20), expectedOrder: 1 },
-        { text: 'Four', height: h(20), expectedOrder: 2 }
+        { text: 'Four', height: h(20), expectedOrder: 2 },
       ],
-      columns: 2
+      columns: 2,
     });
 
     await render(hbs`
@@ -149,7 +149,7 @@ module('Integration | Component | FlexMasonry', function(hooks) {
     });
   });
 
-  test('the last item in each column gets a specific flex-basis value', async function(assert) {
+  test('the last item in each column gets a specific flex-basis value', async function (assert) {
     assert.expect(4);
 
     this.setProperties({
@@ -159,9 +159,9 @@ module('Integration | Component | FlexMasonry', function(hooks) {
         { text: 'Three', height: h(20) },
         { text: 'Four', height: h(100), flexBasis: '100px' },
         { text: 'Five', height: h(20), flexBasis: '80px' },
-        { text: 'Six', height: h(20), flexBasis: '80px' }
+        { text: 'Six', height: h(20), flexBasis: '80px' },
       ],
-      columns: 4
+      columns: 4,
     });
 
     await render(hbs`
@@ -180,7 +180,7 @@ module('Integration | Component | FlexMasonry', function(hooks) {
     });
   });
 
-  test('when a multi-column layout becomes a single column layout, all inline-styles are reset', async function(assert) {
+  test('when a multi-column layout becomes a single column layout, all inline-styles are reset', async function (assert) {
     assert.expect(14);
 
     this.setProperties({
@@ -190,9 +190,9 @@ module('Integration | Component | FlexMasonry', function(hooks) {
         { text: 'Three', height: h(20) },
         { text: 'Four', height: h(100) },
         { text: 'Five', height: h(20) },
-        { text: 'Six', height: h(20) }
+        { text: 'Six', height: h(20) },
       ],
-      columns: 4
+      columns: 4,
     });
 
     await render(hbs`
@@ -208,7 +208,7 @@ module('Integration | Component | FlexMasonry', function(hooks) {
     this.set('columns', 1);
     await settled();
 
-    findAll('[data-test-flex-masonry-item]').forEach(el => {
+    findAll('[data-test-flex-masonry-item]').forEach((el) => {
       assert.equal(el.style.flexBasis, '');
       assert.equal(el.style.order, '');
     });

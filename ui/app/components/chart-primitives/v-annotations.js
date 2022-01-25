@@ -5,19 +5,19 @@ import styleString from 'nomad-ui/utils/properties/glimmer-style-string';
 
 const iconFor = {
   error: 'cancel-circle-fill',
-  info: 'info-circle-fill'
+  info: 'info-circle-fill',
 };
 
 const iconClassFor = {
   error: 'is-danger',
-  info: ''
+  info: '',
 };
 
 export default class ChartPrimitiveVAnnotations extends Component {
   @styleString
   get chartAnnotationsStyle() {
     return {
-      height: this.args.height
+      height: this.args.height,
     };
   }
 
@@ -33,7 +33,7 @@ export default class ChartPrimitiveVAnnotations extends Component {
 
     let prevX = 0;
     let prevHigh = false;
-    return sortedAnnotations.map(annotation => {
+    return sortedAnnotations.map((annotation) => {
       const x = scale(annotation[prop]);
       if (prevX && !prevHigh && Math.abs(x - prevX) < 30) {
         prevHigh = true;
@@ -51,7 +51,7 @@ export default class ChartPrimitiveVAnnotations extends Component {
         iconClass: iconClassFor[annotation.type],
         staggerClass: prevHigh ? 'is-staggered' : '',
         label: `${annotation.type} event at ${formattedX}`,
-        isActive: this.annotationIsActive(annotation)
+        isActive: this.annotationIsActive(annotation),
       };
     });
   }

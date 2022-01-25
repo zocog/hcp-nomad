@@ -6,15 +6,15 @@ import { setupRenderingTest } from 'ember-qunit';
 import { findAll, render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-module('Integration | Component | app breadcrumbs', function(hooks) {
+module('Integration | Component | app breadcrumbs', function (hooks) {
   setupRenderingTest(hooks);
 
   const commonCrumbs = [
     { label: 'Jobs', args: ['jobs.index'] },
-    { label: 'Job', args: ['jobs.job.index'] }
+    { label: 'Job', args: ['jobs.job.index'] },
   ];
 
-  test('every breadcrumb is rendered correctly', async function(assert) {
+  test('every breadcrumb is rendered correctly', async function (assert) {
     assert.expect(3);
     this.set('commonCrumbs', commonCrumbs);
     await render(hbs`
@@ -41,10 +41,10 @@ module('Integration | Component | app breadcrumbs', function(hooks) {
     });
   });
 
-  test('when we register a crumb with a type property, a dedicated breadcrumb/<type> component renders', async function(assert) {
+  test('when we register a crumb with a type property, a dedicated breadcrumb/<type> component renders', async function (assert) {
     const crumbs = [
       { label: 'Jobs', args: ['jobs.index'] },
-      { type: 'special', label: 'Job', args: ['jobs.job.index'] }
+      { type: 'special', label: 'Job', args: ['jobs.job.index'] },
     ];
     this.set('crumbs', crumbs);
 

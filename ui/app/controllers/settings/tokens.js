@@ -24,11 +24,11 @@ export default class Tokens extends Controller {
   @action
   clearTokenProperties() {
     this.token.setProperties({
-      secret: undefined
+      secret: undefined,
     });
     this.setProperties({
       tokenIsValid: false,
-      tokenIsInvalid: false
+      tokenIsInvalid: false,
     });
     // Clear out all data to ensure only data the anonymous token is privileged to see is shown
     this.resetStore();
@@ -48,20 +48,18 @@ export default class Tokens extends Controller {
         this.resetStore();
 
         // Refetch the token and associated policies
-        this.get('token.fetchSelfTokenAndPolicies')
-          .perform()
-          .catch();
+        this.get('token.fetchSelfTokenAndPolicies').perform().catch();
 
         this.setProperties({
           tokenIsValid: true,
-          tokenIsInvalid: false
+          tokenIsInvalid: false,
         });
       },
       () => {
         this.set('token.secret', undefined);
         this.setProperties({
           tokenIsValid: false,
-          tokenIsInvalid: true
+          tokenIsInvalid: true,
         });
       }
     );

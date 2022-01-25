@@ -19,7 +19,7 @@ export default Mixin.create({
 
   endOffset: null,
 
-  offsetParams: computed('endOffset', function() {
+  offsetParams: computed('endOffset', function () {
     const endOffset = this.endOffset;
     return endOffset
       ? { origin: 'start', offset: endOffset }
@@ -33,11 +33,11 @@ export default Mixin.create({
     'params',
     'offsetParams',
     'additionalParams',
-    function() {
+    function () {
       const queryParams = queryString.stringify(
         assign({}, this.params, this.offsetParams, this.additionalParams)
       );
       return `${this.url}?${queryParams}`;
     }
-  )
+  ),
 });
