@@ -67,13 +67,18 @@ func TestVolumeWatch_LeadershipTransition(t *testing.T) {
 	plugin := mock.CSIPlugin()
 	node := testNode(plugin, srv.State())
 	alloc := mock.Alloc()
-	alloc.ClientStatus = structs.AllocClientStatusComplete
+	alloc.ClientStatus = structs.AllocClientStatusRunning
 	vol := testVolume(plugin, alloc, node.ID)
+
+	index++
+	err := srv.State().UpsertAllocs(structs.MsgTypeTestSetup, index,
+		[]*structs.Allocation{alloc})
+	require.NoError(err)
 
 	watcher.SetEnabled(true, srv.State(), "")
 
 	index++
-	err := srv.State().CSIVolumeRegister(index, []*structs.CSIVolume{vol})
+	err = srv.State().CSIVolumeRegister(index, []*structs.CSIVolume{vol})
 	require.NoError(err)
 
 	// we should get or start up a watcher when we get an update for
