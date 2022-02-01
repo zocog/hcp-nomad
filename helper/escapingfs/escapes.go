@@ -54,8 +54,11 @@ func pathEscapesBaseViaSymlink(base, full string) (bool, error) {
 		return true, nil
 	}
 
-	hasPrefix := strings.HasPrefix(rel, "..")
-	return !hasPrefix, nil
+	// note: this is not the same as !filesystem.IsAbs; we are asking if the relative
+	// path is descendent of the base path, indicating it does not escape.
+	isRelative := strings.HasPrefix(rel, "..") || rel == "."
+	escapes := !isRelative
+	return escapes, nil
 }
 
 // PathEscapesAllocDir returns true if base/prefix/path escapes the given base directory.

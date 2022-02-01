@@ -96,6 +96,15 @@ func Test_pathEscapesBaseViaSymlink(t *testing.T) {
 
 func Test_PathEscapesAllocDir(t *testing.T) {
 
+	t.Run("no-escape-root", func(t *testing.T) {
+		dir := setup(t)
+		defer cleanup(t, dir)
+
+		escape, err := PathEscapesAllocDir(dir, "", "/")
+		require.NoError(t, err)
+		require.False(t, escape)
+	})
+
 	t.Run("no-escape", func(t *testing.T) {
 		dir := setup(t)
 		defer cleanup(t, dir)
