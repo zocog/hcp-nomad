@@ -332,14 +332,10 @@ func TestAllocDir_EscapeChecking(t *testing.T) {
 
 // Test that `nomad fs` can't read secrets
 func TestAllocDir_ReadAt_SecretDir(t *testing.T) {
-	tmp, err := ioutil.TempDir("", "AllocDir")
-	require.NoError(t, err)
-	defer func() {
-		_ = os.RemoveAll(tmp)
-	}()
+	tmp := t.TempDir()
 
 	d := NewAllocDir(testlog.HCLogger(t), tmp, "test")
-	err = d.Build()
+	err := d.Build()
 	require.NoError(t, err)
 	defer func() {
 		_ = d.Destroy()

@@ -10,14 +10,19 @@ import (
 // PathEscapesAllocViaRelative returns if the given path escapes the allocation
 // directory using relative paths.
 //
-// Does NOT handle the use of symlinks.
+// Only for use in server-side validation, where the real filesystem is not available.
+// For client-side validation use PathEscapesAllocDir, which includes symlink validation
+// as well.
 //
 // The prefix is joined to the path (e.g. "task/local"), and this function
 // checks if path escapes the alloc dir, NOT the prefix directory within the alloc dir.
 // With prefix="task/local", it will return false for "../secret", but
 // true for "../../../../../../root" path; only the latter escapes the alloc dir.
 func PathEscapesAllocViaRelative(prefix, path string) (bool, error) {
-	// Verify the destination doesn't escape the tasks directory
+	// Verify the destination does not escape the task's directory. The "alloc-dir"
+	// and "alloc-id" here are just placeholders; on a real filesystem they will
+	// have different names. The names are not important, but rather the number of levels
+	// in the path they represent.
 	alloc, err := filepath.Abs(filepath.Join("/", "alloc-dir/", "alloc-id/"))
 	if err != nil {
 		return false, err
@@ -44,15 +49,13 @@ func pathEscapesBaseViaSymlink(base, full string) (bool, error) {
 		return false, err
 	}
 
-	// filepath.HasPrefix is deprecated for not supporting case-insensitive filesystems,
-	// with no straightforward alternative. From a security perspective it should
-	// be fine, as the behavior here would to erroneously block a cross-case path
-	// comparison, which is annoying to macOS users but not a security hole.
-	if !filepath.HasPrefix(resolveSym, base) {
+	rel, err := filepath.Rel(resolveSym, base)
+	if err != nil {
 		return true, nil
 	}
 
-	return false, nil
+	hasPrefix := strings.HasPrefix(rel, "..")
+	return !hasPrefix, nil
 }
 
 // PathEscapesAllocDir returns true if base/prefix/path escapes the given base directory.

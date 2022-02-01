@@ -6,7 +6,6 @@ import (
 	"net/rpc"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad/client/config"
 	consulapi "github.com/hashicorp/nomad/client/consul"
 	"github.com/hashicorp/nomad/client/fingerprint"
@@ -40,7 +39,6 @@ func TestClientWithRPCs(t testing.T, cb func(c *config.Config), rpcs map[string]
 	conf.Options[fingerprint.TightenNetworkTimeoutsConfig] = "true"
 
 	logger := testlog.HCLogger(t)
-	logger.SetLevel(hclog.Warn)
 	conf.Logger = logger
 
 	if cb != nil {
