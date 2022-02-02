@@ -48,10 +48,10 @@ func (tc *QuotasE2ETest) AfterEach(f *framework.F) {
 		ns := pair[0]
 		jobID := pair[1]
 		if ns != "" {
-			_, err := e2e.Command("nomad", "job", "stop", "-purge", "-namespace", ns, jobID)
+			err := e2e.StopJob(jobID, "-purge", "-namespace", ns)
 			f.Assert().NoError(err)
 		} else {
-			_, err := e2e.Command("nomad", "job", "stop", "-purge", jobID)
+			err := e2e.StopJob(jobID, "-purge")
 			f.Assert().NoError(err)
 		}
 	}
