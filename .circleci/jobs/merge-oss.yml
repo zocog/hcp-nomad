@@ -44,7 +44,11 @@ steps:
           exit 1
         fi
 
-        # quick check - do basic compile build
+        # quick check and basic compile build
+        if ! make check ; then
+          echo "export FAIL_REASON='because make check failed after auto-merge'" >> $BASH_ENV
+          exit 1
+        fi
         if ! make pkg/linux_amd64/nomad ; then
           echo "export FAIL_REASON='because nomad failed to compile after auto-merge'" >> $BASH_ENV
           exit 1

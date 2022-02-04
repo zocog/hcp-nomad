@@ -973,6 +973,7 @@ github.com/mitchellh/cli v1.1.0/go.mod h1:xcISNoH86gajksDmfB23e/pu+B+GeFRMYmoHXx
 github.com/mitchellh/colorstring v0.0.0-20150917214807-8631ce90f286 h1:KHyL+3mQOF9sPfs26lsefckcFNDcIZtiACQiECzIUkw=
 github.com/mitchellh/colorstring v0.0.0-20150917214807-8631ce90f286/go.mod h1:l0dey0ia/Uv7NcFFVbCLtqEBQbrT4OCwCSKTEv6enCw=
 github.com/mitchellh/copystructure v1.0.0/go.mod h1:SNtv71yrdKgLRyLFxmLdkAbkKEFWgYaq1OVrnRcwhnw=
+github.com/mitchellh/copystructure v1.1.1/go.mod h1:EBArHfARyrSWO/+Wyr9zwEkc6XMFB9XyNgFNmRkZZU4=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
 github.com/mitchellh/go-glint v0.0.0-20210722152315-6515ceb4a127 h1:/EdGXMUGYFdp0+cmGjVLl/Qbx3G10csqgj22ZkrPFEA=
