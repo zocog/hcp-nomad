@@ -491,6 +491,7 @@ func TestRecommendationEndpoint_ListRecommendations(t *testing.T) {
 					QueryOptions: structs.QueryOptions{
 						Namespace: tc.Namespace,
 						Prefix:    tc.Prefix,
+						Region:    s1.Region(),
 					},
 				}, &resp)
 			require.NoError(t, err)
@@ -655,6 +656,7 @@ func TestRecommendationEndpoint_ListRecommendations_ACL(t *testing.T) {
 					QueryOptions: structs.QueryOptions{
 						Namespace: tc.Namespace,
 						AuthToken: tc.Token,
+						Region:    s1.Region(),
 					},
 				}, &resp)
 			if tc.Error {
