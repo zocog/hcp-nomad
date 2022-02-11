@@ -86,7 +86,6 @@ func (r *Recommendation) GetRecommendation(args *structs.RecommendationSpecificR
 // ListRecommendations is used to retrieve of a list of recommendations in a namespace
 func (r *Recommendation) ListRecommendations(args *structs.RecommendationListRequest,
 	reply *structs.RecommendationListResponse) error {
-	args.Region = r.srv.config.AuthoritativeRegion
 	if done, err := r.srv.forward("Recommendation.ListRecommendations", args, args, reply); done {
 		return err
 	}
