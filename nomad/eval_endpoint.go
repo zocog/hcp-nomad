@@ -2,6 +2,7 @@ package nomad
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
@@ -397,6 +398,14 @@ func (e *Eval) List(args *structs.EvalListRequest, reply *structs.EvalListRespon
 		return structs.ErrPermissionDenied
 	}
 
+	if args.Filter != "" {
+		// Check for incompatible filtering.
+		hasLegacyFilter := args.FilterJobID != "" || args.FilterEvalStatus != ""
+		if hasLegacyFilter {
+			return structs.ErrIncompatibleFiltering
+		}
+	}
+
 	// Setup the blocking query
 	opts := blockingOptions{
 		queryOpts: &args.QueryOptions,
@@ -409,9 +418,9 @@ func (e *Eval) List(args *structs.EvalListRequest, reply *structs.EvalListRespon
 			if prefix := args.QueryOptions.Prefix; prefix != "" {
 				iter, err = store.EvalsByIDPrefix(ws, namespace, prefix)
 			} else if namespace != structs.AllNamespacesSentinel {
-				iter, err = store.EvalsByNamespaceOrdered(ws, namespace, args.OrderAscending)
+				iter, err = store.EvalsByNamespaceOrdered(ws, namespace, args.Ascending)
 			} else {
-				iter, err = store.Evals(ws, args.OrderAscending)
+				iter, err = store.Evals(ws, args.Ascending)
 			}
 			if err != nil {
 				return err
@@ -425,13 +434,23 @@ func (e *Eval) List(args *structs.EvalListRequest, reply *structs.EvalListRespon
 			})
 
 			var evals []*structs.Evaluation
-			paginator := state.NewPaginator(iter, args.QueryOptions,
-				func(raw interface{}) {
+			paginator, err := state.NewPaginator(iter, args.QueryOptions,
+				func(raw interface{}) error {
 					eval := raw.(*structs.Evaluation)
 					evals = append(evals, eval)
+					return nil
 				})
+			if err != nil {
+				return structs.NewErrRPCCodedf(
+					http.StatusBadRequest, "failed to create result paginator: %v", err)
+			}
 
-			nextToken := paginator.Page()
+			nextToken, err := paginator.Page()
+			if err != nil {
+				return structs.NewErrRPCCodedf(
+					http.StatusBadRequest, "failed to read result page: %v", err)
+			}
+
 			reply.QueryMeta.NextToken = nextToken
 			reply.Evaluations = evals
 

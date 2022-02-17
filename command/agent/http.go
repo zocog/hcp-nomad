@@ -537,6 +537,9 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 				} else if strings.HasSuffix(errMsg, structs.ErrJobRegistrationDisabled.Error()) {
 					errMsg = structs.ErrJobRegistrationDisabled.Error()
 					code = 403
+				} else if strings.HasSuffix(errMsg, structs.ErrIncompatibleFiltering.Error()) {
+					errMsg = structs.ErrIncompatibleFiltering.Error()
+					code = 400
 				}
 			}
 
@@ -784,6 +787,8 @@ func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, r *strin
 	parsePrefix(req, b)
 	parseNamespace(req, &b.Namespace)
 	parsePagination(req, b)
+	parseFilter(req, b)
+	parseAscending(req, b)
 	return parseWait(resp, req, b)
 }
 
@@ -799,6 +804,20 @@ func parsePagination(req *http.Request, b *structs.QueryOptions) {
 	}
 
 	b.NextToken = query.Get("next_token")
+}
+
+// parseFilter parses the filter query parameter for QueryOptions
+func parseFilter(req *http.Request, b *structs.QueryOptions) {
+	query := req.URL.Query()
+	if filter := query.Get("filter"); filter != "" {
+		b.Filter = filter
+	}
+}
+
+// parseAscending parses the ascending query parameter for QueryOptions
+func parseAscending(req *http.Request, b *structs.QueryOptions) {
+	query := req.URL.Query()
+	b.Ascending = query.Get("ascending") == "true"
 }
 
 // parseWriteRequest is a convenience method for endpoints that need to parse a

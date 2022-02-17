@@ -20,7 +20,13 @@ ifneq (MSYS_NT,$(THIS_OS))
 # GOPATH supports PATH style multi-paths; assume the first entry is favorable.
 # Necessary because new Circle images override GOPATH with multiple values.
 # See: https://discuss.circleci.com/t/gopath-is-set-to-multiple-directories/7174
-GOPATH=$(shell go env GOPATH | cut -d: -f1)
+GOPATH := $(shell go env GOPATH | cut -d: -f1)
+endif
+
+# Respect $GOBIN if set in environment or via $GOENV file.
+BIN := $(shell go env GOBIN)
+ifndef BIN
+BIN := $(shell go env GOPATH)/bin
 endif
 
 # Don't embed the Nomad UI when the NOMAD_NO_UI env var is set.
@@ -260,15 +266,15 @@ dev: hclfmt ## Build for the current development platform
 	@echo "==> Removing old development build..."
 	@rm -f $(PROJECT_ROOT)/$(DEV_TARGET)
 	@rm -f $(PROJECT_ROOT)/bin/nomad
-	@rm -f $(GOPATH)/bin/nomad
+	@rm -f $(BIN)/nomad
 	@if [ -d vendor ]; then echo -e "==> WARNING: Found vendor directory.  This may cause build errors, consider running 'rm -r vendor' or 'make clean' to remove.\n"; fi
 	@$(MAKE) --no-print-directory \
 		$(DEV_TARGET) \
 		GO_TAGS="$(GO_TAGS) $(NOMAD_UI_TAG)"
 	@mkdir -p $(PROJECT_ROOT)/bin
-	@mkdir -p $(GOPATH)/bin
+	@mkdir -p $(BIN)
 	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(PROJECT_ROOT)/bin/
-	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(GOPATH)/bin
+	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(BIN)
 
 .PHONY: premplatdev
 premplatdev: GOOS=$(shell go env GOOS)
@@ -395,7 +401,7 @@ clean: ## Remove build artifacts
 	@rm -rf "$(PROJECT_ROOT)/bin/"
 	@rm -rf "$(PROJECT_ROOT)/pkg/"
 	@rm -rf "$(PROJECT_ROOT)/vendor/"
-	@rm -f "$(GOPATH)/bin/nomad"
+	@rm -f "$(BIN)/nomad"
 
 .PHONY: travis
 travis: ## Run Nomad test suites with output to prevent timeouts under Travis CI

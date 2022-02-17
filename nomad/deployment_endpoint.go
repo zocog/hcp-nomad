@@ -2,6 +2,7 @@ package nomad
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
@@ -412,22 +413,32 @@ func (d *Deployment) List(args *structs.DeploymentListRequest, reply *structs.De
 			if prefix := args.QueryOptions.Prefix; prefix != "" {
 				iter, err = store.DeploymentsByIDPrefix(ws, namespace, prefix)
 			} else if namespace != structs.AllNamespacesSentinel {
-				iter, err = store.DeploymentsByNamespaceOrdered(ws, namespace, args.OrderAscending)
+				iter, err = store.DeploymentsByNamespaceOrdered(ws, namespace, args.Ascending)
 			} else {
-				iter, err = store.Deployments(ws, args.OrderAscending)
+				iter, err = store.Deployments(ws, args.Ascending)
 			}
 			if err != nil {
 				return err
 			}
 
 			var deploys []*structs.Deployment
-			paginator := state.NewPaginator(iter, args.QueryOptions,
-				func(raw interface{}) {
+			paginator, err := state.NewPaginator(iter, args.QueryOptions,
+				func(raw interface{}) error {
 					deploy := raw.(*structs.Deployment)
 					deploys = append(deploys, deploy)
+					return nil
 				})
+			if err != nil {
+				return structs.NewErrRPCCodedf(
+					http.StatusBadRequest, "failed to create result paginator: %v", err)
+			}
 
-			nextToken := paginator.Page()
+			nextToken, err := paginator.Page()
+			if err != nil {
+				return structs.NewErrRPCCodedf(
+					http.StatusBadRequest, "failed to read result page: %v", err)
+			}
+
 			reply.QueryMeta.NextToken = nextToken
 			reply.Deployments = deploys
 

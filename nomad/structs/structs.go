@@ -274,6 +274,10 @@ type QueryOptions struct {
 	// AuthToken is secret portion of the ACL token used for the request
 	AuthToken string
 
+	// Filter specifies the go-bexpr filter expression to be used for
+	// filtering the data prior to returning a response
+	Filter string
+
 	// PerPage is the number of entries to be returned in queries that support
 	// paginated lists.
 	PerPage int32
@@ -283,6 +287,9 @@ type QueryOptions struct {
 	// the ID of the next object after the last one seen in the
 	// previous response.
 	NextToken string
+
+	// Ascending is used to have results sorted in ascending chronological order.
+	Ascending bool
 
 	InternalRpcInfo
 }
@@ -859,7 +866,6 @@ type EvalDequeueRequest struct {
 type EvalListRequest struct {
 	FilterJobID      string
 	FilterEvalStatus string
-	OrderAscending   bool
 	QueryOptions
 }
 
@@ -1094,7 +1100,6 @@ type GenericRequest struct {
 
 // DeploymentListRequest is used to list the deployments
 type DeploymentListRequest struct {
-	OrderAscending bool
 	QueryOptions
 }
 
