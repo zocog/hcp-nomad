@@ -26,7 +26,7 @@ endif
 # Respect $GOBIN if set in environment or via $GOENV file.
 BIN := $(shell go env GOBIN)
 ifndef BIN
-BIN := $(shell go env GOPATH)/bin
+BIN := $(GOPATH)/bin
 endif
 
 # Don't embed the Nomad UI when the NOMAD_NO_UI env var is set.

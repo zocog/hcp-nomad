@@ -808,8 +808,8 @@ github.com/hashicorp/nomad-licensing v0.0.11/go.mod h1:nQI/cC1n1pONnCemGaNdOkCBp
 github.com/hashicorp/raft v1.0.1/go.mod h1:DVSAWItjLjTOkVbSpWQ0j0kUADIvDaCtBxIcbNAQLkI=
 github.com/hashicorp/raft v1.1.1/go.mod h1:vPAJM8Asw6u8LxC3eJCUZmRP/E4QmUGE1R7g7k8sG/8=
 github.com/hashicorp/raft v1.1.2/go.mod h1:vPAJM8Asw6u8LxC3eJCUZmRP/E4QmUGE1R7g7k8sG/8=
-github.com/hashicorp/raft v1.1.3-0.20200211192230-365023de17e6 h1:+H0NF++gFCFqQQdjRstZssPZcx9BiaMOGHxSxoNvBN8=
-github.com/hashicorp/raft v1.1.3-0.20200211192230-365023de17e6/go.mod h1:vPAJM8Asw6u8LxC3eJCUZmRP/E4QmUGE1R7g7k8sG/8=
+github.com/hashicorp/raft v1.3.5 h1:93YBXmHWW2MuyMZfMxN1PsAnPXAt+hBfG0S0ZrZxRrY=
+github.com/hashicorp/raft v1.3.5/go.mod h1:4Ak7FSPnuvmb0GV6vgIAJ4vYT4bek9bb6Q+7HVbyzqM=
 github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea h1:xykPFhrBAS2J0VBzVa5e80b5ZtYuNQtgXjN40qBZlD4=
 github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea/go.mod h1:pNv7Wc3ycL6F5oOWn+tPGo2gWD4a5X+yp/ntwdKLjRk=
 github.com/hashicorp/raft-snapshot v1.0.2 h1:65VRIDa08Q3zGpSzLZBpLbyeCTlX8Lo4yKpCCj5T+2s=
