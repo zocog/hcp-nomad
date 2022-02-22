@@ -1,3 +1,6 @@
+//go:build ent
+// +build ent
+
 package nomad
 
 import (
