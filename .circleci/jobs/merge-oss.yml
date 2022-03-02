@@ -44,6 +44,12 @@ steps:
           exit 1
         fi
 
+        # run make bootstrap so we have the tools for make check
+        if ! make bootstrap ; then
+          echo "export FAIL_REASON='because make bootstrap failed after auto-merge'" >> $BASH_ENV
+          exit 1
+        fi
+
         # quick check and basic compile build
         if ! make check ; then
           echo "export FAIL_REASON='because make check failed after auto-merge'" >> $BASH_ENV
