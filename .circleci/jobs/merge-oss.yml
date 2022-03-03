@@ -22,6 +22,7 @@ steps:
   - checkout
   - run: apt-get update; apt-get install -y sudo
   - install-circleci-local-cli
+  - run: make deps lint-deps
   - run:
       name: Merge OSS branch
       command: |
@@ -41,12 +42,6 @@ steps:
 
         if ! ./scripts/enterprise/merge-oss.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}"; then
           echo "export FAIL_REASON='because git was unable to auto-merge'" >> $BASH_ENV
-          exit 1
-        fi
-
-        # run make bootstrap so we have the tools for make check
-        if ! make bootstrap ; then
-          echo "export FAIL_REASON='because make bootstrap failed after auto-merge'" >> $BASH_ENV
           exit 1
         fi
 
