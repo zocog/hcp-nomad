@@ -404,13 +404,6 @@ clean: ## Remove build artifacts
 	@rm -rf "$(PROJECT_ROOT)/vendor/"
 	@rm -f "$(BIN)/nomad"
 
-.PHONY: travis
-travis: ## Run Nomad test suites with output to prevent timeouts under Travis CI
-	@if [ ! $(SKIP_NOMAD_TESTS) ]; then \
-		make generate-structs; \
-	fi
-	@"$(PROJECT_ROOT)/scripts/travis.sh"
-
 .PHONY: testcluster
 testcluster: ## Bring up a Linux test cluster using Vagrant. Set PROVIDER if necessary.
 	vagrant up nomad-server01 \
