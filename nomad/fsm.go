@@ -1705,16 +1705,16 @@ func (n *nomadFSM) Restore(old io.ReadCloser) error {
 
 // failLeakedDeployments is used to fail deployments that do not have a job.
 // This state is a broken invariant that should not occur since 0.8.X.
-func (n *nomadFSM) failLeakedDeployments(state *state.StateStore) error {
+func (n *nomadFSM) failLeakedDeployments(store *state.StateStore) error {
 	// Scan for deployments that are referencing a job that no longer exists.
 	// This could happen if multiple deployments were created for a given job
 	// and thus the older deployment leaks and then the job is removed.
-	iter, err := state.Deployments(nil, false)
+	iter, err := store.Deployments(nil, state.SortDefault)
 	if err != nil {
 		return fmt.Errorf("failed to query deployments: %v", err)
 	}
 
-	dindex, err := state.Index("deployment")
+	dindex, err := store.Index("deployment")
 	if err != nil {
 		return fmt.Errorf("couldn't fetch index of deployments table: %v", err)
 	}
@@ -1734,7 +1734,7 @@ func (n *nomadFSM) failLeakedDeployments(state *state.StateStore) error {
 		}
 
 		// Find the job
-		job, err := state.JobByID(nil, d.Namespace, d.JobID)
+		job, err := store.JobByID(nil, d.Namespace, d.JobID)
 		if err != nil {
 			return fmt.Errorf("failed to lookup job %s from deployment %q: %v", d.JobID, d.ID, err)
 		}
@@ -1748,7 +1748,7 @@ func (n *nomadFSM) failLeakedDeployments(state *state.StateStore) error {
 		failed := d.Copy()
 		failed.Status = structs.DeploymentStatusCancelled
 		failed.StatusDescription = structs.DeploymentStatusDescriptionStoppedJob
-		if err := state.UpsertDeployment(dindex, failed); err != nil {
+		if err := store.UpsertDeployment(dindex, failed); err != nil {
 			return fmt.Errorf("failed to mark leaked deployment %q as failed: %v", failed.ID, err)
 		}
 	}
@@ -2100,7 +2100,7 @@ func (s *nomadSnapshot) persistAllocs(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
 	// Get all the allocations
 	ws := memdb.NewWatchSet()
-	allocs, err := s.snap.Allocs(ws)
+	allocs, err := s.snap.Allocs(ws, state.SortDefault)
 	if err != nil {
 		return err
 	}
@@ -2251,7 +2251,7 @@ func (s *nomadSnapshot) persistDeployments(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
 	// Get all the jobs
 	ws := memdb.NewWatchSet()
-	deployments, err := s.snap.Deployments(ws, false)
+	deployments, err := s.snap.Deployments(ws, state.SortDefault)
 	if err != nil {
 		return err
 	}
@@ -2307,7 +2307,7 @@ func (s *nomadSnapshot) persistACLTokens(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
 	// Get all the policies
 	ws := memdb.NewWatchSet()
-	tokens, err := s.snap.ACLTokens(ws)
+	tokens, err := s.snap.ACLTokens(ws, state.SortDefault)
 	if err != nil {
 		return err
 	}
