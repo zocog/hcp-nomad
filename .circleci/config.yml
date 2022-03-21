@@ -182,7 +182,7 @@ executors:
       GOLANG_VERSION: 1.17.5
       GOPATH: c:\gopath
       GOTESTSUM_PATH: c:\tmp\test-reports
-      GOTESTSUM_VERSION: 0.4.2
+      GOTESTSUM_VERSION: 1.7.0
       VAULT_VERSION: 1.4.1
     machine:
       image: windows-server-2019-vs2019:stable
