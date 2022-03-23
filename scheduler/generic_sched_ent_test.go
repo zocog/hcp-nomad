@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -18,6 +19,7 @@ import (
 // Test that scaling up a job in a way that will cause the job to exceed the
 // quota limit places the maximum number of allocations
 func TestServiceSched_JobModify_IncrCount_QuotaLimit(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	h := NewHarness(t)
 
@@ -130,6 +132,7 @@ func TestServiceSched_JobModify_IncrCount_QuotaLimit(t *testing.T) {
 }
 
 func TestServiceSched_QuotaInteractionsWithConstraints(t *testing.T) {
+	ci.Parallel(t)
 
 	require := require.New(t)
 	h := NewHarness(t)

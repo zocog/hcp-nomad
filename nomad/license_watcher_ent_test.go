@@ -13,15 +13,15 @@ import (
 	"github.com/hashicorp/go-hclog"
 	licensing "github.com/hashicorp/go-licensing"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/testutil"
-
 	"github.com/stretchr/testify/require"
 )
 
 // TestLicenseWatcher_Init_MissingLicenseFile verifies that during startup a
 // missing license file fails the LicenseWatcher start
 func TestLicenseWatcher_Init_MissingLicenseFile(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	cfg := &LicenseConfig{
 		Logger: hclog.NewInterceptLogger(nil),
@@ -36,7 +36,7 @@ func TestLicenseWatcher_Init_MissingLicenseFile(t *testing.T) {
 // TestLicenseWatcher_Init_InvalidLicenseFileFormat verifies that during startup an
 // invalid license file format fails the LicenseWatcher start
 func TestLicenseWatcher_Init_InvalidLicenseFileFormat(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	cfg := &LicenseConfig{
 		LicenseEnvBytes: "invalid-license",
@@ -53,7 +53,7 @@ func TestLicenseWatcher_Init_InvalidLicenseFileFormat(t *testing.T) {
 // TestLicenseWatcher_Init_InvalidLicenseSignature verifies that during startup an
 // invalid license file fails the LicenseWatcher start
 func TestLicenseWatcher_Init_InvalidLicenseSignature(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	cfg := &LicenseConfig{
 		LicenseEnvBytes: testLicense(
@@ -73,7 +73,7 @@ func TestLicenseWatcher_Init_InvalidLicenseSignature(t *testing.T) {
 // TestLicenseWatcher_Init_ExpiredLicenseFile verifies that during startup an
 // expired license file fails the LicenseWatcher start
 func TestLicenseWatcher_Init_ExpiredLicenseFile(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	cfg := &LicenseConfig{
 		LicenseEnvBytes: testLicense(
@@ -94,7 +94,7 @@ func TestLicenseWatcher_Init_ExpiredLicenseFile(t *testing.T) {
 // TestLicenseWatcher_Start_ValidLicenseFile_Ok verifies that during startup a
 // valid license file is accepted.
 func TestLicenseWatcher_Start_ValidLicenseFile_Ok(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseEnv = defaultTestLicense()
@@ -120,7 +120,7 @@ func TestLicenseWatcher_Start_ValidLicenseFile_Ok(t *testing.T) {
 // TestLicenseWatcher_Reload_NoOp verifies that, given a running server with a
 // valid license file, reloading the configuration without changes is a no-op.
 func TestLicenseWatcher_Reload_NoOp(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	initLicense := defaultTestLicense()
 	cfg := &LicenseConfig{
@@ -158,7 +158,7 @@ func TestLicenseWatcher_Reload_NoOp(t *testing.T) {
 // license and the configuration is reloaded, the LicenseWatcher state will be
 // updated to the new license.
 func TestLicenseWatcher_Reload_NewValid(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	initLicense := defaultTestLicense()
 
@@ -205,7 +205,7 @@ func TestLicenseWatcher_Reload_NewValid(t *testing.T) {
 // license and the configuration is reloaded, the LicenseWatcher state will be
 // not be updated to the new license.
 func TestLicenseWatcher_Reload_NewExpired(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	initLicense := testLicense("test",
 		time.Now().Add(-5*time.Minute), time.Now().Add(15*time.Minute))
@@ -243,7 +243,7 @@ func TestLicenseWatcher_Reload_NewExpired(t *testing.T) {
 // license with an invalid format and the configuration is reloaded, the
 // LicenseWatcher state will be not be updated to the new license.
 func TestLicenseWatcher_Reload_NewInvalidFormat(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	initLicense := testLicense("test",
 		time.Now().Add(-5*time.Minute), time.Now().Add(15*time.Minute))
@@ -278,7 +278,7 @@ func TestLicenseWatcher_Reload_NewInvalidFormat(t *testing.T) {
 // with a valid license file, if the license file expires, we gracefully
 // degrade features.
 func TestLicenseWatcher_Expired_NoFeatures(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	issue := time.Now().Add(-5 * time.Minute)
 	exp := time.Now().Add(2 * time.Second)

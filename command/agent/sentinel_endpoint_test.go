@@ -8,13 +8,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestHTTP_SentinelPolicyList(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	httpACLTest(t, nil, func(s *TestAgent) {
 		p1 := mock.SentinelPolicy()
 		p2 := mock.SentinelPolicy()
@@ -65,7 +66,7 @@ func TestHTTP_SentinelPolicyList(t *testing.T) {
 }
 
 func TestHTTP_SentinelPolicyQuery(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	httpACLTest(t, nil, func(s *TestAgent) {
 		p1 := mock.SentinelPolicy()
 		args := structs.SentinelPolicyUpsertRequest{
@@ -114,7 +115,7 @@ func TestHTTP_SentinelPolicyQuery(t *testing.T) {
 }
 
 func TestHTTP_SentinelPolicyCreate(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	httpACLTest(t, nil, func(s *TestAgent) {
 		// Make the HTTP request
 		p1 := mock.SentinelPolicy()
@@ -149,7 +150,7 @@ func TestHTTP_SentinelPolicyCreate(t *testing.T) {
 }
 
 func TestHTTP_SentinelPolicyDelete(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	httpACLTest(t, nil, func(s *TestAgent) {
 		p1 := mock.SentinelPolicy()
 		args := structs.SentinelPolicyUpsertRequest{

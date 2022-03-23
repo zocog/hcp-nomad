@@ -7,16 +7,16 @@ import (
 	"testing"
 
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/nomad/acl"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDeploymentEndpoint_Get_CrossNamespace(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 
 	s1, _, cleanupS1 := TestACLServer(t, func(c *Config) {

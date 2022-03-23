@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -15,7 +16,7 @@ import (
 )
 
 func TestLeader_ReplicateSentinelPolicies(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.Region = "region1"
 		c.AuthoritativeRegion = "region1"
@@ -63,7 +64,7 @@ func TestLeader_ReplicateSentinelPolicies(t *testing.T) {
 }
 
 func TestLeader_DiffSentinelPolicies(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	state := state.TestStateStore(t)
 
@@ -95,7 +96,7 @@ func TestLeader_DiffSentinelPolicies(t *testing.T) {
 }
 
 func TestLeader_ReplicateQuotaSpecs(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.Region = "region1"
 		c.AuthoritativeRegion = "region1"
@@ -143,7 +144,7 @@ func TestLeader_ReplicateQuotaSpecs(t *testing.T) {
 }
 
 func TestLeader_DiffQuotaSpecs(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	state := state.TestStateStore(t)
 

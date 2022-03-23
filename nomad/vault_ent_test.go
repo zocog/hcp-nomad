@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/nomad-licensing/license"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/structs/config"
 	vaultconsts "github.com/hashicorp/vault/sdk/helper/consts"
@@ -15,7 +16,7 @@ import (
 )
 
 func TestTokenAuthForTask(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	tr := true
 	defaultNs := "test-namespace"
@@ -43,7 +44,7 @@ func TestTokenAuthForTask(t *testing.T) {
 }
 
 func TestTokenAuthForTask_Unlicensed_Requested_Different_NS(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	tr := true
 	defaultNs := "test-namespace"

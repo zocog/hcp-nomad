@@ -7,11 +7,13 @@ import (
 	"testing"
 
 	"github.com/hashicorp/nomad-licensing/license"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/stretchr/testify/require"
 )
 
 func TestEnterpriseClient_InitialFeatures(t *testing.T) {
+	ci.Parallel(t)
 	log := testlog.HCLogger(t)
 	c := newEnterpriseClient(log)
 
@@ -20,6 +22,7 @@ func TestEnterpriseClient_InitialFeatures(t *testing.T) {
 }
 
 func TestEnterpriseClient_FeatureCheck(t *testing.T) {
+	ci.Parallel(t)
 	log := testlog.HCLogger(t)
 	c := newEnterpriseClient(log)
 

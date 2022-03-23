@@ -10,6 +10,7 @@ import (
 	"time"
 
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
@@ -18,7 +19,7 @@ import (
 )
 
 func TestFSM_UpsertSentinelPolicies(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	fsm := testFSM(t)
 
 	policy := mock.SentinelPolicy()
@@ -43,7 +44,7 @@ func TestFSM_UpsertSentinelPolicies(t *testing.T) {
 }
 
 func TestFSM_DeleteSentinelPolicies(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	fsm := testFSM(t)
 
 	policy := mock.SentinelPolicy()
@@ -71,7 +72,7 @@ func TestFSM_DeleteSentinelPolicies(t *testing.T) {
 }
 
 func TestFSM_SnapshotRestore_SentinelPolicy(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	// Add some state
 	fsm := testFSM(t)
 	state := fsm.State()
@@ -90,7 +91,7 @@ func TestFSM_SnapshotRestore_SentinelPolicy(t *testing.T) {
 }
 
 func TestFSM_UpsertQuotaSpecs(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	assert := assert.New(t)
 	fsm := testFSM(t)
 
@@ -118,7 +119,7 @@ func TestFSM_UpsertQuotaSpecs(t *testing.T) {
 // This test checks that unblocks are triggered when a quota changes
 func TestFSM_UpsertQuotaSpecs_Modify(t *testing.T) {
 	assert := assert.New(t)
-	t.Parallel()
+	ci.Parallel(t)
 	fsm := testFSM(t)
 	state := fsm.State()
 	fsm.blockedEvals.SetEnabled(true)
@@ -161,7 +162,7 @@ func TestFSM_UpsertQuotaSpecs_Modify(t *testing.T) {
 }
 
 func TestFSM_DeleteQuotaSpecs(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	assert := assert.New(t)
 	fsm := testFSM(t)
 
@@ -189,7 +190,7 @@ func TestFSM_DeleteQuotaSpecs(t *testing.T) {
 }
 
 func TestFSM_SnapshotRestore_QuotaSpec(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	assert := assert.New(t)
 
 	// Add some state
@@ -210,7 +211,7 @@ func TestFSM_SnapshotRestore_QuotaSpec(t *testing.T) {
 }
 
 func TestFSM_SnapshotRestore_QuotaUsage(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	assert := assert.New(t)
 
 	// Add some state
@@ -239,7 +240,7 @@ func TestFSM_SnapshotRestore_QuotaUsage(t *testing.T) {
 // has an associated quota.
 func TestFSM_AllocClientUpdate_Quota(t *testing.T) {
 	assert := assert.New(t)
-	t.Parallel()
+	ci.Parallel(t)
 	fsm := testFSM(t)
 	state := fsm.State()
 	fsm.blockedEvals.SetEnabled(true)
@@ -312,7 +313,7 @@ func TestFSM_AllocClientUpdate_Quota(t *testing.T) {
 // quota
 func TestFSM_UpsertNamespaces_ModifyQuota(t *testing.T) {
 	assert := assert.New(t)
-	t.Parallel()
+	ci.Parallel(t)
 	fsm := testFSM(t)
 	state := fsm.State()
 	fsm.blockedEvals.SetEnabled(true)
@@ -362,7 +363,7 @@ func TestFSM_UpsertNamespaces_ModifyQuota(t *testing.T) {
 }
 
 func TestFSM_UpsertLicense(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	fsm := testFSM(t)
 
 	stored, _ := mock.StoredLicense()
@@ -387,7 +388,7 @@ func TestFSM_UpsertLicense(t *testing.T) {
 }
 
 func TestFSM_SnapshotRestore_License(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	assert := assert.New(t)
 
 	// Add some state
@@ -406,7 +407,7 @@ func TestFSM_SnapshotRestore_License(t *testing.T) {
 }
 
 func TestFSM_SnapshotRestore_TmpLicenseBarrier(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	assert := assert.New(t)
 
 	// Add some state
@@ -425,7 +426,7 @@ func TestFSM_SnapshotRestore_TmpLicenseBarrier(t *testing.T) {
 
 func TestFSM_UpsertRecommdation(t *testing.T) {
 	require := require.New(t)
-	t.Parallel()
+	ci.Parallel(t)
 	fsm := testFSM(t)
 
 	ns := mock.Namespace()
@@ -448,7 +449,7 @@ func TestFSM_UpsertRecommdation(t *testing.T) {
 
 func TestFSM_DeleteRecommendations(t *testing.T) {
 	require := require.New(t)
-	t.Parallel()
+	ci.Parallel(t)
 	fsm := testFSM(t)
 
 	ns1 := mock.Namespace()
@@ -482,7 +483,7 @@ func TestFSM_DeleteRecommendations(t *testing.T) {
 }
 
 func TestFSM_SnapshotRestore_Recommendations(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 	// Add some state
 	fsm := testFSM(t)

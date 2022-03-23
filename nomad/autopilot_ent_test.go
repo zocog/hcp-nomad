@@ -9,12 +9,14 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAdvancedAutopilot_DesignateNonVoter(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 2
@@ -61,6 +63,7 @@ func TestAdvancedAutopilot_DesignateNonVoter(t *testing.T) {
 }
 
 func TestAdvancedAutopilot_RedundancyZone(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 3
@@ -144,6 +147,7 @@ func TestAdvancedAutopilot_RedundancyZone(t *testing.T) {
 }
 
 func TestAdvancedAutopilot_UpgradeMigration(t *testing.T) {
+	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 2
 		c.RaftConfig.ProtocolVersion = 3
@@ -191,6 +195,7 @@ func TestAdvancedAutopilot_UpgradeMigration(t *testing.T) {
 }
 
 func TestAdvancedAutopilot_CustomUpgradeMigration(t *testing.T) {
+	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 2
 		c.RaftConfig.ProtocolVersion = 3
@@ -240,6 +245,7 @@ func TestAdvancedAutopilot_CustomUpgradeMigration(t *testing.T) {
 }
 
 func TestAdvancedAutopilot_DisableUpgradeMigration(t *testing.T) {
+	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.DisableUpgradeMigration = true

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/nomad/api"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/command/agent"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/mitchellh/cli"
@@ -16,7 +17,7 @@ import (
 
 // TestJobStatusCommand_Multiregion tests multiregion deployment output
 func TestJobStatusCommand_Multiregion(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	cbe := func(config *agent.Config) {
 		config.Region = "east"

@@ -6,6 +6,7 @@ package nomad
 import (
 	"testing"
 
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
@@ -15,7 +16,7 @@ import (
 )
 
 func TestPlanApply_EvalPlanQuota_Under(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -53,7 +54,7 @@ func TestPlanApply_EvalPlanQuota_Under(t *testing.T) {
 }
 
 func TestPlanApply_EvalPlanQuota_Above(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -93,7 +94,7 @@ func TestPlanApply_EvalPlanQuota_Above(t *testing.T) {
 }
 
 func TestPlanApply_EvalPlan_AboveQuota(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -149,7 +150,7 @@ func TestPlanApply_EvalPlan_AboveQuota(t *testing.T) {
 }
 
 func TestPlanApply_EvalPlanQuota_NilJob(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -185,7 +186,7 @@ func TestPlanApply_EvalPlanQuota_NilJob(t *testing.T) {
 // deployment fails we don't double-count credits for failed-but-not-removed
 // allocations
 func TestPlanApply_EvalPlan_PriorFailedDeploy(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 	state := testStateStore(t)
 

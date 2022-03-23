@@ -13,13 +13,14 @@ import (
 
 	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/api"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/nomad"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/stretchr/testify/require"
 )
 
 func TestOperator_GetLicense(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	cb := func(c *Config) {
 		c.NomadConfig.BootstrapExpect = 1
@@ -53,7 +54,7 @@ func TestOperator_GetLicense(t *testing.T) {
 }
 
 func TestOperator_License_UnknownVerb(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	httpTest(t, nil, func(s *TestAgent) {
 		body := bytes.NewBuffer(nil)

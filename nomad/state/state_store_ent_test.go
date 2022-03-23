@@ -9,6 +9,7 @@ import (
 	"time"
 
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -18,6 +19,7 @@ import (
 )
 
 func TestStateStore_UpsertSentinelPolicy(t *testing.T) {
+	ci.Parallel(t)
 	state := testStateStore(t)
 	policy := mock.SentinelPolicy()
 	policy2 := mock.SentinelPolicy()
@@ -97,6 +99,7 @@ func TestStateStore_UpsertSentinelPolicy(t *testing.T) {
 }
 
 func TestStateStore_DeleteSentinelPolicy(t *testing.T) {
+	ci.Parallel(t)
 	state := testStateStore(t)
 	policy := mock.SentinelPolicy()
 	policy2 := mock.SentinelPolicy()
@@ -164,6 +167,7 @@ func TestStateStore_DeleteSentinelPolicy(t *testing.T) {
 }
 
 func TestStateStore_SentinelPolicyByNamePrefix(t *testing.T) {
+	ci.Parallel(t)
 	state := testStateStore(t)
 	names := []string{
 		"foo",
@@ -211,6 +215,7 @@ func TestStateStore_SentinelPolicyByNamePrefix(t *testing.T) {
 }
 
 func TestStateStore_RestoreSentinelPolicy(t *testing.T) {
+	ci.Parallel(t)
 	state := testStateStore(t)
 	policy := mock.SentinelPolicy()
 
@@ -234,6 +239,7 @@ func TestStateStore_RestoreSentinelPolicy(t *testing.T) {
 }
 
 func TestStateStore_NamespaceByQuota(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -276,6 +282,7 @@ func TestStateStore_NamespaceByQuota(t *testing.T) {
 }
 
 func TestStateStore_UpsertAllocs_Quota_NewAlloc(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -321,6 +328,7 @@ func TestStateStore_UpsertAllocs_Quota_NewAlloc(t *testing.T) {
 
 // This should no-op
 func TestStateStore_UpsertAllocs_Quota_UpdateAlloc(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -380,6 +388,7 @@ func TestStateStore_UpsertAllocs_Quota_UpdateAlloc(t *testing.T) {
 }
 
 func TestStateStore_UpsertAllocs_Quota_StopAlloc(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -426,6 +435,7 @@ func TestStateStore_UpsertAllocs_Quota_StopAlloc(t *testing.T) {
 
 // This should no-op
 func TestStateStore_UpdateAllocsFromClient_Quota_UpdateAlloc(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -483,6 +493,7 @@ func TestStateStore_UpdateAllocsFromClient_Quota_UpdateAlloc(t *testing.T) {
 }
 
 func TestStateStore_UpdateAllocsFromClient_Quota_StopAlloc(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -528,6 +539,7 @@ func TestStateStore_UpdateAllocsFromClient_Quota_StopAlloc(t *testing.T) {
 }
 
 func TestStateStore_UpsertNamespaces_BadQuota(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 	ns1 := mock.Namespace()
@@ -536,6 +548,7 @@ func TestStateStore_UpsertNamespaces_BadQuota(t *testing.T) {
 }
 
 func TestStateStore_UpsertNamespaces_NewQuota(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -602,6 +615,7 @@ func TestStateStore_UpsertNamespaces_NewQuota(t *testing.T) {
 }
 
 func TestStateStore_UpsertNamespaces_RemoveQuota(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -650,6 +664,7 @@ func TestStateStore_UpsertNamespaces_RemoveQuota(t *testing.T) {
 }
 
 func TestStateStore_UpsertNamespaces_ChangeQuota(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -720,6 +735,7 @@ func TestStateStore_UpsertNamespaces_ChangeQuota(t *testing.T) {
 }
 
 func TestStateStore_UpsertQuotaSpec(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 	qs1 := mock.QuotaSpec()
@@ -775,6 +791,7 @@ func TestStateStore_UpsertQuotaSpec(t *testing.T) {
 }
 
 func TestStateStore_UpsertQuotaSpec_Usage(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -874,6 +891,7 @@ func TestStateStore_UpsertQuotaSpec_Usage(t *testing.T) {
 }
 
 func TestStateStore_DeleteQuotaSpecs(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 	qs1 := mock.QuotaSpec()
@@ -924,6 +942,7 @@ func TestStateStore_DeleteQuotaSpecs(t *testing.T) {
 }
 
 func TestStateStore_DeleteQuotaSpecs_Referenced(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 	qs1 := mock.QuotaSpec()
@@ -945,6 +964,7 @@ func TestStateStore_DeleteQuotaSpecs_Referenced(t *testing.T) {
 }
 
 func TestStateStore_QuotaSpecsByNamePrefix(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 	names := []string{
@@ -987,6 +1007,7 @@ func TestStateStore_QuotaSpecsByNamePrefix(t *testing.T) {
 }
 
 func TestStateStore_RestoreQuotaSpec(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 	spec := mock.QuotaSpec()
@@ -1005,6 +1026,7 @@ func TestStateStore_RestoreQuotaSpec(t *testing.T) {
 }
 
 func TestStateStore_UpsertQuotaUsage(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 	qs1 := mock.QuotaSpec()
@@ -1056,6 +1078,7 @@ func TestStateStore_UpsertQuotaUsage(t *testing.T) {
 }
 
 func TestStateStore_DeleteQuotaUsages(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 	qs1 := mock.QuotaSpec()
@@ -1107,6 +1130,7 @@ func TestStateStore_DeleteQuotaUsages(t *testing.T) {
 }
 
 func TestStateStore_QuotaUsagesByNamePrefix(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 	names := []string{
@@ -1152,6 +1176,7 @@ func TestStateStore_QuotaUsagesByNamePrefix(t *testing.T) {
 }
 
 func TestStateStore_RestoreQuotaUsage(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 	usage := mock.QuotaUsage()
@@ -1170,7 +1195,7 @@ func TestStateStore_RestoreQuotaUsage(t *testing.T) {
 }
 
 func TestStateStore_UpsertLicense(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	state := testStateStore(t)
 
 	stored, _ := mock.StoredLicense()
@@ -1184,7 +1209,7 @@ func TestStateStore_UpsertLicense(t *testing.T) {
 }
 
 func TestStateStore_UpsertTmpLicenseBarrier(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	state := testStateStore(t)
 
 	stored := &structs.TmpLicenseBarrier{CreateTime: time.Now().UnixNano()}
@@ -1198,6 +1223,7 @@ func TestStateStore_UpsertTmpLicenseBarrier(t *testing.T) {
 }
 
 func TestStateStore_RestoreTmpLicenseBarrier(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	state := testStateStore(t)
 
@@ -1217,6 +1243,7 @@ func TestStateStore_RestoreTmpLicenseBarrier(t *testing.T) {
 }
 
 func TestStateStore_UpsertRecommendation(t *testing.T) {
+	ci.Parallel(t)
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
@@ -1243,6 +1270,7 @@ func TestStateStore_UpsertRecommendation(t *testing.T) {
 }
 
 func TestStateStore_ListRecommendationsByJob(t *testing.T) {
+	ci.Parallel(t)
 	require := require.New(t)
 	state := testStateStore(t)
 	job1 := mock.Job()
@@ -1287,6 +1315,7 @@ func TestStateStore_ListRecommendationsByJob(t *testing.T) {
 }
 
 func TestStateStore_ListRecommendationsByNamespace(t *testing.T) {
+	ci.Parallel(t)
 	require := require.New(t)
 	state := testStateStore(t)
 	job1 := mock.Job()
@@ -1339,6 +1368,7 @@ func TestStateStore_ListRecommendationsByNamespace(t *testing.T) {
 }
 
 func TestStateStore_ListAllRecommendations(t *testing.T) {
+	ci.Parallel(t)
 	require := require.New(t)
 	state := testStateStore(t)
 	job1 := mock.Job()
@@ -1391,6 +1421,7 @@ func TestStateStore_ListAllRecommendations(t *testing.T) {
 // upserting a recommendation with the same job,path will update
 // any existing recommendation with that job,path
 func TestStateStore_UpsertRecommendation_UpdateExistingPath(t *testing.T) {
+	ci.Parallel(t)
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
@@ -1433,7 +1464,7 @@ func TestStateStore_UpsertRecommendation_UpdateExistingPath(t *testing.T) {
 }
 
 func TestStateStore_UpsertRecommendation_ErrorWithoutJob(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
@@ -1460,7 +1491,7 @@ func TestStateStore_UpsertRecommendation_ErrorWithoutJob(t *testing.T) {
 }
 
 func TestStateStore_DeleteRecommendation(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
@@ -1497,7 +1528,7 @@ func TestStateStore_DeleteRecommendation(t *testing.T) {
 }
 
 func TestStateStore_DeleteJob_DeletesRecommendations(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
@@ -1531,7 +1562,7 @@ func TestStateStore_DeleteJob_DeletesRecommendations(t *testing.T) {
 }
 
 func TestStateStore_UpdateJob_DeletesFixedRecommendations(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
@@ -1578,7 +1609,7 @@ func TestStateStore_UpdateJob_DeletesFixedRecommendations(t *testing.T) {
 // recommendations against a specific task are automatically deleted if the
 // task is removed from the job
 func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteGroup(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
@@ -1610,7 +1641,7 @@ func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteGroup(t *test
 // recommendations against a specific task are automatically deleted if the
 // task is removed from the job
 func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteTask(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
@@ -1641,7 +1672,7 @@ func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteTask(t *testi
 // TestStateStore_UpdateJob_UpdateRecCurrent tests that recommendations against a
 // job have .Current updated if the job is updated
 func TestStateStore_UpdateJob_UpdateRecCurrent(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
@@ -1687,7 +1718,7 @@ func TestStateStore_UpdateJob_UpdateRecCurrent(t *testing.T) {
 }
 
 func TestStateStore_ScalingPoliciesByType_Vertical(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	require := require.New(t)
 
@@ -1739,7 +1770,7 @@ func TestStateStore_ScalingPoliciesByType_Vertical(t *testing.T) {
 }
 
 func TestStateStore_ScalingPoliciesByTypePrefix_Vertical(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	require := require.New(t)
 
@@ -1785,7 +1816,7 @@ func TestStateStore_ScalingPoliciesByTypePrefix_Vertical(t *testing.T) {
 }
 
 func TestStateStore_UpsertJob_UpsertScalingPolicies(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	require := require.New(t)
 

@@ -8,14 +8,14 @@ import (
 	"time"
 
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/require"
-
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLicenseEndpoint_GetLicense(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	now := time.Now()
 	s1, cleanupS1 := TestServer(t, nil)
 	defer cleanupS1()

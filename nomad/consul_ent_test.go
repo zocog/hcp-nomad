@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/command/agent/consul"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -17,7 +18,7 @@ func TestConsulACLsAPI_CheckPermissions_ent(t *testing.T) {
 	// namespace parameter. ConsulUsage is built as a map from namespace to
 	// associated service/kv reference.
 
-	t.Parallel()
+	ci.Parallel(t)
 
 	try := func(t *testing.T, namespace string, usage *structs.ConsulUsage, secretID string, exp error) {
 		logger := testlog.HCLogger(t)

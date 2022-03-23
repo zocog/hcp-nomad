@@ -6,11 +6,12 @@ package api
 import (
 	"testing"
 
+	"github.com/hashicorp/nomad/api/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRecommendations_Upsert(t *testing.T) {
-	t.Parallel()
+	testutil.Parallel(t)
 	require := require.New(t)
 	c, s := makeClient(t, nil, nil)
 	defer s.Stop()
@@ -40,7 +41,7 @@ func TestRecommendations_Upsert(t *testing.T) {
 }
 
 func TestRecommendations_Upsert_Invalid(t *testing.T) {
-	t.Parallel()
+	testutil.Parallel(t)
 	require := require.New(t)
 	c, s := makeClient(t, nil, nil)
 	defer s.Stop()
@@ -62,7 +63,7 @@ func TestRecommendations_Upsert_Invalid(t *testing.T) {
 }
 
 func TestRecommendation_Info(t *testing.T) {
-	t.Parallel()
+	testutil.Parallel(t)
 	require := require.New(t)
 	c, s := makeClient(t, nil, nil)
 	defer s.Stop()
@@ -91,7 +92,7 @@ func TestRecommendation_Info(t *testing.T) {
 }
 
 func TestRecommendations_Delete(t *testing.T) {
-	t.Parallel()
+	testutil.Parallel(t)
 	require := require.New(t)
 	c, s := makeClient(t, nil, nil)
 	defer s.Stop()
@@ -124,7 +125,7 @@ func TestRecommendations_Delete(t *testing.T) {
 }
 
 func TestRecommendations_List(t *testing.T) {
-	t.Parallel()
+	testutil.Parallel(t)
 	require := require.New(t)
 	c, s := makeClient(t, nil, nil)
 	defer s.Stop()
@@ -217,7 +218,7 @@ func TestRecommendations_List(t *testing.T) {
 }
 
 func TestRecommendations_ListFilter(t *testing.T) {
-	t.Parallel()
+	testutil.Parallel(t)
 	require := require.New(t)
 	c, s := makeClient(t, nil, nil)
 	defer s.Stop()
@@ -337,7 +338,7 @@ func TestRecommendations_ListFilter(t *testing.T) {
 }
 
 func TestRecommendations_Apply(t *testing.T) {
-	t.Parallel()
+	testutil.Parallel(t)
 	require := require.New(t)
 	c, s := makeClient(t, nil, nil)
 	defer s.Stop()

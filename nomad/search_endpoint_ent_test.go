@@ -9,6 +9,7 @@ import (
 
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/nomad/acl"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
@@ -17,8 +18,8 @@ import (
 )
 
 func TestSearch_PrefixSearch_Quota(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
-	t.Parallel()
 	s, cleanup := TestServer(t, func(c *Config) {
 		c.NumSchedulers = 0
 	})
@@ -53,7 +54,7 @@ func TestSearch_PrefixSearch_Quota(t *testing.T) {
 }
 
 func TestSearch_PrefixSearch_Quota_ACL(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	assert := assert.New(t)
 	s, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.NumSchedulers = 0
@@ -167,8 +168,8 @@ func TestSearch_PrefixSearch_Quota_ACL(t *testing.T) {
 }
 
 func TestSearch_PrefixSearch_Recommendation(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
-	t.Parallel()
 	s, cleanup := TestServer(t, func(c *Config) {
 		c.NumSchedulers = 0
 	})

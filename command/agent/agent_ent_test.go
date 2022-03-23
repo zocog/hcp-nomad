@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/structs/config"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestSetupEnterpriseAgent(t *testing.T) {
+	ci.Parallel(t)
 	a := &Agent{
 		config: &Config{
 			Audit: &config.AuditConfig{
@@ -47,6 +49,7 @@ func TestSetupEnterpriseAgent(t *testing.T) {
 // TestSetupEnterpriseAgent_Disabled ensures a disabled, unconfigured
 // Eventer can be configured without error
 func TestSetupEnterpriseAgent_Disabled(t *testing.T) {
+	ci.Parallel(t)
 	a := &Agent{
 		config: &Config{
 			Audit: &config.AuditConfig{},
@@ -61,6 +64,7 @@ func TestSetupEnterpriseAgent_Disabled(t *testing.T) {
 }
 
 func TestEntReloadEventer(t *testing.T) {
+	ci.Parallel(t)
 	tmpDir, err := ioutil.TempDir("", t.Name())
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
