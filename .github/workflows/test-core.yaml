@@ -27,6 +27,9 @@ env:
   VAULT_VERSION: 1.9.3
   NOMAD_SLOW_TEST: 0
   NOMAD_TEST_LOG_LEVEL: ERROR
+  GOPRIVATE: 'github.com/hashicorp/*'
+  TOKEN: ${{secrets.ELEVATED_GITHUB_TOKEN}}
+  NOMAD_LICENSE: ${{secrets.NOMAD_LICENSE}}
 jobs:
   checks:
     runs-on: ubuntu-20.04
@@ -39,6 +42,8 @@ jobs:
         with:
           go-version: ${{env.GO_VERSION}}
           cache-key-suffix: -checks
+      - name: Configure Git
+        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com'.insteadOf 'https://github.com'
       - name: Run make check
         run: |
           make bootstrap
@@ -56,6 +61,8 @@ jobs:
         with:
           go-version: ${{env.GO_VERSION}}
           cache-key-suffix: -compile
+      - name: Configure Git
+        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com'.insteadOf 'https://github.com'
       - name: Run make dev
         env:
           GOBIN: ${{env.GOROOT}}/bin # windows kludge
@@ -71,6 +78,8 @@ jobs:
         with:
           go-version: ${{env.GO_VERSION}}
           cache-key-suffix: -api
+      - name: Configure Git
+        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com'.insteadOf 'https://github.com'
       - name: Run API tests
         env:
           GOTEST_MOD: api
@@ -127,6 +136,8 @@ jobs:
         with:
           go-version: ${{env.GO_VERSION}}
           cache-key-suffix: -pkgs
+      - name: Configure Git
+        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com'.insteadOf 'https://github.com'
       - name: Run Matrix Tests
         env:
           GOTEST_PKGS: ./${{matrix.pkg}}
