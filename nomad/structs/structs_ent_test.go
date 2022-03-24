@@ -12,14 +12,14 @@ import (
 
 	"github.com/hashicorp/go-msgpack/codec"
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/nomad/ci"
+	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/nomad/helper/uuid"
 )
 
 func TestNamespace_Validate(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	cases := []struct {
 		Test      string
 		Namespace *Namespace
@@ -82,6 +82,7 @@ func TestNamespace_Validate(t *testing.T) {
 }
 
 func TestNamespace_SetHash(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	ns := &Namespace{
 		Name:        "foo",
@@ -101,6 +102,7 @@ func TestNamespace_SetHash(t *testing.T) {
 }
 
 func TestSentinelPolicySetHash(t *testing.T) {
+	ci.Parallel(t)
 	sp := &SentinelPolicy{
 		Name:             "test",
 		Description:      "Great policy",
@@ -123,6 +125,7 @@ func TestSentinelPolicySetHash(t *testing.T) {
 }
 
 func TestSentinelPolicy_Validate(t *testing.T) {
+	ci.Parallel(t)
 	sp := &SentinelPolicy{
 		Name:             "test",
 		Description:      "Great policy",
@@ -160,6 +163,7 @@ func TestSentinelPolicy_Validate(t *testing.T) {
 }
 
 func TestSentinelPolicy_CacheKey(t *testing.T) {
+	ci.Parallel(t)
 	sp := &SentinelPolicy{
 		Name:        "test",
 		ModifyIndex: 10,
@@ -168,6 +172,7 @@ func TestSentinelPolicy_CacheKey(t *testing.T) {
 }
 
 func TestSentinelPolicy_Compile(t *testing.T) {
+	ci.Parallel(t)
 	sp := &SentinelPolicy{
 		Name:             "test",
 		Description:      "Great policy",
@@ -183,6 +188,7 @@ func TestSentinelPolicy_Compile(t *testing.T) {
 }
 
 func TestQuotaSpec_Validate(t *testing.T) {
+	ci.Parallel(t)
 	cases := []struct {
 		Name   string
 		Spec   *QuotaSpec
@@ -331,6 +337,7 @@ func TestQuotaSpec_Validate(t *testing.T) {
 }
 
 func TestQuotaSpec_SetHash(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	qs := &QuotaSpec{
 		Name:        "test",
@@ -360,6 +367,7 @@ func TestQuotaSpec_SetHash(t *testing.T) {
 
 // Test that changing a region limit will also stimulate a hash change
 func TestQuotaSpec_SetHash2(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 	qs := &QuotaSpec{
 		Name:        "test",
@@ -388,6 +396,7 @@ func TestQuotaSpec_SetHash2(t *testing.T) {
 }
 
 func TestQuotaUsage_Diff(t *testing.T) {
+	ci.Parallel(t)
 	cases := []struct {
 		Name   string
 		Usage  *QuotaUsage
@@ -526,6 +535,7 @@ func TestQuotaUsage_Diff(t *testing.T) {
 }
 
 func TestQuotaLimit_Superset(t *testing.T) {
+	ci.Parallel(t)
 	quota := &QuotaLimit{
 		Region: "foo",
 		RegionLimit: &Resources{
@@ -666,6 +676,7 @@ func TestQuotaLimit_Superset(t *testing.T) {
 // marshalling functions get exercised to base64 QuotaUsage.Used
 // map keys, which are binary bytes
 func TestQuotaUsageSerialization(t *testing.T) {
+	ci.Parallel(t)
 	input := QuotaUsage{
 		Name: "foo",
 		Used: map[string]*QuotaLimit{
@@ -695,6 +706,7 @@ func TestQuotaUsageSerialization(t *testing.T) {
 }
 
 func TestMultiregion_Validate(t *testing.T) {
+	ci.Parallel(t)
 	require := require.New(t)
 	cases := []struct {
 		Name    string
@@ -779,6 +791,7 @@ func TestMultiregion_Validate(t *testing.T) {
 }
 
 func TestScalingPolicy_Validate_Ent(t *testing.T) {
+	ci.Parallel(t)
 	type testCase struct {
 		name        string
 		input       *ScalingPolicy
@@ -968,7 +981,7 @@ func TestScalingPolicy_Validate_Ent(t *testing.T) {
 }
 
 func TestJob_GetScalingPolicies_TaskPolicies(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	job := MockJob()
 	var expected []*ScalingPolicy
@@ -1032,6 +1045,7 @@ func TestJob_GetScalingPolicies_TaskPolicies(t *testing.T) {
 }
 
 func TestRecommendation_Validate(t *testing.T) {
+	ci.Parallel(t)
 	cases := []struct {
 		Name     string
 		Rec      *Recommendation
@@ -1185,7 +1199,7 @@ func TestRecommendation_Validate(t *testing.T) {
 }
 
 func TestRecommendation_UpdateJob(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 
 	var rec *Recommendation

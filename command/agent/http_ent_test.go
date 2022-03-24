@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/nomad/audit"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/command/agent/event"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/helper/uuid"
@@ -26,7 +27,7 @@ var _ http.Hijacker = &auditResponseWriter{}
 var _ http.Flusher = &auditResponseWriter{}
 
 func TestAuditWrapHTTPHandler(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	cases := []struct {
 		desc         string
@@ -147,7 +148,7 @@ func TestEventFromReq(t *testing.T) {
 }
 
 func TestAuditNonJSONHandler(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	cases := []struct {
 		desc         string

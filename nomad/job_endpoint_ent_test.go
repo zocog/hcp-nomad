@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/nomad/api"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/command/agent/consul"
 	"github.com/hashicorp/nomad/helper"
 	"github.com/hashicorp/nomad/helper/uuid"
@@ -22,7 +23,7 @@ import (
 )
 
 func TestJobEndpoint_Register_Sentinel(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
@@ -77,7 +78,7 @@ func TestJobEndpoint_Register_Sentinel(t *testing.T) {
 }
 
 func TestJobEndpoint_Register_Sentinel_DriverForce(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
@@ -136,7 +137,7 @@ func TestJobEndpoint_Register_Sentinel_DriverForce(t *testing.T) {
 }
 
 func TestJobEndpoint_Plan_Sentinel(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
@@ -197,7 +198,7 @@ func TestJobEndpoint_Plan_Sentinel(t *testing.T) {
 }
 
 func TestJobEndpoint_Register_Multiregion(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 
 	west, root, cleanupWest := TestACLServer(t, func(c *Config) {
@@ -352,7 +353,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 }
 
 func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 
 	west, root, cleanupWest := TestACLServer(t, func(c *Config) {
@@ -454,6 +455,7 @@ func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {
 }
 
 func TestJobEndpoint_MultiregionStarter(t *testing.T) {
+	ci.Parallel(t)
 	require := require.New(t)
 
 	j := &structs.Job{}
@@ -497,7 +499,7 @@ func TestJobEndpoint_MultiregionStarter(t *testing.T) {
 }
 
 func TestJobEndpoint_Deregister_Multiregion(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 
 	west, root, cleanupWest := TestACLServer(t, func(c *Config) {
@@ -616,7 +618,7 @@ func TestJobEndpoint_Deregister_Multiregion(t *testing.T) {
 // submission fails allow_unauthenticated is false, and either an invalid or no
 // operator Consul token is provided.
 func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.NumSchedulers = 0 // Prevent automatic dequeue

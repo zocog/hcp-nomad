@@ -14,12 +14,13 @@ import (
 
 	"github.com/hashicorp/go-licensing"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/stretchr/testify/require"
 )
 
 func TestServer_Reload_License(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	// write license
 	issue := time.Now().Add(-time.Hour)

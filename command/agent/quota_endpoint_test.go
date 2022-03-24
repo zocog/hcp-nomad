@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,7 @@ import (
 
 func TestHTTP_QuotaSpecAndUsages_List(t *testing.T) {
 	assert := assert.New(t)
-	t.Parallel()
+	ci.Parallel(t)
 	httpTest(t, nil, func(s *TestAgent) {
 		qs1 := mock.QuotaSpec()
 		qs2 := mock.QuotaSpec()
@@ -65,7 +66,7 @@ func TestHTTP_QuotaSpecAndUsages_List(t *testing.T) {
 
 func TestHTTP_QuotaSpecAndUsage_Query(t *testing.T) {
 	assert := assert.New(t)
-	t.Parallel()
+	ci.Parallel(t)
 	httpTest(t, nil, func(s *TestAgent) {
 		qs1 := mock.QuotaSpec()
 		args := structs.QuotaSpecUpsertRequest{
@@ -113,7 +114,7 @@ func TestHTTP_QuotaSpecAndUsage_Query(t *testing.T) {
 
 func TestHTTP_QuotaSpec_Create(t *testing.T) {
 	assert := assert.New(t)
-	t.Parallel()
+	ci.Parallel(t)
 	httpTest(t, nil, func(s *TestAgent) {
 		// Make the HTTP request
 		qs1 := mock.QuotaSpec()
@@ -144,7 +145,7 @@ func TestHTTP_QuotaSpec_Create(t *testing.T) {
 
 func TestHTTP_QuotaSpec_Update(t *testing.T) {
 	assert := assert.New(t)
-	t.Parallel()
+	ci.Parallel(t)
 	httpTest(t, nil, func(s *TestAgent) {
 		// Make the HTTP request
 		qs1 := mock.QuotaSpec()
@@ -175,7 +176,7 @@ func TestHTTP_QuotaSpec_Update(t *testing.T) {
 
 func TestHTTP_QuotaSpec_Delete(t *testing.T) {
 	assert := assert.New(t)
-	t.Parallel()
+	ci.Parallel(t)
 	httpTest(t, nil, func(s *TestAgent) {
 		qs1 := mock.QuotaSpec()
 		args := structs.QuotaSpecUpsertRequest{

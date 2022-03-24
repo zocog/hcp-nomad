@@ -42,7 +42,7 @@ func (t *testChecker) FeatureCheck(feature license.Features, emitLog bool) error
 // TestAuditor tests we can send an event all the way through the pipeline
 // and to a sink, and that we can process the JSON file
 func TestAuditor(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	// Create a temp directory for the audit log file
 	tmpDir, err := ioutil.TempDir("", t.Name())
@@ -90,7 +90,7 @@ func TestAuditor(t *testing.T) {
 // pipeline and to a sink, and that we can process the JSON file when rotation
 // is enabled.
 func TestAuditor_Rotate(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	// Create a temp directory for the audit log file
 	tmpDir := t.TempDir()
@@ -155,7 +155,7 @@ func TestAuditor_Rotate(t *testing.T) {
 // TestAuditor_NewDir tests a directory that doesn't exist is properly made
 // with default permissions.
 func TestAuditor_NewDir(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	// Create a temp directory for the audit log file
 	tmpDir, err := ioutil.TempDir("", t.Name())
@@ -217,7 +217,7 @@ func TestAuditor_NewDir(t *testing.T) {
 // TestAuditor_ExistingDir tests a directory that doest exist is used without
 // changing the permissions.
 func TestAuditor_ExistingDir(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	// Create a temp directory for the audit log file
 	tmpDir, err := ioutil.TempDir("", t.Name())
@@ -280,7 +280,7 @@ func TestAuditor_ExistingDir(t *testing.T) {
 }
 
 func TestAuditor_Filter(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	tmpDir, err := ioutil.TempDir("", t.Name())
 	require.NoError(t, err)
@@ -355,7 +355,7 @@ func TestAuditor_Filter(t *testing.T) {
 }
 
 func TestAuditor_Delivery_BestEffort(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	logger := testlog.HCLogger(t)
 	// Create a temp directory for the audit log file
@@ -390,7 +390,7 @@ func TestAuditor_Delivery_BestEffort(t *testing.T) {
 }
 
 func TestAuditor_Unlicensed(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	logger := testlog.HCLogger(t)
 	// Create a temp directory for the audit log file

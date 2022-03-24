@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
@@ -15,7 +16,7 @@ import (
 )
 
 func TestServer_Sentinel_EnforceScope(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, _, cleanupS1 := TestACLServer(t, nil)
 	defer cleanupS1()
 	testutil.WaitForLeader(t, s1.RPC)
@@ -62,7 +63,7 @@ func TestServer_Sentinel_EnforceScope(t *testing.T) {
 }
 
 func TestServer_Sentinel_EnforceScope_MultiJobPolicies(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, _, cleanupS1 := TestACLServer(t, nil)
 	defer cleanupS1()
 	testutil.WaitForLeader(t, s1.RPC)
@@ -95,7 +96,7 @@ func TestServer_Sentinel_EnforceScope_MultiJobPolicies(t *testing.T) {
 
 // Ensure the standard lib is present
 func TestServer_Sentinel_EnforceScope_Stdlib(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, _, cleanupS1 := TestACLServer(t, nil)
 	defer cleanupS1()
 	testutil.WaitForLeader(t, s1.RPC)
@@ -123,7 +124,7 @@ func TestServer_Sentinel_EnforceScope_Stdlib(t *testing.T) {
 
 // Ensure HTTP import is not present
 func TestServer_Sentinel_EnforceScope_HTTP(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, _, cleanupS1 := TestACLServer(t, nil)
 	defer cleanupS1()
 	testutil.WaitForLeader(t, s1.RPC)
@@ -150,7 +151,7 @@ func TestServer_Sentinel_EnforceScope_HTTP(t *testing.T) {
 }
 
 func TestServer_SentinelPoliciesByScope(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, _, cleanupS1 := TestACLServer(t, nil)
 	defer cleanupS1()
 	testutil.WaitForLeader(t, s1.RPC)
@@ -168,7 +169,7 @@ func TestServer_SentinelPoliciesByScope(t *testing.T) {
 }
 
 func TestServer_PrepareSentinelPolicies(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, _, cleanupS1 := TestACLServer(t, nil)
 	defer cleanupS1()
 	testutil.WaitForLeader(t, s1.RPC)

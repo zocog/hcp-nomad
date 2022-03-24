@@ -9,6 +9,7 @@ import (
 	"time"
 
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -17,7 +18,7 @@ import (
 )
 
 func TestSentinelEndpoint_GetPolicy(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.LicenseEnv = licenseForGovernance().Signed
 	})
@@ -54,7 +55,7 @@ func TestSentinelEndpoint_GetPolicy(t *testing.T) {
 }
 
 func TestSentinelEndpoint_GetPolicy_Blocking(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.LicenseEnv = licenseForGovernance().Signed
 	})
@@ -135,7 +136,7 @@ func TestSentinelEndpoint_GetPolicy_Blocking(t *testing.T) {
 }
 
 func TestSentinelEndpoint_GetPolicies(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.LicenseEnv = licenseForGovernance().Signed
 	})
@@ -176,7 +177,7 @@ func TestSentinelEndpoint_GetPolicies(t *testing.T) {
 }
 
 func TestSentinelEndpoint_GetPolicies_Blocking(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.LicenseEnv = licenseForGovernance().Signed
 	})
@@ -257,7 +258,7 @@ func TestSentinelEndpoint_GetPolicies_Blocking(t *testing.T) {
 }
 
 func TestSentinelEndpoint_ListPolicies(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.LicenseEnv = licenseForGovernance().Signed
 	})
@@ -304,7 +305,7 @@ func TestSentinelEndpoint_ListPolicies(t *testing.T) {
 }
 
 func TestSentinelEndpoint_ListPolicies_Blocking(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.LicenseEnv = licenseForGovernance().Signed
 	})
@@ -366,7 +367,7 @@ func TestSentinelEndpoint_ListPolicies_Blocking(t *testing.T) {
 }
 
 func TestSentinelEndpoint_DeletePolicies(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.LicenseEnv = licenseForGovernance().Signed
 	})
@@ -394,7 +395,7 @@ func TestSentinelEndpoint_DeletePolicies(t *testing.T) {
 }
 
 func TestSentinelEndpoint_UpsertPolicies(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.LicenseEnv = licenseForGovernance().Signed
 	})
@@ -426,7 +427,7 @@ func TestSentinelEndpoint_UpsertPolicies(t *testing.T) {
 }
 
 func TestSentinelEndpoint_UpsertPolicies_Invalid(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.LicenseEnv = licenseForGovernance().Signed
 	})

@@ -13,7 +13,7 @@ import (
 )
 
 func TestValidator(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	v := &Validator{
 		log: testlog.HCLogger(t),

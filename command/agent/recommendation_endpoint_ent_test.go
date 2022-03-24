@@ -10,16 +10,16 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/nomad/api"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHTTP_RecommendationList(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	httpTest(t, nil, func(s *TestAgent) {
 		names := []*structs.Namespace{}
 		jobs := []*structs.Job{}
@@ -161,7 +161,7 @@ func TestHTTP_RecommendationList(t *testing.T) {
 }
 
 func TestHTTP_RecommendationGet(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	httpTest(t, nil, func(s *TestAgent) {
 
 		// Create the job and recommendation
@@ -246,7 +246,7 @@ func TestHTTP_RecommendationGet(t *testing.T) {
 }
 
 func TestHTTP_RecommendationDelete(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	httpTest(t, nil, func(s *TestAgent) {
 
 		// Create the job and recommendation
@@ -336,7 +336,7 @@ func TestHTTP_RecommendationDelete(t *testing.T) {
 }
 
 func TestHTTP_RecommendationCreate(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 	httpTest(t, nil, func(s *TestAgent) {
 		// Create the job and recommendation
@@ -405,7 +405,7 @@ func TestHTTP_RecommendationCreate(t *testing.T) {
 }
 
 func TestHTTP_RecommendationCreate_NoNils(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	require := require.New(t)
 	httpTest(t, nil, func(s *TestAgent) {
 		// Create the job and recommendation
@@ -457,7 +457,7 @@ func TestHTTP_RecommendationCreate_NoNils(t *testing.T) {
 }
 
 func TestHTTP_RecommendationApply(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	httpTest(t, nil, func(s *TestAgent) {
 		require := require.New(t)
 		state := s.server.State()

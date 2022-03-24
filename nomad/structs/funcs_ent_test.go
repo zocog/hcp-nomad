@@ -6,10 +6,12 @@ package structs
 import (
 	"testing"
 
+	"github.com/hashicorp/nomad/ci"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUpdateUsageFromPlan(t *testing.T) {
+	ci.Parallel(t)
 	assert := assert.New(t)
 
 	// Create a quota usage that has some amount set

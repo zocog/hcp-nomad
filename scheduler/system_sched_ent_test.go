@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -16,6 +17,8 @@ import (
 
 // Tests registering a system job that will exceed the quota limit
 func TestSystemSched_JobRegister_QuotaLimit(t *testing.T) {
+	ci.Parallel(t)
+
 	assert := assert.New(t)
 	h := NewHarness(t)
 

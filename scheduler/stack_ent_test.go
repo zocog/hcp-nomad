@@ -6,6 +6,7 @@ package scheduler
 import (
 	"testing"
 
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -13,6 +14,8 @@ import (
 )
 
 func TestQuotaIterator_BelowQuota(t *testing.T) {
+	ci.Parallel(t)
+
 	assert := assert.New(t)
 	state, ctx := testContext(t)
 
@@ -43,6 +46,8 @@ func TestQuotaIterator_BelowQuota(t *testing.T) {
 }
 
 func TestQuotaIterator_AboveQuota(t *testing.T) {
+	ci.Parallel(t)
+
 	assert := assert.New(t)
 	state, ctx := testContext(t)
 
@@ -85,6 +90,8 @@ func TestQuotaIterator_AboveQuota(t *testing.T) {
 }
 
 func TestQuotaIterator_BelowQuota_PlannedAdditions(t *testing.T) {
+	ci.Parallel(t)
+
 	assert := assert.New(t)
 	state, ctx := testContext(t)
 
@@ -119,6 +126,8 @@ func TestQuotaIterator_BelowQuota_PlannedAdditions(t *testing.T) {
 }
 
 func TestQuotaIterator_AboveQuota_PlannedAdditions(t *testing.T) {
+	ci.Parallel(t)
+
 	assert := assert.New(t)
 	state, ctx := testContext(t)
 
@@ -163,6 +172,8 @@ func TestQuotaIterator_AboveQuota_PlannedAdditions(t *testing.T) {
 }
 
 func TestQuotaIterator_BelowQuota_DiscountStopping(t *testing.T) {
+	ci.Parallel(t)
+
 	assert := assert.New(t)
 	state, ctx := testContext(t)
 
@@ -214,6 +225,8 @@ func TestQuotaIterator_BelowQuota_DiscountStopping(t *testing.T) {
 // modifying the proposedLimit even if the node was later deemed not suitable
 // for placing the allocation on.
 func TestQuotaIterator_BelowQuota_MultipleNextCallsForAlloc(t *testing.T) {
+	ci.Parallel(t)
+	
 	newAssert := assert.New(t)
 	state, ctx := testContext(t)
 

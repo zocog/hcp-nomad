@@ -8,12 +8,13 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/nomad/ci"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestQuotaApplyCommand_Good_HCL(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	// Create a server
 	srv, client, url := testServer(t, true, nil)
@@ -42,7 +43,7 @@ func TestQuotaApplyCommand_Good_HCL(t *testing.T) {
 }
 
 func TestQuotaApplyCommand_Good_JSON(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	// Create a server
 	srv, client, url := testServer(t, true, nil)

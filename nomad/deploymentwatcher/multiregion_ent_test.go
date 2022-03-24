@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/stretchr/testify/require"
@@ -18,7 +19,7 @@ import (
 
 // TestDeploymentwatch_NextRegion tests scenarios for multi-region deployments.
 func TestDeploymentwatch_NextRegion(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	// Each test case starts with 4 regions in a `pending` state, and can
 	// override the behavior for each region by configuring a TestRegion.

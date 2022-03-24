@@ -15,7 +15,7 @@ import (
 // TestHTTPEventFilter_Proccess tests that different variations of HTTPEventFilter
 // correctly filter, or ignore events
 func TestHTTPEventFilter_Proccess(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 
 	cases := []struct {
 		desc   string

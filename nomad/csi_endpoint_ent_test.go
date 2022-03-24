@@ -9,6 +9,7 @@ import (
 	memdb "github.com/hashicorp/go-memdb"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/nomad/acl"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -20,7 +21,7 @@ import (
 // when getting plugins, and enforcing that the client has job-read ACL access to the
 // namespace of the allocations
 func TestCSIPluginEndpoint_ACLNamespaceAlloc(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	srv, shutdown := TestServer(t, func(c *Config) {
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
