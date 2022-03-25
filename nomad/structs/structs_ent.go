@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hashicorp/errwrap"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/sentinel/lang/ast"
@@ -171,7 +170,7 @@ func (s *SentinelPolicy) Validate() error {
 
 	// Validate that policy compiles
 	if _, _, err := s.Compile(); err != nil {
-		err = errwrap.Wrapf("policy compile error: {{err}}", err)
+		err = fmt.Errorf("policy compile error: %w", err)
 		mErr.Errors = append(mErr.Errors, err)
 	}
 	return mErr.ErrorOrNil()
