@@ -20,13 +20,14 @@ on:
       - 'ui/*'
       - 'website/*'
 env:
+  VERBOSE: 1
   GO_VERSION: 1.17.7
   GOBIN: /usr/local/bin
   GOTESTARCH: amd64
   CONSUL_VERSION: 1.11.3
   VAULT_VERSION: 1.9.3
   NOMAD_SLOW_TEST: 0
-  NOMAD_TEST_LOG_LEVEL: ERROR
+  NOMAD_TEST_LOG_LEVEL: OFF
   GOPRIVATE: 'github.com/hashicorp/*'
   TOKEN: ${{secrets.ELEVATED_GITHUB_TOKEN}}
   NOMAD_LICENSE: ${{secrets.NOMAD_LICENSE}}
@@ -148,4 +149,3 @@ jobs:
           hc-install consul ${{env.CONSUL_VERSION}}
           sudo sed -i 's!Defaults!#Defaults!g' /etc/sudoers
           sudo -E env "PATH=$PATH" make test-nomad
-
