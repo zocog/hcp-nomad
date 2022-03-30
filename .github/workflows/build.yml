@@ -128,7 +128,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           GO_TAGS: ${{ env.GO_TAGS }}
-          LD_FLAGS: ${{ needs.generate-ld-flags.outputs.ldflags }}
+          GO_LDFLAGS: ${{ needs.generate-ld-flags.outputs.ldflags }}
           CGO_ENABLED: 1
         run: |
             make pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip
@@ -206,10 +206,9 @@ jobs:
       - name: Build
         env:
           GOOS: ${{ matrix.goos }}
-          CC: ${{ env.CC }}
           GOARCH: ${{ matrix.goarch }}
           GO_TAGS: ${{ env.GO_TAGS }}
-          LD_FLAGS: ${{ needs.generate-ld-flags.outputs.ldflags }}
+          GO_LDFLAGS: ${{ needs.generate-ld-flags.outputs.ldflags }}
           CGO_ENABLED: 1
         run: |
             make pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip
@@ -301,7 +300,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           GO_TAGS: "${{ env.GO_TAGS }} netcgo"
-          LD_FLAGS: ${{ needs.generate-ld-flags.outputs.ldflags }}
+          GO_LDFLAGS: ${{ needs.generate-ld-flags.outputs.ldflags }}
           CGO_ENABLED: 1
         run: |
             make pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip
