@@ -120,7 +120,7 @@ func TestConfig_Merge(t *testing.T) {
 			ClientMaxPort:     19996,
 			DisableRemoteExec: false,
 			TemplateConfig: &client.ClientTemplateConfig{
-				FunctionDenylist: []string{"plugin"},
+				FunctionDenylist: client.DefaultTemplateFunctionDenylist,
 				DisableSandbox:   false,
 			},
 			Reserved: &Resources{
@@ -306,7 +306,7 @@ func TestConfig_Merge(t *testing.T) {
 			MaxKillTimeout:    "50s",
 			DisableRemoteExec: false,
 			TemplateConfig: &client.ClientTemplateConfig{
-				FunctionDenylist: []string{"plugin"},
+				FunctionDenylist: client.DefaultTemplateFunctionDenylist,
 				DisableSandbox:   false,
 			},
 			Reserved: &Resources{
@@ -1467,6 +1467,8 @@ func TestConfig_LoadConsulTemplateBasic(t *testing.T) {
 	require.NotNil(t, agentConfig.Client.TemplateConfig)
 
 	agentConfig = defaultConfig.Merge(agentConfig)
+	require.Len(t, agentConfig.Client.TemplateConfig.FunctionDenylist, 0)
+	require.NotNil(t, agentConfig.Client.TemplateConfig.FunctionDenylist)
 
 	clientAgent := Agent{config: agentConfig}
 	clientConfig, err := clientAgent.clientConfig()
@@ -1475,7 +1477,7 @@ func TestConfig_LoadConsulTemplateBasic(t *testing.T) {
 	templateConfig := clientConfig.TemplateConfig
 	require.NotNil(t, templateConfig)
 	require.True(t, templateConfig.DisableSandbox)
-	require.Len(t, templateConfig.FunctionDenylist, 1)
+	require.Len(t, templateConfig.FunctionDenylist, 0)
 
 	// json
 	agentConfig, err = LoadConfig("test-resources/client_with_basic_template.json")
@@ -1490,7 +1492,7 @@ func TestConfig_LoadConsulTemplateBasic(t *testing.T) {
 	templateConfig = clientConfig.TemplateConfig
 	require.NotNil(t, templateConfig)
 	require.True(t, templateConfig.DisableSandbox)
-	require.Len(t, templateConfig.FunctionDenylist, 1)
+	require.Len(t, templateConfig.FunctionDenylist, 0)
 }
 
 func TestParseMultipleIPTemplates(t *testing.T) {
