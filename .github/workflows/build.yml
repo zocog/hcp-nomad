@@ -1,6 +1,6 @@
 name: build
 
-on: 
+on:
   push:
     # Sequence of patterns matched against refs/heads
     branches:
@@ -8,7 +8,7 @@ on:
       # - main
       # Push events to branches matching refs/heads/release/**
       # - 'release/**'
-      - 'crt-onboarding-nomad-ent'
+      - "crt-onboarding-nomad-ent"
 
 env:
   PKG_NAME: "nomad"
@@ -16,7 +16,7 @@ env:
 
 jobs:
   get-go-version:
-    runs-on: [ self-hosted, linux]
+    runs-on: [self-hosted, linux]
     outputs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
     steps:
@@ -29,7 +29,7 @@ jobs:
           echo "Building with Go $(cat .go-version)"
           echo "::set-output name=go-version::$(cat .go-version)"
   get-product-version:
-    runs-on: [ self-hosted, linux ]
+    runs-on: [self-hosted, linux]
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
     steps:
@@ -41,11 +41,11 @@ jobs:
           echo "::set-output name=product-version::$(make version)"
   generate-metadata-file:
     needs: get-product-version
-    runs-on: [ self-hosted, linux ]
+    runs-on: [self-hosted, linux]
     outputs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
     steps:
-      - name: 'Checkout directory'
+      - name: "Checkout directory"
         uses: actions/checkout@v2
       - name: Generate metadata file
         id: generate-metadata-file
@@ -59,12 +59,12 @@ jobs:
           name: metadata.json
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
   generate-ld-flags:
-    needs: [ get-go-version, get-product-version ]
-    runs-on: [ self-hosted, linux ]
+    needs: [get-go-version, get-product-version]
+    runs-on: [self-hosted, linux]
     outputs:
       ldflags: ${{ steps.generate-ld-flags.outputs.ldflags }}
     env:
-      GOPRIVATE: 'github.com/hashicorp/*'
+      GOPRIVATE: "github.com/hashicorp/*"
       TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v2
@@ -76,26 +76,26 @@ jobs:
       - name: Setup Git
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com/".insteadOf "https://github.com"
 
-      - name: 'set-ld-flags'
+      - name: "set-ld-flags"
         id: generate-ld-flags
         run: |
           project="$(go list -m)"
           sha="$(git rev-parse --short HEAD)"
           echo "::set-output name=ldflags::"-s -w -X \'$project/version.Name=${{ env.PKG_NAME }}\' \
           -X \'$project/version.GitDescribe=v$(make version base=1)\'""
-  
+
   build-other:
-    needs: [ get-go-version, get-product-version, generate-ld-flags ]
-    runs-on: [ self-hosted, linux, medium ]
+    needs: [get-go-version, get-product-version, generate-ld-flags]
+    runs-on: [self-hosted, linux, medium]
     strategy:
       matrix:
-        goos: [ windows ]
-        goarch: [ "386", "amd64" ]
+        goos: [windows]
+        goarch: ["386", "amd64"]
       fail-fast: true
 
     name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     env:
-      GOPRIVATE: 'github.com/hashicorp/*'
+      GOPRIVATE: "github.com/hashicorp/*"
       TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v2
@@ -103,18 +103,18 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
-      
+
       - name: Setup Git
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    
+
       - name: Build dependencies
         run: make deps
-      
+
       - name: Setup node and yarn
         uses: actions/setup-node@v2
         with:
-          node-version: '14'
-          cache-dependency-path: 'ui/yarn.lock'
+          node-version: "14"
+          cache-dependency-path: "ui/yarn.lock"
 
       - name: Install Yarn
         run: |
@@ -122,7 +122,7 @@ jobs:
 
       - name: Build prerelease
         run: make prerelease
-      
+
       - name: Build
         env:
           GOOS: ${{ matrix.goos }}
@@ -131,25 +131,25 @@ jobs:
           GO_LDFLAGS: ${{ needs.generate-ld-flags.outputs.ldflags }}
           CGO_ENABLED: 1
         run: |
-            make pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip
-            mv pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          make pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          mv pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
           path: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
-   
+
   build-linux:
-    needs: [ get-go-version, get-product-version, generate-ld-flags ]
-    runs-on: [ self-hosted, linux, medium ]
+    needs: [get-go-version, get-product-version, generate-ld-flags]
+    runs-on: [self-hosted, linux, medium]
     strategy:
       matrix:
-        goos: [ linux ]
-        goarch: [ "arm", "arm64", "386", "amd64" ]
+        goos: [linux]
+        goarch: ["arm", "arm64", "386", "amd64"]
       fail-fast: true
-    
+
     name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     env:
-      GOPRIVATE: 'github.com/hashicorp/*'
+      GOPRIVATE: "github.com/hashicorp/*"
       TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
     steps:
@@ -158,26 +158,26 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
-      
+
       - name: Setup Git
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      
+
       - name: Build dependencies
         run: make deps
-      
+
       - name: Setup node and yarn
         uses: actions/setup-node@v2
         with:
-          node-version: '14'
-          cache-dependency-path: 'ui/yarn.lock'
+          node-version: "14"
+          cache-dependency-path: "ui/yarn.lock"
 
       - name: Install Yarn
         run: |
-          npm install -g yarn   
-      
+          npm install -g yarn
+
       - name: Build prerelease
         run: make prerelease
-      
+
       - name: Install Linux build utilties
         run: |
           sudo apt-get update
@@ -211,8 +211,8 @@ jobs:
           GO_LDFLAGS: ${{ needs.generate-ld-flags.outputs.ldflags }}
           CGO_ENABLED: 1
         run: |
-            make pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip
-            mv pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          make pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          mv pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
@@ -255,17 +255,17 @@ jobs:
           path: out/${{ env.DEB_PACKAGE }}
 
   build-darwin:
-    needs: [ get-go-version, get-product-version, generate-ld-flags ]
+    needs: [get-go-version, get-product-version, generate-ld-flags]
     runs-on: macos-latest
     strategy:
       matrix:
-        goos: [ darwin ]
-        goarch: [ "arm64", "amd64" ]
+        goos: [darwin]
+        goarch: ["arm64", "amd64"]
       fail-fast: true
 
     name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     env:
-      GOPRIVATE: 'github.com/hashicorp/*'
+      GOPRIVATE: "github.com/hashicorp/*"
       TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
     steps:
@@ -275,26 +275,26 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
-      
+
       - name: Setup Git
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      
+
       - name: Build dependencies
         run: make deps
-      
+
       - name: Setup node and yarn
         uses: actions/setup-node@v2
         with:
-          node-version: '14'
-          cache-dependency-path: 'ui/yarn.lock'
+          node-version: "14"
+          cache-dependency-path: "ui/yarn.lock"
 
       - name: Install Yarn
         run: |
           npm install -g yarn
-           
+
       - name: Build prerelease
         run: make prerelease
-      
+
       - name: Build
         env:
           GOOS: ${{ matrix.goos }}
@@ -303,15 +303,15 @@ jobs:
           GO_LDFLAGS: ${{ needs.generate-ld-flags.outputs.ldflags }}
           CGO_ENABLED: 1
         run: |
-            make pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip
-            mv pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          make pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          mv pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
           path: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
 
-  # This placed here for when the Nomad team is ready to build docker images. 
-  # Please reach out the RDX team for assistance or refer to the CRT Self-Serve Onboarding doc. 
+  # This placed here for when the Nomad team is ready to build docker images.
+  # Please reach out the RDX team for assistance or refer to the CRT Self-Serve Onboarding doc.
 
   # build-docker-default:
   #   name: Docker ${{ matrix.arch }} default release build
@@ -332,14 +332,14 @@ jobs:
   #       uses: hashicorp/actions-docker-build@v1
   #       with:
   #         # Add smoke test here. Below is a sample smoke test that runs the built image
-  #         # and validates the version. 
+  #         # and validates the version.
   #         smoke_test: |
   #           TEST_VERSION="$(docker run "${IMAGE_NAME}" | awk '/CLI version/{print $3}')"
   #           if [ "${TEST_VERSION}" != "${version}" ]; then
   #             echo "Test FAILED"
   #             exit 1
   #           fi
-  #           echo "Test PASSED"               
+  #           echo "Test PASSED"
   #         version: ${{env.version}}
   #         target: release-default
   #         arch: ${{matrix.arch}}
