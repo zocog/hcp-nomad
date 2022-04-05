@@ -11,9 +11,7 @@ import (
 	memdb "github.com/hashicorp/go-memdb"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/nomad-licensing/license"
-	"github.com/hashicorp/nomad/helper"
 	"github.com/hashicorp/nomad/nomad/structs"
-	vapi "github.com/hashicorp/vault/api"
 )
 
 // enforceSubmitJob is used to check any Sentinel policies for the submit-job scope
@@ -421,38 +419,4 @@ func jobIsMultiregionStarter(j *structs.Job, regionName string) bool {
 		}
 	}
 	return false
-}
-
-// multiVaultNamespaceValidation provides a convience check to ensure
-// multiple vault namespaces were not requested, this returns an early friendly
-// error before job registry and further feature checks.
-func (j *Job) multiVaultNamespaceValidation(
-	policies map[string]map[string]*structs.Vault,
-	s *vapi.Secret,
-) error {
-	// enterprise license enforcement - if not licensed then users can't
-	// use multiple vault namespaces.
-	err := j.srv.EnterpriseState.FeatureCheck(license.FeatureMultiVaultNamespaces, true)
-	if err != nil {
-		return err
-	}
-
-	requestedNamespaces := structs.VaultNamespaceSet(policies)
-	// Short circuit if no namespaces
-	if len(requestedNamespaces) < 1 {
-		return nil
-	}
-
-	policyData, err := PolicyDataFrom(s)
-	if err != nil {
-		return err
-	}
-
-	// If policy has a namespace check if the policy
-	// is scoped correctly for any of the tasks namespaces.
-	offending := helper.CheckNamespaceScope(policyData.NamespacePath, requestedNamespaces)
-	if offending != nil {
-		return fmt.Errorf("Passed Vault token doesn't allow access to the following namespaces: %s", strings.Join(offending, ", "))
-	}
-	return nil
 }
