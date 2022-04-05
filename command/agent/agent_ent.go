@@ -63,7 +63,7 @@ func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 	// Setup auditor
 	auditor, err := a.setupAuditor(a.config.Audit, logger)
 	if err != nil {
-		return fmt.Errorf("error configuring auditor: %w")
+		return fmt.Errorf("error configuring auditor: %v", err)
 	}
 
 	// set auditor
