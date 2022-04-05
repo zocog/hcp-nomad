@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/nomad/audit"
 	"github.com/hashicorp/nomad/command/agent/event"
 	"github.com/hashicorp/nomad/nomad/structs/config"
-	"github.com/pkg/errors"
 )
 
 // Ensure audit.Auditor is an Eventer
@@ -64,7 +63,7 @@ func (a *Agent) setupEnterpriseAgent(logger hclog.InterceptLogger) error {
 	// Setup auditor
 	auditor, err := a.setupAuditor(a.config.Audit, logger)
 	if err != nil {
-		return errors.Wrap(err, "error configuring auditor")
+		return fmt.Errorf("error configuring auditor: %w")
 	}
 
 	// set auditor

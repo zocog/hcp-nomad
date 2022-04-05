@@ -10,8 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/hashicorp/eventlogger"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad-licensing/license"
@@ -140,7 +138,7 @@ type Auditor struct {
 // an error if not properly configured.
 func NewAuditor(cfg *Config) (*Auditor, error) {
 	if cfg.Logger == nil {
-		return nil, errors.New("no logger configured")
+		return nil, fmt.Errorf("no logger configured")
 	}
 
 	var nodeIDs []eventlogger.NodeID
@@ -151,7 +149,7 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	validator := NewValidator(cfg)
 	err := broker.RegisterNode(validatorID, validator)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating validator node")
+		return nil, fmt.Errorf("creating validator node: %w", err)
 	}
 	nodeIDs = append(nodeIDs, validatorID)
 
@@ -160,21 +158,21 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	hcheckFilter := &HealthCheckFilter{}
 	err = broker.RegisterNode(hcheckID, hcheckFilter)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating health check filter node")
+		return nil, fmt.Errorf("creating health check filter node: %w", err)
 	}
 	nodeIDs = append(nodeIDs, hcheckID)
 
 	// Configure and generate filters
 	filters, err := generateFiltersFromConfig(cfg)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to generate filters")
+		return nil, fmt.Errorf("failed to generate filters")
 	}
 
 	// Register filters to broker
 	for id, n := range filters {
 		err := broker.RegisterNode(id, n)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to register filter nodes")
+			return nil, fmt.Errorf("failed to register filter nodes: %w", err)
 		}
 		// Add filter ID to nodeIDs
 		nodeIDs = append(nodeIDs, id)
@@ -185,7 +183,7 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	fmtNode := &eventlogger.JSONFormatter{}
 	err = broker.RegisterNode(jsonfmtID, fmtNode)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to register json node")
+		return nil, fmt.Errorf("failed to register json node: %w", err)
 	}
 	// Add jsonfmtID to nodeIDs
 	nodeIDs = append(nodeIDs, jsonfmtID)
@@ -193,14 +191,14 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	// Create sink nodes
 	sinks, successThreshold, err := generateSinksFromConfig(cfg)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to generate sinks")
+		return nil, fmt.Errorf("failed to generate sinks: %w", err)
 	}
 
 	// Register sink nodes
 	for id, s := range sinks {
 		err := broker.RegisterNode(id, s)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to register sink")
+			return nil, fmt.Errorf("failed to register sink: %w", err)
 		}
 		nodeIDs = append(nodeIDs, id)
 	}
@@ -212,7 +210,7 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 		NodeIDs:    nodeIDs,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to register pipeline")
+		return nil, fmt.Errorf("failed to register pipeline: %w", err)
 	}
 
 	// Set successThreshold
@@ -221,7 +219,7 @@ func NewAuditor(cfg *Config) (*Auditor, error) {
 	// support multiple sinks with different delivery guarantees
 	err = broker.SetSuccessThreshold(AuditEvent, successThreshold)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to set success threshold")
+		return nil, fmt.Errorf("failed to set success threshold: %w", err)
 	}
 
 	mode := BestEffort
@@ -355,7 +353,7 @@ func generateSinksFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.No
 	successThreshold := 0
 
 	if len(cfg.Sinks) > 1 {
-		return nil, 0, errors.New("multiple sinks not currently supported")
+		return nil, 0, fmt.Errorf("multiple sinks not currently supported")
 	}
 
 	for _, s := range cfg.Sinks {
@@ -368,7 +366,7 @@ func generateSinksFromConfig(cfg *Config) (map[eventlogger.NodeID]eventlogger.No
 				successThreshold++
 			}
 		default:
-			return nil, successThreshold, fmt.Errorf("Unsuppoorted sink type %s", s.Type)
+			return nil, successThreshold, fmt.Errorf("Unsupported sink type %s", s.Type)
 		}
 	}
 	return sinks, successThreshold, nil
