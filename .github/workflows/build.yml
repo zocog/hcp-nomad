@@ -8,7 +8,7 @@ on:
       # - main
       # Push events to branches matching refs/heads/release/**
       # - 'release/**'
-      - "crt-onboarding-nomad-ent"
+      - "main"
 
 env:
   PKG_NAME: "nomad"
@@ -127,6 +127,7 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          GO_TAGS: "${{ env.GO_TAGS }}"
           GO_LDFLAGS: ${{ needs.generate-ld-flags.outputs.ldflags }}
           CGO_ENABLED: 1
         run: |
@@ -203,6 +204,7 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          GO_TAGS: "${{ env.GO_TAGS }}"
           GO_LDFLAGS: ${{ needs.generate-ld-flags.outputs.ldflags }}
           CGO_ENABLED: 1
         run: |
