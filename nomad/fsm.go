@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
-	log "github.com/hashicorp/go-hclog"
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/nomad/helper"
 	"github.com/hashicorp/nomad/helper/uuid"
@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/scheduler"
 	"github.com/hashicorp/raft"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -81,7 +80,7 @@ type nomadFSM struct {
 	evalBroker         *EvalBroker
 	blockedEvals       *BlockedEvals
 	periodicDispatcher *PeriodicDispatch
-	logger             log.Logger
+	logger             hclog.Logger
 	state              *state.StateStore
 	timetable          *TimeTable
 
@@ -127,7 +126,7 @@ type FSMConfig struct {
 	Blocked *BlockedEvals
 
 	// Logger is the logger used by the FSM
-	Logger log.Logger
+	Logger hclog.Logger
 
 	// Region is the region of the server embedding the FSM
 	Region string
@@ -976,7 +975,7 @@ func (n *nomadFSM) applyUpsertSIAccessor(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSince([]string{"nomad", "fsm", "upsert_si_accessor"}, time.Now())
 	var request structs.SITokenAccessorsRequest
 	if err := structs.Decode(buf, &request); err != nil {
-		panic(errors.Wrap(err, "failed to decode request"))
+		panic(fmt.Errorf("failed to decode request: %w", err))
 	}
 
 	if err := n.state.UpsertSITokenAccessors(index, request.Accessors); err != nil {
@@ -991,7 +990,7 @@ func (n *nomadFSM) applyDeregisterSIAccessor(buf []byte, index uint64) interface
 	defer metrics.MeasureSince([]string{"nomad", "fsm", "deregister_si_accessor"}, time.Now())
 	var request structs.SITokenAccessorsRequest
 	if err := structs.Decode(buf, &request); err != nil {
-		panic(errors.Wrap(err, "failed to decode request"))
+		panic(fmt.Errorf("failed to decode request: %w", err))
 	}
 
 	if err := n.state.DeleteSITokenAccessors(index, request.Accessors); err != nil {

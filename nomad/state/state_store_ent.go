@@ -8,7 +8,6 @@ import (
 
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/nomad/nomad/structs"
-	"github.com/pkg/errors"
 )
 
 // NamespacesByQuota is used to lookup namespaces by quota
@@ -790,7 +789,7 @@ func (s *StateStore) TmpLicenseBarrier(ws memdb.WatchSet) (*structs.TmpLicenseBa
 
 	watchCh, m, err := txn.FirstWatch(TableTmpLicenseBarrier, "id")
 	if err != nil {
-		return nil, errors.Wrap(err, "failed tmp license barrier lookup")
+		return nil, fmt.Errorf("failed tmp license barrier lookup: %w", err)
 	}
 	ws.Add(watchCh)
 
@@ -815,7 +814,7 @@ func (s *StateStore) TmpLicenseSetBarrier(index uint64, meta *structs.TmpLicense
 	defer txn.Abort()
 
 	if err := s.setTmpLicenseBarrier(txn, meta); err != nil {
-		return errors.Wrap(err, "set tmp license barrier failed")
+		return fmt.Errorf("set tmp license barrier failed: %w", err)
 	}
 
 	return txn.Commit()

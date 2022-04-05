@@ -27,7 +27,7 @@ require (
 	github.com/containernetworking/plugins v1.0.1
 	github.com/coreos/go-iptables v0.6.0
 	github.com/coreos/go-semver v0.3.0
-	github.com/creack/pty v1.1.17
+	github.com/creack/pty v1.1.18
 	github.com/docker/cli v20.10.3-0.20220113150236-6e2838e18645+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v20.10.12+incompatible
@@ -102,7 +102,6 @@ require (
 	github.com/moby/sys/mountinfo v0.6.0
 	github.com/opencontainers/runc v1.0.3
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
-	github.com/pkg/errors v0.9.1
 	github.com/posener/complete v1.2.3
 	github.com/prometheus/client_golang v1.12.0
 	github.com/prometheus/common v0.32.1
@@ -243,6 +242,7 @@ require (
 	github.com/opencontainers/selinux v1.10.0 // indirect
 	github.com/packethost/packngo v0.1.1-0.20180711074735-b9cb5096f54c // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
