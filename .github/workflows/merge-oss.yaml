@@ -1,0 +1,36 @@
+name: Merge OSS to ENT
+on:
+  schedule:
+    - cron: '0 4 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      origin_branch:
+        description: 'The source OSS branch'
+        default: 'main'        
+        required: true
+      dest_branch:
+        description: 'The destination ENT branch'
+        default: 'main'
+        required: true
+      tmp_branch:
+        description: 'A temporary branch for PR reviewing'
+        required: false
+env:
+  GOPRIVATE: github.com/hashicorp
+  TOKEN: ${{secrets.ELEVATED_GITHUB_TOKEN}}
+jobs:
+  merge-oss:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Configure Git
+        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com'.insteadOf 'https://github.com'
+      - name: Install Dependencies
+        run: |
+          make deps lint-deps
+      - name: Run Script
+        run: |
+          echo "todo: all the things!"
