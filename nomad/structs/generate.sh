@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # ensure that ent and pro structs don't get auto generated without tags
