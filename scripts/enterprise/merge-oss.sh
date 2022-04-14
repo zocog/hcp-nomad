@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-set -o errexit
-set -o nounset
+set -euo pipefail
 
 usage() {
     cat <<'EOF'
@@ -50,20 +49,14 @@ if ! git merge -m "$message" "oss/${origin_branch}"; then
     git checkout --theirs CHANGELOG.md
     git checkout --theirs version/version.go
     git checkout --theirs command/agent/bindata_assetfs.go
-    git checkout --theirs .circleci/config.yml
     git checkout --ours   go.sum
     go mod tidy
 
-    # Regenerate enterprise CircleCI config to apply changes from OSS merge
-
-    make -C .circleci config.yml
-
-    git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go \
-        go.sum .circleci/config.yml
+    git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go go.sum
 
     # attempt merging again
     if ! git commit -m "$message"; then
-        echo "failed to auto merge" >&2
+        echo "failed to auto merge after conflicts" >&2
         exit 1
     fi
 fi

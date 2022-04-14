@@ -6,31 +6,78 @@ on:
     inputs:
       origin_branch:
         description: 'The source OSS branch'
-        default: 'main'        
+        default: 'main'
         required: true
       dest_branch:
         description: 'The destination ENT branch'
         default: 'main'
         required: true
-      tmp_branch:
-        description: 'A temporary branch for PR reviewing'
-        required: false
 env:
+  GO_VERSION: 1.17.7
   GOPRIVATE: github.com/hashicorp
-  TOKEN: ${{secrets.ELEVATED_GITHUB_TOKEN}}
+  GITHUB_USER: hc-github-team-nomad-core
 jobs:
   merge-oss:
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+          token: ${{secrets.ELEVATED_GITHUB_TOKEN}}
+      - uses: magnetikonline/action-golang-cache@v1
+        with:
+          go-version: ${{env.GO_VERSION}}
+          cache-key-suffix: -merge-oss
       - name: Configure Git
-        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com'.insteadOf 'https://github.com'
+        run: |
+          git config --global url.'https://${{secrets.ELEVATED_GITHUB_TOKEN}}:@github.com'.insteadOf 'https://github.com'
+          git config --global user.email "github-team-nomad-core@hashicorp.com"
+          git config --global user.name "@${{env.GITHUB_USER}}"
       - name: Install Dependencies
         run: |
           make deps lint-deps
       - name: Run Script
         run: |
-          echo "todo: all the things!"
+          set -xeuo pipefail
+
+          # Get branch names
+          origin_branch_input="${{github.event.inputs.origin_branch}}"
+          origin_branch="${origin_branch_input:-main}"
+          dest_branch_input="${{github.event.inputs.dest_branch}}"
+          dest_branch="${dest_branch_input:-main}"
+          tmp_branch="ci/oss-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
+
+          # Protect against dest_branch being different from current branch
+          git checkout "${dest_branch}"
+          git pull
+
+          # Run the merge script
+          if ! ./scripts/enterprise/merge-oss.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}" ; then
+            echo "git was unable to auto-merge"
+            curl -XPOST "${{secrets.NOMAD_MERGE_OSS_SLACK}}" -d '{"msg":"git was unable to auto-merge"}'
+            exit 1
+          fi
+
+          # Spot check by doing make check
+          if ! make check ; then
+            echo "make check failed after auto-merge"
+            curl -XPOST "${{secrets.NOMAD_MERGE_OSS_SLACK}}" -d '{"msg":"make check failed after auto-merge"}'
+            exit 1
+          fi
+
+          # Spot check by doing compile
+          if ! make pkg/linux_amd64/nomad ; then
+            echo "compilation failed after auto-merge"
+            curl -XPOST "${{secrets.NOMAD_MERGE_OSS_SLACK}}" -d '{"msg":"compilation failed after auto-merge"}'
+            exit 1
+          fi
+
+          # Finally merge and push
+          git checkout "${dest_branch}"
+          git merge "${tmp_branch}"
+          git push origin "${dest_branch}"
+
+          # Say goodbye
+          echo "Complete!!"
+          exit 0
