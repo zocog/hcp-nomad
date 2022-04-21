@@ -1,7 +1,15 @@
 name: Merge OSS to ENT
 on:
-  schedule:
-    - cron: '0 4 * * 1-5'
+  # Allow this Action to be triggered by other Actions.
+  workflow_call:
+    inputs:
+      origin_branch:
+        description: 'The source OSS branch'
+        required: true
+      dest_branch:
+        description: 'The destination ENT branch'
+        required: true
+  # Allow this Action to be triggered manually or from the API.
   workflow_dispatch:
     inputs:
       origin_branch:
