@@ -1,5 +1,4 @@
 //go:build ent
-// +build ent
 
 package audit
 
@@ -8,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/eventlogger"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/stretchr/testify/require"
 )

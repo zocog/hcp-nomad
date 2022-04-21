@@ -1,5 +1,4 @@
 //go:build ent
-// +build ent
 
 package audit
 
@@ -17,6 +16,7 @@ import (
 
 	"github.com/hashicorp/eventlogger"
 	"github.com/hashicorp/nomad-licensing/license"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/stretchr/testify/require"
@@ -214,21 +214,19 @@ func TestAuditor_NewDir(t *testing.T) {
 	require.Equal(t, e.Request.Endpoint, jsonEvent.Payload.Request.Endpoint)
 }
 
-// TestAuditor_ExistingDir tests a directory that doest exist is used without
+// TestAuditor_ExistingDir tests a directory that does exist is used without
 // changing the permissions.
 func TestAuditor_ExistingDir(t *testing.T) {
 	ci.Parallel(t)
 
 	// Create a temp directory for the audit log file
-	tmpDir, err := ioutil.TempDir("", t.Name())
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
-	fileMode := fs.FileMode(0o640)
+	fileMode := fs.FileMode(0640)
+	dirMode := fs.FileMode(0750)
 
 	// Create the directory and set non-default permissions
 	auditDir := filepath.Join(tmpDir, "audit")
-	dirMode := fs.FileMode(0o770)
 	require.NoError(t, os.Mkdir(auditDir, dirMode))
 
 	auditor, err := NewAuditor(&Config{
