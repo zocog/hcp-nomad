@@ -1,0 +1,28 @@
+name: Merge OSS to ENT Nightly
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1-5'
+jobs:
+  #merge-main:
+  #  runs-on: ubuntu-20.04
+  #  steps:
+  #    - name: Merge main
+  #      uses: ./.github/workflows/merge-oss
+  #      with:
+  #        origin_branch: main
+  #        dest_branch: main
+  merge-release:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        branch:
+          - "release/1.2.x"
+          - "release/1.1.x"
+          - "release/1.0.x"
+    steps:
+      - name: Merge ${{ matrix.branch }}
+        uses: ./.github/workflows/merge-oss
+        with:
+          origin_branch: ${{ matrix.branch }}-test
+          dest_branch: ${{ matrix.branch }}+ent-test
