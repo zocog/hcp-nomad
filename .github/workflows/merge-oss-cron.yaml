@@ -1,28 +1,40 @@
 name: Merge OSS to ENT Nightly
 on:
-  workflow_dispatch:
   schedule:
     - cron: '0 4 * * 1-5'
 jobs:
-  #merge-main:
-  #  runs-on: ubuntu-20.04
-  #  steps:
-  #    - name: Merge main
-  #      uses: ./.github/workflows/merge-oss
-  #      with:
-  #        origin_branch: main
-  #        dest_branch: main
-  merge-release:
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        branch:
-          - "release/1.2.x"
-          - "release/1.1.x"
-          - "release/1.0.x"
-    steps:
-      - name: Merge ${{ matrix.branch }}
-        uses: ./.github/workflows/merge-oss
-        with:
-          origin_branch: ${{ matrix.branch }}-test
-          dest_branch: ${{ matrix.branch }}+ent-test
+  merge-main:
+    uses: ./.github/workflows/merge-oss
+    with:
+      origin_branch: main
+      dest_branch: main
+    secrets:
+      NOMAD_MERGE_OSS_GH_PAT: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
+      NOMAD_MERGE_OSS_SLACK: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
+
+  # Strategy matrix is not yet supported in reusable workflows:
+  # https://docs.github.com/en/actions/using-workflows/reusing-workflows#limitations
+  merge-1.2.x:
+    uses: ./.github/workflows/merge-oss.yaml
+    with:
+      origin_branch: release/1.2.x
+      dest_branch: release/1.2.x+ent
+    secrets:
+      NOMAD_MERGE_OSS_GH_PAT: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
+      NOMAD_MERGE_OSS_SLACK: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
+  merge-1.1.x:
+    uses: ./.github/workflows/merge-oss.yaml
+    with:
+      origin_branch: release/1.1.x
+      dest_branch: release/1.1.x+ent
+    secrets:
+      NOMAD_MERGE_OSS_GH_PAT: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
+      NOMAD_MERGE_OSS_SLACK: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
+  merge-1.0.x:
+    uses: ./.github/workflows/merge-oss.yaml
+    with:
+      origin_branch: release/1.0.x
+      dest_branch: release/1.0.x+ent
+    secrets:
+      NOMAD_MERGE_OSS_GH_PAT: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
+      NOMAD_MERGE_OSS_SLACK: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}

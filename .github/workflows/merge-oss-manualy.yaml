@@ -1,0 +1,21 @@
+name: Merge OSS to ENT Manually
+on:
+  workflow_dispatch:
+    inputs:
+      origin_branch:
+        description: 'The source OSS branch'
+        default: 'main'
+        required: true
+      dest_branch:
+        description: 'The destination ENT branch'
+        default: 'main'
+        required: true
+jobs:
+  merge:
+    uses: ./.github/workflows/merge-oss.yaml
+    with:
+      origin_branch: ${{ github.event.inputs.origin_branch }}
+      dest_branch: ${{ github.event.inputs.dest_branch }}
+    secrets:
+      NOMAD_MERGE_OSS_GH_PAT: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
+      NOMAD_MERGE_OSS_SLACK: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
