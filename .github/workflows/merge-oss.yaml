@@ -73,10 +73,16 @@ jobs:
             exit 1
           fi
 
-          # Finally merge and push
+          # Finally merge
           git checkout "${dest_branch}"
           git merge "${tmp_branch}"
-          git push origin "${dest_branch}"
+
+          # And then push
+          if ! git push origin "${dest_branch}" ; then
+            echo "push to origin failed"
+            curl -XPOST "${{secrets.NOMAD_MERGE_OSS_SLACK}}" -d '{"msg":"push to origin failed"}'
+            exit 1
+          fi
 
           # Say goodbye
           echo "Complete!!"
