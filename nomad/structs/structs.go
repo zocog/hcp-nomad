@@ -296,7 +296,7 @@ func (q QueryOptions) TimeToBlock() time.Duration {
 	return q.MaxQueryTime
 }
 
-func (q QueryOptions) SetTimeToBlock(t time.Duration) {
+func (q *QueryOptions) SetTimeToBlock(t time.Duration) {
 	q.MaxQueryTime = t
 }
 
@@ -2215,6 +2215,13 @@ func (n *Node) Stub(fields *NodeStubFields) *NodeListStub {
 			s.NodeResources = n.NodeResources
 			s.ReservedResources = n.ReservedResources
 		}
+
+		// Fetch key attributes from the main Attributes map.
+		if fields.OS {
+			m := make(map[string]string)
+			m["os.name"] = n.Attributes["os.name"]
+			s.Attributes = m
+		}
 	}
 
 	return s
@@ -2225,6 +2232,7 @@ func (n *Node) Stub(fields *NodeStubFields) *NodeListStub {
 type NodeListStub struct {
 	Address               string
 	ID                    string
+	Attributes            map[string]string `json:",omitempty"`
 	Datacenter            string
 	Name                  string
 	NodeClass             string
@@ -2245,6 +2253,7 @@ type NodeListStub struct {
 // NodeStubFields defines which fields are included in the NodeListStub.
 type NodeStubFields struct {
 	Resources bool
+	OS        bool
 }
 
 // Resources is used to define the resources available
@@ -9935,6 +9944,24 @@ func (a *Allocation) DisconnectTimeout(now time.Time) time.Time {
 	return now.Add(*timeout)
 }
 
+// SupportsDisconnectedClients determines whether both the server and the task group
+// are configured to allow the allocation to reconnect after network connectivity
+// has been lost and then restored.
+func (a *Allocation) SupportsDisconnectedClients(serverSupportsDisconnectedClients bool) bool {
+	if !serverSupportsDisconnectedClients {
+		return false
+	}
+
+	if a.Job != nil {
+		tg := a.Job.LookupTaskGroup(a.TaskGroup)
+		if tg != nil {
+			return tg.MaxClientDisconnect != nil
+		}
+	}
+
+	return false
+}
+
 // NextDelay returns a duration after which the allocation can be rescheduled.
 // It is calculated according to the delay function and previous reschedule attempts.
 func (a *Allocation) NextDelay() time.Duration {
@@ -11278,8 +11305,6 @@ func (p *Plan) AppendPreemptedAlloc(alloc *Allocation, preemptingAllocID string)
 
 // AppendUnknownAlloc marks an allocation as unknown.
 func (p *Plan) AppendUnknownAlloc(alloc *Allocation) {
-	// Strip the job as it's set once on the ApplyPlanResultRequest.
-	alloc.Job = nil
 	// Strip the resources as they can be rebuilt.
 	alloc.Resources = nil
 

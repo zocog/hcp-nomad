@@ -224,19 +224,10 @@ func (a allocSet) filterByTainted(taintedNodes map[string]*structs.Node, serverS
 	reconnecting = make(map[string]*structs.Allocation)
 	ignore = make(map[string]*structs.Allocation)
 
-	supportsDisconnectedClients := serverSupportsDisconnectedClients
-
 	for _, alloc := range a {
-
 		// make sure we don't apply any reconnect logic to task groups
 		// without max_client_disconnect
-		if alloc.Job != nil {
-			tg := alloc.Job.LookupTaskGroup(alloc.TaskGroup)
-			if tg != nil {
-				supportsDisconnectedClients = serverSupportsDisconnectedClients &&
-					tg.MaxClientDisconnect != nil
-			}
-		}
+		supportsDisconnectedClients := alloc.SupportsDisconnectedClients(serverSupportsDisconnectedClients)
 
 		reconnected := false
 		expired := false
@@ -257,6 +248,40 @@ func (a allocSet) filterByTainted(taintedNodes map[string]*structs.Node, serverS
 			alloc.ClientStatus == structs.AllocClientStatusFailed {
 			reconnecting[alloc.ID] = alloc
 			continue
+		}
+
+		taintedNode, nodeIsTainted := taintedNodes[alloc.NodeID]
+		if taintedNode != nil {
+			// Group disconnecting/reconnecting
+			switch taintedNode.Status {
+			case structs.NodeStatusDisconnected:
+				if supportsDisconnectedClients {
+					// Filter running allocs on a node that is disconnected to be marked as unknown.
+					if alloc.ClientStatus == structs.AllocClientStatusRunning {
+						disconnecting[alloc.ID] = alloc
+						continue
+					}
+					// Filter pending allocs on a node that is disconnected to be marked as lost.
+					if alloc.ClientStatus == structs.AllocClientStatusPending {
+						lost[alloc.ID] = alloc
+						continue
+					}
+				} else {
+					lost[alloc.ID] = alloc
+					continue
+				}
+			case structs.NodeStatusReady:
+				// Filter reconnecting allocs on a node that is now connected.
+				if reconnected {
+					if expired {
+						lost[alloc.ID] = alloc
+						continue
+					}
+					reconnecting[alloc.ID] = alloc
+					continue
+				}
+			default:
+			}
 		}
 
 		// Terminal allocs, if not reconnected, are always untainted as they
@@ -295,8 +320,7 @@ func (a allocSet) filterByTainted(taintedNodes map[string]*structs.Node, serverS
 			continue
 		}
 
-		taintedNode, ok := taintedNodes[alloc.NodeID]
-		if !ok {
+		if !nodeIsTainted {
 			// Filter allocs on a node that is now re-connected to be resumed.
 			if reconnected {
 				if expired {
@@ -310,39 +334,6 @@ func (a allocSet) filterByTainted(taintedNodes map[string]*structs.Node, serverS
 			// Otherwise, Node is untainted so alloc is untainted
 			untainted[alloc.ID] = alloc
 			continue
-		}
-
-		if taintedNode != nil {
-			// Group disconnecting/reconnecting
-			switch taintedNode.Status {
-			case structs.NodeStatusDisconnected:
-				if supportsDisconnectedClients {
-					// Filter running allocs on a node that is disconnected to be marked as unknown.
-					if alloc.ClientStatus == structs.AllocClientStatusRunning {
-						disconnecting[alloc.ID] = alloc
-						continue
-					}
-					// Filter pending allocs on a node that is disconnected to be marked as lost.
-					if alloc.ClientStatus == structs.AllocClientStatusPending {
-						lost[alloc.ID] = alloc
-						continue
-					}
-				} else {
-					lost[alloc.ID] = alloc
-					continue
-				}
-			case structs.NodeStatusReady:
-				// Filter reconnecting allocs with replacements on a node that is now connected.
-				if reconnected {
-					if expired {
-						lost[alloc.ID] = alloc
-						continue
-					}
-					reconnecting[alloc.ID] = alloc
-					continue
-				}
-			default:
-			}
 		}
 
 		// Allocs on GC'd (nil) or lost nodes are Lost
@@ -369,6 +360,12 @@ func (a allocSet) filterByRescheduleable(isBatch, isDisconnecting bool, now time
 	// When filtering disconnected sets, the untainted set is never populated.
 	// It has no purpose in that context.
 	for _, alloc := range a {
+		// Ignore disconnecting allocs that are already unknown. This can happen
+		// in the case of canaries that are interrupted by a disconnect.
+		if isDisconnecting && alloc.ClientStatus == structs.AllocClientStatusUnknown {
+			continue
+		}
+
 		var eligibleNow, eligibleLater bool
 		var rescheduleTime time.Time
 
@@ -563,6 +560,18 @@ func (a allocSet) delayByMaxClientDisconnect(now time.Time) (later []*delayedRes
 	}
 
 	return
+}
+
+// filterByClientStatus returns allocs from the set with the specified client status.
+func (a allocSet) filterByClientStatus(clientStatus string) allocSet {
+	allocs := make(allocSet)
+	for _, alloc := range a {
+		if alloc.ClientStatus == clientStatus {
+			allocs[alloc.ID] = alloc
+		}
+	}
+
+	return allocs
 }
 
 // allocNameIndex is used to select allocation names for placement or removal
