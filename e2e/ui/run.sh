@@ -29,6 +29,7 @@ EOF
 
 
 IMAGE="mcr.microsoft.com/playwright:v1.21.0-focal"
+pushd $(dirname "${BASH_SOURCE[0]}") > /dev/null
 
 run_tests() {
     run bash script.sh $@
@@ -51,10 +52,8 @@ run() {
 }
 
 run_proxy() {
-    thisdir="$( cd "$( dirname $(grealpath "${BASH_SOURCE[0]}") )" >/dev/null 2>&1 && pwd )"
-
     nomad namespace apply proxy
-    nomad job run "${thisdir}/input/proxy.nomad"
+    nomad job run "./input/proxy.nomad"
     IP=$(nomad node status -json -verbose \
           $(nomad operator api '/v1/allocations?namespace=proxy' | jq -r '.[] | select(.JobID == "nomad-proxy") | .NodeID') \
         | jq -r '.Attributes."unique.platform.aws.public-ipv4"')
