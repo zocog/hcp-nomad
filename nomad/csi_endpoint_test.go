@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/nomad/acl"
@@ -243,9 +244,11 @@ func TestCSIVolumeEndpoint_Claim(t *testing.T) {
 	// Create an initial volume claim request; we expect it to fail
 	// because there's no such volume yet.
 	claimReq := &structs.CSIVolumeClaimRequest{
-		VolumeID:     id0,
-		AllocationID: alloc.ID,
-		Claim:        structs.CSIVolumeClaimWrite,
+		VolumeID:       id0,
+		AllocationID:   alloc.ID,
+		Claim:          structs.CSIVolumeClaimWrite,
+		AccessMode:     structs.CSIVolumeAccessModeMultiNodeSingleWriter,
+		AttachmentMode: structs.CSIVolumeAttachmentModeFilesystem,
 		WriteRequest: structs.WriteRequest{
 			Region:    "global",
 			Namespace: structs.DefaultNamespace,
@@ -253,7 +256,7 @@ func TestCSIVolumeEndpoint_Claim(t *testing.T) {
 	}
 	claimResp := &structs.CSIVolumeClaimResponse{}
 	err := msgpackrpc.CallWithCodec(codec, "CSIVolume.Claim", claimReq, claimResp)
-	require.EqualError(t, err, fmt.Sprintf("controller publish: volume not found: %s", id0),
+	require.EqualError(t, err, fmt.Sprintf("volume not found: %s", id0),
 		"expected 'volume not found' error because volume hasn't yet been created")
 
 	// Create a plugin and volume
@@ -323,8 +326,8 @@ func TestCSIVolumeEndpoint_Claim(t *testing.T) {
 	require.NoError(t, state.UpsertAllocs(structs.MsgTypeTestSetup, index, []*structs.Allocation{alloc2}))
 	claimReq.AllocationID = alloc2.ID
 	err = msgpackrpc.CallWithCodec(codec, "CSIVolume.Claim", claimReq, claimResp)
-	require.EqualError(t, err, "volume max claim reached",
-		"expected 'volume max claim reached' because we only allow 1 writer")
+	require.EqualError(t, err, structs.ErrCSIVolumeMaxClaims.Error(),
+		"expected 'volume max claims reached' because we only allow 1 writer")
 
 	// Fix the mode and our claim will succeed
 	claimReq.Claim = structs.CSIVolumeClaimRead
@@ -445,14 +448,14 @@ func TestCSIVolumeEndpoint_ClaimWithController(t *testing.T) {
 	claimResp := &structs.CSIVolumeClaimResponse{}
 	err = msgpackrpc.CallWithCodec(codec, "CSIVolume.Claim", claimReq, claimResp)
 	// Because the node is not registered
-	require.EqualError(t, err, "controller publish: attach volume: controller attach volume: No path to node")
+	require.EqualError(t, err, "controller publish: controller attach volume: No path to node")
 
 	// The node SecretID is authorized for all policies
 	claimReq.AuthToken = node.SecretID
 	claimReq.Namespace = ""
 	claimResp = &structs.CSIVolumeClaimResponse{}
 	err = msgpackrpc.CallWithCodec(codec, "CSIVolume.Claim", claimReq, claimResp)
-	require.EqualError(t, err, "controller publish: attach volume: controller attach volume: No path to node")
+	require.EqualError(t, err, "controller publish: controller attach volume: No path to node")
 }
 
 func TestCSIVolumeEndpoint_Unpublish(t *testing.T) {
@@ -511,7 +514,7 @@ func TestCSIVolumeEndpoint_Unpublish(t *testing.T) {
 		{
 			name:           "first unpublish",
 			startingState:  structs.CSIVolumeClaimStateTaken,
-			expectedErrMsg: "could not detach from node: No path to node",
+			expectedErrMsg: "could not detach from controller: controller detach volume: No path to node",
 		},
 	}
 
@@ -667,6 +670,88 @@ func TestCSIVolumeEndpoint_List(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, len(resp.Volumes))
 	require.Equal(t, vols[1].ID, resp.Volumes[0].ID)
+}
+
+func TestCSIVolumeEndpoint_ListAllNamespaces(t *testing.T) {
+	t.Parallel()
+	srv, shutdown := TestServer(t, func(c *Config) {
+		c.NumSchedulers = 0 // Prevent automatic dequeue
+	})
+	defer shutdown()
+	testutil.WaitForLeader(t, srv.RPC)
+
+	state := srv.fsm.State()
+	codec := rpcClient(t, srv)
+
+	// Create namespaces.
+	ns0 := structs.DefaultNamespace
+	ns1 := "namespace-1"
+	ns2 := "namespace-2"
+	err := state.UpsertNamespaces(1000, []*structs.Namespace{{Name: ns1}, {Name: ns2}})
+	require.NoError(t, err)
+
+	// Create volumes in multiple namespaces.
+	id0 := uuid.Generate()
+	id1 := uuid.Generate()
+	id2 := uuid.Generate()
+	vols := []*structs.CSIVolume{{
+		ID:        id0,
+		Namespace: ns0,
+		PluginID:  "minnie",
+		Secrets:   structs.CSISecrets{"mysecret": "secretvalue"},
+		RequestedCapabilities: []*structs.CSIVolumeCapability{{
+			AccessMode:     structs.CSIVolumeAccessModeMultiNodeReader,
+			AttachmentMode: structs.CSIVolumeAttachmentModeFilesystem,
+		}},
+	}, {
+		ID:        id1,
+		Namespace: ns1,
+		PluginID:  "adam",
+		RequestedCapabilities: []*structs.CSIVolumeCapability{{
+			AccessMode:     structs.CSIVolumeAccessModeMultiNodeSingleWriter,
+			AttachmentMode: structs.CSIVolumeAttachmentModeFilesystem,
+		}},
+	}, {
+		ID:        id2,
+		Namespace: ns2,
+		PluginID:  "beth",
+		RequestedCapabilities: []*structs.CSIVolumeCapability{{
+			AccessMode:     structs.CSIVolumeAccessModeMultiNodeSingleWriter,
+			AttachmentMode: structs.CSIVolumeAttachmentModeFilesystem,
+		}},
+	},
+	}
+	err = state.CSIVolumeRegister(1001, vols)
+	require.NoError(t, err)
+
+	// Lookup volumes in all namespaces
+	get := &structs.CSIVolumeListRequest{
+		QueryOptions: structs.QueryOptions{
+			Region:    "global",
+			Namespace: "*",
+		},
+	}
+	var resp structs.CSIVolumeListResponse
+	err = msgpackrpc.CallWithCodec(codec, "CSIVolume.List", get, &resp)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1001), resp.Index)
+	require.Len(t, resp.Volumes, len(vols))
+
+	// Lookup volumes in all namespaces with prefix
+	get = &structs.CSIVolumeListRequest{
+		QueryOptions: structs.QueryOptions{
+			Region:    "global",
+			Prefix:    id0[:4],
+			Namespace: "*",
+		},
+	}
+	var resp2 structs.CSIVolumeListResponse
+	err = msgpackrpc.CallWithCodec(codec, "CSIVolume.List", get, &resp2)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1001), resp.Index)
+	require.Len(t, resp2.Volumes, 1)
+	require.Equal(t, vols[0].ID, resp2.Volumes[0].ID)
+	require.Equal(t, structs.DefaultNamespace, resp2.Volumes[0].Namespace)
 }
 
 func TestCSIVolumeEndpoint_Create(t *testing.T) {
@@ -1007,6 +1092,7 @@ func TestCSIVolumeEndpoint_ListExternal(t *testing.T) {
 	// List external volumes; note that none of these exist in the state store
 
 	req := &structs.CSIVolumeExternalListRequest{
+		PluginID: "minnie",
 		QueryOptions: structs.QueryOptions{
 			Region:    "global",
 			Namespace: structs.DefaultNamespace,
@@ -1034,12 +1120,14 @@ func TestCSIVolumeEndpoint_CreateSnapshot(t *testing.T) {
 
 	testutil.WaitForLeader(t, srv.RPC)
 
+	now := time.Now().Unix()
 	fake := newMockClientCSI()
 	fake.NextCreateSnapshotError = nil
 	fake.NextCreateSnapshotResponse = &cstructs.ClientCSIControllerCreateSnapshotResponse{
 		ID:                     "snap-12345",
 		ExternalSourceVolumeID: "vol-12345",
 		SizeBytes:              42,
+		CreateTime:             now,
 		IsReady:                true,
 	}
 
@@ -1106,7 +1194,6 @@ func TestCSIVolumeEndpoint_CreateSnapshot(t *testing.T) {
 			SourceVolumeID: "test-volume0",
 			Secrets:        structs.CSISecrets{"mysecret": "secretvalue"},
 			Parameters:     map[string]string{"myparam": "paramvalue"},
-			PluginID:       "minnie",
 		}},
 		WriteRequest: structs.WriteRequest{
 			Region:    "global",
@@ -1278,8 +1365,8 @@ func TestCSIVolumeEndpoint_ListSnapshots(t *testing.T) {
 	require.NoError(t, state.UpsertNode(structs.MsgTypeTestSetup, index, node))
 
 	// List snapshots
-
 	req := &structs.CSISnapshotListRequest{
+		PluginID: "minnie",
 		Secrets: structs.CSISecrets{
 			"secret-key-1": "secret-val-1",
 		},
