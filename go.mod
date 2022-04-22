@@ -153,5 +153,4 @@ require (
 	github.com/hashicorp/sentinel v0.15.5
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	google.golang.org/api v0.24.0 // indirect
-	google.golang.org/protobuf v1.26.0 // indirect
 )
