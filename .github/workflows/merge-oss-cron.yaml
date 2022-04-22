@@ -2,9 +2,10 @@ name: Merge OSS to ENT Nightly
 on:
   schedule:
     - cron: '0 4 * * 1-5'
+  workflow_dispatch:
 jobs:
   merge-main:
-    uses: ./.github/workflows/merge-oss
+    uses: ./.github/workflows/merge-oss.yaml
     with:
       origin_branch: main
       dest_branch: main
@@ -38,3 +39,54 @@ jobs:
     secrets:
       NOMAD_MERGE_OSS_GH_PAT: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
       NOMAD_MERGE_OSS_SLACK: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
+  slack-notify-success:
+    needs:
+      - merge-main
+      - merge-1.2.x
+      - merge-1.1.x
+      - merge-1.0.x
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Send slack notification on success
+        uses: slackapi/slack-github-action@v1.18.0
+        with:
+          payload: |
+            {
+              "text": ":merge::nomad-da: Nightly Nomad OSS->ENT merge completed *successfully*",
+              "attachments": [
+                {
+                  "color": "#5ABB54",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Origin branch:*\n<https://github.com/hashicorp/nomad/tree/${{ inputs.origin_branch }}|${{ inputs.origin_branch }}>"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Destination branch:*\n<https://github.com/hashicorp/nomad-enterprise/tree/${{ inputs.dest_branch }}|${{ inputs.dest_branch }}>"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Workflow:*\n${{ github.workflow }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Run:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|${{ github.run_id }}>"
+                        }
+                      ]
+                    },
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

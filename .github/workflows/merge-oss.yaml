@@ -19,7 +19,6 @@ on:
         description: 'The Slack app incoming webhook URL to use for notification'
         required: true
 env:
-  GO_VERSION: 1.17.7
   GOPRIVATE: github.com/hashicorp
   GITHUB_USER: hc-github-team-nomad-core
 jobs:
@@ -31,20 +30,23 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          ref: ${{ inputs.dest_branch }}
           fetch-depth: 0
-          token: ${{secrets.NOMAD_MERGE_OSS_GH_PAT}}
-      - uses: magnetikonline/action-golang-cache@v1
+          token: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
+      - name: Determine Go version
+        id: get-go-version
+        run: |
+          echo "::notice::Building with Go $(cat .go-version)"
+          echo "::set-output name=go-version::$(cat .go-version)"
+      - uses: magnetikonline/action-golang-cache@v2
         with:
-          go-version: ${{env.GO_VERSION}}
-          cache-key-suffix: -merge-oss
+          go-version: ${{ steps.get-go-version.outputs.go-version }}
+          cache-key-suffix: -${{ inputs.origin_branch }}-${{ inputs.dest_branch }}-merge-oss
       - name: Configure Git
         run: |
-          git config --global url.'https://${{secrets.NOMAD_MERGE_OSS_GH_PAT}}:@github.com'.insteadOf 'https://github.com'
+          git config --global url.'https://${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}:@github.com'.insteadOf 'https://github.com'
           git config --global user.email "github-team-nomad-core@hashicorp.com"
-          git config --global user.name "@${{env.GITHUB_USER}}"
-      - name: Install Dependencies
-        run: |
-          make deps lint-deps
+          git config --global user.name "@${{ env.GITHUB_USER }}"
       - name: Run Script
         id: merge
         run: |
@@ -55,46 +57,58 @@ jobs:
           dest_branch="${{ inputs.dest_branch }}"
           tmp_branch="ci/oss-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
 
+          echo "::notice::Merging OSS branch ${origin_branch} into ENT branch ${dest_branch}"
+
           # Protect against dest_branch being different from current branch
           git checkout "${dest_branch}"
           git pull
 
           # Run the merge script
+          echo "::group::Run merge script"
           if ! ./scripts/enterprise/merge-oss.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}" ; then
-            echo "git was unable to auto-merge"
+            echo "::error::git was unable to auto-merge"
             echo "::set-output name=reason::git was unable to auto-merge"
             exit 1
           fi
+          echo "::endgroup::"
+
+          echo "::group::Verify merge"
+          # Install dependencies after merge to make sure we install the right
+          # set of tools that may have been update
+          make deps lint-deps
 
           # Spot check by doing make check
           if ! make check ; then
-            echo "make check failed after auto-merge"
-            echo "::set-output name=reason::make check failed after auto-merge"
+            echo "::error::make check failed after auto-merge"
+            echo "::set-output name=reason::`make check` failed after auto-merge"
             exit 1
           fi
 
           # Spot check by doing compile
           if ! make pkg/linux_amd64/nomad ; then
-            echo "compilation failed after auto-merge"
+            echo "::error::compilation failed after auto-merge"
             echo "::set-output name=reason::compilation failed after auto-merge"
             exit 1
           fi
+          echo "::endgroup::"
 
+          echo "::group::Merge and push"
           # Finally merge
           git checkout "${dest_branch}"
           git merge "${tmp_branch}"
 
           # And then push
           if ! git push origin "${dest_branch}" ; then
-            echo "push to origin failed"
+            echo "::error::push to origin failed"
             echo "::set-output name=reason::push to origin failed"
             exit 1
           fi
+          echo "::endgroup::"
 
           # Say goodbye
-          echo "Complete!!"
+          echo "::notice::Complete merge of OSS branch ${origin_branch} into ENT branch ${dest_branch}!!"
           exit 0
-  slack-notify:
+  slack-notify-failure:
     needs:
       - merge-oss
     if: always() && needs.merge-oss.result == 'failure'
@@ -105,17 +119,54 @@ jobs:
         with:
           payload: |
             {
-              "text": ":alert: Nomad OSS merge *FAILED* because ${{ needs.merge-oss.outputs.reason }} :alert:",
+              "text": ":merge-on-fire::nomad-sob: Nomad OSS->ENT merge *FAILED*",
               "attachments": [
                 {
                   "color": "#C41E3A",
                   "blocks": [
                     {
                       "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": "Origin branch: `${{ inputs.origin_branch }}`\nDestination branch: `${{ inputs.dest_branch }}`\nWorkflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                      }
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Reason:*\n${{ needs.merge-oss.outputs.reason }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Origin branch:*\n<https://github.com/hashicorp/nomad/tree/${{ inputs.origin_branch }}|${{ inputs.origin_branch }}>"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Destination branch:*\n<https://github.com/hashicorp/nomad-enterprise/tree/${{ inputs.dest_branch }}|${{ inputs.dest_branch }}>"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Workflow:*\n${{ github.workflow }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Run:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|${{ github.run_id }}>"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Triggered By:*\n<https://github.com/${{ github.actor }}|@${{ github.actor }}>"
+                        }
+                      ]
                     }
                   ]
                 }

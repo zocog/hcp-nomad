@@ -46,13 +46,14 @@ message="Merge Nomad OSS branch '${origin_branch}' at commit ${latest_oss_commit
 if ! git merge -m "$message" "oss/${origin_branch}"; then
     # try to merge common conflicting files
     git status
+    git checkout --theirs .go-version
     git checkout --theirs CHANGELOG.md
     git checkout --theirs version/version.go
     git checkout --theirs command/agent/bindata_assetfs.go
     git checkout --ours   go.sum
     go mod tidy
 
-    git add CHANGELOG.md version/version.go command/agent/bindata_assetfs.go go.sum
+    git add .go-version CHANGELOG.md version/version.go command/agent/bindata_assetfs.go go.sum
 
     # attempt merging again
     if ! git commit -m "$message"; then
