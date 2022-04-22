@@ -4,22 +4,36 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"testing"
+	"time"
 
 	csipbv1 "github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/nomad/nomad/structs"
 	fake "github.com/hashicorp/nomad/plugins/csi/testing"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func newTestClient() (*fake.IdentityClient, *fake.ControllerClient, *fake.NodeClient, CSIPlugin) {
+func newTestClient(t *testing.T) (*fake.IdentityClient, *fake.ControllerClient, *fake.NodeClient, CSIPlugin) {
 	ic := fake.NewIdentityClient()
 	cc := fake.NewControllerClient()
 	nc := fake.NewNodeClient()
+
+	// we've set this as non-blocking so it won't connect to the
+	// socket unless a RPC is invoked
+	conn, err := grpc.DialContext(context.Background(),
+		filepath.Join(t.TempDir(), "csi.sock"), grpc.WithInsecure())
+	if err != nil {
+		t.Errorf("failed: %v", err)
+	}
+
 	client := &client{
+		conn:             conn,
 		identityClient:   ic,
 		controllerClient: cc,
 		nodeClient:       nc,
@@ -69,7 +83,7 @@ func TestClient_RPC_PluginProbe(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			ic, _, _, client := newTestClient()
+			ic, _, _, client := newTestClient(t)
 			defer client.Close()
 
 			ic.NextErr = tc.ResponseErr
@@ -121,7 +135,7 @@ func TestClient_RPC_PluginInfo(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			ic, _, _, client := newTestClient()
+			ic, _, _, client := newTestClient(t)
 			defer client.Close()
 
 			ic.NextErr = tc.ResponseErr
@@ -186,7 +200,7 @@ func TestClient_RPC_PluginGetCapabilities(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			ic, _, _, client := newTestClient()
+			ic, _, _, client := newTestClient(t)
 			defer client.Close()
 
 			ic.NextErr = tc.ResponseErr
@@ -284,7 +298,7 @@ func TestClient_RPC_ControllerGetCapabilities(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, cc, _, client := newTestClient()
+			_, cc, _, client := newTestClient(t)
 			defer client.Close()
 
 			cc.NextErr = tc.ResponseErr
@@ -342,7 +356,7 @@ func TestClient_RPC_NodeGetCapabilities(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, _, nc, client := newTestClient()
+			_, _, nc, client := newTestClient(t)
 			defer client.Close()
 
 			nc.NextErr = tc.ResponseErr
@@ -407,7 +421,7 @@ func TestClient_RPC_ControllerPublishVolume(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, cc, _, client := newTestClient()
+			_, cc, _, client := newTestClient(t)
 			defer client.Close()
 
 			cc.NextErr = tc.ResponseErr
@@ -453,7 +467,7 @@ func TestClient_RPC_ControllerUnpublishVolume(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, cc, _, client := newTestClient()
+			_, cc, _, client := newTestClient(t)
 			defer client.Close()
 
 			cc.NextErr = tc.ResponseErr
@@ -661,7 +675,7 @@ func TestClient_RPC_ControllerValidateVolume(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, cc, _, client := newTestClient()
+			_, cc, _, client := newTestClient(t)
 			defer client.Close()
 
 			requestedCaps := []*VolumeCapability{{
@@ -758,7 +772,7 @@ func TestClient_RPC_ControllerCreateVolume(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, cc, _, client := newTestClient()
+			_, cc, _, client := newTestClient(t)
 			defer client.Close()
 
 			req := &ControllerCreateVolumeRequest{
@@ -828,7 +842,7 @@ func TestClient_RPC_ControllerDeleteVolume(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, cc, _, client := newTestClient()
+			_, cc, _, client := newTestClient(t)
 			defer client.Close()
 
 			cc.NextErr = tc.ResponseErr
@@ -871,7 +885,7 @@ func TestClient_RPC_ControllerListVolume(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, cc, _, client := newTestClient()
+			_, cc, _, client := newTestClient(t)
 			defer client.Close()
 
 			cc.NextErr = tc.ResponseErr
@@ -938,6 +952,8 @@ func TestClient_RPC_ControllerListVolume(t *testing.T) {
 
 func TestClient_RPC_ControllerCreateSnapshot(t *testing.T) {
 
+	now := time.Now()
+
 	cases := []struct {
 		Name        string
 		Request     *ControllerCreateSnapshotRequest
@@ -972,6 +988,7 @@ func TestClient_RPC_ControllerCreateSnapshot(t *testing.T) {
 					SizeBytes:      100000,
 					SnapshotId:     "snap-12345",
 					SourceVolumeId: "vol-12345",
+					CreationTime:   timestamppb.New(now),
 					ReadyToUse:     true,
 				},
 			},
@@ -979,7 +996,7 @@ func TestClient_RPC_ControllerCreateSnapshot(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, cc, _, client := newTestClient()
+			_, cc, _, client := newTestClient(t)
 			defer client.Close()
 
 			cc.NextErr = tc.ResponseErr
@@ -987,11 +1004,13 @@ func TestClient_RPC_ControllerCreateSnapshot(t *testing.T) {
 			// note: there's nothing interesting to assert about the response
 			// here other than that we don't throw a NPE during transformation
 			// from protobuf to our struct
-			_, err := client.ControllerCreateSnapshot(context.TODO(), tc.Request)
+			resp, err := client.ControllerCreateSnapshot(context.TODO(), tc.Request)
 			if tc.ExpectedErr != nil {
 				require.EqualError(t, err, tc.ExpectedErr.Error())
 			} else {
 				require.NoError(t, err, tc.Name)
+				require.NotZero(t, resp.Snapshot.CreateTime)
+				require.Equal(t, now.Second(), time.Unix(resp.Snapshot.CreateTime, 0).Second())
 			}
 		})
 	}
@@ -1025,7 +1044,7 @@ func TestClient_RPC_ControllerDeleteSnapshot(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, cc, _, client := newTestClient()
+			_, cc, _, client := newTestClient(t)
 			defer client.Close()
 
 			cc.NextErr = tc.ResponseErr
@@ -1066,16 +1085,15 @@ func TestClient_RPC_ControllerListSnapshots(t *testing.T) {
 		},
 	}
 
+	now := time.Now()
+
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, cc, _, client := newTestClient()
+			_, cc, _, client := newTestClient(t)
 			defer client.Close()
 
 			cc.NextErr = tc.ResponseErr
-			if tc.ResponseErr != nil {
-				// note: there's nothing interesting to assert here other than
-				// that we don't throw a NPE during transformation from
-				// protobuf to our struct
+			if tc.ResponseErr == nil {
 				cc.NextListSnapshotsResponse = &csipbv1.ListSnapshotsResponse{
 					Entries: []*csipbv1.ListSnapshotsResponse_Entry{
 						{
@@ -1084,6 +1102,7 @@ func TestClient_RPC_ControllerListSnapshots(t *testing.T) {
 								SnapshotId:     "snap-12345",
 								SourceVolumeId: "vol-12345",
 								ReadyToUse:     true,
+								CreationTime:   timestamppb.New(now),
 							},
 						},
 					},
@@ -1098,7 +1117,10 @@ func TestClient_RPC_ControllerListSnapshots(t *testing.T) {
 			}
 			require.NoError(t, err, tc.Name)
 			require.NotNil(t, resp)
-
+			require.Len(t, resp.Entries, 1)
+			require.NotZero(t, resp.Entries[0].Snapshot.CreateTime)
+			require.Equal(t, now.Second(),
+				time.Unix(resp.Entries[0].Snapshot.CreateTime, 0).Second())
 		})
 	}
 }
@@ -1124,7 +1146,7 @@ func TestClient_RPC_NodeStageVolume(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, _, nc, client := newTestClient()
+			_, _, nc, client := newTestClient(t)
 			defer client.Close()
 
 			nc.NextErr = tc.ResponseErr
@@ -1165,7 +1187,7 @@ func TestClient_RPC_NodeUnstageVolume(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, _, nc, client := newTestClient()
+			_, _, nc, client := newTestClient(t)
 			defer client.Close()
 
 			nc.NextErr = tc.ResponseErr
@@ -1221,7 +1243,7 @@ func TestClient_RPC_NodePublishVolume(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, _, nc, client := newTestClient()
+			_, _, nc, client := newTestClient(t)
 			defer client.Close()
 
 			nc.NextErr = tc.ResponseErr
@@ -1274,7 +1296,7 @@ func TestClient_RPC_NodeUnpublishVolume(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, _, nc, client := newTestClient()
+			_, _, nc, client := newTestClient(t)
 			defer client.Close()
 
 			nc.NextErr = tc.ResponseErr

@@ -2286,10 +2286,10 @@ func TestCoreScheduler_CSIVolumeClaimGC(t *testing.T) {
 	err := state.UpsertNode(structs.MsgTypeTestSetup, index, node)
 	require.NoError(err)
 
-	// Note that for volume writes in this test we need to use the
-	// RPCs rather than StateStore methods directly so that the GC
-	// job's RPC call updates a later index. otherwise the
-	// volumewatcher won't trigger for the final GC
+	// *Important*: for volume writes in this test we must use RPCs
+	// rather than StateStore methods directly, or the blocking query
+	// in volumewatcher won't get the final update for GC because it's
+	// watching on a different store at that point
 
 	// Register a volume
 	vols := []*structs.CSIVolume{{
@@ -2310,11 +2310,11 @@ func TestCoreScheduler_CSIVolumeClaimGC(t *testing.T) {
 		volReq, &structs.CSIVolumeRegisterResponse{})
 	require.NoError(err)
 
-	// Create a job with two allocations that claim the volume.
+	// Create a job with two allocs that claim the volume.
 	// We use two allocs here, one of which is not running, so
-	// that we can assert that the volumewatcher has made one
-	// complete pass (and removed the 2nd alloc) before running
-	// the GC.
+	// that we can assert the volumewatcher has made one
+	// complete pass (and removed the 2nd alloc) before we
+	// run the GC
 	eval := mock.Eval()
 	eval.Status = structs.EvalStatusFailed
 	index++
@@ -2339,6 +2339,7 @@ func TestCoreScheduler_CSIVolumeClaimGC(t *testing.T) {
 
 	alloc2.NodeID = node.ID
 	alloc2.ClientStatus = structs.AllocClientStatusComplete
+	alloc2.DesiredStatus = structs.AllocDesiredStatusStop
 	alloc2.Job = job
 	alloc2.JobID = job.ID
 	alloc2.EvalID = eval.ID
@@ -2352,52 +2353,72 @@ func TestCoreScheduler_CSIVolumeClaimGC(t *testing.T) {
 	index++
 	require.NoError(state.UpsertAllocs(structs.MsgTypeTestSetup, index, []*structs.Allocation{alloc1, alloc2}))
 
-	// Claim the volume for the alloc
 	req := &structs.CSIVolumeClaimRequest{
-		AllocationID: alloc1.ID,
-		NodeID:       node.ID,
-		VolumeID:     volID,
-		Claim:        structs.CSIVolumeClaimWrite,
+		VolumeID:       volID,
+		AllocationID:   alloc1.ID,
+		NodeID:         uuid.Generate(), // doesn't exist so we don't get errors trying to unmount volumes from it
+		Claim:          structs.CSIVolumeClaimWrite,
+		AccessMode:     structs.CSIVolumeAccessModeMultiNodeMultiWriter,
+		AttachmentMode: structs.CSIVolumeAttachmentModeFilesystem,
+		State:          structs.CSIVolumeClaimStateTaken,
+		WriteRequest: structs.WriteRequest{
+			Namespace: ns,
+			Region:    srv.config.Region,
+		},
 	}
-	req.Namespace = ns
-	req.Region = srv.config.Region
 	err = msgpackrpc.CallWithCodec(codec, "CSIVolume.Claim",
 		req, &structs.CSIVolumeClaimResponse{})
-	require.NoError(err)
+	require.NoError(err, "write claim should succeed")
 
-	// Delete allocation and job
+	req.AllocationID = alloc2.ID
+	req.State = structs.CSIVolumeClaimStateUnpublishing
+
+	err = msgpackrpc.CallWithCodec(codec, "CSIVolume.Claim",
+		req, &structs.CSIVolumeClaimResponse{})
+	require.NoError(err, "unpublishing claim should succeed")
+
+	require.Eventually(func() bool {
+		vol, err := state.CSIVolumeByID(ws, ns, volID)
+		require.NoError(err)
+		return len(vol.WriteClaims) == 1 &&
+			len(vol.WriteAllocs) == 1 &&
+			len(vol.PastClaims) == 0
+	}, time.Second*1, 100*time.Millisecond,
+		"volumewatcher should have released unpublishing claim without GC")
+
+	// At this point we can guarantee that volumewatcher is waiting
+	// for new work. Delete allocation and job so that the next pass
+	// thru volumewatcher has more work to do
+	index, _ = state.LatestIndex()
 	index++
 	err = state.DeleteJob(index, ns, job.ID)
 	require.NoError(err)
+	index, _ = state.LatestIndex()
 	index++
-	err = state.DeleteEval(index, []string{eval.ID}, []string{alloc1.ID, alloc2.ID})
+	err = state.DeleteEval(index, []string{eval.ID}, []string{alloc1.ID})
 	require.NoError(err)
 
 	// Create a core scheduler and attempt the volume claim GC
 	snap, err := state.Snapshot()
 	require.NoError(err)
+
 	core := NewCoreScheduler(srv, snap)
 
+	index, _ = snap.LatestIndex()
 	index++
 	gc := srv.coreJobEval(structs.CoreJobForceGC, index)
 	c := core.(*CoreScheduler)
 	require.NoError(c.csiVolumeClaimGC(gc))
 
-	// TODO(tgross): the condition below means this test doesn't tell
-	// us much; ideally we should be intercepting the claim request
-	// and verifying that we send the expected claims but we don't
-	// have test infra in place to do that for server RPCs
-
-	// sending the GC claim will trigger the volumewatcher's normal
-	// code path. but the volumewatcher will hit an error here
-	// because there's no path to the node, so we shouldn't see
-	// the WriteClaims removed
+	// the only remaining claim is for a deleted alloc with no path to
+	// the non-existent node, so volumewatcher will release the
+	// remaining claim
 	require.Eventually(func() bool {
 		vol, _ := state.CSIVolumeByID(ws, ns, volID)
-		return len(vol.WriteClaims) == 1 &&
-			len(vol.WriteAllocs) == 1 &&
-			len(vol.PastClaims) == 1
-	}, time.Second*1, 10*time.Millisecond, "claims were released unexpectedly")
+		return len(vol.WriteClaims) == 0 &&
+			len(vol.WriteAllocs) == 0 &&
+			len(vol.PastClaims) == 0
+	}, time.Second*2, 10*time.Millisecond, "claims were not released")
 
 }
 

@@ -17,6 +17,9 @@ import (
 type Deployment struct {
 	srv    *Server
 	logger log.Logger
+
+	// ctx provides context regarding the underlying connection
+	ctx *RPCContext
 }
 
 // GetDeployment is used to request information about a specific deployment
@@ -501,6 +504,13 @@ func (d *Deployment) Allocations(args *structs.DeploymentSpecificRequest, reply 
 // Reap is used to cleanup terminal deployments
 func (d *Deployment) Reap(args *structs.DeploymentDeleteRequest,
 	reply *structs.GenericResponse) error {
+
+	// Ensure the connection was initiated by another server if TLS is used.
+	err := validateTLSCertificateLevel(d.srv, d.ctx, tlsCertificateLevelServer)
+	if err != nil {
+		return err
+	}
+
 	if done, err := d.srv.forward("Deployment.Reap", args, args, reply); done {
 		return err
 	}

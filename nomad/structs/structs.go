@@ -301,7 +301,7 @@ func (q QueryOptions) TimeToBlock() time.Duration {
 	return q.MaxQueryTime
 }
 
-func (q QueryOptions) SetTimeToBlock(t time.Duration) {
+func (q *QueryOptions) SetTimeToBlock(t time.Duration) {
 	q.MaxQueryTime = t
 }
 
@@ -6318,7 +6318,7 @@ func (tg *TaskGroup) Validate(j *Job) error {
 		canaries = tg.Update.Canary
 	}
 	for name, volReq := range tg.Volumes {
-		if err := volReq.Validate(canaries); err != nil {
+		if err := volReq.Validate(tg.Count, canaries); err != nil {
 			mErr.Errors = append(mErr.Errors, fmt.Errorf(
 				"Task group volume validation for %s failed: %v", name, err))
 		}
@@ -7769,9 +7769,9 @@ func (ts *TaskState) Copy() *TaskState {
 	return newTS
 }
 
-// Successful returns whether a task finished successfully. This doesn't really
-// have meaning on a non-batch allocation because a service and system
-// allocation should not finish.
+// Successful returns whether a task finished successfully. Only meaningful for
+// for batch allocations or ephemeral (non-sidecar) lifecycle tasks part of a
+// service or system allocation.
 func (ts *TaskState) Successful() bool {
 	return ts.State == TaskStateDead && !ts.Failed
 }
@@ -10778,7 +10778,9 @@ type Plan struct {
 
 func (p *Plan) GoString() string {
 	out := fmt.Sprintf("(eval %s", p.EvalID[:8])
-	out += fmt.Sprintf(", job %s", p.Job.ID)
+	if p.Job != nil {
+		out += fmt.Sprintf(", job %s", p.Job.ID)
+	}
 	if p.Deployment != nil {
 		out += fmt.Sprintf(", deploy %s", p.Deployment.ID[:8])
 	}
