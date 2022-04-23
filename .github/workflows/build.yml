@@ -61,7 +61,7 @@ jobs:
           name: metadata.json
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
   generate-ld-flags:
-    needs: get-product-version
+    needs: [get-go-version, get-product-version]
     runs-on: [self-hosted, linux]
     outputs:
       ldflags: ${{ steps.generate-ld-flags.outputs.ldflags }}
