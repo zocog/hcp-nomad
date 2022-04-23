@@ -14,11 +14,11 @@ on:
 
 env:
   PKG_NAME: "nomad"
-  GO_TAGS: "release"
+  GO_TAGS: "ent consulent release"
 
 jobs:
   get-go-version:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     outputs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
     steps:
@@ -31,7 +31,7 @@ jobs:
           echo "Building with Go $(cat .go-version)"
           echo "::set-output name=go-version::$(cat .go-version)"
   get-product-version:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
     steps:
@@ -43,7 +43,7 @@ jobs:
           echo "::set-output name=product-version::$(make version)"
   generate-metadata-file:
     needs: get-product-version
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     outputs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
     steps:
@@ -61,12 +61,21 @@ jobs:
           name: metadata.json
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
   generate-ld-flags:
-    needs: get-product-version
-    runs-on: ubuntu-latest
+    needs: [get-go-version, get-product-version]
+    runs-on: [self-hosted, linux]
     outputs:
       ldflags: ${{ steps.generate-ld-flags.outputs.ldflags }}
+    env:
+      GOPRIVATE: "github.com/hashicorp/*"
+      TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v2
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+      - name: Setup Git
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com/".insteadOf "https://github.com"
       - name: "Generate ld flags"
         id: generate-ld-flags
         run: |
@@ -77,7 +86,7 @@ jobs:
 
   build-other:
     needs: [get-go-version, get-product-version, generate-ld-flags]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, medium]
     strategy:
       matrix:
         goos: [windows]
@@ -85,6 +94,9 @@ jobs:
       fail-fast: true
 
     name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
+    env:
+      GOPRIVATE: "github.com/hashicorp/*"
+      TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@v2
@@ -92,6 +104,9 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      - name: Setup Git
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
       - name: Build dependencies
         run: make deps
@@ -126,7 +141,7 @@ jobs:
 
   build-linux:
     needs: [get-go-version, get-product-version, generate-ld-flags]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, medium]
     strategy:
       matrix:
         goos: [linux]
@@ -134,6 +149,9 @@ jobs:
       fail-fast: true
 
     name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
+    env:
+      GOPRIVATE: "github.com/hashicorp/*"
+      TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@v2
@@ -141,6 +159,9 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      - name: Setup Git
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
       - name: Build dependencies
         run: make deps
@@ -201,7 +222,7 @@ jobs:
       - name: Package
         uses: hashicorp/actions-packaging-linux@v1
         with:
-          name: ${{ env.PKG_NAME }}
+          name: ${{ env.PKG_NAME }}-enterprise
           description: "Nomad is an easy-to-use, flexible, and performant workload orchestrator that can deploy a mix of microservice, batch, containerized, and non-containerized applications."
           arch: ${{ matrix.goarch }}
           version: ${{ needs.get-product-version.outputs.product-version }}
@@ -240,6 +261,9 @@ jobs:
       fail-fast: true
 
     name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
+    env:
+      GOPRIVATE: "github.com/hashicorp/*"
+      TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@v2
@@ -248,6 +272,9 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      - name: Setup Git
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
       - name: Build dependencies
         run: make deps
@@ -281,14 +308,15 @@ jobs:
           path: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
 
   # This placed here for when the Nomad team is ready to build docker images.
-  # Please reach out the RDX team for assistance or refer to the CRT Self-Serve Onboarding doc.
+  # Please reach out the RDX team for assistance or refer to the CRT Self-Serve Onboarding doc
+  # [template is housed in github.com/hashicorp/crt-core-helloworld-enterprise].
 
-  # build-docker-default:
-  #   name: Docker ${{ matrix.arch }} default release build
+  # build-docker:
+  #   name: Docker ${{ matrix.arch }} build
   #   needs:
   #     - get-product-version
   #     - build
-  #   runs-on: ubuntu-latest
+  #   runs-on: [self-hosted, linux]
   #   strategy:
   #     matrix:
   #       arch: ["arm", "arm64", "386", "amd64"]
@@ -298,21 +326,40 @@ jobs:
 
   #   steps:
   #     - uses: actions/checkout@v2
+  #     # we currently have the +ent as part of the verion string so removing it here
+  #     # we should separate this from the version going forward
+  #     - name: Replace + in version
+  #       run: |
+  #         echo "dockerversion=$(echo ${{ needs.get-product-version.outputs.product-version }} | sed 's/+ent/-ent/g')" >> $GITHUB_ENV
   #     - name: Docker Build (Action)
   #       uses: hashicorp/actions-docker-build@v1
   #       with:
-  #         # Add smoke test here. Below is a sample smoke test that runs the built image
-  #         # and validates the version.
-  #         smoke_test: |
-  #           TEST_VERSION="$(docker run "${IMAGE_NAME}" | awk '/CLI version/{print $3}')"
-  #           if [ "${TEST_VERSION}" != "${version}" ]; then
-  #             echo "Test FAILED"
-  #             exit 1
-  #           fi
-  #           echo "Test PASSED"
-  #         version: ${{env.version}}
-  #         target: release-default
+  #         version: ${{env.dockerversion}}
+  #         target: default
   #         arch: ${{matrix.arch}}
+  #         zip_artifact_name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip
   #         tags: |
-  #           docker.io/hashicorp/${{env.repo}}:${{env.version}}
-  #           986891699432.dkr.ecr.us-east-1.amazonaws.com/hashicorp/${{env.repo}}:${{env.version}}
+  #           docker.io/hashicorp/${{env.repo}}:${{env.dockerversion}}
+  #           ecr.public.aws/hashicorp/${{env.repo}}:${{env.dockerversion}}
+  #         # dev_tags are tags that get automatically pushed whenever successful
+  #         # builds make it to the stable channel. The intention is for these tags
+  #         # to be used for early testing of new code prior to official releases
+  #         # going out. The stable channel implies that all tests and scans have
+  #         # completed successfully, so these images should be _stable_ but are not
+  #         # intended for production use.
+  #         #
+  #         # Here we have two example dev tags. The first (ending -dev) is a tag
+  #         # that will be updated over-and-over as new builds arrive in stable.
+  #         #
+  #         # The second (using the git SHA) will produce a new separate tag for
+  #         # each commit that is built. (These can still be overridden if the same
+  #         # commit is built successfully a second time, but that is a less likely
+  #         # scenario.) These kinds of dev tags are useful if you want to be able
+  #         # to use Docker images built from those specific commits.
+  #         #
+  #         # NOTE: dev_tags MUST publish to the 'hashicorppreview' DockerHub org, it
+  #         # will fail to any other DockerHub org or registry. You can optionally
+  #         # prepend docker.io
+  #         dev_tags: |
+  #           hashicorppreview/${{env.repo}}:${{env.dockerversion}}-dev
+  #           docker.io/hashicorppreview/${{env.repo}}:${{env.dockerversion}}-${{github.sha}}
