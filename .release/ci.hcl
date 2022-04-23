@@ -1,6 +1,6 @@
 schema = "1"
 
-project "nomad" {
+project "nomad-enterprise" {
   team = "nomad"
   slack {
     // #feed-nomad-releases
@@ -10,8 +10,8 @@ project "nomad" {
   }
   github {
     organization     = "hashicorp"
-    repository       = "nomad"
-    release_branches = ["release/1.1.x"]
+    repository       = "nomad-enterprise"
+    release_branches = ["release/1.1.x+ent"]
   }
 }
 
@@ -24,6 +24,7 @@ event "build" {
   depends = ["merge"]
   action "build" {
     organization = "hashicorp"
+    repository   = "nomad-enterprise"
     repository   = "nomad"
     workflow     = "build"
   }
@@ -42,8 +43,21 @@ event "upload-dev" {
   }
 }
 
-event "security-scan-binaries" {
+event "quality-tests" {
   depends = ["upload-dev"]
+  action "quality-tests" {
+    organization = "hashicorp"
+    repository   = "crt-workflows-common"
+    workflow     = "quality-tests"
+  }
+
+  notification {
+    on = "fail"
+  }
+}
+
+event "security-scan-binaries" {
+  depends = ["quality-tests"]
   action "security-scan-binaries" {
     organization = "hashicorp"
     repository   = "crt-workflows-common"

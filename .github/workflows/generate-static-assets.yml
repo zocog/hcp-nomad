@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  GO_TAGS: "ui codegen_generated release"
+  GO_TAGS: "ui codegen_generated release ent consulent"
 
 jobs:
   get-go-version:
@@ -30,6 +30,9 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      - name: Setup Git
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com/".insteadOf "https://github.com"
 
       - name: Setup node and yarn
         uses: actions/setup-node@v2
