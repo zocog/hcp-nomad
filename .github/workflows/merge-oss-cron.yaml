@@ -15,7 +15,7 @@ jobs:
 
   # Strategy matrix is not yet supported in reusable workflows:
   # https://docs.github.com/en/actions/using-workflows/reusing-workflows#limitations
-  merge-1.2.x:
+  merge-1_2_x:
     uses: ./.github/workflows/merge-oss.yaml
     with:
       origin_branch: release/1.2.x
@@ -23,7 +23,7 @@ jobs:
     secrets:
       NOMAD_MERGE_OSS_GH_PAT: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
       NOMAD_MERGE_OSS_SLACK: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
-  merge-1.1.x:
+  merge-1_1_x:
     uses: ./.github/workflows/merge-oss.yaml
     with:
       origin_branch: release/1.1.x
@@ -31,7 +31,7 @@ jobs:
     secrets:
       NOMAD_MERGE_OSS_GH_PAT: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
       NOMAD_MERGE_OSS_SLACK: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
-  merge-1.0.x:
+  merge-1_0_x:
     uses: ./.github/workflows/merge-oss.yaml
     with:
       origin_branch: release/1.0.x
@@ -42,9 +42,9 @@ jobs:
   slack-notify-success:
     needs:
       - merge-main
-      - merge-1.2.x
-      - merge-1.1.x
-      - merge-1.0.x
+      - merge-1_2_x
+      - merge-1_1_x
+      - merge-1_0_x
     runs-on: ubuntu-20.04
     steps:
       - name: Send slack notification on success
@@ -62,19 +62,6 @@ jobs:
                       "fields": [
                         {
                           "type": "mrkdwn",
-                          "text": "*Origin branch:*\n<https://github.com/hashicorp/nomad/tree/${{ inputs.origin_branch }}|${{ inputs.origin_branch }}>"
-                        },
-                        {
-                          "type": "mrkdwn",
-                          "text": "*Destination branch:*\n<https://github.com/hashicorp/nomad-enterprise/tree/${{ inputs.dest_branch }}|${{ inputs.dest_branch }}>"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "section",
-                      "fields": [
-                        {
-                          "type": "mrkdwn",
                           "text": "*Workflow:*\n${{ github.workflow }}"
                         },
                         {
@@ -82,7 +69,7 @@ jobs:
                           "text": "*Run:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|${{ github.run_id }}>"
                         }
                       ]
-                    },
+                    }
                   ]
                 }
               ]
