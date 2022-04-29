@@ -491,7 +491,7 @@ jobs:
           destination: /ui-assets
   algolia_index:
     docker:
-      - image: docker.mirror.hashicorp.services/node:14
+      - image: docker.mirror.hashicorp.services/node:12
     steps:
       - checkout
       - run:
@@ -509,7 +509,7 @@ executors:
   go:
     working_directory: /go/src/github.com/hashicorp/nomad
     docker:
-      - image: docker.mirror.hashicorp.services/golang:1.16.12
+      - image: docker.mirror.hashicorp.services/golang:1.16.15
     resource_class: medium
     environment:
       <<: *common_envs
@@ -522,7 +522,8 @@ executors:
       resource_class: large
     environment: &machine_env
       <<: *common_envs
-      GOLANG_VERSION: 1.16.12
+      GOPATH: /home/circleci/go
+      GOLANG_VERSION: 1.16.15
 
   go-macos:
     working_directory: ~/go/src/github.com/hashicorp/nomad
@@ -531,7 +532,7 @@ executors:
     environment:
       <<: *common_envs
       GOPATH: /Users/distiller/go
-      GOLANG_VERSION: 1.16.12
+      GOLANG_VERSION: 1.16.15
 
   go-windows:
     machine:
@@ -543,7 +544,7 @@ executors:
       GOPATH: c:\gopath
       GOBIN: c:\gopath\bin
       GOTESTSUM_PATH: c:\tmp\test-reports
-      GOLANG_VERSION: 1.16.12
+      GOLANG_VERSION: 1.16.15
       GOTESTSUM_VERSION: 1.7.0
       VAULT_VERSION: 1.4.1
 
@@ -565,7 +566,6 @@ workflows:
               ignore:
                 - /^.-ui\b.*/
                 - /^docs-.*/
-                - /^backport/docs-.*/
                 - stable-website
 
         # Note: comment-out this job in ENT
@@ -581,7 +581,6 @@ workflows:
               ignore:
                 - stable-website
                 - /^docs-.*/
-                - /^backport/docs-.*/
                 - /^e2e-.*/
 
         # Note: comment-out this job in ENT
@@ -591,7 +590,6 @@ workflows:
               ignore:
                 - /^.-ui\b.*/
                 - /^docs-.*/
-                - /^backport/docs-.*/
                 - /^e2e-.*/
                 - stable-website
 
@@ -604,7 +602,6 @@ workflows:
               ignore:
                 - /^.-ui\b.*/
                 - /^docs-.*/
-                - /^backport/docs-.*/
                 - /^e2e-.*/
                 - stable-website
       - test-machine:
@@ -618,9 +615,13 @@ workflows:
           test_module: "api"
           filters: *backend_test_branches_filter
           enable_race_testing: true
+      - test-container:
+          name: "test-devices"
+          test_packages: "./devices/..."
+          filters: *backend_test_branches_filter
       - test-machine:
           name: "test-other"
-          exclude_packages: "./api|./client|./drivers/docker|./drivers/exec|./drivers/shared/executor|./nomad|./e2e"
+          exclude_packages: "./api|./client|./drivers/docker|./drivers/exec|./drivers/shared/executor|./nomad|./devices|./e2e"
           filters: *backend_test_branches_filter
       - test-machine:
           name: "test-docker"
