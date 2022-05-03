@@ -19,7 +19,8 @@ on:
         default: 'CUYKT2A73'
 
 env:
-  GO_TAGS: "release"
+  GO_TAGS: "ent consulent release"
+  GOPRIVATE: "github.com/hashicorp/*"
 
 jobs:
   get-go-version:
@@ -43,6 +44,9 @@ jobs:
       build-ref: ${{ steps.commit-change-push.outputs.build-ref }}
     steps:
       - uses: actions/checkout@v2
+
+      - name: Setup Git
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com/".insteadOf "https://github.com"
 
       - name: Setup go
         uses: actions/setup-go@v2
@@ -107,7 +111,7 @@ jobs:
           then
             git config --global user.email "github-team-nomad-core@hashicorp.com"
             git config --global user.name "hc-github-team-nomad-core"
-            git commit --message "Generate files for ${{ github.event.inputs.version }} release"
+            git commit --message "Generate files for ${{ github.event.inputs.version }}+ent release"
             git push origin "$(git rev-parse --abbrev-ref HEAD)"
             echo "committing generated files"
           else
