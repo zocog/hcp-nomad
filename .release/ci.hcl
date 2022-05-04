@@ -4,7 +4,7 @@ project "nomad-enterprise" {
   team = "nomad"
   slack {
     // #feed-nomad-releases
-    notification_channel = "CUYKT2A73"
+    notification_channel = "C03B5EWFW01"
     // #proj-nomad-releases
     // notification_channel = "CUYKT2A73"
   }
@@ -180,6 +180,7 @@ event "promote-staging" {
     organization = "hashicorp"
     repository   = "crt-workflows-common"
     workflow     = "promote-staging"
+    config       = "release-metadata.hcl"
   }
 
   notification {
