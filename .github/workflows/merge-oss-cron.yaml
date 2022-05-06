@@ -52,7 +52,7 @@ jobs:
         with:
           payload: |
             {
-              "text": ":merge::nomad-da: Nightly Nomad OSS->ENT merge completed *successfully*",
+              "text": ":green::merge::nomad-happy: Nightly Nomad OSS->ENT merge completed *successfully*",
               "attachments": [
                 {
                   "color": "#5ABB54",

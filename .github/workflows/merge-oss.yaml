@@ -119,7 +119,7 @@ jobs:
         with:
           payload: |
             {
-              "text": ":merge-on-fire::nomad-sob: Nomad OSS->ENT merge *FAILED*",
+              "text": ":x::merge-on-fire::nomad-sob: Nomad OSS->ENT merge *FAILED*",
               "attachments": [
                 {
                   "color": "#C41E3A",
