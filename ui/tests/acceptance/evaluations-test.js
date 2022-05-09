@@ -1,3 +1,4 @@
+/* eslint-disable qunit/require-expect */
 import {
   click,
   currentRouteName,
@@ -17,6 +18,7 @@ import {
   clickTrigger,
 } from 'ember-power-select/test-support/helpers';
 import { generateAcceptanceTestEvalMock } from '../../mirage/utils';
+import percySnapshot from '@percy/ember';
 
 const getStandardRes = () => [
   {
@@ -123,6 +125,9 @@ module('Acceptance | evaluations list', function (hooks) {
 
   test('it renders an empty message if there are no evaluations rendered', async function (assert) {
     await visit('/evaluations');
+    assert.expect(2);
+
+    await percySnapshot(assert);
 
     assert
       .dom('[data-test-empty-evaluations-list]')
@@ -134,7 +139,6 @@ module('Acceptance | evaluations list', function (hooks) {
 
   test('it renders a list of evaluations', async function (assert) {
     assert.expect(3);
-
     server.get('/evaluations', function (_server, fakeRequest) {
       assert.deepEqual(
         fakeRequest.queryParams,
@@ -143,6 +147,7 @@ module('Acceptance | evaluations list', function (hooks) {
           per_page: '25',
           next_token: '',
           filter: '',
+          reverse: 'true',
         },
         'Forwards the correct query parameters on default query when route initially loads'
       );
@@ -150,6 +155,8 @@ module('Acceptance | evaluations list', function (hooks) {
     });
 
     await visit('/evaluations');
+
+    await percySnapshot(assert);
 
     assert
       .dom('[data-test-eval-table]')
@@ -175,6 +182,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: '',
             filter: 'Status contains "pending"',
+            reverse: 'true',
           },
           'It makes another server request using the options selected by the user'
         );
@@ -204,6 +212,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: '',
             filter: '',
+            reverse: 'true',
           },
           'It makes another server request using the options selected by the user'
         );
@@ -233,6 +242,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: '',
             filter: `TriggeredBy contains "periodic-job"`,
+            reverse: 'true',
           },
           'It makes another server request using the options selected by the user'
         );
@@ -265,6 +275,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: '',
             filter: 'NodeID is not empty',
+            reverse: 'true',
           },
           'It makes another server request using the options selected by the user'
         );
@@ -295,6 +306,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: '',
             filter: `ID contains "${searchTerm}" or JobID contains "${searchTerm}" or NodeID contains "${searchTerm}" or TriggeredBy contains "${searchTerm}"`,
+            reverse: 'true',
           },
           'It makes another server request using the options selected by the user'
         );
@@ -324,6 +336,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: '',
             filter: `ID contains "${searchTerm}" or JobID contains "${searchTerm}" or NodeID contains "${searchTerm}" or TriggeredBy contains "${searchTerm}"`,
+            reverse: 'true',
           },
           'It makes another server request using the options selected by the user'
         );
@@ -339,6 +352,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: '',
             filter: `(ID contains "${searchTerm}" or JobID contains "${searchTerm}" or NodeID contains "${searchTerm}" or TriggeredBy contains "${searchTerm}") and NodeID is not empty`,
+            reverse: 'true',
           },
           'It makes another server request using the options selected by the user'
         );
@@ -355,6 +369,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: '',
             filter: `NodeID is not empty`,
+            reverse: 'true',
           },
           'It makes another server request using the options selected by the user'
         );
@@ -370,6 +385,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: '',
             filter: `NodeID is not empty and Status contains "complete"`,
+            reverse: 'true',
           },
           'It makes another server request using the options selected by the user'
         );
@@ -406,6 +422,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '50',
             next_token: '',
             filter: '',
+            reverse: 'true',
           },
           'It makes a request with the per_page set by the user'
         );
@@ -439,6 +456,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: 'next-token-1',
             filter: '',
+            reverse: 'true',
           },
           'It makes another server request using the options selected by the user'
         );
@@ -464,6 +482,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: 'next-token-2',
             filter: '',
+            reverse: 'true',
           },
           'It makes another server request using the options selected by the user'
         );
@@ -489,6 +508,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: 'next-token-1',
             filter: '',
+            reverse: 'true',
           },
           'It makes a request using the stored old token.'
         );
@@ -509,6 +529,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: '',
             filter: '',
+            reverse: 'true',
           },
           'When there are no more stored previous tokens, we will request with no next-token.'
         );
@@ -552,6 +573,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: '',
             filter: '',
+            reverse: 'true',
           },
           'It clears all query parameters when making a refresh'
         );
@@ -599,6 +621,7 @@ module('Acceptance | evaluations list', function (hooks) {
             per_page: '25',
             next_token: '',
             filter: 'Status contains "pending"',
+            reverse: 'true',
           },
           'It clears all next token when filtered request is made'
         );
@@ -661,6 +684,8 @@ module('Acceptance | evaluations list', function (hooks) {
 
       const evalId = '5fb1b8cd';
       await click(`[data-test-evaluation='${evalId}']`);
+
+      await percySnapshot(assert);
 
       assert
         .dom('[data-test-eval-detail-is-open]')
