@@ -24,7 +24,6 @@ event "build" {
   action "build" {
     organization = "hashicorp"
     repository   = "nomad-enterprise"
-    repository   = "nomad"
     workflow     = "build"
   }
 }
