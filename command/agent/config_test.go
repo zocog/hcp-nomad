@@ -493,11 +493,7 @@ func TestConfig_LoadConfigDir(t *testing.T) {
 		t.Fatalf("expected error, got nothing")
 	}
 
-	dir, err := ioutil.TempDir("", "nomad")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	// Returns empty config on empty dir
 	config, err := LoadConfig(dir)
@@ -578,11 +574,7 @@ func TestConfig_LoadConfig(t *testing.T) {
 			expectedConfigFiles, config.Files)
 	}
 
-	dir, err := ioutil.TempDir("", "nomad")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	file1 := filepath.Join(dir, "config1.hcl")
 	err = ioutil.WriteFile(file1, []byte(`{"datacenter":"sfo"}`), 0600)
@@ -1339,12 +1331,10 @@ func TestTelemetry_Parse(t *testing.T) {
 	ci.Parallel(t)
 
 	require := require.New(t)
-	dir, err := ioutil.TempDir("", "nomad")
-	require.NoError(err)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	file1 := filepath.Join(dir, "config1.hcl")
-	err = ioutil.WriteFile(file1, []byte(`telemetry{
+	err := ioutil.WriteFile(file1, []byte(`telemetry{
 		prefix_filter = ["+nomad.raft"]
 		filter_default = false
 		disable_dispatched_job_summary_metrics = true
