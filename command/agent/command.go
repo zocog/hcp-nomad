@@ -406,6 +406,11 @@ func (c *Command) IsValidConfig(config, cmdConfig *Config) bool {
 		}
 	}
 
+	if err := config.Client.Artifact.Validate(); err != nil {
+		c.Ui.Error(fmt.Sprintf("client.artifact stanza invalid: %v", err))
+		return false
+	}
+
 	if !config.DevMode {
 		// Ensure that we have the directories we need to run.
 		if config.Server.Enabled && config.DataDir == "" {
@@ -436,7 +441,7 @@ func (c *Command) IsValidConfig(config, cmdConfig *Config) bool {
 	// ProtocolVersion has never been used. Warn if it is set as someone
 	// has probably made a mistake.
 	if config.Server.ProtocolVersion != 0 {
-		c.agent.logger.Warn("Please remove deprecated protocol_version field from config.")
+		c.Ui.Warn("Please remove deprecated protocol_version field from config.")
 	}
 
 	return true
