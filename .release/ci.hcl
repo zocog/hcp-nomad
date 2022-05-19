@@ -14,6 +14,7 @@ project "nomad-enterprise" {
       "release/1.1.x+ent",
       "release/1.2.x+ent",
       "release/1.3.x+ent",
+      "release/1.3.1+ent",
     ]
   }
 }
