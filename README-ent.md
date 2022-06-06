@@ -89,32 +89,27 @@ our current licensing.
 
 The Enterprise codebase should be in sync with the [OSS
 repository](https://github.com/hashicorp/nomad), by merging the OSS codebase
-periodically. Merging the OSS `main` branch into Enterprise is automated via the
-`merge-oss` CircleCI nightly job.
+periodically. The branches that are kept in sync automatically are `main` and
+the last three `release/<MAJOR>.<MINOR>.x` release branches.
 
-Though, Manual merging is necessary sometimes, due to merge conflicts in `main`
-or for syncing backported release branches. Here, the
-[`./scripts/enterprise/merge-oss.sh`](scripts/enterprise/merge-oss.sh) is
-handy, as it handles most common conflicts.
+This process is automated via the
+[`merge-oss-cron.yaml`](https://github.com/hashicorp/nomad-enterprise/blob/main/.github/workflows/merge-oss-cron.yaml)
+GitHub Action workflow. This workflow can be manually triggered from the UI by
+visiting the
+[`Merge OSS to ENT
+Nightly`](https://github.com/hashicorp/nomad-enterprise/actions/workflows/merge-oss-cron.yaml)
+Actions page and clicking the `Run workflow` button. Select the `main` branch
+to run the latest merge logic, or pick your own branch if you are testing
+changes to the workflow itself.
 
-To update a branch:
+You can also merge two arbitrary branches using the
+[`merge-oss-manualy.yaml`](https://github.com/hashicorp/nomad-enterprise/blob/main/.github/workflows/merge-oss-manualy.yaml)
+workflow.
+To trigger this workflow, visit the [`Merge OSS to ENT
+Manually`](https://github.com/hashicorp/nomad-enterprise/actions/workflows/merge-oss-manualy.yaml)
+Actions page, click `Run workflow`, and select the source (OSS) branch and the
+destination (ENT) branch.
 
-```sh
-# check the local checkout is latest and without local modifications
-git pull
-git status
-
-# for merging main
-./scripts/enterprise/merge-oss.sh main main
-# for backported releases
-# ./scripts/enterprise/merge-oss.sh release-1.0.6 release-1.0.6+ent
-
-# If a conflict is found, resolve conflict manually
-vim <conflicting files>
-git add ...
-git commit .
-
-# On success, a temporary branch is created in the form `oss-merge-main-...`
-git push origin $(git branch --show-current)
-# and open PR
-```
+Manual merging is necessary sometimes, due to merge conflicts. When this
+happens, the workflow fails and it outputs a series of commands that can be
+used to run the merge locally and allow you to manually fix the conflicts.
