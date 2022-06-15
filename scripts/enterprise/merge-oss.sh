@@ -51,6 +51,7 @@ if ! git merge -m "$message" "oss/${origin_branch}"; then
     git checkout --theirs version/version.go
     git checkout --theirs command/agent/bindata_assetfs.go
     git checkout --ours   go.sum
+    git checkout --ours   .github/dependabot.yml
     go mod tidy
 
     git add .go-version CHANGELOG.md version/version.go command/agent/bindata_assetfs.go go.sum
@@ -67,4 +68,3 @@ if [[ -z "${CI:-}" ]]; then
     echo "push branch and open a PR"
     echo "   git push origin ${tmp_branch}"
 fi
-
