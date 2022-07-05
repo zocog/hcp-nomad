@@ -1725,7 +1725,7 @@ func ValidNodeStatus(status string) bool {
 
 const (
 	// NodeSchedulingEligible and Ineligible marks the node as eligible or not,
-	// respectively, for receiving allocations. This is orthoginal to the node
+	// respectively, for receiving allocations. This is orthogonal to the node
 	// status being ready.
 	NodeSchedulingEligible   = "eligible"
 	NodeSchedulingIneligible = "ineligible"
@@ -11145,8 +11145,8 @@ type Plan struct {
 	// of the plan by only including it once.
 	Job *Job
 
-	// NodeUpdate contains all the allocations for each node. For each node,
-	// this is a list of the allocations to update to either stop or evict.
+	// NodeUpdate contains all the allocations to be stopped or evicted for
+	// each node.
 	NodeUpdate map[string][]*Allocation
 
 	// NodeAllocation contains all the allocations for each node.
@@ -11373,7 +11373,7 @@ func (p *Plan) NormalizeAllocations() {
 
 // PlanResult is the result of a plan submitted to the leader.
 type PlanResult struct {
-	// NodeUpdate contains all the updates that were committed.
+	// NodeUpdate contains all the evictions and stops that were committed.
 	NodeUpdate map[string][]*Allocation
 
 	// NodeAllocation contains all the allocations that were committed.
