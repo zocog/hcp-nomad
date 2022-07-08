@@ -11,13 +11,24 @@ import (
 )
 
 // NewDriverHandle returns a handle for task operations on a specific task
-func NewDriverHandle(driver drivers.DriverPlugin, taskID string, task *structs.Task, net *drivers.DriverNetwork) *DriverHandle {
+func NewDriverHandle(
+	driver drivers.DriverPlugin,
+	taskID string,
+	task *structs.Task,
+	maxKillTimeout time.Duration,
+	net *drivers.DriverNetwork) *DriverHandle {
+
+	timeout := task.KillTimeout
+	if maxKillTimeout < timeout {
+		timeout = maxKillTimeout
+	}
+
 	return &DriverHandle{
 		driver:      driver,
 		net:         net,
 		taskID:      taskID,
 		killSignal:  task.KillSignal,
-		killTimeout: task.KillTimeout,
+		killTimeout: timeout,
 	}
 }
 
