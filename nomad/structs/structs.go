@@ -6823,7 +6823,7 @@ type Task struct {
 	// task exits, other tasks will be gracefully terminated.
 	Leader bool
 
-	// ShutdownDelay is the duration of the delay between deregistering a
+	// ShutdownDelay is the duration of the delay between de-registering a
 	// task from Consul and sending it a signal to shutdown. See #2441
 	ShutdownDelay time.Duration
 
@@ -8221,9 +8221,14 @@ func (e *TaskEvent) SetValidationError(err error) *TaskEvent {
 	return e
 }
 
-func (e *TaskEvent) SetKillTimeout(timeout time.Duration) *TaskEvent {
-	e.KillTimeout = timeout
-	e.Details["kill_timeout"] = timeout.String()
+func (e *TaskEvent) SetKillTimeout(timeout, maxTimeout time.Duration) *TaskEvent {
+	lower := timeout
+	if maxTimeout < lower {
+		lower = maxTimeout
+	}
+
+	e.KillTimeout = lower
+	e.Details["kill_timeout"] = lower.String()
 	return e
 }
 
