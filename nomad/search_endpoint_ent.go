@@ -29,6 +29,8 @@ func contextToIndex(ctx structs.Context) string {
 		return state.TableQuotaSpec
 	case structs.Recommendations:
 		return state.TableRecommendations
+	case structs.SecureVariables:
+		return state.TableSecureVariables
 	default:
 		return string(ctx)
 	}
@@ -85,6 +87,13 @@ func sufficientSearchPerms(aclObj *acl.ACL, namespace string, context structs.Co
 	if !nodeRead && !allowNS && !allowQuota && !jobRead {
 		return false
 	}
+	allowVolume := acl.NamespaceValidator(acl.NamespaceCapabilityCSIListVolume,
+		acl.NamespaceCapabilityCSIReadVolume,
+		acl.NamespaceCapabilityListJobs,
+		acl.NamespaceCapabilityReadJob)
+	volRead := allowVolume(aclObj, namespace)
+	// FIXME: Replace with real variables capability
+	allowVariables := aclObj.AllowNsOp(namespace, acl.NamespaceCapabilityReadJob)
 
 	// Reject requests that explicitly specify a disallowed context. This
 	// should give the user better feedback then simply filtering out all
@@ -103,6 +112,13 @@ func sufficientSearchPerms(aclObj *acl.ACL, namespace string, context structs.Co
 		case structs.Allocs, structs.Deployments, structs.Evals, structs.Jobs:
 			return false
 		}
+	}
+	if !allowVariables && context == structs.SecureVariables {
+		return false
+	}
+
+	if !volRead && context == structs.Volumes {
+		return false
 	}
 
 	return true
@@ -141,6 +157,10 @@ func filteredSearchContexts(aclObj *acl.ACL, namespace string, context structs.C
 			}
 		case structs.Namespaces:
 			if aclObj.AllowNamespace(namespace) {
+				available = append(available, c)
+			}
+		case structs.SecureVariables:
+			if jobRead {
 				available = append(available, c)
 			}
 		case structs.Nodes:
