@@ -1,6 +1,6 @@
 module github.com/hashicorp/nomad
 
-go 1.17
+go 1.18
 
 // Pinned dependencies are noted in github.com/hashicorp/nomad/issues/11826
 replace (
@@ -38,13 +38,13 @@ require (
 	github.com/fsouza/go-dockerclient v1.6.5
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.4
-	github.com/google/go-cmp v0.5.7
+	github.com/google/go-cmp v0.5.8
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/websocket v1.4.2
 	github.com/gosuri/uilive v0.0.4
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.1-0.20200228141219-3ce3d519df39
 	github.com/hashicorp/consul v1.7.8
-	github.com/hashicorp/consul-template v0.29.0
+	github.com/hashicorp/consul-template v0.29.1
 	github.com/hashicorp/consul/api v1.13.0
 	github.com/hashicorp/consul/sdk v0.8.0
 	github.com/hashicorp/cronexpr v1.1.1
@@ -118,7 +118,7 @@ require (
 	github.com/zclconf/go-cty-yaml v1.0.2
 	go.etcd.io/bbolt v1.3.5
 	go.uber.org/goleak v1.1.12
-	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd
+	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20220517195934-5e4e11fc645e
@@ -129,6 +129,8 @@ require (
 	gopkg.in/tomb.v2 v2.0.0-20140626144623-14b3d72120e8
 	oss.indeed.com/go/libtime v1.5.0
 )
+
+require github.com/shoenig/test v0.2.8
 
 require (
 	cloud.google.com/go v0.97.0 // indirect
@@ -213,6 +215,7 @@ require (
 	github.com/hashicorp/mdns v1.0.4 // indirect
 	github.com/hashicorp/raft-snapshot v1.0.2 // indirect
 	github.com/hashicorp/sentinel-sdk v0.3.8 // indirect
+	github.com/hashicorp/vault/api/auth/kubernetes v0.1.0 // indirect
 	github.com/hashicorp/vic v1.5.1-0.20190403131502-bbfe86ec9443 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
@@ -269,11 +272,11 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	golang.org/x/mod v0.5.1 // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/tools v0.1.8-0.20211029000441-d6a9af8af023 // indirect
+	golang.org/x/tools v0.1.10 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/api v0.60.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
