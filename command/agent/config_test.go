@@ -149,6 +149,11 @@ func TestConfig_Merge(t *testing.T) {
 			EnableEventBroker:      helper.BoolToPtr(false),
 			EventBufferSize:        helper.IntToPtr(0),
 			LicensePath:            "/tmp/licensefile1",
+			PlanRejectionTracker: &PlanRejectionTracker{
+				Enabled:       helper.BoolToPtr(true),
+				NodeThreshold: 100,
+				NodeWindow:    11 * time.Minute,
+			},
 		},
 		ACL: &ACLConfig{
 			Enabled:          true,
@@ -345,6 +350,11 @@ func TestConfig_Merge(t *testing.T) {
 			EnableEventBroker:      helper.BoolToPtr(true),
 			EventBufferSize:        helper.IntToPtr(100),
 			LicensePath:            "/tmp/licensefile2",
+			PlanRejectionTracker: &PlanRejectionTracker{
+				Enabled:       helper.BoolToPtr(true),
+				NodeThreshold: 100,
+				NodeWindow:    11 * time.Minute,
+			},
 		},
 		ACL: &ACLConfig{
 			Enabled:          true,
