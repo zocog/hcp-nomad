@@ -71,112 +71,23 @@ func getEnterpriseFuzzyResourceIter(context structs.Context, aclObj *acl.ACL, na
 	return nil, fmt.Errorf("context must be one of %v or 'all' for all contexts; got %q", allContexts, context)
 }
 
-// sufficientSearchPerms returns true if the provided ACL has access to any
-// capabilities required for prefix searching.
-//
-// Returns true if aclObj is nil.
-func sufficientSearchPerms(aclObj *acl.ACL, namespace string, context structs.Context) bool {
-	if aclObj == nil {
-		return true
-	}
-
-	nodeRead := aclObj.AllowNodeRead()
-	allowNS := aclObj.AllowNamespace(namespace)
-	allowQuota := aclObj.AllowQuotaRead()
-	jobRead := aclObj.AllowNsOp(namespace, acl.NamespaceCapabilityReadJob)
-	if !nodeRead && !allowNS && !allowQuota && !jobRead {
-		return false
-	}
-	allowVolume := acl.NamespaceValidator(acl.NamespaceCapabilityCSIListVolume,
-		acl.NamespaceCapabilityCSIReadVolume,
-		acl.NamespaceCapabilityListJobs,
-		acl.NamespaceCapabilityReadJob)
-	volRead := allowVolume(aclObj, namespace)
-	// FIXME: Replace with real variables capability
-	allowVariables := aclObj.AllowNsOp(namespace, acl.NamespaceCapabilityReadJob)
-
-	// Reject requests that explicitly specify a disallowed context. This
-	// should give the user better feedback then simply filtering out all
-	// results and returning an empty list.
-	if !nodeRead && context == structs.Nodes {
-		return false
-	}
-	if !allowNS && context == structs.Namespaces {
-		return false
-	}
-	if !allowQuota && context == structs.Quotas {
-		return false
-	}
-	if !jobRead {
-		switch context {
-		case structs.Allocs, structs.Deployments, structs.Evals, structs.Jobs:
-			return false
-		}
-	}
-	if !allowVariables && context == structs.SecureVariables {
-		return false
-	}
-
-	if !volRead && context == structs.Volumes {
-		return false
-	}
-
-	return true
+func sufficientSearchPermsEnt(aclObj *acl.ACL) bool {
+	return aclObj.AllowQuotaRead()
 }
 
-// filteredSearchContexts returns the contexts the aclObj is valid for. If aclObj is
-// nil all contexts are returned.
-func filteredSearchContexts(aclObj *acl.ACL, namespace string, context structs.Context) []structs.Context {
-	var all []structs.Context
-
-	switch context {
-	case structs.All:
-		all = make([]structs.Context, len(allContexts))
-		copy(all, allContexts)
-	default:
-		all = []structs.Context{context}
-	}
-
-	// If ACLs aren't enabled return all contexts
-	if aclObj == nil {
-		return all
-	}
-
+// filteredSearchContextsEnt returns ok if the alcObj is valid for a
+// given enterprise context
+func filteredSearchContextsEnt(aclObj *acl.ACL, namespace string, context structs.Context) bool {
 	jobRead := aclObj.AllowNsOp(namespace, acl.NamespaceCapabilityReadJob)
 	recRead := jobRead ||
 		aclObj.AllowNsOp(namespace, acl.NamespaceCapabilitySubmitJob) ||
 		aclObj.AllowNsOp(namespace, acl.NamespaceCapabilitySubmitRecommendation)
 
-	// Filter contexts down to those the ACL grants access to
-	available := make([]structs.Context, 0, len(all))
-	for _, c := range all {
-		switch c {
-		case structs.Allocs, structs.Jobs, structs.Evals, structs.Deployments:
-			if jobRead {
-				available = append(available, c)
-			}
-		case structs.Namespaces:
-			if aclObj.AllowNamespace(namespace) {
-				available = append(available, c)
-			}
-		case structs.SecureVariables:
-			if jobRead {
-				available = append(available, c)
-			}
-		case structs.Nodes:
-			if aclObj.AllowNodeRead() {
-				available = append(available, c)
-			}
-		case structs.Quotas:
-			if aclObj.AllowQuotaRead() {
-				available = append(available, c)
-			}
-		case structs.Recommendations:
-			if recRead {
-				available = append(available, c)
-			}
-		}
-
+	switch context {
+	case structs.Quotas:
+		return aclObj.AllowQuotaRead()
+	case structs.Recommendations:
+		return recRead
 	}
-	return available
+	return true
 }
