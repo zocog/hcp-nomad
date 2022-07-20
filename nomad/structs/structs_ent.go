@@ -362,6 +362,17 @@ type QuotaLimit struct {
 	// useful for once we support GPUs
 	RegionLimit *Resources
 
+	// SecureVariablesLimit is the maximum total size of all secure variables
+	// SecureVariable.EncryptedData, expressed in MiB (same as memory
+	// Resources). A value of zero is treated as unlimited and a negative value
+	// is treated as fully disallowed.
+	//
+	// This value will be unpopulated in the state store for QuotaUsage.Used and
+	// has been denormalized to SecureVariablesQuota, because reconciling it on
+	// variables upserts would require iterating all the vars. StateStore
+	// methods will need to populate it from the denormalized table.
+	SecureVariablesLimit int
+
 	// Hash is the hash of the object and is used to make replication efficient.
 	Hash []byte
 }
@@ -398,8 +409,9 @@ func (q *QuotaLimit) SetHash() []byte {
 		if q.RegionLimit.MemoryMaxMB > 0 {
 			binary.Write(hash, binary.LittleEndian, int64(q.RegionLimit.MemoryMaxMB))
 		}
-
 	}
+
+	binary.Write(hash, binary.LittleEndian, int64(q.SecureVariablesLimit))
 
 	// Finalize the hash
 	hashVal := hash.Sum(nil)

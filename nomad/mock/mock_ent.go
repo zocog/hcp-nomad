@@ -38,6 +38,7 @@ func QuotaSpec() *structs.QuotaSpec {
 					CPU:      2000,
 					MemoryMB: 2000,
 				},
+				SecureVariablesLimit: 100,
 			},
 			{
 				Region: "europe",
@@ -45,6 +46,7 @@ func QuotaSpec() *structs.QuotaSpec {
 					CPU:      0,
 					MemoryMB: 0,
 				},
+				SecureVariablesLimit: 0,
 			},
 		},
 	}
