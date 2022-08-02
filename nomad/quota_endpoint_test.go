@@ -8,13 +8,15 @@ import (
 	"time"
 
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/shoenig/test/must"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/hashicorp/nomad/acl"
 	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestQuotaEndpoint_GetQuotaSpec(t *testing.T) {
@@ -871,6 +873,58 @@ func TestQuotaEndpoint_GetQuotaUsage(t *testing.T) {
 	assert.Nil(msgpackrpc.CallWithCodec(codec, "Quota.GetQuotaUsage", get, &resp))
 	assert.EqualValues(1000, resp.Index)
 	assert.Nil(resp.Usage)
+}
+
+func TestQuotaEndpoint_GetQuotaUsageWithVariables(t *testing.T) {
+	ci.Parallel(t)
+	srv, cleanup := TestServer(t, func(c *Config) {
+		c.LicenseEnv = licenseForGovernance().Signed
+	})
+	defer cleanup()
+	codec := rpcClient(t, srv)
+	testutil.WaitForLeader(t, srv.RPC)
+
+	store := srv.fsm.State()
+
+	// Create the quota spec
+	index := uint64(1000)
+	qs := mock.QuotaSpec()
+	must.NoError(t, store.UpsertQuotaSpecs(index, []*structs.QuotaSpec{qs}))
+
+	// Lookup the QuotaUsage
+	get := &structs.QuotaUsageSpecificRequest{
+		Name:         qs.Name,
+		QueryOptions: structs.QueryOptions{Region: "global"},
+	}
+	resp := &structs.SingleQuotaUsageResponse{}
+	must.NoError(t, msgpackrpc.CallWithCodec(codec, "Quota.GetQuotaUsage", get, resp))
+	must.Eq(t, resp.Index, 1000)
+	must.Eq(t, qs.Name, resp.Usage.Name)
+
+	oldLimit := resp.Usage.Used[string(qs.Limits[0].Hash)]
+	must.NotNil(t, oldLimit)
+	must.Eq(t, oldLimit.SecureVariablesLimit, 0)
+
+	ns := mock.Namespace()
+	ns.Quota = qs.Name
+	index++
+	must.NoError(t, store.UpsertNamespaces(index, []*structs.Namespace{ns}))
+
+	sv := mock.SecureVariableEncrypted()
+	sv.Namespace = ns.Name
+	index++
+	must.NoError(t, store.UpsertSecureVariables(structs.MsgTypeTestSetup, index,
+		[]*structs.SecureVariableEncrypted{sv}))
+
+	resp = &structs.SingleQuotaUsageResponse{}
+	must.NoError(t, msgpackrpc.CallWithCodec(codec, "Quota.GetQuotaUsage", get, resp))
+	must.Eq(t, resp.Index, 1001)
+	newUsage := resp.Usage
+
+	newLimit := newUsage.Used[string(qs.Limits[0].Hash)]
+	must.NotNil(t, newLimit)
+	must.Eq(t, newLimit.SecureVariablesLimit, 1) // 3 bytes converted to MiB, rounded up
+	must.Eq(t, oldLimit.SecureVariablesLimit, 0) // assert copy-on-read
 }
 
 func TestQuotaEndpoint_GetQuotaUsage_ACL(t *testing.T) {
