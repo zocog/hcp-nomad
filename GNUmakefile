@@ -51,7 +51,7 @@ PROTO_COMPARE_TAG ?= v1.0.3$(if $(findstring ent,$(GO_TAGS)),+ent,)
 
 # LAST_RELEASE is the git sha of the latest release corresponding to this branch. main should have the latest
 # published release, and release branches should point to the latest published release in the X.Y release line.
-LAST_RELEASE ?= v1.3.2
+LAST_RELEASE ?= v1.3.3
 
 default: help
 
@@ -182,6 +182,9 @@ check: ## Lint the source code
 
 	@echo "==> Check API package is isolated from rest"
 	@cd ./api && if go list --test -f '{{ join .Deps "\n" }}' . | grep github.com/hashicorp/nomad/ | grep -v -e /nomad/api/ -e nomad/api.test; then echo "  /api package depends the ^^ above internal nomad packages.  Remove such dependency"; exit 1; fi
+
+	@echo "==> Check command package does not import structs"
+	@cd ./command && if go list -f '{{ join .Imports "\n" }}' . | grep github.com/hashicorp/nomad/nomad/structs; then echo "  /command package imports the structs pkg. Remove such import"; exit 1; fi
 
 	@echo "==> Checking Go mod.."
 	@GO111MODULE=on $(MAKE) tidy
