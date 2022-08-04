@@ -9,7 +9,8 @@ project "nomad-enterprise" {
     organization = "hashicorp"
     repository   = "nomad-enterprise"
     release_branches = [
-      "release/1.1.x+ent",
+      "main",
+      "release/**",
     ]
   }
 }
