@@ -10,10 +10,7 @@ project "nomad-enterprise" {
     repository   = "nomad-enterprise"
     release_branches = [
       "main",
-      "release/1.0.x+ent",
-      "release/1.1.x+ent",
-      "release/1.2.x+ent",
-      "release/1.3.x+ent",
+      "release/**",
     ]
   }
 }
