@@ -39,12 +39,27 @@ export default class Variable extends AbstractAbility {
   )
   canDestroy;
 
+  @or(
+    'bypassAuthorization',
+    'selfTokenIsManagement',
+    'policiesSupportVariableRead'
+  )
+  canRead;
+
   @computed('token.selfTokenPolicies')
   get policiesSupportVariableList() {
     return this.policyNamespacesIncludeSecureVariablesCapabilities(
       this.token.selfTokenPolicies,
       ['list', 'read', 'write', 'destroy']
     );
+  }
+
+  @computed('path', 'allPaths')
+  get policiesSupportVariableRead() {
+    const matchingPath = this._nearestMatchingPath(this.path);
+    return this.allPaths
+      .find((path) => path.name === matchingPath)
+      ?.capabilities?.includes('read');
   }
 
   /**
@@ -61,7 +76,8 @@ export default class Variable extends AbstractAbility {
    */
   policyNamespacesIncludeSecureVariablesCapabilities(
     policies = [],
-    capabilities = []
+    capabilities = [],
+    path
   ) {
     const namespacesWithSecureVariableCapabilities = policies
       .toArray()
@@ -72,6 +88,13 @@ export default class Variable extends AbstractAbility {
       })
       .flat()
       .compact()
+      .filter((secVarsBlock = {}) => {
+        if (!path || path === WILDCARD_GLOB) {
+          return true;
+        } else {
+          return secVarsBlock.PathSpec === path;
+        }
+      })
       .map((secVarsBlock = {}) => {
         return secVarsBlock.Capabilities;
       })
@@ -84,12 +107,25 @@ export default class Variable extends AbstractAbility {
     });
   }
 
-  @computed('path', 'allPaths')
+  @computed('allPaths', 'namespace', 'path', 'token.selfTokenPolicies')
   get policiesSupportVariableWriting() {
-    const matchingPath = this._nearestMatchingPath(this.path);
-    return this.allPaths
-      .find((path) => path.name === matchingPath)
-      ?.capabilities?.includes('write');
+    if (this.namespace === WILDCARD_GLOB && this.path === WILDCARD_GLOB) {
+      // If you're checking if you can write from root, and you don't specify a namespace,
+      // Then if you can write in ANY path in ANY namespace, you can get to /new.
+      return this.policyNamespacesIncludeSecureVariablesCapabilities(
+        this.token.selfTokenPolicies,
+        ['write'],
+        this._nearestMatchingPath(this.path)
+      );
+    } else {
+      // Checking a specific path in a specific namespace.
+      // TODO: This doesn't cover the case when you're checking for the * namespace at a specific path.
+      // Right now we require you to specify yournamespace to enable the button.
+      const matchingPath = this._nearestMatchingPath(this.path);
+      return this.allPaths
+        .find((path) => path.name === matchingPath)
+        ?.capabilities?.includes('write');
+    }
   }
 
   @computed('path', 'allPaths')
@@ -159,7 +195,6 @@ export default class Variable extends AbstractAbility {
 
   _nearestMatchingPath(path) {
     const pathNames = this.allPaths.map((path) => path.name);
-
     if (pathNames.includes(path)) {
       return path;
     }
