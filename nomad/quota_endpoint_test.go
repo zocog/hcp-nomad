@@ -913,8 +913,12 @@ func TestQuotaEndpoint_GetQuotaUsageWithVariables(t *testing.T) {
 	sv := mock.SecureVariableEncrypted()
 	sv.Namespace = ns.Name
 	index++
-	must.NoError(t, store.UpsertSecureVariables(structs.MsgTypeTestSetup, index,
-		[]*structs.SecureVariableEncrypted{sv}))
+
+	setResp := store.SVESet(index, &structs.SVApplyStateRequest{
+		Op:  structs.SVOpSet,
+		Var: sv,
+	})
+	must.NoError(t, setResp.Error)
 
 	resp = &structs.SingleQuotaUsageResponse{}
 	must.NoError(t, msgpackrpc.CallWithCodec(codec, "Quota.GetQuotaUsage", get, resp))
