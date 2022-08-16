@@ -12,9 +12,9 @@ import (
 	"github.com/hashicorp/nomad/nomad/structs"
 )
 
-func (s *StateStore) enforceSecureVariablesQuota(index uint64, txn *txn, nsName string, change int64) error {
+func (s *StateStore) enforceSecureVariablesQuota(index uint64, wTxn WriteTxn, nsName string, change int64) error {
 
-	raw, err := txn.First(TableNamespaces, "id", nsName)
+	raw, err := wTxn.First(TableNamespaces, "id", nsName)
 	if err != nil {
 		return fmt.Errorf("could not look up namespace %q: %v", nsName, err)
 	}
@@ -26,7 +26,7 @@ func (s *StateStore) enforceSecureVariablesQuota(index uint64, txn *txn, nsName 
 	if ns.Quota == "" {
 		return nil // nothing to enforce
 	}
-	rawSpec, err := txn.First(TableQuotaSpec, "id", ns.Quota)
+	rawSpec, err := wTxn.First(TableQuotaSpec, "id", ns.Quota)
 	if err != nil {
 		return fmt.Errorf("could not lookup quota spec: %v", err)
 	}
@@ -45,7 +45,7 @@ func (s *StateStore) enforceSecureVariablesQuota(index uint64, txn *txn, nsName 
 					ns.Quota, ns.Name)
 			}
 
-			existingUseMB, err := s.SecureVariablesUsageByQuota(nil, txn, spec.Name)
+			existingUseMB, err := s.SecureVariablesUsageByQuota(nil, wTxn.(*txn), spec.Name)
 			if err != nil {
 				return err
 			}
@@ -72,6 +72,7 @@ func (s *StateStore) enforceSecureVariablesQuota(index uint64, txn *txn, nsName 
 // SecureVariablesUsageByQuota gets the total usage across all namespaces
 // assigned to the given quota, in MiB
 func (s *StateStore) SecureVariablesUsageByQuota(ws memdb.WatchSet, txn *txn, quotaSpecName string) (int, error) {
+
 	iter, err := s.namespacesByQuotaImpl(nil, txn, quotaSpecName)
 	if err != nil {
 		return 0, err

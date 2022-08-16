@@ -37,8 +37,11 @@ func TestStateStore_SecureVariables_QuotaEnforcement(t *testing.T) {
 	var1.Namespace = ns.Name
 	var1.Data = []byte("123456789")
 	index++
-	must.NoError(t, store.UpsertSecureVariables(
-		structs.MsgTypeTestSetup, index, []*structs.SecureVariableEncrypted{var1}))
+	resp := store.SVESet(index, &structs.SVApplyStateRequest{
+		Op:  structs.SVOpSet,
+		Var: var1,
+	})
+	must.NoError(t, resp.Error)
 
 	// doesn't fit inside quota
 	var2 := mock.SecureVariableEncrypted()
@@ -46,8 +49,11 @@ func TestStateStore_SecureVariables_QuotaEnforcement(t *testing.T) {
 	var2.Namespace = ns.Name
 	var2.Data = make([]byte, structs.BytesInMegabyte)
 	index++
-	must.Error(t, store.UpsertSecureVariables(
-		structs.MsgTypeTestSetup, index, []*structs.SecureVariableEncrypted{var2}))
+	resp = store.SVESet(index, &structs.SVApplyStateRequest{
+		Op:  structs.SVOpSet,
+		Var: var2,
+	})
+	must.Error(t, resp.Error)
 
 	// no quota tracking update if quota is enforced
 	quotaUsed, err := store.SecureVariablesQuotaByNamespace(nil, ns.Name)
@@ -57,15 +63,22 @@ func TestStateStore_SecureVariables_QuotaEnforcement(t *testing.T) {
 	// modifying existing doesn't change quota usage, so no enforcement happens
 	var1.Data = []byte("12345678x")
 	index++
-	must.NoError(t, store.UpsertSecureVariables(
-		structs.MsgTypeTestSetup, index, []*structs.SecureVariableEncrypted{var1}))
+	resp = store.SVESet(index, &structs.SVApplyStateRequest{
+		Op:  structs.SVOpSet,
+		Var: var1,
+	})
+	must.NoError(t, resp.Error)
 
 	// quotas are shared by all namespaces in a region assigned that quota
 	var2.Namespace = otherNs.Name
 	index++
-	must.EqError(t, store.UpsertSecureVariables(
-		structs.MsgTypeTestSetup, index, []*structs.SecureVariableEncrypted{var2}),
+	resp = store.SVESet(index, &structs.SVApplyStateRequest{
+		Op:  structs.SVOpSet,
+		Var: var2,
+	})
+	must.EqError(t, resp.Error,
 		fmt.Errorf("quota %q exceeded for namespace %q", spec.Name, otherNs.Name).Error())
+
 }
 
 func TestBytesToMegaBytes(t *testing.T) {
