@@ -4,13 +4,13 @@
 package agent
 
 import (
-	"github.com/hashicorp/nomad/helper"
+	"github.com/hashicorp/nomad/helper/pointer"
 )
 
 // DefaultEntConfig allows configuring enterprise only default configuration
 // values.
 func DefaultEntConfig() *Config {
 	return &Config{
-		DisableUpdateCheck: helper.BoolToPtr(true),
+		DisableUpdateCheck: pointer.Of[bool](true),
 	}
 }
