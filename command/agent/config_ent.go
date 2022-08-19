@@ -11,6 +11,6 @@ import (
 // values.
 func DefaultEntConfig() *Config {
 	return &Config{
-		DisableUpdateCheck: pointer.Of[bool](true),
+		DisableUpdateCheck: pointer.Of(true),
 	}
 }

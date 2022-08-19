@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/nomad/helper"
+	"github.com/hashicorp/nomad/helper/pointer"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/structs/config"
 	"github.com/stretchr/testify/require"
@@ -18,7 +18,7 @@ func TestSetupEnterpriseAgent(t *testing.T) {
 	a := &Agent{
 		config: &Config{
 			Audit: &config.AuditConfig{
-				Enabled: helper.BoolToPtr(true),
+				Enabled: pointer.Of(true),
 				Filters: []*config.AuditFilter{
 					{
 						Type:       "HTTPEvent",
@@ -68,7 +68,7 @@ func TestEntReloadEventer(t *testing.T) {
 	a := &Agent{
 		config: &Config{
 			Audit: &config.AuditConfig{
-				Enabled: helper.BoolToPtr(true),
+				Enabled: pointer.Of(true),
 				Sinks: []*config.AuditSink{
 					{
 						Name:              "file-sink",
@@ -89,7 +89,7 @@ func TestEntReloadEventer(t *testing.T) {
 	// Reload and disable
 
 	cfg := &config.AuditConfig{
-		Enabled: helper.BoolToPtr(false),
+		Enabled: pointer.Of(false),
 	}
 
 	err = a.entReloadEventer(cfg)

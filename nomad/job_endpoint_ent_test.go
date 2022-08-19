@@ -13,7 +13,7 @@ import (
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/command/agent/consul"
-	"github.com/hashicorp/nomad/helper"
+	"github.com/hashicorp/nomad/helper/pointer"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -620,7 +620,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.NumSchedulers = 0 // Prevent automatic dequeue
-		c.ConsulConfig.AllowUnauthenticated = helper.BoolToPtr(false)
+		c.ConsulConfig.AllowUnauthenticated = pointer.Of(false)
 	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
