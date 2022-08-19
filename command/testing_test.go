@@ -1,13 +1,16 @@
 package command
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/command/agent"
-	"github.com/hashicorp/nomad/helper"
+	"github.com/hashicorp/nomad/helper/pointer"
+	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
+	"github.com/shoenig/test/must"
 )
 
 func testServer(t *testing.T, runClient bool, cb func(*agent.Config)) (*agent.TestAgent, *api.Client, string) {
@@ -49,18 +52,18 @@ func testJob(jobID string) *api.Job {
 		SetConfig("run_for", "5s").
 		SetConfig("exit_code", 0).
 		Require(&api.Resources{
-			MemoryMB: helper.IntToPtr(256),
-			CPU:      helper.IntToPtr(100),
+			MemoryMB: pointer.Of(256),
+			CPU:      pointer.Of(100),
 		}).
 		SetLogConfig(&api.LogConfig{
-			MaxFiles:      helper.IntToPtr(1),
-			MaxFileSizeMB: helper.IntToPtr(2),
+			MaxFiles:      pointer.Of(1),
+			MaxFileSizeMB: pointer.Of(2),
 		})
 
 	group := api.NewTaskGroup("group1", 1).
 		AddTask(task).
 		RequireDisk(&api.EphemeralDisk{
-			SizeMB: helper.IntToPtr(20),
+			SizeMB: pointer.Of(20),
 		})
 
 	job := api.NewBatchJob(jobID, jobID, "global", 1).
@@ -76,18 +79,18 @@ func testMultiRegionJob(jobID, region, datacenter string) *api.Job {
 		SetConfig("run_for", "15s").
 		SetConfig("exit_code", 0).
 		Require(&api.Resources{
-			MemoryMB: helper.IntToPtr(256),
-			CPU:      helper.IntToPtr(100),
+			MemoryMB: pointer.Of(256),
+			CPU:      pointer.Of(100),
 		}).
 		SetLogConfig(&api.LogConfig{
-			MaxFiles:      helper.IntToPtr(1),
-			MaxFileSizeMB: helper.IntToPtr(2),
+			MaxFiles:      pointer.Of(1),
+			MaxFileSizeMB: pointer.Of(2),
 		})
 
 	group := api.NewTaskGroup("group1", 1).
 		AddTask(task).
 		RequireDisk(&api.EphemeralDisk{
-			SizeMB: helper.IntToPtr(20),
+			SizeMB: pointer.Of(20),
 		})
 
 	job := api.NewServiceJob(jobID, jobID, region, 1).AddDatacenter(datacenter).AddTaskGroup(group)
@@ -108,16 +111,48 @@ func testMultiRegionJob(jobID, region, datacenter string) *api.Job {
 	return job
 }
 
-// setEnv wraps os.Setenv(key, value) and restores the environment variable to initial value in test cleanup
-func setEnv(t *testing.T, key, value string) {
-	initial, ok := os.LookupEnv(key)
-	os.Setenv(key, value)
-
-	t.Cleanup(func() {
-		if ok {
-			os.Setenv(key, initial)
-		} else {
-			os.Unsetenv(key)
+func waitForNodes(t *testing.T, client *api.Client) {
+	testutil.WaitForResult(func() (bool, error) {
+		nodes, _, err := client.Nodes().List(nil)
+		if err != nil {
+			return false, err
 		}
+		for _, node := range nodes {
+			if _, ok := node.Drivers["mock_driver"]; ok &&
+				node.Status == structs.NodeStatusReady {
+				return true, nil
+			}
+		}
+		return false, fmt.Errorf("no ready nodes")
+	}, func(err error) {
+		must.NoError(t, err)
 	})
+}
+
+func waitForAllocRunning(t *testing.T, client *api.Client, allocID string) {
+	testutil.WaitForResult(func() (bool, error) {
+		alloc, _, err := client.Allocations().Info(allocID, nil)
+		if err != nil {
+			return false, err
+		}
+		if alloc.ClientStatus == api.AllocClientStatusRunning {
+			return true, nil
+		}
+		return false, fmt.Errorf("alloc status: %s", alloc.ClientStatus)
+	}, func(err error) {
+		t.Fatalf("timed out waiting for alloc to be running: %v", err)
+	})
+}
+
+func stopTestAgent(a *agent.TestAgent) {
+	_ = a.Shutdown()
+}
+
+func getTempFile(t *testing.T, name string) (string, func()) {
+	f, err := os.CreateTemp("", name)
+	must.NoError(t, err)
+	must.NoError(t, f.Close())
+	return f.Name(), func() {
+		_ = os.Remove(f.Name())
+	}
 }
