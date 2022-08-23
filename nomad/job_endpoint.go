@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/nomad/acl"
 	"github.com/hashicorp/nomad/helper"
+	"github.com/hashicorp/nomad/helper/pointer"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/state/paginator"
@@ -41,7 +42,7 @@ var (
 	// allocations to be force rescheduled. We create a one off
 	// variable to avoid creating a new object for every request.
 	allowForceRescheduleTransition = &structs.DesiredTransition{
-		ForceReschedule: helper.BoolToPtr(true),
+		ForceReschedule: pointer.Of(true),
 	}
 )
 
@@ -1030,6 +1031,10 @@ func (j *Job) Scale(args *structs.JobScaleRequest, reply *structs.JobRegisterRes
 		return structs.NewErrRPCCoded(404, fmt.Sprintf("job %q not found", args.JobID))
 	}
 
+	// Since job is going to be mutated we must copy it since state store methods
+	// return a shared pointer.
+	job = job.Copy()
+
 	// Find target group in job TaskGroups
 	groupName := args.Target[structs.ScalingTargetGroup]
 	var group *structs.TaskGroup
@@ -1401,7 +1406,7 @@ func (j *Job) List(args *structs.JobListRequest, reply *structs.JobListResponse)
 			if err != nil {
 				return err
 			}
-			reply.Index = helper.Uint64Max(jindex, sindex)
+			reply.Index = helper.Max(jindex, sindex)
 
 			// Set the query response
 			j.srv.setQueryMeta(&reply.QueryMeta)
