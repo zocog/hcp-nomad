@@ -135,6 +135,103 @@ func TestJobEndpoint_Register_Sentinel_DriverForce(t *testing.T) {
 	}
 }
 
+func TestJobEndpoint_Register_Sentinel_Token_And_Namespace(t *testing.T) {
+	ci.Parallel(t)
+	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
+		c.NumSchedulers = 0 // Prevent automatic dequeue
+
+	})
+	defer cleanupS1()
+	codec := rpcClient(t, s1)
+	testutil.WaitForLeader(t, s1.RPC)
+
+	nsAndTokenPolicy := mock.SentinelPolicy()
+	nsAndTokenPolicy.EnforcementLevel = structs.SentinelEnforcementLevelHardMandatory
+	nsAndTokenPolicy.Policy = combinedPolicy
+	s1.State().UpsertSentinelPolicies(1000,
+		[]*structs.SentinelPolicy{nsAndTokenPolicy})
+
+	validToken := root.Copy()
+	validToken.Policies = []string{"foo"}
+
+	invalidToken := root.Copy()
+	invalidToken.Policies = []string{"baz"}
+
+	validNS := mock.Namespace()
+	validNS.Meta["userlist"] = "[bob]"
+
+	invalidNS := mock.Namespace()
+	invalidNS.Meta["userlist"] = "[suzy]"
+
+	testCases := []struct {
+		name        string
+		token       *structs.ACLToken
+		namespace   *structs.Namespace
+		expectError string
+	}{
+		{
+			name:        "allowed request",
+			token:       validToken,
+			namespace:   validNS,
+			expectError: "",
+		},
+		{
+			name:        "token not allowed",
+			token:       invalidToken,
+			namespace:   validNS,
+			expectError: "does not have the correct policy",
+		},
+		{
+			name:        "user not allowed for namespace",
+			token:       validToken,
+			namespace:   invalidNS,
+			expectError: "not permitted on namespace",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := s1.State().UpsertACLTokens(structs.MsgTypeTestSetup, 100, []*structs.ACLToken{tc.token})
+			require.NoError(t, err, "failed to upsert ACL token: %v", err)
+
+			err = s1.State().UpsertNamespaces(125, []*structs.Namespace{tc.namespace})
+			require.NoError(t, err, "failed to upsert namespace")
+
+			job := mock.Job()
+			job.Namespace = tc.namespace.Name
+			job.NomadTokenID = tc.token.SecretID
+			for _, tg := range job.TaskGroups {
+				for _, t := range tg.Tasks {
+					t.User = "bob"
+				}
+			}
+			req := &structs.JobRegisterRequest{
+				Job: job,
+				WriteRequest: structs.WriteRequest{
+					Region:    "global",
+					AuthToken: root.SecretID,
+					Namespace: tc.namespace.Name,
+				},
+			}
+
+			var resp structs.JobRegisterResponse
+			err = msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp)
+			if tc.expectError == "" {
+				require.NoError(t, err, "failed to register job")
+			} else {
+				require.Error(t, err, "should have errored")
+				require.Contains(t, err.Error(), tc.expectError)
+
+				// Should fail even with override because policy level is mandatory
+				req.PolicyOverride = true
+				err = msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp)
+				require.Error(t, err, "should have errored with override")
+				require.Contains(t, err.Error(), tc.expectError)
+			}
+		})
+	}
+}
+
 func TestJobEndpoint_Plan_Sentinel(t *testing.T) {
 	t.Parallel()
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
