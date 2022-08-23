@@ -16,8 +16,8 @@ import (
 	"github.com/hashicorp/nomad/ci"
 	client "github.com/hashicorp/nomad/client/config"
 	"github.com/hashicorp/nomad/client/testutil"
-	"github.com/hashicorp/nomad/helper"
 	"github.com/hashicorp/nomad/helper/freeport"
+	"github.com/hashicorp/nomad/helper/pointer"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/nomad/structs/config"
 	"github.com/stretchr/testify/require"
@@ -62,7 +62,7 @@ func TestConfig_Merge(t *testing.T) {
 		LeaveOnTerm:               false,
 		EnableSyslog:              false,
 		SyslogFacility:            "local0.info",
-		DisableUpdateCheck:        helper.BoolToPtr(false),
+		DisableUpdateCheck:        pointer.Of(false),
 		DisableAnonymousSignature: false,
 		BindAddr:                  "127.0.0.1",
 		Telemetry: &Telemetry{
@@ -88,7 +88,7 @@ func TestConfig_Merge(t *testing.T) {
 			PrefixFilter:                       []string{"filter1", "filter2"},
 		},
 		Audit: &config.AuditConfig{
-			Enabled: helper.BoolToPtr(true),
+			Enabled: pointer.Of(true),
 			Sinks: []*config.AuditSink{
 				{
 					DeliveryGuarantee: "enforced",
@@ -129,7 +129,7 @@ func TestConfig_Merge(t *testing.T) {
 				DiskMB:        10,
 				ReservedPorts: "1,10-30,55",
 			},
-			NomadServiceDiscovery: helper.BoolToPtr(false),
+			NomadServiceDiscovery: pointer.Of(false),
 		},
 		Server: &ServerConfig{
 			Enabled:                false,
@@ -138,19 +138,19 @@ func TestConfig_Merge(t *testing.T) {
 			DataDir:                "/tmp/data1",
 			ProtocolVersion:        1,
 			RaftProtocol:           1,
-			RaftMultiplier:         helper.IntToPtr(5),
-			NumSchedulers:          helper.IntToPtr(1),
+			RaftMultiplier:         pointer.Of(5),
+			NumSchedulers:          pointer.Of(1),
 			NodeGCThreshold:        "1h",
 			HeartbeatGrace:         30 * time.Second,
 			MinHeartbeatTTL:        30 * time.Second,
 			MaxHeartbeatsPerSecond: 30.0,
 			RedundancyZone:         "foo",
 			UpgradeVersion:         "foo",
-			EnableEventBroker:      helper.BoolToPtr(false),
-			EventBufferSize:        helper.IntToPtr(0),
+			EnableEventBroker:      pointer.Of(false),
+			EventBufferSize:        pointer.Of(0),
 			LicensePath:            "/tmp/licensefile1",
 			PlanRejectionTracker: &PlanRejectionTracker{
-				Enabled:       helper.BoolToPtr(true),
+				Enabled:       pointer.Of(true),
 				NodeThreshold: 100,
 				NodeWindow:    11 * time.Minute,
 			},
@@ -242,11 +242,11 @@ func TestConfig_Merge(t *testing.T) {
 		LeaveOnTerm:               true,
 		EnableSyslog:              true,
 		SyslogFacility:            "local0.debug",
-		DisableUpdateCheck:        helper.BoolToPtr(true),
+		DisableUpdateCheck:        pointer.Of(true),
 		DisableAnonymousSignature: true,
 		BindAddr:                  "127.0.0.2",
 		Audit: &config.AuditConfig{
-			Enabled: helper.BoolToPtr(true),
+			Enabled: pointer.Of(true),
 			Sinks: []*config.AuditSink{
 				{
 					DeliveryGuarantee: "enforced",
@@ -285,7 +285,7 @@ func TestConfig_Merge(t *testing.T) {
 			CirconusBrokerSelectTag:            "dc:dc2",
 			PrefixFilter:                       []string{"prefix1", "prefix2"},
 			DisableDispatchedJobSummaryMetrics: true,
-			FilterDefault:                      helper.BoolToPtr(false),
+			FilterDefault:                      pointer.Of(false),
 		},
 		Client: &ClientConfig{
 			Enabled:   true,
@@ -324,7 +324,7 @@ func TestConfig_Merge(t *testing.T) {
 			GCParallelDestroys:    6,
 			GCDiskUsageThreshold:  71,
 			GCInodeUsageThreshold: 86,
-			NomadServiceDiscovery: helper.BoolToPtr(false),
+			NomadServiceDiscovery: pointer.Of(false),
 		},
 		Server: &ServerConfig{
 			Enabled:                true,
@@ -333,8 +333,8 @@ func TestConfig_Merge(t *testing.T) {
 			DataDir:                "/tmp/data2",
 			ProtocolVersion:        2,
 			RaftProtocol:           2,
-			RaftMultiplier:         helper.IntToPtr(6),
-			NumSchedulers:          helper.IntToPtr(2),
+			RaftMultiplier:         pointer.Of(6),
+			NumSchedulers:          pointer.Of(2),
 			EnabledSchedulers:      []string{structs.JobTypeBatch},
 			NodeGCThreshold:        "12h",
 			HeartbeatGrace:         2 * time.Minute,
@@ -347,11 +347,11 @@ func TestConfig_Merge(t *testing.T) {
 			NonVotingServer:        true,
 			RedundancyZone:         "bar",
 			UpgradeVersion:         "bar",
-			EnableEventBroker:      helper.BoolToPtr(true),
-			EventBufferSize:        helper.IntToPtr(100),
+			EnableEventBroker:      pointer.Of(true),
+			EventBufferSize:        pointer.Of(100),
 			LicensePath:            "/tmp/licensefile2",
 			PlanRejectionTracker: &PlanRejectionTracker{
-				Enabled:       helper.BoolToPtr(true),
+				Enabled:       pointer.Of(true),
 				NodeThreshold: 100,
 				NodeWindow:    11 * time.Minute,
 			},
@@ -1128,7 +1128,7 @@ func TestConfig_templateNetworkInterface(t *testing.T) {
 		{
 			name: "insignificant whitespace",
 			clientConfig: &ClientConfig{
-				Enabled: true,
+				Enabled:          true,
 				NetworkInterface: `		{{GetAllInterfaces | attr "name" }}`,
 			},
 			expectedInterface: iface.Name,
@@ -1366,8 +1366,8 @@ func TestEventBroker_Parse(t *testing.T) {
 	require := require.New(t)
 	{
 		a := &ServerConfig{
-			EnableEventBroker: helper.BoolToPtr(false),
-			EventBufferSize:   helper.IntToPtr(0),
+			EnableEventBroker: pointer.Of(false),
+			EventBufferSize:   pointer.Of(0),
 		}
 		b := DefaultConfig().Server
 		b.EnableEventBroker = nil
@@ -1380,8 +1380,8 @@ func TestEventBroker_Parse(t *testing.T) {
 
 	{
 		a := &ServerConfig{
-			EnableEventBroker: helper.BoolToPtr(true),
-			EventBufferSize:   helper.IntToPtr(5000),
+			EnableEventBroker: pointer.Of(true),
+			EventBufferSize:   pointer.Of(5000),
 		}
 		b := DefaultConfig().Server
 		b.EnableEventBroker = nil
@@ -1394,12 +1394,12 @@ func TestEventBroker_Parse(t *testing.T) {
 
 	{
 		a := &ServerConfig{
-			EnableEventBroker: helper.BoolToPtr(false),
-			EventBufferSize:   helper.IntToPtr(0),
+			EnableEventBroker: pointer.Of(false),
+			EventBufferSize:   pointer.Of(0),
 		}
 		b := DefaultConfig().Server
-		b.EnableEventBroker = helper.BoolToPtr(true)
-		b.EventBufferSize = helper.IntToPtr(20000)
+		b.EnableEventBroker = pointer.Of(true)
+		b.EventBufferSize = pointer.Of(20000)
 
 		result := a.Merge(b)
 		require.Equal(true, *result.EnableEventBroker)
