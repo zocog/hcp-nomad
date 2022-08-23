@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/nomad/helper/escapingfs"
+	"github.com/hashicorp/nomad/helper/pointer"
 	"golang.org/x/crypto/blake2b"
 
 	"github.com/hashicorp/cronexpr"
@@ -7684,7 +7685,7 @@ type AllocState struct {
 // they are assigned to is down, their state is migrated to the replacement
 // allocation.
 //
-//  Minimal set of fields from plugins/drivers/task_handle.go:TaskHandle
+//	Minimal set of fields from plugins/drivers/task_handle.go:TaskHandle
 type TaskHandle struct {
 	// Version of driver state. Used by the driver to gracefully handle
 	// plugin upgrades.
@@ -10351,7 +10352,7 @@ func (a *AllocDeploymentStatus) Copy() *AllocDeploymentStatus {
 	*c = *a
 
 	if a.Healthy != nil {
-		c.Healthy = helper.BoolToPtr(*a.Healthy)
+		c.Healthy = pointer.Of(*a.Healthy)
 	}
 
 	return c
