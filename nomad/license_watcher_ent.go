@@ -30,21 +30,6 @@ const (
 	licenseExpired = "license is no longer valid"
 )
 
-// LicenseConfig allows for tunable licensing config
-// primarily used for enterprise testing
-type LicenseConfig struct {
-	// LicenseEnvBytes is the license bytes to use for the server's license
-	LicenseEnvBytes string
-
-	// LicensePath is the path to use for the server's license
-	LicensePath string
-
-	// AdditionalPubKeys is a set of public keys to
-	AdditionalPubKeys []string
-
-	Logger hclog.InterceptLogger
-}
-
 // ServerLicense contains an expanded license and its corresponding blob
 type ServerLicense struct {
 	license *nomadLicense.License
