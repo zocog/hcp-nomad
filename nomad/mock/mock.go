@@ -8,8 +8,8 @@ import (
 	"time"
 
 	fake "github.com/brianvoe/gofakeit/v6"
-	"github.com/hashicorp/nomad/helper"
 	"github.com/hashicorp/nomad/helper/envoy"
+	"github.com/hashicorp/nomad/helper/pointer"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/structs"
 	psstructs "github.com/hashicorp/nomad/plugins/shared/structs"
@@ -592,6 +592,22 @@ func LifecycleJob() *structs.Job {
 							MemoryMB: 256,
 						},
 					},
+					{
+						Name:   "poststart",
+						Driver: "mock_driver",
+						Config: map[string]interface{}{
+							"run_for": "1s",
+						},
+						Lifecycle: &structs.TaskLifecycleConfig{
+							Hook:    structs.TaskLifecycleHookPoststart,
+							Sidecar: false,
+						},
+						LogConfig: structs.DefaultLogConfig(),
+						Resources: &structs.Resources{
+							CPU:      1000,
+							MemoryMB: 256,
+						},
+					},
 				},
 			},
 		},
@@ -634,6 +650,10 @@ func LifecycleAlloc() *structs.Allocation {
 				CPU:      1000,
 				MemoryMB: 256,
 			},
+			"poststart": {
+				CPU:      1000,
+				MemoryMB: 256,
+			},
 		},
 
 		AllocatedResources: &structs.AllocatedResources{
@@ -655,6 +675,14 @@ func LifecycleAlloc() *structs.Allocation {
 					},
 				},
 				"side": {
+					Cpu: structs.AllocatedCpuResources{
+						CpuShares: 1000,
+					},
+					Memory: structs.AllocatedMemoryResources{
+						MemoryMB: 256,
+					},
+				},
+				"poststart": {
 					Cpu: structs.AllocatedCpuResources{
 						CpuShares: 1000,
 					},
@@ -1198,7 +1226,7 @@ func ConnectIngressGatewayJob(mode string, inject bool) *structs.Job {
 		Connect: &structs.ConsulConnect{
 			Gateway: &structs.ConsulGateway{
 				Proxy: &structs.ConsulGatewayProxy{
-					ConnectTimeout:            helper.TimeToPtr(3 * time.Second),
+					ConnectTimeout:            pointer.Of(3 * time.Second),
 					EnvoyGatewayBindAddresses: make(map[string]*structs.ConsulGatewayBindAddress),
 				},
 				Ingress: &structs.ConsulIngressConfigEntry{
@@ -1249,7 +1277,7 @@ func ConnectTerminatingGatewayJob(mode string, inject bool) *structs.Job {
 		Connect: &structs.ConsulConnect{
 			Gateway: &structs.ConsulGateway{
 				Proxy: &structs.ConsulGatewayProxy{
-					ConnectTimeout:            helper.TimeToPtr(3 * time.Second),
+					ConnectTimeout:            pointer.Of(3 * time.Second),
 					EnvoyGatewayBindAddresses: make(map[string]*structs.ConsulGatewayBindAddress),
 				},
 				Terminating: &structs.ConsulTerminatingConfigEntry{
@@ -1300,7 +1328,7 @@ func ConnectMeshGatewayJob(mode string, inject bool) *structs.Job {
 		Connect: &structs.ConsulConnect{
 			Gateway: &structs.ConsulGateway{
 				Proxy: &structs.ConsulGatewayProxy{
-					ConnectTimeout:            helper.TimeToPtr(3 * time.Second),
+					ConnectTimeout:            pointer.Of(3 * time.Second),
 					EnvoyGatewayBindAddresses: make(map[string]*structs.ConsulGatewayBindAddress),
 				},
 				Mesh: &structs.ConsulMeshConfigEntry{
