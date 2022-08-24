@@ -5,6 +5,7 @@ package audit
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -69,44 +70,31 @@ func (s *HTTPEventFilter) Process(ctx context.Context, e *eventlogger.Event) (*e
 	event, ok := e.Payload.(*Event)
 	if !ok {
 		s.log.Error("Payload is not an event after validation step")
-		return nil, fmt.Errorf("Unprocessable event")
+		return nil, errors.New("Unprocessable event")
 	}
 
 	// Iterate over Endpoints that are potentially filtered
 	for _, pattern := range s.Endpoints {
 		if s.endpointMatches(pattern, event.Request.Endpoint) {
 			// Check if we should ignore stage for matching endpoint
-			stageMatch := ""
 			for _, stage := range s.Stages {
 				if stage.Matches(event.Stage) {
-					stageMatch = string(event.Stage)
-					break
+					s.log.Trace("Filtering audit event matched", "pattern", pattern, "stage", stage)
+					// Return nil to signal that the event should be discarded.
+					return nil, nil
 				}
 			}
 
 			// Check if we should ignore operation for matching endpoint
-			opMatch := ""
 			for _, operation := range s.Operations {
 				if operation == "*" || operation == event.Request.Operation {
-					opMatch = operation
-					break
+					s.log.Trace("Filtering audit event matched", "pattern", pattern, "operation", operation)
+					// Return nil to signal that the event should be discarded.
+					return nil, nil
 				}
 			}
 
-			shouldFilter := stageMatch != "" && opMatch != "" ||
-				stageMatch != "" && len(s.Operations) == 0 ||
-				opMatch != "" && len(s.Stages) == 0
-
-			if shouldFilter {
-				s.log.Trace(
-					"Filtering audit event matched",
-					"pattern", pattern,
-					"operation", opMatch,
-					"stage", stageMatch,
-				)
-				return nil, nil
-			}
-
+			// No filtering to be done, requires endpoint + stage or operation
 		}
 	}
 
