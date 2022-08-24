@@ -765,8 +765,6 @@ func TestJobs_Canonicalize(t *testing.T) {
 										ChangeSignal: pointerOf(""),
 										Splay:        pointerOf(5 * time.Second),
 										Perms:        pointerOf("0644"),
-										Uid:          pointerOf(-1),
-										Gid:          pointerOf(-1),
 										LeftDelim:    pointerOf("{{"),
 										RightDelim:   pointerOf("}}"),
 										Envvars:      pointerOf(false),
@@ -780,8 +778,6 @@ func TestJobs_Canonicalize(t *testing.T) {
 										ChangeSignal: pointerOf(""),
 										Splay:        pointerOf(5 * time.Second),
 										Perms:        pointerOf("0644"),
-										Uid:          pointerOf(-1),
-										Gid:          pointerOf(-1),
 										LeftDelim:    pointerOf("{{"),
 										RightDelim:   pointerOf("}}"),
 										Envvars:      pointerOf(true),
@@ -1995,6 +1991,19 @@ func TestJobs_NewSystemJob(t *testing.T) {
 	if !reflect.DeepEqual(job, expect) {
 		t.Fatalf("expect: %#v, got: %#v", expect, job)
 	}
+}
+
+func TestJobs_NewSysbatchJob(t *testing.T) {
+	testutil.Parallel(t)
+	job := NewSysbatchJob("job1", "myjob", "global", 5)
+	expect := &Job{
+		Region:   pointerOf("global"),
+		ID:       pointerOf("job1"),
+		Name:     pointerOf("myjob"),
+		Type:     pointerOf(JobTypeSysbatch),
+		Priority: pointerOf(5),
+	}
+	require.Equal(t, expect, job)
 }
 
 func TestJobs_SetMeta(t *testing.T) {

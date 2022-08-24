@@ -7082,6 +7082,25 @@ func (t *Task) UsesConnectSidecar() bool {
 	return t.Kind.IsConnectProxy() || t.Kind.IsAnyConnectGateway()
 }
 
+func (t *Task) IsPrestart() bool {
+	return t != nil && t.Lifecycle != nil &&
+		t.Lifecycle.Hook == TaskLifecycleHookPrestart
+}
+
+func (t *Task) IsMain() bool {
+	return t != nil && (t.Lifecycle == nil || t.Lifecycle.Hook == "")
+}
+
+func (t *Task) IsPoststart() bool {
+	return t != nil && t.Lifecycle != nil &&
+		t.Lifecycle.Hook == TaskLifecycleHookPoststart
+}
+
+func (t *Task) IsPoststop() bool {
+	return t != nil && t.Lifecycle != nil &&
+		t.Lifecycle.Hook == TaskLifecycleHookPoststop
+}
+
 func (t *Task) Copy() *Task {
 	if t == nil {
 		return nil
@@ -7689,8 +7708,8 @@ type Template struct {
 	// Perms is the permission the file should be written out with.
 	Perms string
 	// User and group that should own the file.
-	Uid int
-	Gid int
+	Uid *int
+	Gid *int
 
 	// LeftDelim and RightDelim are optional configurations to control what
 	// delimiter is utilized when parsing the template.
