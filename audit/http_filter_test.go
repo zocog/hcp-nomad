@@ -44,51 +44,6 @@ func TestHTTPEventFilter_Proccess(t *testing.T) {
 			filter: true,
 		},
 		{
-			desc: "filter operation and stage",
-			e: &eventlogger.Event{
-				Payload: &Event{
-					Stage:   OperationComplete,
-					Request: &Request{Endpoint: "/ui/", Operation: "GET"},
-				},
-			},
-			f: &HTTPEventFilter{
-				Endpoints:  []string{"*"},
-				Operations: []string{"GET"},
-				Stages:     []Stage{OperationComplete},
-			},
-			filter: true,
-		},
-		{
-			desc: "don't filter when operation doesn't match",
-			e: &eventlogger.Event{
-				Payload: &Event{
-					Stage:   OperationComplete,
-					Request: &Request{Endpoint: "/ui/", Operation: "GET"},
-				},
-			},
-			f: &HTTPEventFilter{
-				Endpoints:  []string{"*"},
-				Operations: []string{"POST"},
-				Stages:     []Stage{OperationComplete},
-			},
-			filter: false,
-		},
-		{
-			desc: "don't filter when stage doesn't match",
-			e: &eventlogger.Event{
-				Payload: &Event{
-					Stage:   OperationComplete,
-					Request: &Request{Endpoint: "/ui/", Operation: "GET"},
-				},
-			},
-			f: &HTTPEventFilter{
-				Endpoints:  []string{"*"},
-				Operations: []string{"GET"},
-				Stages:     []Stage{OperationReceived},
-			},
-			filter: false,
-		},
-		{
 			desc: "filter wildcard operation",
 			e: &eventlogger.Event{
 				Payload: &Event{Request: &Request{Endpoint: "/ui/", Operation: "POST"}},
@@ -185,15 +140,12 @@ func TestHTTPEventFilter_Proccess(t *testing.T) {
 			event, err := tc.f.Process(context.Background(), tc.e)
 			if tc.err {
 				require.Error(t, err)
-				return
+			} else {
+				require.NoError(t, err)
 			}
-
-			require.NoError(t, err)
 
 			if tc.filter {
 				require.Nil(t, event)
-			} else {
-				require.NotNil(t, event)
 			}
 		})
 	}
