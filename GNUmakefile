@@ -15,7 +15,7 @@ ifneq (MSYS_NT,$(THIS_OS))
 GOPATH=$(shell go env GOPATH | cut -d: -f1)
 endif
 
-GO_TAGS ?= ent consulent
+GO_TAGS ?= osusergo ent consulent
 ON_PREM_MODULES_GO_TAGS ?= ent on_prem_modules consulent
 ON_PREM_PLATFORM_GO_TAGS ?= ent on_prem_platform consulent
 
