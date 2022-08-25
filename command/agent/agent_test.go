@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/nomad/structs/config"
+	"github.com/shoenig/test/must"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1055,6 +1056,39 @@ func TestServer_Reload_TLS_DowngradeFromTLS(t *testing.T) {
 	assert.Nil(err)
 
 	assert.True(agentConfig.TLSConfig.IsEmpty())
+}
+
+func TestServer_Reload_VaultConfig(t *testing.T) {
+	ci.Parallel(t)
+
+	agent := NewTestAgent(t, t.Name(), func(c *Config) {
+		c.Server.NumSchedulers = pointer.Of(0)
+		c.Vault = &config.VaultConfig{
+			Enabled:   pointer.Of(true),
+			Token:     "vault-token",
+			Namespace: "vault-namespace",
+			Addr:      "https://vault.consul:8200",
+		}
+	})
+	defer agent.Shutdown()
+
+	newConfig := agent.GetConfig()
+	newConfig.Vault = &config.VaultConfig{
+		Enabled:   pointer.Of(true),
+		Token:     "vault-token",
+		Namespace: "another-namespace",
+		Addr:      "https://vault.consul:8200",
+	}
+
+	sconf, err := convertServerConfig(newConfig)
+	must.NoError(t, err)
+	agent.finalizeServerConfig(sconf)
+
+	// TODO: the vault client isn't accessible here, and we don't actually
+	// overwrite the agent's server config on reload. We probably should? See
+	// tests in nomad/server_test.go for verification of this code path's
+	// behavior on the VaultClient
+	must.NoError(t, agent.server.Reload(sconf))
 }
 
 func TestServer_ShouldReload_ReturnFalseForNoChanges(t *testing.T) {
