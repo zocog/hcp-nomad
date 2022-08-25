@@ -1024,6 +1024,7 @@ type AllocsGetRequest struct {
 type AllocRestartRequest struct {
 	AllocID  string
 	TaskName string
+	AllTasks bool
 
 	QueryOptions
 }
@@ -7673,13 +7674,31 @@ const (
 	// TemplateChangeModeRestart marks that the task should be restarted if the
 	// template is re-rendered
 	TemplateChangeModeRestart = "restart"
+
+	// TemplateChangeModeScript marks that the task should trigger a script if
+	// the template is re-rendered
+	TemplateChangeModeScript = "script"
 )
 
 var (
 	// TemplateChangeModeInvalidError is the error for when an invalid change
 	// mode is given
-	TemplateChangeModeInvalidError = errors.New("Invalid change mode. Must be one of the following: noop, signal, restart")
+	TemplateChangeModeInvalidError = errors.New("Invalid change mode. Must be one of the following: noop, signal, script, restart")
 )
+
+// ChangeScript holds the configuration for the script that is executed if
+// change mode is set to script
+type ChangeScript struct {
+	// Command is the full path to the script
+	Command string
+	// Args is a slice of arguments passed to the script
+	Args []string
+	// Timeout is the amount of seconds we wait for the script to finish
+	Timeout time.Duration
+	// FailOnError indicates whether a task should fail in case script execution
+	// fails or log script failure and don't interrupt the task
+	FailOnError bool
+}
 
 // Template represents a template configuration to be rendered for a given task
 type Template struct {
@@ -7699,6 +7718,10 @@ type Template struct {
 	// ChangeSignal is the signal that should be sent if the change mode
 	// requires it.
 	ChangeSignal string
+
+	// ChangeScript is the configuration of the script. It's required if
+	// ChangeMode is set to script.
+	ChangeScript *ChangeScript
 
 	// Splay is used to avoid coordinated restarts of processes by applying a
 	// random wait between 0 and the given splay value before signalling the
@@ -7797,6 +7820,10 @@ func (t *Template) Validate() error {
 		}
 		if t.Envvars {
 			_ = multierror.Append(&mErr, fmt.Errorf("cannot use signals with env var templates"))
+		}
+	case TemplateChangeModeScript:
+		if t.ChangeScript.Command == "" {
+			_ = multierror.Append(&mErr, fmt.Errorf("must specify script path value when change mode is script"))
 		}
 	default:
 		_ = multierror.Append(&mErr, TemplateChangeModeInvalidError)
@@ -8059,7 +8086,7 @@ const (
 	// restarted because it has exceeded its restart policy.
 	TaskNotRestarting = "Not Restarting"
 
-	// TaskRestartSignal indicates that the task has been signalled to be
+	// TaskRestartSignal indicates that the task has been signaled to be
 	// restarted
 	TaskRestartSignal = "Restart Signaled"
 
@@ -8102,6 +8129,10 @@ const (
 
 	// TaskHookFailed indicates that one of the hooks for a task failed.
 	TaskHookFailed = "Task hook failed"
+
+	// TaskHookMessage indicates that one of the hooks for a task emitted a
+	// message.
+	TaskHookMessage = "Task hook message"
 
 	// TaskRestoreFailed indicates Nomad was unable to reattach to a
 	// restored task.
@@ -8336,6 +8367,9 @@ func (e *TaskEvent) PopulateEventDisplayMessage() {
 }
 
 func (e *TaskEvent) GoString() string {
+	if e == nil {
+		return ""
+	}
 	return fmt.Sprintf("%v - %v", e.Time, e.Type)
 }
 

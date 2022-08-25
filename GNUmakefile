@@ -7,7 +7,7 @@ GIT_COMMIT := $(shell git rev-parse HEAD)
 GIT_DIRTY := $(if $(shell git status --porcelain),+CHANGES)
 
 GO_LDFLAGS := "-X github.com/hashicorp/nomad/version.GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
-GO_TAGS ?= ent consulent
+GO_TAGS ?= osusergo ent consulent
 ON_PREM_MODULES_GO_TAGS ?= ent on_prem_modules consulent
 ON_PREM_PLATFORM_GO_TAGS ?= ent on_prem_platform consulent
 ifeq ($(CI),true)
