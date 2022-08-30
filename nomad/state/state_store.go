@@ -5674,10 +5674,20 @@ func (s *StateStore) ACLTokenByAccessorID(ws memdb.WatchSet, id string) (*struct
 	}
 	ws.Add(watchCh)
 
-	if existing != nil {
-		return existing.(*structs.ACLToken), nil
+	// If the existing token is nil, this indicates it does not exist in state.
+	if existing == nil {
+		return nil, nil
 	}
-	return nil, nil
+
+	// Assert the token type which allows us to perform additional work on the
+	// token that is needed before returning the call.
+	token := existing.(*structs.ACLToken)
+
+	// Handle potential staleness of ACL role links.
+	if token, err = s.fixTokenRoleLinks(txn, token); err != nil {
+		return nil, err
+	}
+	return token, nil
 }
 
 // ACLTokenBySecretID is used to lookup a token by secret ID
@@ -5694,10 +5704,20 @@ func (s *StateStore) ACLTokenBySecretID(ws memdb.WatchSet, secretID string) (*st
 	}
 	ws.Add(watchCh)
 
-	if existing != nil {
-		return existing.(*structs.ACLToken), nil
+	// If the existing token is nil, this indicates it does not exist in state.
+	if existing == nil {
+		return nil, nil
 	}
-	return nil, nil
+
+	// Assert the token type which allows us to perform additional work on the
+	// token that is needed before returning the call.
+	token := existing.(*structs.ACLToken)
+
+	// Handle potential staleness of ACL role links.
+	if token, err = s.fixTokenRoleLinks(txn, token); err != nil {
+		return nil, err
+	}
+	return token, nil
 }
 
 // ACLTokenByAccessorIDPrefix is used to lookup tokens by prefix
@@ -6366,15 +6386,15 @@ func (s *StateStore) DeleteNamespaces(index uint64, names []string) error {
 				"All CSI volumes in namespace must be deleted before it can be deleted", name, vol.ID)
 		}
 
-		varIter, err := s.getSecureVariablesByNamespaceImpl(txn, nil, name)
+		varIter, err := s.getVariablesByNamespaceImpl(txn, nil, name)
 		if err != nil {
 			return err
 		}
 		if varIter.Next() != nil {
 			// unlike job/volume, don't show the path here because the user may
-			// not have List permissions on the secure vars in this namespace
-			return fmt.Errorf("namespace %q contains at least one secure variable. "+
-				"All secure variables in namespace must be deleted before it can be deleted", name)
+			// not have List permissions on the vars in this namespace
+			return fmt.Errorf("namespace %q contains at least one variable. "+
+				"All variables in namespace must be deleted before it can be deleted", name)
 		}
 
 		// Delete the namespace

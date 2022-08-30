@@ -46,7 +46,7 @@ func TestQuotaApplyCommand_Good_HCL(t *testing.T) {
 	require.Equal(t, *limit.RegionLimit.CPU, 2500, "cpu")
 	require.Equal(t, *limit.RegionLimit.MemoryMB, 1000, "memory")
 	require.Equal(t, *limit.RegionLimit.MemoryMaxMB, 1000, "memory_max")
-	require.Equal(t, *limit.SecureVariablesLimit, 1000, "secure_variables_limit")
+	require.Equal(t, *limit.VariablesLimit, 1000, "variables_limit")
 }
 
 func TestQuotaApplyCommand_Good_JSON(t *testing.T) {

@@ -527,6 +527,31 @@ func Test_NewSafeTimer(t *testing.T) {
 	})
 }
 
+func Test_ConvertSlice(t *testing.T) {
+	t.Run("string wrapper", func(t *testing.T) {
+
+		type wrapper struct{ id string }
+		input := []string{"foo", "bar", "bad", "had"}
+		cFn := func(id string) *wrapper { return &wrapper{id: id} }
+
+		expectedOutput := []*wrapper{{id: "foo"}, {id: "bar"}, {id: "bad"}, {id: "had"}}
+		actualOutput := ConvertSlice(input, cFn)
+		require.ElementsMatch(t, expectedOutput, actualOutput)
+	})
+
+	t.Run("int wrapper", func(t *testing.T) {
+
+		type wrapper struct{ id int }
+		input := []int{10, 13, 1987, 2020}
+		cFn := func(id int) *wrapper { return &wrapper{id: id} }
+
+		expectedOutput := []*wrapper{{id: 10}, {id: 13}, {id: 1987}, {id: 2020}}
+		actualOutput := ConvertSlice(input, cFn)
+		require.ElementsMatch(t, expectedOutput, actualOutput)
+
+	})
+}
+
 func Test_IsMethodHTTP(t *testing.T) {
 	t.Run("is method", func(t *testing.T) {
 		cases := []string{
@@ -591,5 +616,39 @@ func Test_ElementsEquals(t *testing.T) {
 		b := []*employee{{0, "mitchell."}, {2, "armon"}, {3, "jack"}}
 		must.False(t, ElementsEquals(a, b))
 		must.False(t, ElementsEquals(b, a))
+	})
+}
+
+func Test_SliceSetEq(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		a := make([]int, 0)
+		b := make([]int, 0)
+		must.True(t, SliceSetEq(a, b))
+	})
+
+	t.Run("subset small", func(t *testing.T) {
+		a := []int{1, 2, 3, 4, 5}
+		b := []int{1, 2, 3}
+		must.False(t, SliceSetEq(a, b))
+		must.False(t, SliceSetEq(b, a))
+	})
+
+	t.Run("subset large", func(t *testing.T) {
+		a := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
+		b := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}
+		must.False(t, SliceSetEq(a, b))
+		must.False(t, SliceSetEq(b, a))
+	})
+
+	t.Run("same small", func(t *testing.T) {
+		a := []int{1, 2, 3, 4, 5}
+		b := []int{1, 2, 3, 4, 5}
+		must.True(t, SliceSetEq(a, b))
+	})
+
+	t.Run("same large", func(t *testing.T) {
+		a := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
+		b := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
+		must.True(t, SliceSetEq(a, b))
 	})
 }

@@ -29,8 +29,8 @@ func contextToIndex(ctx structs.Context) string {
 		return state.TableQuotaSpec
 	case structs.Recommendations:
 		return state.TableRecommendations
-	case structs.SecureVariables:
-		return state.TableSecureVariables
+	case structs.Variables:
+		return state.TableVariables
 	default:
 		return string(ctx)
 	}

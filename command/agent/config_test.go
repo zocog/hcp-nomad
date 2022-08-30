@@ -156,10 +156,12 @@ func TestConfig_Merge(t *testing.T) {
 			},
 		},
 		ACL: &ACLConfig{
-			Enabled:          true,
-			TokenTTL:         60 * time.Second,
-			PolicyTTL:        60 * time.Second,
-			ReplicationToken: "foo",
+			Enabled:               true,
+			TokenTTL:              60 * time.Second,
+			PolicyTTL:             60 * time.Second,
+			TokenMinExpirationTTL: 60 * time.Second,
+			TokenMaxExpirationTTL: 60 * time.Second,
+			ReplicationToken:      "foo",
 		},
 		Ports: &Ports{
 			HTTP: 4646,
@@ -357,10 +359,12 @@ func TestConfig_Merge(t *testing.T) {
 			},
 		},
 		ACL: &ACLConfig{
-			Enabled:          true,
-			TokenTTL:         20 * time.Second,
-			PolicyTTL:        20 * time.Second,
-			ReplicationToken: "foobar",
+			Enabled:               true,
+			TokenTTL:              20 * time.Second,
+			PolicyTTL:             20 * time.Second,
+			TokenMinExpirationTTL: 20 * time.Second,
+			TokenMaxExpirationTTL: 20 * time.Second,
+			ReplicationToken:      "foobar",
 		},
 		Ports: &Ports{
 			HTTP: 20000,
