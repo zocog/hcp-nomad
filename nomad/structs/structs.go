@@ -45,6 +45,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/mitchellh/copystructure"
 	"golang.org/x/crypto/blake2b"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -110,9 +111,11 @@ const (
 	ServiceRegistrationUpsertRequestType         MessageType = 47
 	ServiceRegistrationDeleteByIDRequestType     MessageType = 48
 	ServiceRegistrationDeleteByNodeIDRequestType MessageType = 49
-	SVApplyStateRequestType                      MessageType = 50
+	VarApplyStateRequestType                     MessageType = 50
 	RootKeyMetaUpsertRequestType                 MessageType = 51
 	RootKeyMetaDeleteRequestType                 MessageType = 52
+	ACLRolesUpsertRequestType                    MessageType = 53
+	ACLRolesDeleteByIDRequestType                MessageType = 54
 
 	// Namespace types were moved from enterprise and therefore start at 64
 	NamespaceUpsertRequestType MessageType = 64
@@ -7644,20 +7647,6 @@ var (
 	TemplateChangeModeInvalidError = errors.New("Invalid change mode. Must be one of the following: noop, signal, script, restart")
 )
 
-// ChangeScript holds the configuration for the script that is executed if
-// change mode is set to script
-type ChangeScript struct {
-	// Command is the full path to the script
-	Command string
-	// Args is a slice of arguments passed to the script
-	Args []string
-	// Timeout is the amount of seconds we wait for the script to finish
-	Timeout time.Duration
-	// FailOnError indicates whether a task should fail in case script execution
-	// fails or log script failure and don't interrupt the task
-	FailOnError bool
-}
-
 // Template represents a template configuration to be rendered for a given task
 type Template struct {
 	// SourcePath is the path to the template to be rendered
@@ -7735,9 +7724,8 @@ func (t *Template) Copy() *Template {
 	nt := new(Template)
 	*nt = *t
 
-	if t.Wait != nil {
-		nt.Wait = t.Wait.Copy()
-	}
+	nt.ChangeScript = t.ChangeScript.Copy()
+	nt.Wait = t.Wait.Copy()
 
 	return nt
 }
@@ -7780,8 +7768,12 @@ func (t *Template) Validate() error {
 			_ = multierror.Append(&mErr, fmt.Errorf("cannot use signals with env var templates"))
 		}
 	case TemplateChangeModeScript:
-		if t.ChangeScript.Command == "" {
-			_ = multierror.Append(&mErr, fmt.Errorf("must specify script path value when change mode is script"))
+		if t.ChangeScript == nil {
+			_ = multierror.Append(&mErr, fmt.Errorf("must specify change script configuration value when change mode is script"))
+		}
+
+		if err = t.ChangeScript.Validate(); err != nil {
+			_ = multierror.Append(&mErr, err)
 		}
 	default:
 		_ = multierror.Append(&mErr, TemplateChangeModeInvalidError)
@@ -7822,6 +7814,47 @@ func (t *Template) DiffID() string {
 	return t.DestPath
 }
 
+// ChangeScript holds the configuration for the script that is executed if
+// change mode is set to script
+type ChangeScript struct {
+	// Command is the full path to the script
+	Command string
+	// Args is a slice of arguments passed to the script
+	Args []string
+	// Timeout is the amount of seconds we wait for the script to finish
+	Timeout time.Duration
+	// FailOnError indicates whether a task should fail in case script execution
+	// fails or log script failure and don't interrupt the task
+	FailOnError bool
+}
+
+func (cs *ChangeScript) Copy() *ChangeScript {
+	if cs == nil {
+		return nil
+	}
+
+	ncs := new(ChangeScript)
+	*ncs = *cs
+
+	// args is a slice!
+	ncs.Args = slices.Clone(cs.Args)
+
+	return ncs
+}
+
+// Validate makes sure all the required fields of ChangeScript are present
+func (cs *ChangeScript) Validate() error {
+	if cs == nil {
+		return nil
+	}
+
+	if cs.Command == "" {
+		return fmt.Errorf("must specify script path value when change mode is script")
+	}
+
+	return nil
+}
+
 // WaitConfig is the Min/Max duration used by the Consul Template Watcher. Consul
 // Template relies on pointer based business logic. This struct uses pointers so
 // that we tell the different between zero values and unset values.
@@ -7839,11 +7872,11 @@ func (wc *WaitConfig) Copy() *WaitConfig {
 	nwc := new(WaitConfig)
 
 	if wc.Min != nil {
-		nwc.Min = &*wc.Min
+		nwc.Min = wc.Min
 	}
 
 	if wc.Max != nil {
-		nwc.Max = &*wc.Max
+		nwc.Max = wc.Max
 	}
 
 	return nwc
@@ -10874,14 +10907,24 @@ const (
 	// tokens. We periodically scan for expired tokens and delete them.
 	CoreJobOneTimeTokenGC = "one-time-token-gc"
 
+	// CoreJobLocalTokenExpiredGC is used for the garbage collection of
+	// expired local ACL tokens. We periodically scan for expired tokens and
+	// delete them.
+	CoreJobLocalTokenExpiredGC = "local-token-expired-gc"
+
+	// CoreJobGlobalTokenExpiredGC is used for the garbage collection of
+	// expired global ACL tokens. We periodically scan for expired tokens and
+	// delete them.
+	CoreJobGlobalTokenExpiredGC = "global-token-expired-gc"
+
 	// CoreJobRootKeyRotateGC is used for periodic key rotation and
 	// garbage collection of unused encryption keys.
 	CoreJobRootKeyRotateOrGC = "root-key-rotate-gc"
 
-	// CoreJobSecureVariablesRekey is used to fully rotate the
-	// encryption keys for secure variables by decrypting all secure
-	// variables and re-encrypting them with the active key
-	CoreJobSecureVariablesRekey = "secure-variables-rekey"
+	// CoreJobVariablesRekey is used to fully rotate the encryption keys for
+	// variables by decrypting all variables and re-encrypting them with the
+	// active key
+	CoreJobVariablesRekey = "variables-rekey"
 
 	// CoreJobForceGC is used to force garbage collection of all GCable objects.
 	CoreJobForceGC = "force-gc"
@@ -11914,14 +11957,31 @@ type ACLPolicyUpsertRequest struct {
 
 // ACLToken represents a client token which is used to Authenticate
 type ACLToken struct {
-	AccessorID  string   // Public Accessor ID (UUID)
-	SecretID    string   // Secret ID, private (UUID)
-	Name        string   // Human friendly name
-	Type        string   // Client or Management
-	Policies    []string // Policies this token ties to
-	Global      bool     // Global or Region local
-	Hash        []byte
-	CreateTime  time.Time // Time of creation
+	AccessorID string   // Public Accessor ID (UUID)
+	SecretID   string   // Secret ID, private (UUID)
+	Name       string   // Human friendly name
+	Type       string   // Client or Management
+	Policies   []string // Policies this token ties to
+
+	// Roles represents the ACL roles that this token is tied to. The token
+	// will inherit the permissions of all policies detailed within the role.
+	Roles []*ACLTokenRoleLink
+
+	Global     bool // Global or Region local
+	Hash       []byte
+	CreateTime time.Time // Time of creation
+
+	// ExpirationTime represents the point after which a token should be
+	// considered revoked and is eligible for destruction. This time should
+	// always use UTC to account for multi-region global tokens. It is a
+	// pointer, so we can store nil, rather than the zero value of time.Time.
+	ExpirationTime *time.Time
+
+	// ExpirationTTL is a convenience field for helping set ExpirationTime to a
+	// value of CreateTime+ExpirationTTL. This can only be set during token
+	// creation. This is a string version of a time.Duration like "2m".
+	ExpirationTTL time.Duration
+
 	CreateIndex uint64
 	ModifyIndex uint64
 }
@@ -11949,8 +12009,12 @@ func (a *ACLToken) Copy() *ACLToken {
 
 	c.Policies = make([]string, len(a.Policies))
 	copy(c.Policies, a.Policies)
+
 	c.Hash = make([]byte, len(a.Hash))
 	copy(c.Hash, a.Hash)
+
+	c.Roles = make([]*ACLTokenRoleLink, len(a.Roles))
+	copy(c.Roles, a.Roles)
 
 	return c
 }
@@ -11968,18 +12032,22 @@ var (
 )
 
 type ACLTokenListStub struct {
-	AccessorID  string
-	Name        string
-	Type        string
-	Policies    []string
-	Global      bool
-	Hash        []byte
-	CreateTime  time.Time
-	CreateIndex uint64
-	ModifyIndex uint64
+	AccessorID     string
+	Name           string
+	Type           string
+	Policies       []string
+	Roles          []*ACLTokenRoleLink
+	Global         bool
+	Hash           []byte
+	CreateTime     time.Time
+	ExpirationTime *time.Time
+	CreateIndex    uint64
+	ModifyIndex    uint64
 }
 
-// SetHash is used to compute and set the hash of the ACL token
+// SetHash is used to compute and set the hash of the ACL token. It only hashes
+// fields which can be updated, and as such, does not hash fields such as
+// ExpirationTime.
 func (a *ACLToken) SetHash() []byte {
 	// Initialize a 256bit Blake2 hash (32 bytes)
 	hash, err := blake2b.New256(nil)
@@ -11999,6 +12067,13 @@ func (a *ACLToken) SetHash() []byte {
 		_, _ = hash.Write([]byte("local"))
 	}
 
+	// Iterate the ACL role links and hash the ID. The ID is immutable and the
+	// canonical way to reference a role. The name can be modified by
+	// operators, but won't impact the ACL token resolution.
+	for _, roleLink := range a.Roles {
+		_, _ = hash.Write([]byte(roleLink.ID))
+	}
+
 	// Finalize the hash
 	hashVal := hash.Sum(nil)
 
@@ -12009,37 +12084,18 @@ func (a *ACLToken) SetHash() []byte {
 
 func (a *ACLToken) Stub() *ACLTokenListStub {
 	return &ACLTokenListStub{
-		AccessorID:  a.AccessorID,
-		Name:        a.Name,
-		Type:        a.Type,
-		Policies:    a.Policies,
-		Global:      a.Global,
-		Hash:        a.Hash,
-		CreateTime:  a.CreateTime,
-		CreateIndex: a.CreateIndex,
-		ModifyIndex: a.ModifyIndex,
+		AccessorID:     a.AccessorID,
+		Name:           a.Name,
+		Type:           a.Type,
+		Policies:       a.Policies,
+		Roles:          a.Roles,
+		Global:         a.Global,
+		Hash:           a.Hash,
+		CreateTime:     a.CreateTime,
+		ExpirationTime: a.ExpirationTime,
+		CreateIndex:    a.CreateIndex,
+		ModifyIndex:    a.ModifyIndex,
 	}
-}
-
-// Validate is used to check a token for reasonableness
-func (a *ACLToken) Validate() error {
-	var mErr multierror.Error
-	if len(a.Name) > maxTokenNameLength {
-		mErr.Errors = append(mErr.Errors, fmt.Errorf("token name too long"))
-	}
-	switch a.Type {
-	case ACLClientToken:
-		if len(a.Policies) == 0 {
-			mErr.Errors = append(mErr.Errors, fmt.Errorf("client token missing policies"))
-		}
-	case ACLManagementToken:
-		if len(a.Policies) != 0 {
-			mErr.Errors = append(mErr.Errors, fmt.Errorf("management token cannot be associated with policies"))
-		}
-	default:
-		mErr.Errors = append(mErr.Errors, fmt.Errorf("token type must be client or management"))
-	}
-	return mErr.ErrorOrNil()
 }
 
 // PolicySubset checks if a given set of policies is a subset of the token
