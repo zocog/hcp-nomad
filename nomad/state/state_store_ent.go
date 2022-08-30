@@ -681,7 +681,7 @@ func (s *StateStore) quotaUsageByNameImpl(txn *txn, ws memdb.WatchSet, name stri
 	if existing != nil {
 		usage := existing.(*structs.QuotaUsage)
 
-		varsUsageInMB, err := s.SecureVariablesUsageByQuota(ws, txn, usage.Name)
+		varsUsageInMB, err := s.VariablesUsageByQuota(ws, txn, usage.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -689,7 +689,7 @@ func (s *StateStore) quotaUsageByNameImpl(txn *txn, ws memdb.WatchSet, name stri
 			usage = usage.Copy()
 			for hash, regionUsed := range usage.Used {
 				if regionUsed.Region == s.Config().Region {
-					regionUsed.SecureVariablesLimit = varsUsageInMB
+					regionUsed.VariablesLimit = varsUsageInMB
 					usage.Used[hash] = regionUsed
 					break
 				}

@@ -903,19 +903,19 @@ func TestQuotaEndpoint_GetQuotaUsageWithVariables(t *testing.T) {
 
 	oldLimit := resp.Usage.Used[string(qs.Limits[0].Hash)]
 	must.NotNil(t, oldLimit)
-	must.Eq(t, oldLimit.SecureVariablesLimit, 0)
+	must.Eq(t, oldLimit.VariablesLimit, 0)
 
 	ns := mock.Namespace()
 	ns.Quota = qs.Name
 	index++
 	must.NoError(t, store.UpsertNamespaces(index, []*structs.Namespace{ns}))
 
-	sv := mock.SecureVariableEncrypted()
+	sv := mock.VariableEncrypted()
 	sv.Namespace = ns.Name
 	index++
 
-	setResp := store.SVESet(index, &structs.SVApplyStateRequest{
-		Op:  structs.SVOpSet,
+	setResp := store.VarSet(index, &structs.VarApplyStateRequest{
+		Op:  structs.VarOpSet,
 		Var: sv,
 	})
 	must.NoError(t, setResp.Error)
@@ -927,8 +927,8 @@ func TestQuotaEndpoint_GetQuotaUsageWithVariables(t *testing.T) {
 
 	newLimit := newUsage.Used[string(qs.Limits[0].Hash)]
 	must.NotNil(t, newLimit)
-	must.Eq(t, newLimit.SecureVariablesLimit, 1) // 3 bytes converted to MiB, rounded up
-	must.Eq(t, oldLimit.SecureVariablesLimit, 0) // assert copy-on-read
+	must.Eq(t, newLimit.VariablesLimit, 1) // 3 bytes converted to MiB, rounded up
+	must.Eq(t, oldLimit.VariablesLimit, 0) // assert copy-on-read
 }
 
 func TestQuotaEndpoint_GetQuotaUsage_ACL(t *testing.T) {

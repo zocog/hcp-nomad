@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/structs"
 )
 
-func (s *StateStore) enforceSecureVariablesQuota(index uint64, wTxn WriteTxn, nsName string, change int64) error {
+func (s *StateStore) enforceVariablesQuota(index uint64, wTxn WriteTxn, nsName string, change int64) error {
 
 	raw, err := wTxn.First(TableNamespaces, "id", nsName)
 	if err != nil {
@@ -37,15 +37,15 @@ func (s *StateStore) enforceSecureVariablesQuota(index uint64, wTxn WriteTxn, ns
 
 	for _, limit := range spec.Limits {
 		if limit.Region == s.Config().Region {
-			if limit.SecureVariablesLimit == 0 {
+			if limit.VariablesLimit == 0 {
 				return nil
 			}
-			if limit.SecureVariablesLimit < 0 {
-				return fmt.Errorf("quota %q for namespace %q disallows secure variables",
+			if limit.VariablesLimit < 0 {
+				return fmt.Errorf("quota %q for namespace %q disallows variables",
 					ns.Quota, ns.Name)
 			}
 
-			existingUseMB, err := s.SecureVariablesUsageByQuota(nil, wTxn.(*txn), spec.Name)
+			existingUseMB, err := s.VariablesUsageByQuota(nil, wTxn.(*txn), spec.Name)
 			if err != nil {
 				return err
 			}
@@ -54,10 +54,10 @@ func (s *StateStore) enforceSecureVariablesQuota(index uint64, wTxn WriteTxn, ns
 			// assertion of (existingUse + change < math.MaxInt64) without
 			// exceeding max int
 			if change > math.MaxInt64-20<<existingUse {
-				return fmt.Errorf("secure variables can store a maximum of %d bytes of encrypted data for all namespaces controlled by a single quota", math.MaxInt)
+				return fmt.Errorf("variables can store a maximum of %d bytes of encrypted data for all namespaces controlled by a single quota", math.MaxInt)
 			}
 
-			if existingUse+change > int64(limit.SecureVariablesLimit)<<20 {
+			if existingUse+change > int64(limit.VariablesLimit)<<20 {
 				return fmt.Errorf("quota %q exceeded for namespace %q",
 					ns.Quota, ns.Name)
 			}
@@ -69,9 +69,9 @@ func (s *StateStore) enforceSecureVariablesQuota(index uint64, wTxn WriteTxn, ns
 	return nil
 }
 
-// SecureVariablesUsageByQuota gets the total usage across all namespaces
+// VariablesUsageByQuota gets the total usage across all namespaces
 // assigned to the given quota, in MiB
-func (s *StateStore) SecureVariablesUsageByQuota(ws memdb.WatchSet, txn *txn, quotaSpecName string) (int, error) {
+func (s *StateStore) VariablesUsageByQuota(ws memdb.WatchSet, txn *txn, quotaSpecName string) (int, error) {
 
 	iter, err := s.namespacesByQuotaImpl(nil, txn, quotaSpecName)
 	if err != nil {
@@ -86,15 +86,15 @@ func (s *StateStore) SecureVariablesUsageByQuota(ws memdb.WatchSet, txn *txn, qu
 		}
 		ns := raw.(*structs.Namespace)
 
-		rawUsage, err := txn.First(TableSecureVariablesQuotas, "id", ns.Name)
+		rawUsage, err := txn.First(TableVariablesQuotas, "id", ns.Name)
 		if err != nil {
-			return 0, fmt.Errorf("could not lookup secure variables quota usage: %v", err)
+			return 0, fmt.Errorf("could not lookup variables quota usage: %v", err)
 		}
 		if rawUsage == nil {
 			continue // this namespace doesn't have any vars yet
 		}
 
-		svQuotaUsage := rawUsage.(*structs.SecureVariablesQuota)
+		svQuotaUsage := rawUsage.(*structs.VariablesQuota)
 		total += svQuotaUsage.Size
 	}
 

@@ -12,15 +12,15 @@ import (
 	"github.com/hashicorp/nomad/nomad/structs"
 )
 
-func TestStateStore_SecureVariables_QuotaEnforcement(t *testing.T) {
+func TestStateStore_Variables_QuotaEnforcement(t *testing.T) {
 	ci.Parallel(t)
 	store := testStateStore(t)
 
 	index := uint64(20)
 
 	spec := mock.QuotaSpec()
-	spec.Limits[0].SecureVariablesLimit = 1  // region: global
-	spec.Limits[1].SecureVariablesLimit = 20 // region: europe
+	spec.Limits[0].VariablesLimit = 1  // region: global
+	spec.Limits[1].VariablesLimit = 20 // region: europe
 	spec.SetHash()
 	index++
 	must.NoError(t, store.UpsertQuotaSpecs(index, []*structs.QuotaSpec{spec}))
@@ -32,39 +32,39 @@ func TestStateStore_SecureVariables_QuotaEnforcement(t *testing.T) {
 	must.NoError(t, store.UpsertNamespaces(index, []*structs.Namespace{ns, otherNs}))
 
 	// fits in quota
-	var1 := mock.SecureVariableEncrypted()
+	var1 := mock.VariableEncrypted()
 	var1.Path = "var1"
 	var1.Namespace = ns.Name
 	var1.Data = []byte("123456789")
 	index++
-	resp := store.SVESet(index, &structs.SVApplyStateRequest{
-		Op:  structs.SVOpSet,
+	resp := store.VarSet(index, &structs.VarApplyStateRequest{
+		Op:  structs.VarOpSet,
 		Var: var1,
 	})
 	must.NoError(t, resp.Error)
 
 	// doesn't fit inside quota
-	var2 := mock.SecureVariableEncrypted()
+	var2 := mock.VariableEncrypted()
 	var2.Path = "var2"
 	var2.Namespace = ns.Name
 	var2.Data = make([]byte, structs.BytesInMegabyte)
 	index++
-	resp = store.SVESet(index, &structs.SVApplyStateRequest{
-		Op:  structs.SVOpSet,
+	resp = store.VarSet(index, &structs.VarApplyStateRequest{
+		Op:  structs.VarOpSet,
 		Var: var2,
 	})
 	must.Error(t, resp.Error)
 
 	// no quota tracking update if quota is enforced
-	quotaUsed, err := store.SecureVariablesQuotaByNamespace(nil, ns.Name)
+	quotaUsed, err := store.VariablesQuotaByNamespace(nil, ns.Name)
 	must.NoError(t, err)
 	must.Eq(t, quotaUsed.Size, 9)
 
 	// modifying existing doesn't change quota usage, so no enforcement happens
 	var1.Data = []byte("12345678x")
 	index++
-	resp = store.SVESet(index, &structs.SVApplyStateRequest{
-		Op:  structs.SVOpSet,
+	resp = store.VarSet(index, &structs.VarApplyStateRequest{
+		Op:  structs.VarOpSet,
 		Var: var1,
 	})
 	must.NoError(t, resp.Error)
@@ -72,8 +72,8 @@ func TestStateStore_SecureVariables_QuotaEnforcement(t *testing.T) {
 	// quotas are shared by all namespaces in a region assigned that quota
 	var2.Namespace = otherNs.Name
 	index++
-	resp = store.SVESet(index, &structs.SVApplyStateRequest{
-		Op:  structs.SVOpSet,
+	resp = store.VarSet(index, &structs.VarApplyStateRequest{
+		Op:  structs.VarOpSet,
 		Var: var2,
 	})
 	must.EqError(t, resp.Error,
