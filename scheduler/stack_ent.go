@@ -12,14 +12,21 @@ import (
 // QuotaIterator is used to enforce resource quotas. When below the quota limit,
 // the iterator acts as a pass through and above it will deny all nodes
 type QuotaIterator struct {
-	ctx           Context
-	source        FeasibleIterator
-	buildErr      error
-	tg            *structs.TaskGroup
-	job           *structs.Job
-	quota         *structs.QuotaSpec
-	quotaLimits   map[string]*structs.QuotaLimit
-	actUsage      *structs.QuotaUsage
+	ctx      Context
+	source   FeasibleIterator
+	buildErr error
+
+	// combinedResources are the resources used by the TaskGroup being scheduled.
+	combinedResources *structs.Resources
+
+	job         *structs.Job
+	quota       *structs.QuotaSpec
+	quotaLimits map[string]*structs.QuotaLimit
+
+	// actUsage is the actual usage for the quota loaded from the statestore
+	actUsage *structs.QuotaUsage
+
+	// proposedUsage is the usage this plan is proposing so far.
 	proposedUsage *structs.QuotaUsage
 
 	// proposedLimit is the limit that applies to this job. At this point there
@@ -35,8 +42,12 @@ func NewQuotaIterator(ctx Context, source FeasibleIterator) FeasibleIterator {
 	}
 }
 
+// SetTaskGroup sets the specificic task group in a job that is being
+// scheduled. In the context of the quota iterator it only computes and stores
+// the combined resource utilization of the task group for use when calculating
+// quota usage.
 func (iter *QuotaIterator) SetTaskGroup(tg *structs.TaskGroup) {
-	iter.tg = tg
+	iter.combinedResources = combinedResources(tg)
 }
 
 func (iter *QuotaIterator) SetJob(job *structs.Job) {
@@ -113,7 +124,7 @@ func (iter *QuotaIterator) Next() *structs.Node {
 	// copy, as the node may get rejected later during the selection process
 	// and Next() called numerous times before Reset().
 	proposedLimitCopy := iter.proposedLimit.Copy()
-	proposedLimitCopy.AddResource(combinedResources(iter.tg))
+	proposedLimitCopy.AddResource(iter.combinedResources)
 
 	// Get the actual limit
 	quotaLimit := iter.quotaLimits[string(proposedLimitCopy.Hash)]
