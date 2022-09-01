@@ -184,7 +184,7 @@ func newTestHarness(t *testing.T, templates []*structs.Template, consul, vault b
 	if consul {
 		var err error
 		harness.consul, err = ctestutil.NewTestServerConfigT(t, func(c *ctestutil.TestServerConfig) {
-			// defaults
+			c.Peering = nil  // fix for older versions of Consul (<1.13.0) that don't support peering
 		})
 		if err != nil {
 			t.Fatalf("error starting test Consul server: %v", err)
@@ -1376,14 +1376,11 @@ BAR={{key "bar"}}
 // process environment variables.  nomad host process environment variables
 // are to be treated the same as not found environment variables.
 func TestTaskTemplateManager_FiltersEnvVars(t *testing.T) {
-	ci.Parallel(t)
 
-	defer os.Setenv("NOMAD_TASK_NAME", os.Getenv("NOMAD_TASK_NAME"))
-	os.Setenv("NOMAD_TASK_NAME", "should be overridden by task")
+	t.Setenv("NOMAD_TASK_NAME", "should be overridden by task")
 
 	testenv := "TESTENV_" + strings.ReplaceAll(uuid.Generate(), "-", "")
-	os.Setenv(testenv, "MY_TEST_VALUE")
-	defer os.Unsetenv(testenv)
+	t.Setenv(testenv, "MY_TEST_VALUE")
 
 	// Make a template that will render immediately
 	content := `Hello Nomad Task: {{env "NOMAD_TASK_NAME"}}
