@@ -256,6 +256,10 @@ func (s *StateStore) UpsertQuotaSpecs(index uint64, specs []*structs.QuotaSpec) 
 				return fmt.Errorf("nil quota usage for spec %q", spec.Name)
 			}
 
+			// Copy usage before reconciling in place to avoid data races with
+			// readers.
+			usage = usage.Copy()
+
 			opts := reconcileQuotaUsageOpts{
 				Usage: usage,
 				Spec:  spec,
@@ -411,6 +415,10 @@ func (s *StateStore) quotaReconcile(index uint64, txn *txn, newQuota, oldQuota s
 			return fmt.Errorf("nil quota usage for spec %q", q)
 		}
 
+		// Copy usage before reconciling in place to avoid data races with
+		// readers.
+		usage = usage.Copy()
+
 		opts := reconcileQuotaUsageOpts{
 			Usage:     usage,
 			Spec:      spec,
@@ -508,6 +516,10 @@ func (s *StateStore) upsertQuotaUsageImpl(index uint64, txn *txn, usage *structs
 			return fmt.Errorf("unknown quota specification %q", usage.Name)
 		}
 
+		// Copy usage before reconciling in place to avoid data races with
+		// readers.
+		usage = usage.Copy()
+
 		opts := reconcileQuotaUsageOpts{
 			Usage:     usage,
 			Spec:      spec,
@@ -534,7 +546,9 @@ func (s *StateStore) upsertQuotaUsageImpl(index uint64, txn *txn, usage *structs
 // reconcileQuotaUsageOpts is used to parameterize how a QuotaUsage is
 // reconciled.
 type reconcileQuotaUsageOpts struct {
-	// Usage is the usage object to be reconciled in-place
+	// Usage is the usage object to be reconciled in-place. Callers *MUST* pass
+	// in a new struct or copy from statestore, *never* a pointer to a QuotaUsage
+	// in the statestore.
 	Usage *structs.QuotaUsage
 
 	// AllLimits denotes whether all limits should be reconciled. If set to
