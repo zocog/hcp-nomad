@@ -200,7 +200,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.4.1
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/btree v1.0.0 // indirect
-	github.com/google/go-querystring v0.0.0-20170111101155-53e6ce116135 // indirect
+	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
 	github.com/gookit/color v1.3.1 // indirect
@@ -225,7 +225,7 @@ require (
 	github.com/jefferai/isbadcipher v0.0.0-20190226160619-51d2077c035f // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
-	github.com/joyent/triton-go v0.0.0-20190112182421-51ffac552869 // indirect
+	github.com/joyent/triton-go v1.7.1-0.20200416154420-6801d15b779f // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/linode/linodego v0.7.1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
@@ -297,14 +297,11 @@ require (
 
 /// Enterprise specific module requirements
 
-// note: this is actually consul 1.7.8+ent!
-replace github.com/hashicorp/consul => github.com/hashicorp/consul-enterprise v1.7.9-0.20200911031423-dcac66d22260
-
 require (
-	github.com/hashicorp/consul v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/eventlogger v0.1.1-0.20210917172429-90711333b9d0
 	github.com/hashicorp/go-licensing v1.3.8
 	github.com/hashicorp/nomad-licensing v0.0.11
+	github.com/hashicorp/raft-autopilot-enterprise v0.1.2
 	github.com/hashicorp/raft-snapshotagent v0.0.0-20200831014059-4352e54f37b3
 	github.com/hashicorp/sentinel v0.15.5
 )

@@ -6,6 +6,7 @@ package nomad
 import (
 	"fmt"
 
+	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/sentinel/sentinel"
 )
 
@@ -40,7 +41,16 @@ func (s *Server) setupEnterprise(config *Config) error {
 	// Create the Sentinel instance based on the configuration
 	s.sentinel = sentinel.New(sentConf)
 
-	s.setupEnterpriseAutopilot(config)
+	apDelegate := &AutopilotDelegate{s}
+
+	s.autopilot = autopilot.New(
+		s.raft,
+		apDelegate,
+		autopilot.WithLogger(s.logger),
+		autopilot.WithReconcileInterval(config.AutopilotInterval),
+		autopilot.WithUpdateInterval(config.ServerHealthInterval),
+		autopilot.WithPromoter(s.autopilotPromoter()),
+	)
 
 	// Set License config options
 	config.LicenseConfig = &LicenseConfig{

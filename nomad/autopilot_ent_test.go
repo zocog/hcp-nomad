@@ -1,5 +1,5 @@
-//go:build ent || consulent
-// +build ent consulent
+//go:build ent
+// +build ent
 
 package nomad
 
@@ -7,15 +7,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/nomad/ci"
-	"github.com/hashicorp/nomad/testutil"
 	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/hashicorp/nomad/ci"
+	"github.com/hashicorp/nomad/testutil"
 )
 
-func TestAdvancedAutopilot_DesignateNonVoter(t *testing.T) {
+func TestAutopilotEnterprise_DesignateNonVoter(t *testing.T) {
 	ci.Parallel(t)
 	assert := assert.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
@@ -52,17 +52,26 @@ func TestAdvancedAutopilot_DesignateNonVoter(t *testing.T) {
 	servers := future.Configuration().Servers
 
 	// s2 should be a voter
-	if !autopilot.IsPotentialVoter(findServer(t, servers, s2).Suffrage) {
+	if !isPotentialVoter(findServer(t, servers, s2).Suffrage) {
 		t.Fatalf("bad: %v", servers)
 	}
 
 	// s3 should remain a non-voter
-	if autopilot.IsPotentialVoter(findServer(t, servers, s3).Suffrage) {
+	if isPotentialVoter(findServer(t, servers, s3).Suffrage) {
 		t.Fatalf("bad: %v", servers)
 	}
 }
 
-func TestAdvancedAutopilot_RedundancyZone(t *testing.T) {
+func isPotentialVoter(suffrage raft.ServerSuffrage) bool {
+	switch suffrage {
+	case raft.Voter, raft.Staging:
+		return true
+	default:
+		return false
+	}
+}
+
+func TestAutopilotEnterprise_RedundancyZone(t *testing.T) {
 	ci.Parallel(t)
 	assert := assert.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
@@ -146,7 +155,7 @@ func TestAdvancedAutopilot_RedundancyZone(t *testing.T) {
 	})
 }
 
-func TestAdvancedAutopilot_UpgradeMigration(t *testing.T) {
+func TestAutopilotEnterprise_UpgradeMigration(t *testing.T) {
 	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 2
@@ -194,7 +203,7 @@ func TestAdvancedAutopilot_UpgradeMigration(t *testing.T) {
 	})
 }
 
-func TestAdvancedAutopilot_CustomUpgradeMigration(t *testing.T) {
+func TestAutopilotEnterprise_CustomUpgradeMigration(t *testing.T) {
 	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 2
@@ -244,7 +253,7 @@ func TestAdvancedAutopilot_CustomUpgradeMigration(t *testing.T) {
 	})
 }
 
-func TestAdvancedAutopilot_DisableUpgradeMigration(t *testing.T) {
+func TestAutopilotEnterprise_DisableUpgradeMigration(t *testing.T) {
 	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.RaftConfig.ProtocolVersion = 3
