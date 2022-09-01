@@ -7,9 +7,9 @@ GIT_COMMIT := $(shell git rev-parse HEAD)
 GIT_DIRTY := $(if $(shell git status --porcelain),+CHANGES)
 
 GO_LDFLAGS := "-X github.com/hashicorp/nomad/version.GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
-GO_TAGS ?= osusergo ent consulent
-ON_PREM_MODULES_GO_TAGS ?= ent on_prem_modules consulent
-ON_PREM_PLATFORM_GO_TAGS ?= ent on_prem_platform consulent
+GO_TAGS ?= osusergo ent
+ON_PREM_MODULES_GO_TAGS ?= ent on_prem_modules
+ON_PREM_PLATFORM_GO_TAGS ?= ent on_prem_platform
 ifeq ($(CI),true)
 GO_TAGS := codegen_generated $(GO_TAGS)
 ON_PREM_MODULES_GO_TAGS  := codegen_generated $(ON_PREM_MODULES_GO_TAGS)
@@ -51,7 +51,7 @@ PROTO_COMPARE_TAG ?= v1.0.3$(if $(findstring ent,$(GO_TAGS)),+ent,)
 
 # LAST_RELEASE is the git sha of the latest release corresponding to this branch. main should have the latest
 # published release, and release branches should point to the latest published release in the X.Y release line.
-LAST_RELEASE ?= v1.3.4
+LAST_RELEASE ?= v1.3.5
 
 default: help
 
@@ -316,23 +316,23 @@ premmoddev: changelogfmt hclfmt ## Build for the current development platform
 	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(GOPATH)/bin
 
 .PHONY: prerelease
-prerelease: GO_TAGS=ui codegen_generated release ent consulent
+prerelease: GO_TAGS=ui codegen_generated release ent
 prerelease: generate-all ember-dist static-assets ## Generate all the static assets for a Nomad release
 
 .PHONY: release
-release: GO_TAGS=ui codegen_generated release ent consulent
+release: GO_TAGS=ui codegen_generated release ent
 release: clean $(foreach t,$(ALL_TARGETS),pkg/$(t).zip) ## Build all release packages which can be built on this platform.
 	@echo "==> Results:"
 	@tree --dirsfirst $(PROJECT_ROOT)/pkg
 
 .PHONY: premplatrelease
-premplatrelease: GO_TAGS=ui codegen_generated release ent consulent on_prem_platform
+premplatrelease: GO_TAGS=ui codegen_generated release ent on_prem_platform
 premplatrelease: clean $(foreach t,$(ALL_TARGETS),pkg/$(t).zip) ## Build all release packages which can be built on this platform.
 	@echo "==> Results:"
 	@tree --dirsfirst $(PROJECT_ROOT)/pkg
 
 .PHONY: premmodrelease
-premmodrelease: GO_TAGS=ui codegen_generated release ent consulent on_prem_modules
+premmodrelease: GO_TAGS=ui codegen_generated release ent on_prem_modules
 premmodrelease: clean $(foreach t,$(ALL_TARGETS),pkg/$(t).zip) ## Build all release packages which can be built on this platform.
 	@echo "==> Results:"
 	@tree --dirsfirst $(PROJECT_ROOT)/pkg

@@ -2469,7 +2469,7 @@ func (c *Client) updateAlloc(update *structs.Allocation) {
 	if update.ClientStatus == structs.AllocClientStatusUnknown && update.AllocModifyIndex > ar.Alloc().AllocModifyIndex {
 		err = ar.Reconnect(update)
 		if err != nil {
-			c.logger.Error("error reconnecting alloc", "alloc_id", update.ID, "alloc_modify_index", update.AllocModifyIndex, "err", err)
+			c.logger.Error("error reconnecting alloc", "alloc_id", update.ID, "alloc_modify_index", update.AllocModifyIndex, "error", err)
 		}
 		return
 	}
@@ -2817,7 +2817,7 @@ func (c *Client) consulDiscoveryImpl() error {
 		// datacenterQueryLimit, the next heartbeat will pick
 		// a new set of servers so it's okay.
 		shuffleStrings(dcs[1:])
-		dcs = dcs[0:helper.MinInt(len(dcs), datacenterQueryLimit)]
+		dcs = dcs[0:helper.Min(len(dcs), datacenterQueryLimit)]
 	}
 
 	// Query for servers in this client's region only

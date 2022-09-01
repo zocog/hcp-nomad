@@ -6,71 +6,78 @@ package nomad
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/consul/autopilot"
-	"github.com/hashicorp/consul/agent/consul/autopilot_ent"
-	consulLicense "github.com/hashicorp/consul/agent/license"
 	"github.com/hashicorp/nomad-licensing/license"
-	"github.com/hashicorp/raft"
+	autopilot "github.com/hashicorp/raft-autopilot"
+	autopilotent "github.com/hashicorp/raft-autopilot-enterprise"
+
+	"github.com/hashicorp/nomad/nomad/structs"
 )
 
-// AdvancedAutopilotDelegate defines a policy for promoting non-voting servers in a way
-// that maintains an odd-numbered voter count while respecting configured redundancy
+// AutopilotEntDelegate is a Nomad delegate for Enterprise autopilot
+// operations. It implements the autopilotent.ApplicationIntegration interface
+// and methods required for that have been documented as such below.
+//
+// This defines a policy for promoting non-voting servers in a way that
+// maintains an odd-numbered voter count while respecting configured redundancy
 // zones, servers marked non-voter, and any upgrade migrations to perform.
-type AdvancedAutopilotDelegate struct {
-	AutopilotDelegate
-
-	promoter *autopilot_ent.AdvancedPromoter
+type AutopilotEntDelegate struct {
+	srv *Server
 }
 
-func (d *AdvancedAutopilotDelegate) PromoteNonVoters(conf *autopilot.Config, health autopilot.OperatorHealthReply) ([]raft.Server, error) {
-	minRaftProtocol, err := d.server.autopilot.MinRaftProtocol()
+func (d *AutopilotEntDelegate) LicenseCheck(feature autopilotent.LicensedFeature, allowPrevious bool, emitLog bool) error {
+
+	var nomadFeature license.Features
+	switch feature {
+	case autopilotent.FeatureRedundancyZones:
+		nomadFeature = license.FeatureRedundancyZones
+	case autopilotent.FeatureReadReplicas:
+		nomadFeature = license.FeatureReadScalability
+	case autopilotent.FeatureAutoUpgrades:
+		nomadFeature = license.FeatureAutoUpgrades
+	default:
+		return fmt.Errorf("the autopilot feature %s is unknown", feature)
+	}
+	return d.srv.EnterpriseState.FeatureCheck(nomadFeature, emitLog)
+}
+
+func (s *Server) autopilotPromoter() autopilot.Promoter {
+	p, err := autopilotent.NewPromoter(
+		&AutopilotEntDelegate{srv: s},
+		autopilotent.WithLogger(s.logger),
+	)
 	if err != nil {
-		return nil, fmt.Errorf("error getting server raft protocol versions: %s", err)
+		s.logger.Error("Failed to create the enterprise autopilot promoter", "error", err)
+		return autopilot.DefaultPromoter()
 	}
-
-	// If we don't meet the minimum version for non-voter features, bail early
-	if minRaftProtocol < 3 {
-		return nil, nil
-	}
-
-	return d.promoter.PromoteNonVoters(conf, health)
+	return p
 }
 
-// getNodeMeta tries to fetch a node's metadata
-func (s *Server) getNodeMeta(serverID raft.ServerID) (map[string]string, error) {
-	meta := make(map[string]string)
-	for _, member := range s.Members() {
-		ok, parts := isNomadServer(member)
-		if !ok || raft.ServerID(parts.ID) != serverID {
-			continue
-		}
+// autopilotConfigExt returns the autopilotent.Config extensions needed for ENT
+// feature support
+func autopilotConfigExt(c *structs.AutopilotConfig) interface{} {
 
-		meta[AutopilotRZTag] = member.Tags[AutopilotRZTag]
-		meta[AutopilotVersionTag] = member.Tags[AutopilotVersionTag]
-		break
+	conf := &autopilotent.Config{
+		DisableUpgradeMigration: c.DisableUpgradeMigration,
 	}
 
-	return meta, nil
+	if c.EnableRedundancyZones {
+		conf.RedundancyZoneTag = AutopilotRZTag
+	}
+	if c.EnableCustomUpgrades {
+		conf.UpgradeVersionTag = AutopilotVersionTag
+	}
+
+	return conf
 }
 
-// ConsulFeatureCheck no-ops consul enterprise license feature checking functionality
-// TODO remove private consul dependencies
-func (s *Server) ConsulFeatureCheck(feature consulLicense.Features, allowPrevious, emitLog bool) error {
-	// Hack to convert consul license feature to nomad license feature
-	nomadFeature, err := license.FeatureFromString(feature.String())
-	if err != nil {
-		return err
+func (s *Server) autopilotServerExt(parts *serverParts) interface{} {
+	// Most of the enterprise specific autopilot features are pulled later when
+	// Autopilot calls out to the enterprise promoters GetServerExt function.
+	// However because marking a server as a read replica comes through a serf
+	// tag instead of in Node metadata in the catalog we have to provide it here
+	// and the promoter will not overrite this value.
+	return &autopilotent.Server{
+		ReadReplica: parts.NonVoter,
+		// The redundancy zone and auto-ugprade version will be filled in by the promoter
 	}
-	return s.EnterpriseState.FeatureCheck(nomadFeature, true)
-}
-
-// Set up the enterprise version of autopilot
-func (s *Server) setupEnterpriseAutopilot(config *Config) {
-	apDelegate := &AdvancedAutopilotDelegate{
-		AutopilotDelegate: AutopilotDelegate{server: s},
-	}
-	// TODO:(Consul) Consul's autopilot package is a private package. Work
-	// with consul to create a module for it.
-	apDelegate.promoter = autopilot_ent.NewAdvancedPromoter(s.logger, apDelegate, s.getNodeMeta, s.ConsulFeatureCheck)
-	s.autopilot = autopilot.NewAutopilot(s.logger, apDelegate, config.AutopilotInterval, config.ServerHealthInterval)
 }
