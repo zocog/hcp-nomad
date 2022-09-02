@@ -479,7 +479,7 @@ func (s *StateStore) UpsertQuotaUsages(index uint64, usages []*structs.QuotaUsag
 	defer txn.Abort()
 
 	for _, usage := range usages {
-		if err := s.upsertQuotaUsageImpl(index, txn, usage, true); err != nil {
+		if err := s.upsertQuotaUsageImpl(index, txn, usage.Copy(), true); err != nil {
 			return err
 		}
 	}

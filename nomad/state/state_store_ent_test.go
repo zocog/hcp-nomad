@@ -4,6 +4,7 @@
 package state
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 	"time"
@@ -1782,6 +1783,7 @@ func TestStateStore_RestoreQuotaSpec(t *testing.T) {
 func TestStateStore_UpsertQuotaUsage(t *testing.T) {
 	assert := assert.New(t)
 	state := testStateStore(t)
+
 	qs1 := mock.QuotaSpec()
 	qs2 := mock.QuotaSpec()
 	qu1 := mock.QuotaUsage()
@@ -1798,17 +1800,49 @@ func TestStateStore_UpsertQuotaUsage(t *testing.T) {
 	assert.Nil(err)
 
 	assert.Nil(state.UpsertQuotaSpecs(999, []*structs.QuotaSpec{qs1, qs2}))
-	assert.Nil(state.UpsertQuotaUsages(1000, []*structs.QuotaUsage{qu1, qu2}))
+
+	// Add a namespace and alloc using quota 1 to test "real" usage
+	ns1 := mock.Namespace()
+	ns1.Quota = qu1.Name
+	assert.Nil(state.UpsertNamespaces(998, []*structs.Namespace{ns1}))
+	a1 := mock.Alloc()
+	a1.Namespace = ns1.Name
+	assert.Nil(state.UpsertAllocs(structs.MsgTypeTestSetup, 1000, []*structs.Allocation{a1}))
+
+	assert.Nil(state.UpsertQuotaUsages(1001, []*structs.QuotaUsage{qu1, qu2}))
 	assert.True(watchFired(ws))
 
 	ws = memdb.NewWatchSet()
 	out, err = state.QuotaUsageByName(ws, qu1.Name)
 	assert.Nil(err)
-	assert.Equal(qu1, out)
+	assert.Equal(qu1.Name, out.Name)
+
+	// CreateIndex should match when the *spec* was created
+	assert.Equal(uint64(999), out.CreateIndex, fmt.Sprintf("%d", out.CreateIndex))
+
+	// ModifyIndex should match when the last upsert occurred
+	assert.Equal(uint64(1001), out.ModifyIndex, fmt.Sprintf("%d", qu1.ModifyIndex))
+
+	// Compare to qu1 to ensure there's no accidental sharing of pointers
+	assert.NotEqual(qu1.CreateIndex, out.CreateIndex)
+	assert.NotEqual(qu1.ModifyIndex, out.ModifyIndex)
+
+	for _, used := range out.Used {
+		require.Equal(t, 500, used.RegionLimit.CPU)
+		require.Equal(t, 256, used.RegionLimit.MemoryMB)
+		require.Equal(t, 256, used.RegionLimit.MemoryMaxMB)
+	}
 
 	out, err = state.QuotaUsageByName(ws, qu2.Name)
 	assert.Nil(err)
-	assert.Equal(qu2, out)
+	assert.Equal(qu2.Name, out.Name)
+
+	// Since upserting usages reconciles them, ensure quota 2's usage is 0
+	for _, used := range out.Used {
+		require.Zero(t, used.RegionLimit.CPU)
+		require.Zero(t, used.RegionLimit.MemoryMB)
+		require.Zero(t, used.RegionLimit.MemoryMaxMB)
+	}
 
 	iter, err := state.QuotaUsages(ws)
 	assert.Nil(err)
@@ -1826,7 +1860,7 @@ func TestStateStore_UpsertQuotaUsage(t *testing.T) {
 
 	index, err := state.Index(TableQuotaUsage)
 	assert.Nil(err)
-	assert.EqualValues(1000, index)
+	assert.EqualValues(1001, index, fmt.Sprintf("%d", index))
 	assert.False(watchFired(ws))
 }
 
