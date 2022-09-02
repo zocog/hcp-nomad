@@ -224,16 +224,32 @@ func TestFSM_SnapshotRestore_QuotaUsage(t *testing.T) {
 	qu2 := mock.QuotaUsage()
 	qu1.Name = qs1.Name
 	qu2.Name = qs2.Name
+
+	// QuotaUsage is reconciled on insertion, so usage should come back 0
 	assert.Nil(state.UpsertQuotaUsages(1000, []*structs.QuotaUsage{qu1, qu2}))
+	qu1Out, _ := state.QuotaUsageByName(nil, qu1.Name)
+	require.NotEqual(t, qu1, qu1Out)
+	for _, used := range qu1Out.Used {
+		require.Zero(t, used.RegionLimit.CPU)
+		require.Zero(t, used.RegionLimit.MemoryMB)
+		require.Zero(t, used.RegionLimit.MemoryMaxMB)
+	}
+
+	qu2Out, _ := state.QuotaUsageByName(nil, qu2.Name)
+	require.NotEqual(t, qu2, qu2Out)
+	for _, used := range qu2Out.Used {
+		require.Zero(t, used.RegionLimit.CPU)
+		require.Zero(t, used.RegionLimit.MemoryMB)
+		require.Zero(t, used.RegionLimit.MemoryMaxMB)
+	}
 
 	// Verify the contents
 	fsm2 := testSnapshotRestore(t, fsm)
 	state2 := fsm2.State()
-	ws := memdb.NewWatchSet()
-	out1, _ := state2.QuotaUsageByName(ws, qu1.Name)
-	out2, _ := state2.QuotaUsageByName(ws, qu2.Name)
-	assert.Equal(qu1, out1)
-	assert.Equal(qu2, out2)
+	out1, _ := state2.QuotaUsageByName(nil, qu1.Name)
+	out2, _ := state2.QuotaUsageByName(nil, qu2.Name)
+	assert.Equal(qu1Out, out1)
+	assert.Equal(qu2Out, out2)
 }
 
 // This test checks that unblocks are triggered when an alloc is updated and it
