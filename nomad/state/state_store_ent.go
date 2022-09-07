@@ -255,15 +255,12 @@ func (s *StateStore) UpsertQuotaSpecs(index uint64, specs []*structs.QuotaSpec) 
 				return fmt.Errorf("nil quota usage for spec %q", spec.Name)
 			}
 
-			// Copy usage before reconciling in place to avoid data races with
-			// readers.
-			usage = usage.Copy()
-
 			opts := reconcileQuotaUsageOpts{
 				Usage: usage,
 				Spec:  spec,
 			}
-			if err := s.reconcileQuotaUsage(index, txn, opts); err != nil {
+			usage, err = s.reconcileQuotaUsage(index, txn, opts)
+			if err != nil {
 				return fmt.Errorf("reconciling quota usage for spec %q failed: %v", spec.Name, err)
 			}
 
@@ -414,16 +411,13 @@ func (s *StateStore) quotaReconcile(index uint64, txn *txn, newQuota, oldQuota s
 			return fmt.Errorf("nil quota usage for spec %q", q)
 		}
 
-		// Copy usage before reconciling in place to avoid data races with
-		// readers.
-		usage = usage.Copy()
-
 		opts := reconcileQuotaUsageOpts{
 			Usage:     usage,
 			Spec:      spec,
 			AllLimits: true,
 		}
-		if err := s.reconcileQuotaUsage(index, txn, opts); err != nil {
+		usage, err = s.reconcileQuotaUsage(index, txn, opts)
+		if err != nil {
 			return fmt.Errorf("reconciling quota usage for spec %q failed: %v", q, err)
 		}
 
@@ -515,16 +509,13 @@ func (s *StateStore) upsertQuotaUsageImpl(index uint64, txn *txn, usage *structs
 			return fmt.Errorf("unknown quota specification %q", usage.Name)
 		}
 
-		// Copy usage before reconciling in place to avoid data races with
-		// readers.
-		usage = usage.Copy()
-
 		opts := reconcileQuotaUsageOpts{
 			Usage:     usage,
 			Spec:      spec,
 			AllLimits: true,
 		}
-		if err := s.reconcileQuotaUsage(index, txn, opts); err != nil {
+		usage, err = s.reconcileQuotaUsage(index, txn, opts)
+		if err != nil {
 			return fmt.Errorf("reconciling quota usage for spec %q failed: %v", spec.Name, err)
 		}
 	}
@@ -545,9 +536,8 @@ func (s *StateStore) upsertQuotaUsageImpl(index uint64, txn *txn, usage *structs
 // reconcileQuotaUsageOpts is used to parameterize how a QuotaUsage is
 // reconciled.
 type reconcileQuotaUsageOpts struct {
-	// Usage is the usage object to be reconciled in-place. Callers *MUST* pass
-	// in a new struct or copy from statestore, *never* a pointer to a QuotaUsage
-	// in the statestore.
+	// Usage is the current usage. Callers should discard it and use the new
+	// usage returned by the func.
 	Usage *structs.QuotaUsage
 
 	// AllLimits denotes whether all limits should be reconciled. If set to
@@ -560,13 +550,13 @@ type reconcileQuotaUsageOpts struct {
 }
 
 // reconcileQuotaUsage computes the usage for the QuotaUsage object
-func (s *StateStore) reconcileQuotaUsage(index uint64, txn *txn, opts reconcileQuotaUsageOpts) error {
+func (s *StateStore) reconcileQuotaUsage(index uint64, txn *txn, opts reconcileQuotaUsageOpts) (*structs.QuotaUsage, error) {
 	if opts.Spec == nil || opts.Usage == nil {
-		return fmt.Errorf("invalid quota usage reconcile options: %+v", opts)
+		return nil, fmt.Errorf("invalid quota usage reconcile options: %+v", opts)
 	}
 
 	// Grab the variables for easier referencing
-	usage := opts.Usage
+	usage := opts.Usage.Copy()
 	spec := opts.Spec
 
 	// Update the modify index
@@ -599,7 +589,7 @@ func (s *StateStore) reconcileQuotaUsage(index uint64, txn *txn, opts reconcileQ
 	// limit applies per allocation but for for now there should only be one
 	// limit and all allocations from namespaces using the quota apply to it.
 	if len(filteredRegions) == 0 {
-		return nil
+		return usage, nil
 	}
 
 	// Create a copy of the limit from the spec
@@ -614,7 +604,7 @@ func (s *StateStore) reconcileQuotaUsage(index uint64, txn *txn, opts reconcileQ
 	var namespaces []*structs.Namespace
 	iter, err := s.namespacesByQuotaImpl(nil, txn, spec.Name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for {
@@ -629,7 +619,7 @@ func (s *StateStore) reconcileQuotaUsage(index uint64, txn *txn, opts reconcileQ
 	for _, ns := range namespaces {
 		allocs, err := s.allocsByNamespaceImpl(nil, txn, ns.Name)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		for {
@@ -647,7 +637,7 @@ func (s *StateStore) reconcileQuotaUsage(index uint64, txn *txn, opts reconcileQ
 	}
 
 	usage.Used[string(usageLimit.Hash)] = usageLimit
-	return nil
+	return usage, nil
 }
 
 // DeleteQuotaUsages deletes the quota usages with the given names
