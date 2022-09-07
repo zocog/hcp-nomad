@@ -363,11 +363,15 @@ type QuotaLimit struct {
 	// useful for once we support GPUs
 	RegionLimit *Resources
 
-	// Hash is the hash of the object and is used to make replication efficient.
+	// Hash has 2 meanings depending on its parent struct:
+	// 	1. QuotaSpec.Limits - hash of QuotaLimit
+	// 	2. QuotaUsage.Used - hash of QuotaSpec.Limits entry this usage is for
 	Hash []byte
 }
 
-// SetHash is used to compute and set the hash of the QuotaLimit
+// SetHash is used to compute and set the hash of the QuotaLimit. Must not be
+// called after initially upserting into the statestore and never called when
+// used from QuotaUsage.Used.
 func (q *QuotaLimit) SetHash() []byte {
 	// Initialize a 256bit Blake2 hash (32 bytes)
 	hash, err := blake2b.New256(nil)
@@ -438,7 +442,9 @@ func (q *QuotaLimit) Validate() error {
 	return mErr.ErrorOrNil()
 }
 
-// Copy returns a copy of the QuotaLimit
+// Copy returns a copy of the QuotaLimit. Note that the Hash may not match what
+// SetHash would generate on all QuotaLimits, therefore the Hash must be copied
+// and not recomputed.
 func (q *QuotaLimit) Copy() *QuotaLimit {
 	if q == nil {
 		return nil
