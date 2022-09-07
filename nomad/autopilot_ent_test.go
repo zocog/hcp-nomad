@@ -4,12 +4,13 @@
 package nomad
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/raft"
-	"github.com/stretchr/testify/assert"
+	"github.com/shoenig/test/must"
 
 	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/testutil"
@@ -17,16 +18,18 @@ import (
 
 func TestAutopilotEnterprise_DesignateNonVoter(t *testing.T) {
 	ci.Parallel(t)
-	assert := assert.New(t)
+
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 2
 		c.RaftConfig.ProtocolVersion = 3
+		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS1()
 
 	s2, cleanupS2 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 2
 		c.RaftConfig.ProtocolVersion = 3
+		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS2()
 
@@ -34,32 +37,38 @@ func TestAutopilotEnterprise_DesignateNonVoter(t *testing.T) {
 		c.BootstrapExpect = 2
 		c.NonVoter = true
 		c.RaftConfig.ProtocolVersion = 3
+		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS3()
 
 	TestJoin(t, s1, s2, s3)
 
 	testutil.WaitForLeader(t, s1.RPC)
-	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2, s3})) })
 
-	// Wait twice the server stabilization threshold to give the server
+	// wait twice the server stabilization threshold to give the server
 	// time to be promoted
 	time.Sleep(2 * s1.config.AutopilotConfig.ServerStabilizationTime)
 
-	future := s1.raft.GetConfiguration()
-	assert.Nil(future.Error())
+	testutil.WaitForResultUntil(10*time.Second, func() (bool, error) {
+		future := s1.raft.GetConfiguration()
+		if err := future.Error(); err != nil {
+			return false, err
+		}
+		servers := future.Configuration().Servers
+		if len(servers) != 3 {
+			return false, fmt.Errorf("expected 3 servers, got: %v", servers)
+		}
+		// s2 should be a voter
+		if !isPotentialVoter(findServer(t, servers, s2).Suffrage) {
+			return false, fmt.Errorf("expected s2 to be voter: %v", servers)
+		}
 
-	servers := future.Configuration().Servers
-
-	// s2 should be a voter
-	if !isPotentialVoter(findServer(t, servers, s2).Suffrage) {
-		t.Fatalf("bad: %v", servers)
-	}
-
-	// s3 should remain a non-voter
-	if isPotentialVoter(findServer(t, servers, s3).Suffrage) {
-		t.Fatalf("bad: %v", servers)
-	}
+		// s3 should remain a non-voter
+		if isPotentialVoter(findServer(t, servers, s3).Suffrage) {
+			return false, fmt.Errorf("expected s3 to be non-voter: %v", servers)
+		}
+		return true, nil
+	}, func(err error) { must.NoError(t, err) })
 }
 
 func isPotentialVoter(suffrage raft.ServerSuffrage) bool {
@@ -73,12 +82,13 @@ func isPotentialVoter(suffrage raft.ServerSuffrage) bool {
 
 func TestAutopilotEnterprise_RedundancyZone(t *testing.T) {
 	ci.Parallel(t)
-	assert := assert.New(t)
+
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 3
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.EnableRedundancyZones = true
 		c.RedundancyZone = "east"
+		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS1()
 
@@ -87,6 +97,7 @@ func TestAutopilotEnterprise_RedundancyZone(t *testing.T) {
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.EnableRedundancyZones = true
 		c.RedundancyZone = "west"
+		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS2()
 
@@ -95,64 +106,41 @@ func TestAutopilotEnterprise_RedundancyZone(t *testing.T) {
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.EnableRedundancyZones = true
 		c.RedundancyZone = "west-2"
+		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS3()
 
 	TestJoin(t, s1, s2, s3)
-	testutil.WaitForLeader(t, s1.RPC)
-	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2, s3})) })
 
-	// Wait past the stabilization time to give the servers a chance to be promoted
-	time.Sleep(2*s1.config.AutopilotConfig.ServerStabilizationTime + s1.config.AutopilotInterval)
+	t.Logf("waiting for initial stable cluster")
+	waitForStableLeadership(t, []*Server{s1, s2, s3})
 
-	// Now s2 and s3 should be voters
-	{
-		future := s1.raft.GetConfiguration()
-		assert.Nil(future.Error())
-		servers := future.Configuration().Servers
-		assert.Equal(3, len(servers))
-		// s2 and s3 should be voters now
-		assert.Equal(raft.Voter, findServer(t, servers, s2).Suffrage)
-		assert.Equal(raft.Voter, findServer(t, servers, s3).Suffrage)
-	}
-
-	// Join s4
+	t.Logf("adding server s4")
 	s4, cleanupS4 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 0
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.EnableRedundancyZones = true
 		c.RedundancyZone = "west-2"
+		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS4()
 
 	TestJoin(t, s1, s4)
-	t.Log("before sleeping")
+	t.Log("waiting to ensure s4 is not promoted to voter")
 	time.Sleep(2*s1.config.AutopilotConfig.ServerStabilizationTime + s1.config.AutopilotInterval)
-
-	// s4 should not be a voter yet
 	{
 		future := s1.raft.GetConfiguration()
-		assert.Nil(future.Error())
+		must.NoError(t, future.Error())
 		servers := future.Configuration().Servers
-		assert.Equal(raft.Nonvoter, findServer(t, servers, s4).Suffrage)
+		must.Eq(t, findServer(t, servers, s4).Suffrage, raft.Nonvoter)
 	}
 
+	t.Logf("shutting down server s3")
 	s3.Shutdown()
 
-	// s4 should be a voter now, s3 should be removed
-	retry.Run(t, func(r *retry.R) {
-		r.Check(wantRaft([]*Server{s1, s2, s4}))
-		future := s1.raft.GetConfiguration()
-		if err := future.Error(); err != nil {
-			r.Fatal(err)
-		}
-		servers := future.Configuration().Servers
-		for _, s := range servers {
-			if s.Suffrage != raft.Voter {
-				r.Fatalf("bad: %v", servers)
-			}
-		}
-	})
+	t.Logf("waiting for cluster to stabilize and s4 to become a voter")
+	waitForStableLeadership(t, []*Server{s1, s2, s4})
+
 }
 
 func TestAutopilotEnterprise_UpgradeMigration(t *testing.T) {
@@ -161,6 +149,7 @@ func TestAutopilotEnterprise_UpgradeMigration(t *testing.T) {
 		c.BootstrapExpect = 2
 		c.RaftConfig.ProtocolVersion = 3
 		c.Build = "0.8.0"
+		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS1()
 
@@ -168,6 +157,7 @@ func TestAutopilotEnterprise_UpgradeMigration(t *testing.T) {
 		c.BootstrapExpect = 2
 		c.RaftConfig.ProtocolVersion = 3
 		c.Build = "0.8.1"
+		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS2()
 
@@ -210,6 +200,7 @@ func TestAutopilotEnterprise_CustomUpgradeMigration(t *testing.T) {
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.EnableCustomUpgrades = true
 		c.UpgradeVersion = "0.0.1"
+		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS1()
 
@@ -218,6 +209,7 @@ func TestAutopilotEnterprise_CustomUpgradeMigration(t *testing.T) {
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.EnableCustomUpgrades = true
 		c.UpgradeVersion = "0.0.2"
+		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS2()
 
@@ -259,6 +251,7 @@ func TestAutopilotEnterprise_DisableUpgradeMigration(t *testing.T) {
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.DisableUpgradeMigration = true
 		c.Build = "0.8.0"
+		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS1()
 
@@ -268,6 +261,7 @@ func TestAutopilotEnterprise_DisableUpgradeMigration(t *testing.T) {
 		c.BootstrapExpect = 0
 		c.RaftConfig.ProtocolVersion = 3
 		c.Build = "0.8.0"
+		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS2()
 
@@ -275,6 +269,7 @@ func TestAutopilotEnterprise_DisableUpgradeMigration(t *testing.T) {
 		c.BootstrapExpect = 0
 		c.RaftConfig.ProtocolVersion = 3
 		c.Build = "0.8.1"
+		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS3()
 
