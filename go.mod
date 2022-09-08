@@ -135,9 +135,9 @@ require (
 require (
 	cloud.google.com/go v0.97.0 // indirect
 	cloud.google.com/go/storage v1.18.2 // indirect
-	github.com/Azure/azure-pipeline-go v0.2.1 // indirect
+	github.com/Azure/azure-pipeline-go v0.2.2 // indirect
 	github.com/Azure/azure-sdk-for-go v56.3.0+incompatible // indirect
-	github.com/Azure/azure-storage-blob-go v0.9.0 // indirect
+	github.com/Azure/azure-storage-blob-go v0.10.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.9.15 // indirect
@@ -227,7 +227,7 @@ require (
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/linode/linodego v0.7.1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
-	github.com/mattn/go-ieproxy v0.0.0-20190610004146-91bb50d98149 // indirect
+	github.com/mattn/go-ieproxy v0.0.0-20190702010315-6dee0af9227d // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mattn/go-runewidth v0.0.7 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
@@ -299,7 +299,7 @@ require (
 	github.com/hashicorp/eventlogger v0.1.1-0.20210917172429-90711333b9d0
 	github.com/hashicorp/go-licensing v1.3.8
 	github.com/hashicorp/nomad-licensing v0.0.11
-	github.com/hashicorp/raft-snapshotagent v0.0.0-20200831014059-4352e54f37b3
+	github.com/hashicorp/raft-snapshotagent v0.0.0-20220906125544-d40c6b420532
 	github.com/hashicorp/sentinel v0.15.5
 
 )
