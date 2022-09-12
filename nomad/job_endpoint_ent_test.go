@@ -5,6 +5,7 @@ package nomad
 
 import (
 	"fmt"
+	"net/rpc"
 	"strings"
 	"testing"
 	"time"
@@ -709,6 +710,187 @@ func TestJobEndpoint_Deregister_Multiregion(t *testing.T) {
 	assertStatus("east", false)
 	assertStatus("west", false)
 	assertStatus("north", false)
+}
+
+func TestJobEndpoint_Deregister_Reregister_Multiregion(t *testing.T) {
+	ci.Parallel(t)
+
+	// Asserts job stop state and version.
+	assertStatusAndVersion := func(jobID, region, secretID string, codec rpc.ClientCodec, isStopped bool, version uint64) {
+		getReq := &structs.JobSpecificRequest{
+			JobID: jobID,
+			QueryOptions: structs.QueryOptions{
+				Region:    region,
+				AuthToken: secretID,
+			},
+		}
+
+		var getResp *structs.SingleJobResponse
+
+		testutil.WaitForResult(func() (bool, error) {
+			err := msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
+			if err != nil {
+				return false, err
+			}
+
+			if getResp == nil || getResp.Job == nil {
+				return false, nil
+			}
+
+			return isStopped == getResp.Job.Stopped() &&
+				getResp.Job.Version == version, nil
+
+		}, func(err error) {
+			require.NoError(t, err)
+		})
+	}
+
+	type testCase struct {
+		name          string
+		stopInRegions []string
+		purge         bool
+	}
+
+	testCases := []testCase{
+		{
+			name:          "stop and purge in non-authoritative region",
+			stopInRegions: []string{"east"},
+			purge:         true,
+		},
+		{
+			name:          "stop and purge in authoritative region",
+			stopInRegions: []string{"west"},
+			purge:         true,
+		},
+		{
+			name:          "stop without purge in non-authoritative region",
+			stopInRegions: []string{"east"},
+			purge:         false,
+		},
+		{
+			name:          "stop without purge in authoritative region",
+			stopInRegions: []string{"west"},
+			purge:         false,
+		},
+		{
+			name:          "stop and purge in multiple regions",
+			stopInRegions: []string{"west", "north"},
+			purge:         true,
+		},
+		{
+			name:          "stop without purge in multiple regions",
+			stopInRegions: []string{"east", "west"},
+			purge:         false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			root, cleanupWest, cleanupEast, cleanupNorth, codec := buildMultiregionCluster(t)
+			defer cleanupWest()
+			defer cleanupEast()
+			defer cleanupNorth()
+
+			job := mock.MultiregionJob()
+			job.Multiregion.Regions = append(
+				job.Multiregion.Regions,
+				&structs.MultiregionRegion{
+					Name:        "north",
+					Count:       1,
+					Datacenters: []string{"north-1"},
+				},
+			)
+
+			req := &structs.JobRegisterRequest{
+				Job: job,
+				WriteRequest: structs.WriteRequest{
+					Region:    "west",
+					AuthToken: root.SecretID,
+				},
+			}
+
+			err := msgpackrpc.CallWithCodec(codec, "Job.Register", req,
+				&structs.JobRegisterResponse{})
+			require.NoError(t, err)
+
+			assertStatusAndVersion(job.ID, "east", root.SecretID, codec, false, 0)
+			assertStatusAndVersion(job.ID, "west", root.SecretID, codec, false, 0)
+			assertStatusAndVersion(job.ID, "north", root.SecretID, codec, false, 0)
+
+			// deregister target regions
+			for _, stopInRegion := range tc.stopInRegions {
+				deReq := &structs.JobDeregisterRequest{
+					JobID:  job.ID,
+					Global: false,
+					Purge:  tc.purge,
+					WriteRequest: structs.WriteRequest{
+						Region:    stopInRegion,
+						Namespace: job.Namespace,
+						AuthToken: root.SecretID,
+					},
+				}
+
+				deResp := &structs.JobDeregisterResponse{}
+				err = msgpackrpc.CallWithCodec(codec, "Job.Deregister", deReq, deResp)
+				require.NoError(t, err)
+				assertStatusAndVersion(job.ID, stopInRegion, root.SecretID, codec, true, 0)
+			}
+
+			// Now re-register the job after de-registering the target regions
+			err = msgpackrpc.CallWithCodec(codec, "Job.Register", req,
+				&structs.JobRegisterResponse{})
+			require.NoError(t, err)
+
+			assertStatusAndVersion(job.ID, "east", root.SecretID, codec, false, 1)
+			assertStatusAndVersion(job.ID, "west", root.SecretID, codec, false, 1)
+			assertStatusAndVersion(job.ID, "north", root.SecretID, codec, false, 1)
+		})
+	}
+}
+
+func buildMultiregionCluster(t *testing.T) (*structs.ACLToken, func(), func(), func(), rpc.ClientCodec) {
+	west, root, cleanupWest := TestACLServer(t, func(c *Config) {
+		c.Region = "west"
+		c.AuthoritativeRegion = "west"
+		c.ACLEnabled = true
+		c.NumSchedulers = 1
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
+
+	east, _, cleanupEast := TestACLServer(t, func(c *Config) {
+		c.Region = "east"
+		c.AuthoritativeRegion = "west"
+		c.ACLEnabled = true
+		c.ReplicationBackoff = 20 * time.Millisecond
+		c.ReplicationToken = root.SecretID
+		c.NumSchedulers = 1
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
+
+	north, _, cleanupNorth := TestACLServer(t, func(c *Config) {
+		c.Region = "north"
+		c.AuthoritativeRegion = "west"
+		c.ACLEnabled = true
+		c.ReplicationBackoff = 20 * time.Millisecond
+		c.ReplicationToken = root.SecretID
+		c.NumSchedulers = 1
+		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	})
+
+	TestJoin(t, west, east, north)
+	testutil.WaitForLeader(t, west.RPC)
+	testutil.WaitForLeader(t, east.RPC)
+	testutil.WaitForLeader(t, north.RPC)
+
+	codec := rpcClient(t, north)
+
+	// can't use Server.numPeers here b/c these are different regions
+	testutil.WaitForResult(func() (bool, error) {
+		return west.serf.NumNodes() == 3, nil
+	}, func(err error) {
+		require.NoError(t, err, "should have 3 peers")
+	})
+	return root, cleanupWest, cleanupEast, cleanupNorth, codec
 }
 
 // TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse asserts that a job
