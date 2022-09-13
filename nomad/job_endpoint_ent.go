@@ -456,3 +456,55 @@ func (j *Job) multiVaultNamespaceValidation(
 	}
 	return nil
 }
+
+// multiregionSpecChanged checks to see if the job spec has changed. If the job is multiregion,
+// it checks all regions to determine if any deployed jobs instances have been stopped or
+// otherwise differ from the incoming jobspec. Since multiregion jobs require coordinated
+// deployments and synchronized job versions across all regions, a change in one requires
+// redeployment of all.
+func (j *Job) multiregionSpecChanged(existingJob *structs.Job, args *structs.JobRegisterRequest) (bool, error) {
+	if existingJob.SpecChanged(args.Job) {
+		return true, nil
+	}
+
+	if !existingJob.IsMultiregion() {
+		return false, nil
+	}
+
+	// Copy the job so that we can mutate it by region and compare it with the response.
+	incomingJob := args.Job.Copy()
+
+	// If the local region's spec hasn't changed, but this is a multiregion job, check other regions.
+	for _, region := range existingJob.Multiregion.Regions {
+		if region.Name == args.RequestRegion() {
+			continue
+		}
+
+		incomingJob.Region = region.Name
+
+		req := &structs.JobSpecificRequest{
+			JobID: incomingJob.ID,
+			QueryOptions: structs.QueryOptions{
+				Region:    region.Name,
+				Namespace: incomingJob.Namespace,
+				AuthToken: args.AuthToken,
+			},
+		}
+
+		resp := structs.SingleJobResponse{}
+
+		err := j.GetJob(req, &resp)
+		if err != nil {
+			j.logger.Error("multiregion job lookup failed", "job_id", incomingJob.ID, "region", incomingJob.Region, "namespace", incomingJob.Namespace, "error", err)
+			return false, err
+		}
+
+		// If the region's jobspec changed or is nil (purged) for that region, assume it's being re-registered
+		// and treat like a spec change.
+		if resp.Job == nil || resp.Job.SpecChanged(incomingJob) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
