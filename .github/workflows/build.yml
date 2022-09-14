@@ -19,7 +19,7 @@ on:
 
 env:
   PKG_NAME: "nomad"
-  GO_TAGS: "ent consulent release"
+  GO_TAGS: "ent release"
 
 jobs:
   get-go-version:
