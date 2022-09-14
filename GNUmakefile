@@ -7,9 +7,10 @@ GIT_COMMIT := $(shell git rev-parse HEAD)
 GIT_DIRTY := $(if $(shell git status --porcelain),+CHANGES)
 
 GO_LDFLAGS := "-X github.com/hashicorp/nomad/version.GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
-GO_TAGS ?= osusergo ent
-ON_PREM_MODULES_GO_TAGS ?= ent on_prem_modules
-ON_PREM_PLATFORM_GO_TAGS ?= ent on_prem_platform
+GO_TAGS ?= ent
+GO_TAGS := osusergo $(GO_TAGS)
+ON_PREM_MODULES_GO_TAGS ?= ent on_prem_modules osusergo
+ON_PREM_PLATFORM_GO_TAGS ?= ent on_prem_platform osusergo
 ifeq ($(CI),true)
 GO_TAGS := codegen_generated $(GO_TAGS)
 ON_PREM_MODULES_GO_TAGS  := codegen_generated $(ON_PREM_MODULES_GO_TAGS)
@@ -27,12 +28,6 @@ endif
 BIN := $(shell go env GOBIN)
 ifndef BIN
 BIN := $(GOPATH)/bin
-endif
-
-GO_TAGS := osusergo $(GO_TAGS)
-
-ifeq ($(CI),true)
-GO_TAGS := codegen_generated $(GO_TAGS)
 endif
 
 # Don't embed the Nomad UI when the NOMAD_NO_UI env var is set.
