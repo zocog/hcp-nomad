@@ -7,15 +7,6 @@ GIT_COMMIT := $(shell git rev-parse HEAD)
 GIT_DIRTY := $(if $(shell git status --porcelain),+CHANGES)
 
 GO_LDFLAGS := "-X github.com/hashicorp/nomad/version.GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
-GO_TAGS ?= ent
-GO_TAGS := osusergo $(GO_TAGS)
-ON_PREM_MODULES_GO_TAGS ?= ent on_prem_modules osusergo
-ON_PREM_PLATFORM_GO_TAGS ?= ent on_prem_platform osusergo
-ifeq ($(CI),true)
-GO_TAGS := codegen_generated $(GO_TAGS)
-ON_PREM_MODULES_GO_TAGS  := codegen_generated $(ON_PREM_MODULES_GO_TAGS)
-ON_PREM_PLATFORM_GO_TAGS  := codegen_generated $(ON_PREM_PLATFORM_GO_TAGS)
-endif
 
 ifneq (MSYS_NT,$(THIS_OS))
 # GOPATH supports PATH style multi-paths; assume the first entry is favorable.
@@ -28,6 +19,13 @@ endif
 BIN := $(shell go env GOBIN)
 ifndef BIN
 BIN := $(GOPATH)/bin
+endif
+
+GO_TAGS ?= ent
+GO_TAGS := osusergo $(GO_TAGS)
+
+ifeq ($(CI),true)
+GO_TAGS := codegen_generated $(GO_TAGS)
 endif
 
 # Don't embed the Nomad UI when the NOMAD_NO_UI env var is set.
@@ -115,10 +113,14 @@ pkg/windows_%/nomad: GO_OUT = $@.exe
 # Define package targets for each of the build targets we actually have on this system
 define makePackageTarget
 
-pkg/$(1).zip: pkg/$(1)/nomad
+pkg/$(1)/EULA.txt:
+	@curl -s -o $$@ https://eula.hashicorp.com/EULA.txt
+
+pkg/$(1)/TermsOfEvaluation.txt:
+	@curl -s -o $$@ https://eula.hashicorp.com/TermsOfEvaluation.txt
+
+pkg/$(1).zip: pkg/$(1)/nomad pkg/$(1)/EULA.txt pkg/$(1)/TermsOfEvaluation.txt
 	@echo "==> Packaging for $(1)..."
-	curl -s -o pkg/$(1)/EULA.txt https://eula.hashicorp.com/EULA.txt
-	curl -s -o pkg/$(1)/TermsOfEvaluation.txt https://eula.hashicorp.com/TermsOfEvaluation.txt
 	@zip -j pkg/$(1).zip pkg/$(1)/*
 
 endef
@@ -215,9 +217,6 @@ checkproto: ## Lint protobuf files
 .PHONY: generate-all
 generate-all: generate-structs proto generate-examples ## Generate structs, protobufs, examples
 
-.PHONY: progenerate-all
-progenerate-all: progenerate-structs proto
-
 .PHONY: generate-structs
 generate-structs: LOCAL_PACKAGES = $(shell go list ./...)
 generate-structs: ## Update generated code
@@ -280,42 +279,6 @@ dev: hclfmt ## Build for the current development platform
 	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(PROJECT_ROOT)/bin/
 	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(BIN)
 
-.PHONY: premplatdev
-premplatdev: GOOS=$(shell go env GOOS)
-premplatdev: GOARCH=$(shell go env GOARCH)
-premplatdev: GOPATH=$(shell go env GOPATH)
-premplatdev: DEV_TARGET=pkg/$(GOOS)_$(GOARCH)/nomad
-premplatdev: changelogfmt hclfmt ## Build for the current development platform
-	@echo "==> Removing old development build..."
-	@rm -f $(PROJECT_ROOT)/$(DEV_TARGET)
-	@rm -f $(PROJECT_ROOT)/bin/nomad
-	@rm -f $(GOPATH)/bin/nomad
-	@$(MAKE) --no-print-directory \
-		$(DEV_TARGET) \
-		GO_TAGS="$(ON_PREM_PLATFORM_GO_TAGS) $(NOMAD_UI_TAG)"
-	@mkdir -p $(PROJECT_ROOT)/bin
-	@mkdir -p $(GOPATH)/bin
-	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(PROJECT_ROOT)/bin/
-	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(GOPATH)/bin
-
-.PHONY: premmoddev
-premmoddev: GOOS=$(shell go env GOOS)
-premmoddev: GOARCH=$(shell go env GOARCH)
-premmoddev: GOPATH=$(shell go env GOPATH)
-premmoddev: DEV_TARGET=pkg/$(GOOS)_$(GOARCH)/nomad
-premmoddev: changelogfmt hclfmt ## Build for the current development platform
-	@echo "==> Removing old development build..."
-	@rm -f $(PROJECT_ROOT)/$(DEV_TARGET)
-	@rm -f $(PROJECT_ROOT)/bin/nomad
-	@rm -f $(GOPATH)/bin/nomad
-	@$(MAKE) --no-print-directory \
-		$(DEV_TARGET) \
-		GO_TAGS="$(ON_PREM_MODULES_GO_TAGS) $(NOMAD_UI_TAG)"
-	@mkdir -p $(PROJECT_ROOT)/bin
-	@mkdir -p $(GOPATH)/bin
-	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(PROJECT_ROOT)/bin/
-	@cp $(PROJECT_ROOT)/$(DEV_TARGET) $(GOPATH)/bin
-
 .PHONY: prerelease
 prerelease: GO_TAGS=ui codegen_generated release ent
 prerelease: generate-all ember-dist static-assets ## Generate all the static assets for a Nomad release
@@ -323,18 +286,6 @@ prerelease: generate-all ember-dist static-assets ## Generate all the static ass
 .PHONY: release
 release: GO_TAGS=ui codegen_generated release ent
 release: clean $(foreach t,$(ALL_TARGETS),pkg/$(t).zip) ## Build all release packages which can be built on this platform.
-	@echo "==> Results:"
-	@tree --dirsfirst $(PROJECT_ROOT)/pkg
-
-.PHONY: premplatrelease
-premplatrelease: GO_TAGS=ui codegen_generated release ent on_prem_platform
-premplatrelease: clean $(foreach t,$(ALL_TARGETS),pkg/$(t).zip) ## Build all release packages which can be built on this platform.
-	@echo "==> Results:"
-	@tree --dirsfirst $(PROJECT_ROOT)/pkg
-
-.PHONY: premmodrelease
-premmodrelease: GO_TAGS=ui codegen_generated release ent on_prem_modules
-premmodrelease: clean $(foreach t,$(ALL_TARGETS),pkg/$(t).zip) ## Build all release packages which can be built on this platform.
 	@echo "==> Results:"
 	@tree --dirsfirst $(PROJECT_ROOT)/pkg
 
