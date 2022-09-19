@@ -54,7 +54,7 @@ if ! git merge -m "$message" "oss/${origin_branch}"; then
     git checkout --ours   .github/dependabot.yml
     go mod tidy
 
-    git add .go-version CHANGELOG.md version/version.go command/agent/bindata_assetfs.go go.sum
+    git add .go-version CHANGELOG.md version/version.go command/agent/bindata_assetfs.go go.sum .github/dependabot.yml
 
     # attempt merging again
     if ! git commit -m "$message"; then
