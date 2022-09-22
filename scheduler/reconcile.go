@@ -285,7 +285,6 @@ func (a *allocReconciler) computeDeploymentPaused() {
 		if a.job.IsMultiregion() &&
 			a.job.UsesDeployments() &&
 			!(a.job.IsPeriodic() || a.job.IsParameterized()) {
-
 			a.deploymentPaused = true
 		}
 	}
