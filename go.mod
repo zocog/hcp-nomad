@@ -66,6 +66,7 @@ require (
 	github.com/hashicorp/go-msgpack v1.1.5
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.4.3
+	github.com/hashicorp/go-set v0.1.4
 	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/go-uuid v1.0.2
@@ -89,7 +90,7 @@ require (
 	github.com/kr/text v0.2.0
 	github.com/mattn/go-colorable v0.1.12
 	github.com/miekg/dns v1.1.26
-	github.com/mitchellh/cli v1.1.0
+	github.com/mitchellh/cli v1.1.2
 	github.com/mitchellh/colorstring v0.0.0-20150917214807-8631ce90f286
 	github.com/mitchellh/copystructure v1.1.1
 	github.com/mitchellh/go-glint v0.0.0-20210722152315-6515ceb4a127
@@ -116,13 +117,13 @@ require (
 	github.com/zclconf/go-cty v1.8.0
 	github.com/zclconf/go-cty-yaml v1.0.2
 	go.uber.org/goleak v1.1.12
-	golang.org/x/crypto v0.0.0-20220517005047-85d78b3ac167
-	golang.org/x/exp v0.0.0-20220609121020-a51bd0440498
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220517195934-5e4e11fc645e
-	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
-	google.golang.org/grpc v1.42.0
+	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
+	golang.org/x/exp v0.0.0-20220921164117-439092de6870
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f
+	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65
+	google.golang.org/grpc v1.45.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 	gopkg.in/tomb.v2 v2.0.0-20140626144623-14b3d72120e8
@@ -147,6 +148,9 @@ require (
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
 	github.com/BurntSushi/toml v0.4.1 // indirect
 	github.com/DataDog/datadog-go v3.2.0+incompatible // indirect
+	github.com/Masterminds/goutils v1.1.0 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
+	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/VividCortex/ewma v1.1.1 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
@@ -202,6 +206,8 @@ require (
 	github.com/hashicorp/raft-snapshot v1.0.2 // indirect
 	github.com/hashicorp/sentinel-sdk v0.3.8 // indirect
 	github.com/hashicorp/vic v1.5.1-0.20190403131502-bbfe86ec9443 // indirect
+	github.com/huandu/xstrings v1.3.2 // indirect
+	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/ishidawataru/sctp v0.0.0-20191218070446-00ab2ac2db07 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
@@ -255,11 +261,11 @@ require (
 	github.com/willf/bitset v1.1.11 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/tools v0.1.10 // indirect
+	golang.org/x/tools v0.1.12 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/api v0.60.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
