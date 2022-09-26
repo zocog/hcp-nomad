@@ -177,6 +177,9 @@ func regionalJob(j *structs.Job, region *structs.MultiregionRegion) *structs.Job
 
 // multiregionStart is used to kick-off the deployment across multiple regions
 func (j *Job) multiregionStart(args *structs.JobRegisterRequest, reply *structs.JobRegisterResponse) error {
+	if !args.Job.UsesDeployments() {
+		return nil
+	}
 
 	// by this point we've been interpolated for fan-out
 	if args.Job.Multiregion == nil {
