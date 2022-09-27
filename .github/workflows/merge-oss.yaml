@@ -154,10 +154,9 @@ jobs:
             # Save commit message file
 
             git push origin "${tmp_branch}"
-
-            # Open PR at
-            # https://github.com/hashicorp/nomad-enterprise/compare/${dest_branch}...${tmp_branch}?expand=1
             \`\`\`
+
+            Then open the a PR at https://github.com/hashicorp/nomad-enterprise/compare/${dest_branch}...${tmp_branch}?expand=1
           EOF
       - name: Send slack notification on failure
         uses: slackapi/slack-github-action@v1.18.0
