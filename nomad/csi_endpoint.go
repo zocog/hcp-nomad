@@ -574,6 +574,16 @@ func (v *CSIVolume) Unpublish(args *structs.CSIVolumeUnpublishRequest, reply *st
 
 	claim := args.Claim
 
+	// we need to checkpoint when we first get the claim to ensure we've set the
+	// initial "past claim" state, otherwise a client that unpublishes (skipping
+	// the node unpublish b/c it's done that work) fail to get written if the
+	// controller unpublish fails.
+	vol = vol.Copy()
+	err = v.checkpointClaim(vol, claim)
+	if err != nil {
+		return err
+	}
+
 	// previous checkpoints may have set the past claim state already.
 	// in practice we should never see CSIVolumeClaimStateControllerDetached
 	// but having an option for the state makes it easy to add a checkpoint
@@ -619,6 +629,29 @@ RELEASE_CLAIM:
 // problems. This function should only be called on a copy of the volume.
 func (v *CSIVolume) nodeUnpublishVolume(vol *structs.CSIVolume, claim *structs.CSIVolumeClaim) error {
 	v.logger.Trace("node unpublish", "vol", vol.ID)
+
+	// We need a new snapshot after each checkpoint
+	snap, err := v.srv.fsm.State().Snapshot()
+	if err != nil {
+		return err
+	}
+
+	// If the node has been GC'd or is down, we can't send it a node
+	// unpublish. We need to assume the node has unpublished at its
+	// end. If it hasn't, any controller unpublish will potentially
+	// hang or error and need to be retried.
+	if claim.NodeID != "" {
+		node, err := snap.NodeByID(memdb.NewWatchSet(), claim.NodeID)
+		if err != nil {
+			return err
+		}
+		if node == nil || node.Status == structs.NodeStatusDown {
+			v.logger.Debug("skipping node unpublish for down or GC'd node")
+			claim.State = structs.CSIVolumeClaimStateNodeDetached
+			return v.checkpointClaim(vol, claim)
+		}
+	}
+
 	if claim.AllocationID != "" {
 		err := v.nodeUnpublishVolumeImpl(vol, claim)
 		if err != nil {
@@ -631,8 +664,7 @@ func (v *CSIVolume) nodeUnpublishVolume(vol *structs.CSIVolume, claim *structs.C
 	// The RPC sent from the 'nomad node detach' command or GC won't have an
 	// allocation ID set so we try to unpublish every terminal or invalid
 	// alloc on the node, all of which will be in PastClaims after denormalizing
-	state := v.srv.fsm.State()
-	vol, err := state.CSIVolumeDenormalize(memdb.NewWatchSet(), vol)
+	vol, err = snap.CSIVolumeDenormalize(memdb.NewWatchSet(), vol)
 	if err != nil {
 		return err
 	}
@@ -702,10 +734,15 @@ func (v *CSIVolume) controllerUnpublishVolume(vol *structs.CSIVolume, claim *str
 		return nil
 	}
 
-	state := v.srv.fsm.State()
+	// We need a new snapshot after each checkpoint
+	snap, err := v.srv.fsm.State().Snapshot()
+	if err != nil {
+		return err
+	}
+
 	ws := memdb.NewWatchSet()
 
-	plugin, err := state.CSIPluginByID(ws, vol.PluginID)
+	plugin, err := snap.CSIPluginByID(ws, vol.PluginID)
 	if err != nil {
 		return fmt.Errorf("could not query plugin: %v", err)
 	} else if plugin == nil {
@@ -717,7 +754,7 @@ func (v *CSIVolume) controllerUnpublishVolume(vol *structs.CSIVolume, claim *str
 		return nil
 	}
 
-	vol, err = state.CSIVolumeDenormalize(ws, vol)
+	vol, err = snap.CSIVolumeDenormalize(ws, vol)
 	if err != nil {
 		return err
 	}
