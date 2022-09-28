@@ -210,7 +210,7 @@ func (a *allocReconciler) Compute() *reconcileResults {
 		// When we create the deployment later, it will be in a pending
 		// state. But we also need to tell Compute we're paused, otherwise we
 		// make placements on the paused deployment.
-		if a.job.IsMultiregion() && !(a.job.IsPeriodic() || a.job.IsParameterized()) {
+		if a.job.IsMultiregion() && a.job.UsesDeployments() {
 			a.deploymentPaused = true
 		}
 	}
