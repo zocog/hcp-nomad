@@ -50,7 +50,7 @@ PROTO_COMPARE_TAG ?= v1.0.3$(if $(findstring ent,$(GO_TAGS)),+ent,)
 
 # LAST_RELEASE is the git sha of the latest release corresponding to this branch. main should have the latest
 # published release, and release branches should point to the latest published release in the X.Y release line.
-LAST_RELEASE ?= v1.4.0
+LAST_RELEASE ?= v1.4.1
 
 default: help
 
@@ -250,6 +250,7 @@ hclfmt: ## Format HCL files with hclfmt
 	        -o -name '.next' -prune \
 	        -o -path './ui/dist' -prune \
 	        -o -path './website/out' -prune \
+	        -o -path './command/testdata' -prune \
 	        -o \( -name '*.nomad' -o -name '*.hcl' -o -name '*.tf' \) \
 	      -print0 | xargs -0 hclfmt -w
 
