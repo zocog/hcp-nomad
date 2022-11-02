@@ -302,6 +302,6 @@ require (
 	github.com/hashicorp/go-licensing v1.3.8
 	github.com/hashicorp/nomad-licensing v0.0.11
 	github.com/hashicorp/raft-autopilot-enterprise v0.1.2
-	github.com/hashicorp/raft-snapshotagent v0.0.0-20220906125544-d40c6b420532
+	github.com/hashicorp/raft-snapshotagent v0.0.0-20221101163738-6dd36ea18685
 	github.com/hashicorp/sentinel v0.15.5
 )
