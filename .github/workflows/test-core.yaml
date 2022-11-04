@@ -41,6 +41,8 @@ jobs:
         with:
           go-version: ${{env.GO_VERSION}}
           cache-key-suffix: -core
+      - name: Configure Git
+        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com'.insteadOf 'https://github.com'
       - name: Pre-cache Go modules
         run: |
           make tidy
