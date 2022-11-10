@@ -1,4 +1,7 @@
 {
+  "enterprise": [
+    "audit"
+  ],
   "nomad": ["nomad"],
   "client": [
     "client",
