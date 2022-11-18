@@ -10,6 +10,7 @@ plan:
 		-var="client_count_ubuntu_jammy_amd64=3" \
 		-var="client_count_windows_2016_amd64=0"
 
+apply: export TF_LOG=TRACE
 apply:
 	terraform apply -auto-approve \
 		-var="nomad_local_binary=$(PKG_PATH)" \
@@ -30,6 +31,7 @@ destroy:
 plan_full:
 	terraform plan
 
+apply_full: export TF_LOG=TRACE
 apply_full:
 	@terraform apply -auto-approve \
 		-var="nomad_license=$(shell cat $(LICENSE_PATH))"
