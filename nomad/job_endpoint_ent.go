@@ -26,6 +26,27 @@ func (j *Job) enforceSubmitJob(override bool, job *structs.Job, nomadACLToken *s
 	return j.srv.enforceScope(override, structs.SentinelScopeSubmitJob, dataCB)
 }
 
+// multiregionCreateDeployment returns a deployment that is created when a
+// multiregion job is registered.
+//
+// Without this extra information it is impossible, in some cases, to
+// distinguish between a local change (such as a node update) from a remote one
+// (such as a job update). The scheduler needs to know this difference to
+// generate the right number of placements: multiregion deployments do not
+// place allocations until another region unblocks them, while local changes
+// must place allocations immediately since there is no other region involved.
+func (j *Job) multiregionCreateDeployment(job *structs.Job, eval *structs.Evaluation) *structs.Deployment {
+	if !job.IsMultiregion() || !job.UsesDeployments() {
+		return nil
+	}
+
+	deployment := structs.NewDeployment(job, eval.Priority)
+	deployment.Status = structs.DeploymentStatusInitializing
+	deployment.StatusDescription = structs.DeploymentStatusDescriptionPendingForPeer
+
+	return deployment
+}
+
 // interpolateMultiregionFields interpolates a job for a specific region
 func (j *Job) interpolateMultiregionFields(args *structs.JobPlanRequest) error {
 
@@ -379,10 +400,10 @@ func (j *Job) versionForModifyIndex(namespace, jobID string, modifyIndex uint64)
 		"could not find version for job %q with modify index %d", jobID, modifyIndex)
 }
 
-// deploymentForJobVersion queries the remote region for the deployment ID,
-// with retries and backoff. if we don't have a deployment within the time
-// window then the job is considered to have failed to schedule. you're likely
-// to end up with regions stuck in a "pending" state
+// deploymentForJobVersion queries the remote region for the deployment ID that
+// has been initialized with retries and backoff. If we don't have a deployment
+// within the time window then the job is considered to have failed to schedule.
+// You're likely to end up with regions stuck in a "pending" state
 func (j *Job) deploymentIDForJobVersion(req *structs.JobSpecificRequest, version uint64) (string, error) {
 	reply := &structs.DeploymentListResponse{}
 	retry := 0
@@ -392,12 +413,12 @@ func (j *Job) deploymentIDForJobVersion(req *structs.JobSpecificRequest, version
 			return "", err
 		}
 		for _, deployment := range reply.Deployments {
-			if deployment.JobVersion == version {
+			if deployment.JobVersion == version && deployment.Status == structs.DeploymentStatusPending {
 				return deployment.ID, nil
 			}
 		}
-		// we'll retry with backoffs for a bit over 10s
-		if retry > 5 {
+		// we'll retry with backoffs for a bit over 100s
+		if retry > 10 {
 			return "", fmt.Errorf("timed out waiting for deployment")
 		}
 		backoff := 1 << retry * 100 * time.Millisecond
