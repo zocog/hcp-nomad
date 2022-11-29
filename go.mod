@@ -44,7 +44,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/consul-template v0.29.6-0.20221026140134-90370e07bf62
 	github.com/hashicorp/consul/api v1.15.3
-	github.com/hashicorp/consul/sdk v0.11.0
+	github.com/hashicorp/consul/sdk v0.13.0
 	github.com/hashicorp/cronexpr v1.1.1
 	github.com/hashicorp/go-bexpr v0.1.11
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
@@ -82,7 +82,7 @@ require (
 	github.com/hashicorp/raft-autopilot v0.1.6
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2
 	github.com/hashicorp/serf v0.10.1
-	github.com/hashicorp/vault/api v1.8.1
+	github.com/hashicorp/vault/api v1.8.2
 	github.com/hashicorp/vault/sdk v0.6.1
 	github.com/hashicorp/yamux v0.0.0-20211028200310-0bc27b27de87
 	github.com/hpcloud/tail v1.0.1-0.20170814160653-37f427138745
@@ -90,7 +90,7 @@ require (
 	github.com/kr/text v0.2.0
 	github.com/mattn/go-colorable v0.1.13
 	github.com/miekg/dns v1.1.50
-	github.com/mitchellh/cli v1.1.4
+	github.com/mitchellh/cli v1.1.5
 	github.com/mitchellh/colorstring v0.0.0-20150917214807-8631ce90f286
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/mitchellh/go-glint v0.0.0-20210722152315-6515ceb4a127
@@ -112,11 +112,11 @@ require (
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529
 	github.com/shirou/gopsutil/v3 v3.22.8
-	github.com/shoenig/test v0.4.3
+	github.com/shoenig/test v0.4.5
 	github.com/skratchdot/open-golang v0.0.0-20160302144031-75fb7ed4208c
 	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
-	github.com/zclconf/go-cty v1.11.0
+	github.com/zclconf/go-cty v1.12.1
 	github.com/zclconf/go-cty-yaml v1.0.2
 	go.etcd.io/bbolt v1.3.6
 	go.uber.org/goleak v1.2.0
@@ -125,7 +125,7 @@ require (
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/sys v0.2.0
 	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65
-	google.golang.org/grpc v1.48.0
+	google.golang.org/grpc v1.51.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 	gopkg.in/tomb.v2 v2.0.0-20140626144623-14b3d72120e8
@@ -153,7 +153,7 @@ require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
-	github.com/Masterminds/sprig/v3 v3.2.0 // indirect
+	github.com/Masterminds/sprig/v3 v3.2.1 // indirect
 	github.com/Microsoft/hcsshim v0.9.3 // indirect
 	github.com/VividCortex/ewma v1.1.1 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
