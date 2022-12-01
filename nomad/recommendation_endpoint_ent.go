@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/nomad-licensing/license"
@@ -22,6 +22,11 @@ import (
 // Recommendation endpoint is used for manipulating namespaces
 type Recommendation struct {
 	srv *Server
+	ctx *RPCContext
+}
+
+func NewRecommendationEndpoint(srv *Server, ctx *RPCContext) *Recommendation {
+	return &Recommendation{srv: srv, ctx: ctx}
 }
 
 // GetRecommendation is used to query a recommendation.

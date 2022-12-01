@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/nomad-licensing/license"
+
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
@@ -17,6 +18,11 @@ import (
 // Sentinel endpoint is used for manipulating Sentinel policies
 type Sentinel struct {
 	srv *Server
+	ctx *RPCContext
+}
+
+func NewSentinelEndpoint(srv *Server, ctx *RPCContext) *Sentinel {
+	return &Sentinel{srv: srv, ctx: ctx}
 }
 
 // UpsertPolicies is used to create or update a set of policies

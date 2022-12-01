@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/nomad-licensing/license"
+
 	"github.com/hashicorp/nomad/acl"
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -18,6 +19,11 @@ import (
 // Quota endpoint is used for manipulating quotas
 type Quota struct {
 	srv *Server
+	ctx *RPCContext
+}
+
+func NewQuotaEndpoint(srv *Server, ctx *RPCContext) *Quota {
+	return &Quota{srv: srv, ctx: ctx}
 }
 
 // UpsertQuotaSpecs is used to upsert a set of quota specifications
@@ -414,11 +420,11 @@ func (q *Quota) GetQuotaUsage(args *structs.QuotaUsageSpecificRequest, reply *st
 
 // quotaReadAllowed checks whether the passed ACL token has permission to read
 // the given quota object. Its behavior is as follows:
-// * If the ACL object is nil, reads are allowed since ACLs are not enabled
-// * Reads are allowed if QuotaRead permissions exist on the ACL object
-// * Reads are allowed on non-existent quotas to allow blocking queries
-// * Reads are allowed if the ACL has any non-deny capability on a namespace
-//   using the quota object.
+//   - If the ACL object is nil, reads are allowed since ACLs are not enabled
+//   - Reads are allowed if QuotaRead permissions exist on the ACL object
+//   - Reads are allowed on non-existent quotas to allow blocking queries
+//   - Reads are allowed if the ACL has any non-deny capability on a namespace
+//     using the quota object.
 func (q *Quota) quotaReadAllowed(quota string, state *state.StateStore,
 	ws memdb.WatchSet, acl *acl.ACL) (bool, error) {
 

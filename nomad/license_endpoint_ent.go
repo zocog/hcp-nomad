@@ -7,13 +7,19 @@ import (
 	"errors"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
+
 	"github.com/hashicorp/nomad/nomad/structs"
 )
 
 // License endpoint is used for manipulating an enterprise license
 type License struct {
 	srv *Server
+	ctx *RPCContext
+}
+
+func NewLicenseEndpoint(srv *Server, ctx *RPCContext) *License {
+	return &License{srv: srv, ctx: ctx}
 }
 
 // COMPAT: License.UpsertLicense was deprecated in Nomad 1.1.0
