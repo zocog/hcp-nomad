@@ -7,28 +7,24 @@ import "net/rpc"
 
 // EnterpriseEndpoints holds the set of enterprise only endpoints to register
 type EnterpriseEndpoints struct {
-	Namespace      *Namespace
 	Quota          *Quota
 	Sentinel       *Sentinel
 	License        *License
 	Recommendation *Recommendation
 }
 
-// NewEnterpriseEndpoints returns the set of Nomad Enterprise and Pro only
-// endpoints.
-func NewEnterpriseEndpoints(s *Server) *EnterpriseEndpoints {
+// NewEnterpriseEndpoints returns the set of Nomad Enterprise only endpoints.
+func NewEnterpriseEndpoints(s *Server, ctx *RPCContext) *EnterpriseEndpoints {
 	return &EnterpriseEndpoints{
-		Namespace:      &Namespace{s},
-		Quota:          &Quota{s},
-		Sentinel:       &Sentinel{s},
-		License:        &License{s},
-		Recommendation: &Recommendation{s},
+		Quota:          NewQuotaEndpoint(s, ctx),
+		Sentinel:       NewSentinelEndpoint(s, ctx),
+		License:        NewLicenseEndpoint(s, ctx),
+		Recommendation: NewRecommendationEndpoint(s, ctx),
 	}
 }
 
 // Register register the enterprise endpoints.
 func (e *EnterpriseEndpoints) Register(rpcServer *rpc.Server) {
-	rpcServer.Register(e.Namespace)
 	rpcServer.Register(e.Quota)
 	rpcServer.Register(e.Sentinel)
 	rpcServer.Register(e.License)
