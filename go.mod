@@ -112,6 +112,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529
 	github.com/shirou/gopsutil/v3 v3.22.10
+	github.com/shoenig/go-landlock v0.1.3
 	github.com/shoenig/test v0.4.6
 	github.com/skratchdot/open-golang v0.0.0-20160302144031-75fb7ed4208c
 	github.com/stretchr/testify v1.8.1
@@ -293,6 +294,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/gotestsum v0.3.5 // indirect
+	kernel.org/pub/linux/libs/security/libcap/psx v1.2.66 // indirect
 )
 
 /// Enterprise specific module requirements
