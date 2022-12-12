@@ -244,7 +244,7 @@ jobs:
 
   build-darwin:
     needs: [get-go-version, get-product-version]
-    runs-on: macos-latest
+    runs-on: [ self-hosted, macos ]
     strategy:
       matrix:
         goos: [darwin]
