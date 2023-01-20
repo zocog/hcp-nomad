@@ -148,7 +148,7 @@ func (s *SentinelPolicy) SetHash() []byte {
 
 func (s *SentinelPolicy) Validate() error {
 	var mErr multierror.Error
-	if !validPolicyName.MatchString(s.Name) {
+	if !ValidPolicyName.MatchString(s.Name) {
 		err := fmt.Errorf("invalid name %q", s.Name)
 		mErr.Errors = append(mErr.Errors, err)
 	}
@@ -296,7 +296,7 @@ func (q *QuotaSpec) SetHash() []byte {
 
 func (q *QuotaSpec) Validate() error {
 	var mErr multierror.Error
-	if !validPolicyName.MatchString(q.Name) {
+	if !ValidPolicyName.MatchString(q.Name) {
 		err := fmt.Errorf("invalid name %q", q.Name)
 		mErr.Errors = append(mErr.Errors, err)
 	}
