@@ -472,6 +472,7 @@ func convertServerConfig(agentConfig *Config) (*nomad.Config, error) {
 	// Setup telemetry related config
 	conf.StatsCollectionInterval = agentConfig.Telemetry.collectionInterval
 	conf.DisableDispatchedJobSummaryMetrics = agentConfig.Telemetry.DisableDispatchedJobSummaryMetrics
+	conf.DisableRPCRateMetricsLabels = agentConfig.Telemetry.DisableRPCRateMetricsLabels
 
 	if d, err := time.ParseDuration(agentConfig.Limits.RPCHandshakeTimeout); err != nil {
 		return nil, fmt.Errorf("error parsing rpc_handshake_timeout: %v", err)
@@ -667,6 +668,12 @@ func convertClientConfig(agentConfig *Config) (*clientconfig.Config, error) {
 	}
 	if agentConfig.Client.MemoryMB != 0 {
 		conf.MemoryMB = agentConfig.Client.MemoryMB
+	}
+	if agentConfig.Client.DiskTotalMB != 0 {
+		conf.DiskTotalMB = agentConfig.Client.DiskTotalMB
+	}
+	if agentConfig.Client.DiskFreeMB != 0 {
+		conf.DiskFreeMB = agentConfig.Client.DiskFreeMB
 	}
 	if agentConfig.Client.MaxKillTimeout != "" {
 		dur, err := time.ParseDuration(agentConfig.Client.MaxKillTimeout)

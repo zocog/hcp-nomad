@@ -227,6 +227,12 @@ type ClientConfig struct {
 	// MemoryMB is used to override any detected or default total memory.
 	MemoryMB int `hcl:"memory_total_mb"`
 
+	// DiskTotalMB is used to override any detected or default total disk space.
+	DiskTotalMB int `hcl:"disk_total_mb"`
+
+	// DiskFreeMB is used to override any detected or default free disk space.
+	DiskFreeMB int `hcl:"disk_free_mb"`
+
 	// ReservableCores is used to override detected reservable cpu cores.
 	ReserveableCores string `hcl:"reservable_cores"`
 
@@ -877,6 +883,12 @@ type Telemetry struct {
 	// high numbers of single count dispatch jobs as the metrics for each take up
 	// a small memory overhead.
 	DisableDispatchedJobSummaryMetrics bool `hcl:"disable_dispatched_job_summary_metrics"`
+
+	// DisableRPCRateMetricsLabels drops the label for the identity of the
+	// requester when publishing metrics on RPC rate on the server. This may be
+	// useful to control metrics collection costs in environments where request
+	// rate is well-controlled but cardinality of requesters is high.
+	DisableRPCRateMetricsLabels bool `hcl:"disable_rpc_rate_metrics_labels"`
 
 	// Circonus: see https://github.com/circonus-labs/circonus-gometrics
 	// for more details on the various configuration options.
@@ -2006,6 +2018,12 @@ func (a *ClientConfig) Merge(b *ClientConfig) *ClientConfig {
 	if b.MemoryMB != 0 {
 		result.MemoryMB = b.MemoryMB
 	}
+	if b.DiskTotalMB != 0 {
+		result.DiskTotalMB = b.DiskTotalMB
+	}
+	if b.DiskFreeMB != 0 {
+		result.DiskFreeMB = b.DiskFreeMB
+	}
 	if b.MaxKillTimeout != "" {
 		result.MaxKillTimeout = b.MaxKillTimeout
 	}
@@ -2224,6 +2242,9 @@ func (a *Telemetry) Merge(b *Telemetry) *Telemetry {
 
 	if b.DisableDispatchedJobSummaryMetrics {
 		result.DisableDispatchedJobSummaryMetrics = b.DisableDispatchedJobSummaryMetrics
+	}
+	if b.DisableRPCRateMetricsLabels {
+		result.DisableRPCRateMetricsLabels = b.DisableRPCRateMetricsLabels
 	}
 
 	return &result
