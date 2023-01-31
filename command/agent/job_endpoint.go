@@ -404,7 +404,7 @@ func (s *HTTPServer) jobUpdate(resp http.ResponseWriter, req *http.Request,
 	if args.Job.Type != nil && *args.Job.Type == api.JobTypeSystem {
 		for _, tg := range args.Job.TaskGroups {
 			if tg.Scaling != nil {
-				return nil, CodedError(400, "Task groups with job type system do not support scaling stanzas")
+				return nil, CodedError(400, "Task groups with job type system do not support scaling blocks")
 			}
 		}
 	}
@@ -1646,11 +1646,18 @@ func apiConnectSidecarServiceProxyToStructs(in *api.ConsulProxy) *structs.Consul
 	if in == nil {
 		return nil
 	}
+
+	// TODO: to maintain backwards compatibility
+	expose := in.Expose
+	if in.ExposeConfig != nil {
+		expose = in.ExposeConfig
+	}
+
 	return &structs.ConsulProxy{
 		LocalServiceAddress: in.LocalServiceAddress,
 		LocalServicePort:    in.LocalServicePort,
 		Upstreams:           apiUpstreamsToStructs(in.Upstreams),
-		Expose:              apiConsulExposeConfigToStructs(in.ExposeConfig),
+		Expose:              apiConsulExposeConfigToStructs(expose),
 		Config:              maps.Clone(in.Config),
 	}
 }
@@ -1686,8 +1693,15 @@ func apiConsulExposeConfigToStructs(in *api.ConsulExposeConfig) *structs.ConsulE
 	if in == nil {
 		return nil
 	}
+
+	// TODO: to maintain backwards compatibility
+	paths := in.Paths
+	if in.Path != nil {
+		paths = in.Path
+	}
+
 	return &structs.ConsulExposeConfig{
-		Paths: apiConsulExposePathsToStructs(in.Path),
+		Paths: apiConsulExposePathsToStructs(paths),
 	}
 }
 
