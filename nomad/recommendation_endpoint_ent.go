@@ -32,8 +32,14 @@ func NewRecommendationEndpoint(srv *Server, ctx *RPCContext) *Recommendation {
 // GetRecommendation is used to query a recommendation.
 func (r *Recommendation) GetRecommendation(args *structs.RecommendationSpecificRequest,
 	reply *structs.SingleRecommendationResponse) error {
+
+	authErr := r.srv.Authenticate(r.ctx, args)
 	if done, err := r.srv.forward("Recommendation.GetRecommendation", args, args, reply); done {
 		return err
+	}
+	r.srv.MeasureRPCRate("recommendation", structs.RateMetricRead, args)
+	if authErr != nil {
+		return structs.ErrPermissionDenied
 	}
 	defer metrics.MeasureSince([]string{"nomad", "recommendation", "get_recommendation"}, time.Now())
 
@@ -91,8 +97,14 @@ func (r *Recommendation) GetRecommendation(args *structs.RecommendationSpecificR
 // ListRecommendations is used to retrieve of a list of recommendations in a namespace
 func (r *Recommendation) ListRecommendations(args *structs.RecommendationListRequest,
 	reply *structs.RecommendationListResponse) error {
+
+	authErr := r.srv.Authenticate(r.ctx, args)
 	if done, err := r.srv.forward("Recommendation.ListRecommendations", args, args, reply); done {
 		return err
+	}
+	r.srv.MeasureRPCRate("recommendation", structs.RateMetricList, args)
+	if authErr != nil {
+		return structs.ErrPermissionDenied
 	}
 	defer metrics.MeasureSince([]string{"nomad", "recommendation", "list_recommendations"}, time.Now())
 
@@ -153,8 +165,14 @@ func (r *Recommendation) ListRecommendations(args *structs.RecommendationListReq
 // UpsertRecommendation is used to upsert a recommendation
 func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsertRequest,
 	reply *structs.SingleRecommendationResponse) error {
+
+	authErr := r.srv.Authenticate(r.ctx, args)
 	if done, err := r.srv.forward("Recommendation.UpsertRecommendation", args, args, reply); done {
 		return err
+	}
+	r.srv.MeasureRPCRate("recommendation", structs.RateMetricWrite, args)
+	if authErr != nil {
+		return structs.ErrPermissionDenied
 	}
 	defer metrics.MeasureSince([]string{"nomad", "recommendation", "upsert_recommendation"}, time.Now())
 
@@ -275,8 +293,14 @@ func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsert
 // DeleteRecommendations is used to delete one or more recommendations
 func (r *Recommendation) DeleteRecommendations(args *structs.RecommendationDeleteRequest,
 	reply *structs.GenericResponse) error {
+
+	authErr := r.srv.Authenticate(r.ctx, args)
 	if done, err := r.srv.forward("Recommendation.DeleteRecommendations", args, args, reply); done {
 		return err
+	}
+	r.srv.MeasureRPCRate("recommendation", structs.RateMetricWrite, args)
+	if authErr != nil {
+		return structs.ErrPermissionDenied
 	}
 	defer metrics.MeasureSince([]string{"nomad", "namespace", "delete_recommendations"}, time.Now())
 
@@ -397,8 +421,14 @@ func (r *Recommendation) listAllRecommendations(args *structs.RecommendationList
 // the associated jobs.
 func (r *Recommendation) ApplyRecommendations(args *structs.RecommendationApplyRequest,
 	reply *structs.RecommendationApplyResponse) error {
+
+	authErr := r.srv.Authenticate(r.ctx, args)
 	if done, err := r.srv.forward("Recommendation.ApplyRecommendations", args, args, reply); done {
 		return err
+	}
+	r.srv.MeasureRPCRate("recommendation", structs.RateMetricWrite, args)
+	if authErr != nil {
+		return structs.ErrPermissionDenied
 	}
 	defer metrics.MeasureSince([]string{"nomad", "recommendation", "apply_recommendations"}, time.Now())
 

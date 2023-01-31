@@ -30,6 +30,11 @@ func (l *License) UpsertLicense(args *structs.LicenseUpsertRequest, reply *struc
 
 // GetLicense is used to retrieve an enterprise license
 func (l *License) GetLicense(args *structs.LicenseGetRequest, reply *structs.LicenseGetResponse) error {
+	authErr := l.srv.Authenticate(l.ctx, args)
+	l.srv.MeasureRPCRate("license", structs.RateMetricRead, args)
+	if authErr != nil {
+		return structs.ErrPermissionDenied
+	}
 	defer metrics.MeasureSince([]string{"nomad", "license", "get_license"}, time.Now())
 
 	// Check OperatorRead permissions

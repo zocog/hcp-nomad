@@ -300,7 +300,7 @@ func TestScalingEndpoint_List_MultiNamespace_ACL(t *testing.T) {
 			Namespace: "*",
 			Token:     uuid.Generate(),
 			Error:     true,
-			Message:   structs.ErrTokenNotFound.Error(),
+			Message:   structs.ErrPermissionDenied.Error(),
 		},
 		{
 			Label:     "all namespaces with insufficient token",
@@ -337,7 +337,7 @@ func TestScalingEndpoint_List_MultiNamespace_ACL(t *testing.T) {
 			Namespace: ns1.Name,
 			Token:     uuid.Generate(),
 			Error:     true,
-			Message:   structs.ErrTokenNotFound.Error(),
+			Message:   structs.ErrPermissionDenied.Error(),
 		},
 		{
 			Label:     "bad namespace, root token",
