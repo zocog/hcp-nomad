@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -125,31 +126,46 @@ func TestHTTP_ACLPolicyCreate(t *testing.T) {
 		p1 := mock.ACLPolicy()
 		buf := encodeReq(p1)
 		req, err := http.NewRequest("PUT", "/v1/acl/policy/"+p1.Name, buf)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		must.NoError(t, err)
+
 		respW := httptest.NewRecorder()
 		setToken(req, s.RootToken)
 
 		// Make the request
 		obj, err := s.Server.ACLPolicySpecificRequest(respW, req)
-		assert.Nil(t, err)
-		assert.Nil(t, obj)
+		must.NoError(t, err)
+		must.Nil(t, obj)
 
 		// Check for the index
-		if respW.Result().Header.Get("X-Nomad-Index") == "" {
-			t.Fatalf("missing index")
-		}
+		must.StrNotEqFold(t, "", respW.Result().Header.Get("X-Nomad-Index"))
 
 		// Check policy was created
 		state := s.Agent.server.State()
 		out, err := state.ACLPolicyByName(nil, p1.Name)
-		assert.Nil(t, err)
-		assert.NotNil(t, out)
+		must.NoError(t, err)
+		must.NotNil(t, out)
 
 		p1.CreateIndex, p1.ModifyIndex = out.CreateIndex, out.ModifyIndex
-		assert.Equal(t, p1.Name, out.Name)
-		assert.Equal(t, p1, out)
+		must.Eq(t, p1.Name, out.Name)
+		must.Eq(t, p1, out)
+
+		// Create a policy that is invalid. This ensures we call the validation
+		// func in the RPC handler, also that the correct code and error is
+		// returned.
+		aclPolicy2 := mock.ACLPolicy()
+		aclPolicy2.Rules = "invalid"
+
+		aclPolicy2Req, err := http.NewRequest(http.MethodPut, "/v1/acl/policy/"+aclPolicy2.Name, encodeReq(aclPolicy2))
+		must.NoError(t, err)
+
+		respW = httptest.NewRecorder()
+		setToken(aclPolicy2Req, s.RootToken)
+
+		// Make the request
+		aclPolicy2Obj, err := s.Server.ACLPolicySpecificRequest(respW, aclPolicy2Req)
+		must.ErrorContains(t, err, "400")
+		must.ErrorContains(t, err, "failed to parse rules")
+		must.Nil(t, aclPolicy2Obj)
 	})
 }
 
@@ -453,6 +469,48 @@ func TestHTTP_ACLTokenCreate(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, out)
 		assert.Equal(t, outTK, out)
+	})
+}
+
+func TestHTTP_ACLTokenCreateExpirationTTL(t *testing.T) {
+	ci.Parallel(t)
+	httpACLTest(t, nil, func(s *TestAgent) {
+
+		// Generate an example token which has an expiration TTL in string
+		// format.
+		aclToken := `
+{
+  "Name": "Readonly token",
+  "Type": "client",
+  "Policies": ["readonly"],
+  "ExpirationTTL": "10h",
+  "Global": false
+}`
+
+		req, err := http.NewRequest("PUT", "/v1/acl/token", bytes.NewReader([]byte(aclToken)))
+		must.NoError(t, err)
+
+		respW := httptest.NewRecorder()
+		setToken(req, s.RootToken)
+
+		// Make the request.
+		obj, err := s.Server.ACLTokenSpecificRequest(respW, req)
+		must.NoError(t, err)
+		must.NotNil(t, obj)
+
+		// Ensure the returned token includes expiration.
+		createdTokenResp := obj.(*structs.ACLToken)
+		must.Eq(t, "10h0m0s", createdTokenResp.ExpirationTTL.String())
+		must.False(t, createdTokenResp.CreateTime.IsZero())
+
+		// Check for the index.
+		must.StrNotEqFold(t, "", respW.Result().Header.Get("X-Nomad-Index"))
+
+		// Check token was created and stored properly within state.
+		out, err := s.Agent.server.State().ACLTokenByAccessorID(nil, createdTokenResp.AccessorID)
+		must.NoError(t, err)
+		must.NotNil(t, out)
+		must.Eq(t, createdTokenResp, out)
 	})
 }
 
