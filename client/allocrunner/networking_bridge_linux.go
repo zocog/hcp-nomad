@@ -35,14 +35,16 @@ type bridgeNetworkConfigurator struct {
 	cni         *cniNetworkConfigurator
 	allocSubnet string
 	bridgeName  string
+	hairpinMode bool
 
 	logger hclog.Logger
 }
 
-func newBridgeNetworkConfigurator(log hclog.Logger, bridgeName, ipRange, cniPath string, ignorePortMappingHostIP bool) (*bridgeNetworkConfigurator, error) {
+func newBridgeNetworkConfigurator(log hclog.Logger, bridgeName, ipRange string, hairpinMode bool, cniPath string, ignorePortMappingHostIP bool) (*bridgeNetworkConfigurator, error) {
 	b := &bridgeNetworkConfigurator{
 		bridgeName:  bridgeName,
 		allocSubnet: ipRange,
+		hairpinMode: hairpinMode,
 		logger:      log,
 	}
 
@@ -54,7 +56,7 @@ func newBridgeNetworkConfigurator(log hclog.Logger, bridgeName, ipRange, cniPath
 		b.allocSubnet = defaultNomadAllocSubnet
 	}
 
-	c, err := newCNINetworkConfiguratorWithConf(log, cniPath, bridgeNetworkAllocIfPrefix, ignorePortMappingHostIP, buildNomadBridgeNetConfig(b.bridgeName, b.allocSubnet))
+	c, err := newCNINetworkConfiguratorWithConf(log, cniPath, bridgeNetworkAllocIfPrefix, ignorePortMappingHostIP, buildNomadBridgeNetConfig(*b))
 	if err != nil {
 		return nil, err
 	}
@@ -134,8 +136,12 @@ func (b *bridgeNetworkConfigurator) Teardown(ctx context.Context, alloc *structs
 	return b.cni.Teardown(ctx, alloc, spec)
 }
 
-func buildNomadBridgeNetConfig(bridgeName, subnet string) []byte {
-	return []byte(fmt.Sprintf(nomadCNIConfigTemplate, bridgeName, subnet, cniAdminChainName))
+func buildNomadBridgeNetConfig(b bridgeNetworkConfigurator) []byte {
+	return []byte(fmt.Sprintf(nomadCNIConfigTemplate,
+		b.bridgeName,
+		b.hairpinMode,
+		b.allocSubnet,
+		cniAdminChainName))
 }
 
 const nomadCNIConfigTemplate = `{
@@ -147,16 +153,17 @@ const nomadCNIConfigTemplate = `{
 		},
 		{
 			"type": "bridge",
-			"bridge": "%s",
+			"bridge": %q,
 			"ipMasq": true,
 			"isGateway": true,
 			"forceAddress": true,
+			"hairpinMode": %v,
 			"ipam": {
 				"type": "host-local",
 				"ranges": [
 					[
 						{
-							"subnet": "%s"
+							"subnet": %q
 						}
 					]
 				],
@@ -168,7 +175,7 @@ const nomadCNIConfigTemplate = `{
 		{
 			"type": "firewall",
 			"backend": "iptables",
-			"iptablesAdminChainName": "%s"
+			"iptablesAdminChainName": %q
 		},
 		{
 			"type": "portmap",

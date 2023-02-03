@@ -181,8 +181,8 @@ net.bridge.bridge-nf-call-iptables = 1
 ## Run the Service Mesh-enabled Services
 
 Once Nomad and Consul are running, submit the following service mesh-enabled services
-to Nomad by copying the HCL into a file named `servicemesh.nomad` and running:
-`nomad job run servicemesh.nomad`
+to Nomad by copying the HCL into a file named `servicemesh.nomad.hcl` and running:
+`nomad job run servicemesh.nomad.hcl`
 
 ```hcl
 job "countdash" {
@@ -370,6 +370,32 @@ dashes (`-`) are converted to underscores (`_`) in environment variables so
 - Consul service mesh using network namespaces is only supported on Linux.
 - Prior to Consul 1.9, the Envoy sidecar proxy will drop and stop accepting
   connections while the Nomad agent is restarting.
+
+## Troubleshooting
+
+If the sidecar service is not running correctly, you can investigate
+potential `envoy` failures in the following ways:
+
+* Task logs in the associated `connect-*` task
+* Task secrets (may contain sensitive information):
+  * envoy CLI command: `secrets/.envoy_bootstrap.cmd`
+  * environment variables: `secrets/.envoy_bootstrap.env`
+* An extra Allocation log file: `alloc/logs/envoy_bootstrap.stderr.0`
+
+For example, with an allocation ID starting with `b36a`:
+
+```shell-session
+nomad alloc status -short b36a  # to get the connect-* task name
+nomad alloc logs -task connect-proxy-count-api -stderr b36a
+nomad alloc exec -task connect-proxy-count-api b36a cat secrets/.envoy_bootstrap.cmd
+nomad alloc exec -task connect-proxy-count-api b36a cat secrets/.envoy_bootstrap.env
+nomad alloc fs b36a alloc/logs/envoy_bootstrap.stderr.0
+```
+
+Note: If the alloc is unable to start successfully, debugging files may
+only be accessible from the host filesystem. However, the sidecar task secrets
+directory may not be available in systems where it is mounted in a temporary
+filesystem.
 
 [count-dashboard]: /img/count-dashboard.png
 [consul_acl]: https://github.com/hashicorp/consul/issues/7414

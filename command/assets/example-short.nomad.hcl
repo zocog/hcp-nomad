@@ -1,5 +1,4 @@
 job "example" {
-  datacenters = ["dc1"]
 
   group "cache" {
     network {
@@ -15,6 +14,11 @@ job "example" {
         image          = "redis:7"
         ports          = ["db"]
         auth_soft_fail = true
+      }
+
+      identity {
+        env  = true
+        file = true
       }
 
       resources {

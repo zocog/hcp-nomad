@@ -17,8 +17,9 @@ job "countdash" {
   # region = "global"
   #
   # The "datacenters" parameter specifies the list of datacenters which should
-  # be considered when placing this task. This must be provided.
-  datacenters = ["dc1"]
+  # be considered when placing this task. This accepts wildcards and defaults
+  # allowing placement on all datacenters.
+  datacenters = ["*"]
 
   # The "type" parameter controls the type of job, which impacts the scheduler's
   # decision on placement. This configuration is optional and defaults to
@@ -353,6 +354,14 @@ job "countdash" {
       # logs {
       #   max_files     = 10
       #   max_file_size = 15
+      # }
+
+      # The "identity" block instructs Nomad to expose the task's workload
+      # identity token as an environment variable and in the file
+      # secrets/nomad_token.
+      # identity {
+      #   env  = true
+      #   file = true
       # }
 
       # The "resources" block describes the requirements a task needs to
