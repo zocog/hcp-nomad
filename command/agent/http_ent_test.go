@@ -94,8 +94,11 @@ func TestAuditWrapHTTPHandler(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			// Set the server auditor
+			// Set the auditor on the agent and http servers
 			s.auditor = &testAuditor{auditor: auditor, auditErr: tc.auditErr}
+			for _, srv := range s.Servers {
+				srv.eventAuditor = &testAuditor{auditor: auditor, auditErr: tc.auditErr}
+			}
 
 			resp := httptest.NewRecorder()
 			req, err := http.NewRequest("GET", tc.path, nil)
