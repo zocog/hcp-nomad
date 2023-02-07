@@ -179,7 +179,6 @@ func TestAuditNonJSONHandler(t *testing.T) {
 		},
 	}
 
-	parentTestName := t.Name()
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
 			s := makeHTTPServer(t, nil)
@@ -192,9 +191,7 @@ func TestAuditNonJSONHandler(t *testing.T) {
 				return []byte("response"), nil
 			}
 
-			tmpDir, err := ioutil.TempDir("", parentTestName+"-"+tc.desc)
-			require.NoError(t, err)
-			defer os.RemoveAll(tmpDir)
+			tmpDir := t.TempDir()
 
 			auditor, err := audit.NewAuditor(&audit.Config{
 				Logger:  testlog.HCLogger(t),
@@ -213,8 +210,11 @@ func TestAuditNonJSONHandler(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			// Set the server auditor
+			// Set the auditor on the agent and http servers
 			s.auditor = &testAuditor{auditor: auditor, auditErr: tc.auditErr}
+			for _, srv := range s.Servers {
+				srv.eventAuditor = &testAuditor{auditor: auditor, auditErr: tc.auditErr}
+			}
 
 			resp := httptest.NewRecorder()
 			req, err := http.NewRequest("GET", tc.path, nil)
