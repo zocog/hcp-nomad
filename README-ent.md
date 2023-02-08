@@ -1,6 +1,21 @@
 # Nomad Enterprise
 
-## Building on Vagrant
+## Building
+
+In order to download dependencies from private GitHub repositories set:
+
+```
+GOPRIVATE=github.com/hashicorp
+```
+
+And in your `.gitconfig` file add:
+
+```
+[url "ssh://git@github.com/"]
+	insteadOf = https://github.com/
+```
+
+### Vagrant
 
 We have several dependencies (Sentinel, Consul-Enterprise, Licensing)
 that are in private GitHub repositories. To build these in Vagrant,
