@@ -97,7 +97,7 @@ jobs:
   tests-api:
     needs: [mods]
     runs-on: [custom, xl, 22.04]
-    timeout-minutes: 30
+    timeout-minutes: 8
     steps:
       - name: Configure Git
         run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com'.insteadOf 'https://github.com'
