@@ -208,7 +208,7 @@ checkproto: ## Lint protobuf files
 	@buf check breaking --config tools/buf/buf.yaml --against-config tools/buf/buf.yaml --against .git#tag=$(PROTO_COMPARE_TAG)
 
 .PHONY: generate-all
-generate-all: generate-structs proto generate-examples ## Generate structs, protobufs, examples
+generate-all: generate-structs proto ## Generate structs, protobufs
 
 .PHONY: generate-structs
 generate-structs: LOCAL_PACKAGES = $(shell go list ./...)
@@ -220,12 +220,6 @@ generate-structs: ## Update generated code
 proto: ## Generate protobuf bindings
 	@echo "==> Generating proto bindings..."
 	@buf --config tools/buf/buf.yaml --template tools/buf/buf.gen.yaml generate
-
-.PHONY: generate-examples
-generate-examples: command/job_init.bindata_assetfs.go
-
-command/job_init.bindata_assetfs.go: command/assets/*
-	go-bindata-assetfs -pkg command -o command/job_init.bindata_assetfs.go ./command/assets/...
 
 changelog: ## Generate changelog from entries
 	@changelog-build -last-release $(LAST_RELEASE) -this-release HEAD \
@@ -421,4 +415,3 @@ ec2info: ## Generate AWS EC2 CPU specification table
 .PHONY: cl
 cl: ## Create a new Changelog entry
 	@go run -modfile tools/go.mod tools/cl-entry/main.go
-
