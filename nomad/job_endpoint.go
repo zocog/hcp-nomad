@@ -122,7 +122,7 @@ func (j *Job) Register(args *structs.JobRegisterRequest, reply *structs.JobRegis
 	}
 
 	// Set the warning message
-	reply.Warnings = structs.MergeMultierrorWarnings(warnings...)
+	reply.Warnings = helper.MergeMultierrorWarnings(warnings...)
 
 	// Check job submission permissions
 	aclObj, err := j.srv.ResolveACL(args)
@@ -292,7 +292,7 @@ func (j *Job) Register(args *structs.JobRegisterRequest, reply *structs.JobRegis
 	}
 	if policyWarnings != nil {
 		warnings = append(warnings, policyWarnings)
-		reply.Warnings = structs.MergeMultierrorWarnings(warnings...)
+		reply.Warnings = helper.MergeMultierrorWarnings(warnings...)
 	}
 
 	// Clear the Vault token
@@ -594,7 +594,7 @@ func (j *Job) Validate(args *structs.JobValidateRequest, reply *structs.JobValid
 	validateWarnings = append(validateWarnings, mutateWarnings...)
 
 	// Set the warning message
-	reply.Warnings = structs.MergeMultierrorWarnings(validateWarnings...)
+	reply.Warnings = helper.MergeMultierrorWarnings(validateWarnings...)
 	reply.DriverConfigValidated = true
 	return nil
 }
@@ -1719,7 +1719,7 @@ func (j *Job) Plan(args *structs.JobPlanRequest, reply *structs.JobPlanResponse)
 	args.Job = job
 
 	// Set the warning message
-	reply.Warnings = structs.MergeMultierrorWarnings(warnings...)
+	reply.Warnings = helper.MergeMultierrorWarnings(warnings...)
 
 	// Check job submission permissions, which we assume is the same for plan
 	if aclObj, err := j.srv.ResolveACL(args); err != nil {
@@ -1757,7 +1757,7 @@ func (j *Job) Plan(args *structs.JobPlanRequest, reply *structs.JobPlanResponse)
 	}
 	if policyWarnings != nil {
 		warnings = append(warnings, policyWarnings)
-		reply.Warnings = structs.MergeMultierrorWarnings(warnings...)
+		reply.Warnings = helper.MergeMultierrorWarnings(warnings...)
 	}
 
 	// Interpolate the job for this region
