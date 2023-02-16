@@ -1,3 +1,10 @@
+## 1.4.4 (February 14, 2023)
+
+SECURITY:
+
+* artifact: Provide mitigations against unbounded artifact decompression [[GH-16126](https://github.com/hashicorp/nomad/issues/16126)]
+* build: Update to go1.20.1 [[GH-16182](https://github.com/hashicorp/nomad/issues/16182)]
+
 ## 1.4.3 (November 21, 2022)
 
 IMPROVEMENTS:
