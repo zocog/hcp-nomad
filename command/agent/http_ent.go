@@ -107,6 +107,17 @@ func (s *HTTPServer) eventFromReq(ctx context.Context, req *http.Request, auth *
 	}
 }
 
+// httpReqWithID implements structs.RequestWithIdentity so that auditRequest
+// can call Server.Authenticate.
+type httpReqWithID struct {
+	bearerToken string
+	identity    *structs.AuthenticatedIdentity
+}
+
+func (r *httpReqWithID) GetAuthToken() string                          { return r.bearerToken }
+func (r *httpReqWithID) SetIdentity(id *structs.AuthenticatedIdentity) { r.identity = id }
+func (r *httpReqWithID) GetIdentity() *structs.AuthenticatedIdentity   { return r.identity }
+
 func (s *HTTPServer) auditRequest(ctx context.Context, req *http.Request) (*audit.Event, error) {
 	// get token info
 	var authToken string
@@ -115,34 +126,37 @@ func (s *HTTPServer) auditRequest(ctx context.Context, req *http.Request) (*audi
 	// TODO OPTIMIZATION:
 	// Look into adding this to the request context so it can be used
 	// in the invoked handlers
-	var token *structs.ACLToken
+	var ident *structs.AuthenticatedIdentity
 
 	if srv := s.agent.Server(); srv != nil {
-		token, err = srv.ResolveSecretToken(authToken)
+		// Fake an rpc to reuse the same lookup logic
+		fakeReq := &httpReqWithID{
+			bearerToken: authToken,
+		}
+		err = srv.Authenticate(nil, fakeReq)
+		ident = fakeReq.GetIdentity()
 	} else {
 		// Not a Server; use the Client for token resolution
-		token, err = s.agent.Client().ResolveSecretToken(authToken)
+		ident, err = s.agent.Client().ResolveIdentity(authToken)
 	}
 	if err != nil {
-		// If error is no token create an empty one
-		if err == structs.ErrTokenNotFound {
-			token = &structs.ACLToken{}
-		} else {
-			s.logger.Error("retrieving acl token from request", "err", err)
-			return nil, err
-		}
-	}
-	// Prevent nil token with anonymous one
-	if token == nil {
-		token = structs.AnonymousACLToken
+		// Continue auditing request if token could not be found
+		s.logger.Debug("error retrieving acl token from request", "err", err)
 	}
 
 	auth := &audit.Auth{
-		AccessorID: token.AccessorID,
-		Name:       token.Name,
-		Policies:   token.Policies,
-		Global:     token.Global,
-		CreateTime: token.CreateTime,
+		Name: ident.String(),
+	}
+
+	// Maintain backward compat with pre-1.5 ACLToken-only metadata
+	if ident != nil {
+		if aclToken := ident.ACLToken; aclToken != nil {
+			auth.AccessorID = aclToken.AccessorID
+			auth.CreateTime = aclToken.CreateTime
+			auth.Global = aclToken.Global
+			auth.Name = aclToken.Name
+			auth.Policies = aclToken.Policies
+		}
 	}
 
 	event := s.eventFromReq(ctx, req, auth)
