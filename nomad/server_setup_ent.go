@@ -1,11 +1,9 @@
 //go:build ent
-// +build ent
 
 package nomad
 
 import (
 	"fmt"
-
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/sentinel/sentinel"
 )
@@ -55,6 +53,7 @@ func (s *Server) setupEnterprise(config *Config) error {
 	// Set License config options
 	config.LicenseConfig = &LicenseConfig{
 		AdditionalPubKeys: config.LicenseConfig.AdditionalPubKeys,
+		BuildDate:         config.BuildDate,
 		LicenseEnvBytes:   config.LicenseEnv,
 		LicensePath:       config.LicensePath,
 		Logger:            s.logger,

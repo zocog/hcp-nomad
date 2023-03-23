@@ -15,7 +15,7 @@ updates:
       - dependency-name: "github.com/google/go-querystring"
       - dependency-name: "github.com/hashicorp/errwrap"
       - dependency-name: "github.com/hashicorp/eventlogger"
-      - dependency-name: "github.com/hashicorp/go-licensing"
+      - dependency-name: "github.com/hashicorp/go-licensing/v3"
       - dependency-name: "github.com/hashicorp/nomad-licensing"
       - dependency-name: "github.com/hashicorp/raft-snapshotagent"
       - dependency-name: "github.com/hashicorp/sentinel"

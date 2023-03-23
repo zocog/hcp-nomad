@@ -1,5 +1,4 @@
 //go:build ent
-// +build ent
 
 package nomad
 
@@ -15,7 +14,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-licensing"
+	"github.com/hashicorp/go-licensing/v3"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 )
 
@@ -64,16 +63,32 @@ func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 		return nil, errors.New("failed to read license: license is missing. To add a license, configure \"license_path\" in your server configuration file, use the NOMAD_LICENSE environment variable, or use the NOMAD_LICENSE_PATH environment variable. For a trial license of Nomad Enterprise, visit https://nomadproject.io/trial.")
 	}
 
+	// allowing unset BuildDate would mean licenses effectively never expire.
+	if cfg.BuildDate.IsZero() {
+		return nil, errors.New("error unset BuildDate")
+	}
+
 	lw := &LicenseWatcher{
 		fileLicense: blob,
 		logger:      cfg.Logger.Named("licensing"),
 		logTimes:    make(map[nomadLicense.Features]time.Time),
 	}
 
+	validatorOpts := licensing.ValidatorOptions{
+		ProductName:    nomadLicense.ProductName,
+		StringKeys:     cfg.AdditionalPubKeys,
+		InstallationID: "",
+		BuildDate:      cfg.BuildDate,
+	}
+
+	validator, err := licensing.NewValidatorFromOptions(validatorOpts)
+	if err != nil {
+		return nil, fmt.Errorf("error initializing licensing validator: %w", err)
+	}
+
 	opts := &licensing.WatcherOptions{
-		ProductName:          nomadLicense.ProductName,
-		InitLicense:          blob,
-		AdditionalPublicKeys: cfg.AdditionalPubKeys,
+		InitLicense: blob,
+		Validator:   validator,
 	}
 
 	// Create the new watcher with options
@@ -139,8 +154,8 @@ func (lw *LicenseWatcher) Features() nomadLicense.Features {
 		return nomadLicense.FeatureNone
 	}
 
-	// check if our local license has expired
-	if time.Now().After(lic.TerminationTime) {
+	// check if our license is still valid
+	if _, err := lw.ValidateLicense(lw.FileLicense()); err != nil {
 		return nomadLicense.FeatureNone
 	}
 

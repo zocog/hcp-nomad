@@ -1,12 +1,11 @@
 //go:build ent
-// +build ent
 
 package mock
 
 import (
 	"fmt"
 
-	"github.com/hashicorp/go-licensing"
+	"github.com/hashicorp/go-licensing/v3"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 
 	"github.com/hashicorp/nomad/helper/uuid"

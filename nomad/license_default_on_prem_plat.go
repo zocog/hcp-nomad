@@ -1,5 +1,4 @@
 //go:build on_prem_platform
-// +build on_prem_platform
 
 package nomad
 
@@ -9,7 +8,7 @@ import (
 	"encoding/base64"
 	"time"
 
-	licensing "github.com/hashicorp/go-licensing"
+	licensing "github.com/hashicorp/go-licensing/v3"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 )
 

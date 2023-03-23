@@ -1,5 +1,4 @@
 //go:build ent
-// +build ent
 
 package nomad
 
@@ -11,11 +10,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	licensing "github.com/hashicorp/go-licensing"
+	licensing "github.com/hashicorp/go-licensing/v3"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 // TestLicenseWatcher_Init_MissingLicenseFile verifies that during startup a
@@ -28,9 +27,9 @@ func TestLicenseWatcher_Init_MissingLicenseFile(t *testing.T) {
 	}
 
 	lw, err := NewLicenseWatcher(cfg)
-	require.Nil(t, lw)
-	require.Error(t, err)
-	require.EqualError(t, err, "failed to read license: license is missing. To add a license, configure \"license_path\" in your server configuration file, use the NOMAD_LICENSE environment variable, or use the NOMAD_LICENSE_PATH environment variable. For a trial license of Nomad Enterprise, visit https://nomadproject.io/trial.")
+	must.Nil(t, lw)
+	must.Error(t, err)
+	must.EqError(t, err, "failed to read license: license is missing. To add a license, configure \"license_path\" in your server configuration file, use the NOMAD_LICENSE environment variable, or use the NOMAD_LICENSE_PATH environment variable. For a trial license of Nomad Enterprise, visit https://nomadproject.io/trial.")
 }
 
 // TestLicenseWatcher_Init_InvalidLicenseFileFormat verifies that during startup an
@@ -38,16 +37,31 @@ func TestLicenseWatcher_Init_MissingLicenseFile(t *testing.T) {
 func TestLicenseWatcher_Init_InvalidLicenseFileFormat(t *testing.T) {
 	ci.Parallel(t)
 
-	cfg := &LicenseConfig{
-		LicenseEnvBytes: "invalid-license",
-		Logger:          hclog.NewInterceptLogger(nil),
-	}
+	cfg := defaultTestLicenseConfig()
+	cfg.LicenseEnvBytes = "invalid-license"
 
 	lw, err := NewLicenseWatcher(cfg)
-	require.Nil(t, lw)
-	require.Error(t, err)
-	require.EqualError(t, err,
+	must.Nil(t, lw)
+	must.Error(t, err)
+	must.EqError(t, err,
 		"failed to initialize nomad license: error decoding version: expected integer")
+}
+
+func TestLicenseWatcher_Init_InvalidKeys(t *testing.T) {
+	ci.Parallel(t)
+
+	cfg := defaultTestLicenseConfig()
+	cfg.AdditionalPubKeys = []string{"invalid pubkey"}
+	cfg.LicenseEnvBytes = testLicense(
+		"bad-signature-bytes",
+		time.Now(),
+		time.Now().Add(15*time.Minute),
+	)
+
+	lw, err := NewLicenseWatcher(cfg)
+	must.Nil(t, lw)
+	must.Error(t, err)
+	must.EqError(t, err, "error initializing licensing validator: failed to parse key string")
 }
 
 // TestLicenseWatcher_Init_InvalidLicenseSignature verifies that during startup an
@@ -55,18 +69,13 @@ func TestLicenseWatcher_Init_InvalidLicenseFileFormat(t *testing.T) {
 func TestLicenseWatcher_Init_InvalidLicenseSignature(t *testing.T) {
 	ci.Parallel(t)
 
-	cfg := &LicenseConfig{
-		LicenseEnvBytes: testLicense(
-			"bad-signature-license",
-			time.Now(),
-			time.Now().Add(15*time.Minute)), // note: missing public keys
-		Logger: hclog.NewInterceptLogger(nil),
-	}
+	cfg := defaultTestLicenseConfig()
+	cfg.AdditionalPubKeys = []string{}
 
 	lw, err := NewLicenseWatcher(cfg)
-	require.Nil(t, lw)
-	require.Error(t, err)
-	require.EqualError(t, err,
+	must.Nil(t, lw)
+	must.Error(t, err)
+	must.EqError(t, err,
 		"failed to initialize nomad license: signature invalid for license; tried 1 key(s)")
 }
 
@@ -75,20 +84,31 @@ func TestLicenseWatcher_Init_InvalidLicenseSignature(t *testing.T) {
 func TestLicenseWatcher_Init_ExpiredLicenseFile(t *testing.T) {
 	ci.Parallel(t)
 
-	cfg := &LicenseConfig{
-		LicenseEnvBytes: testLicense(
-			"expired-license",
-			time.Now().Add(-1*time.Hour),
-			time.Now().Add(-1*time.Second)),
-		AdditionalPubKeys: encodedTestLicensePubKeys(),
-		Logger:            hclog.NewInterceptLogger(nil),
-	}
+	cfg := defaultTestLicenseConfig()
+	cfg.LicenseEnvBytes = testLicense(
+		"expired-license",
+		time.Now().Add(-1*time.Hour),
+		time.Now().Add(-1*time.Second))
 
 	lw, err := NewLicenseWatcher(cfg)
-	require.Nil(t, lw)
-	require.Error(t, err)
-	require.EqualError(t, err,
+	must.Nil(t, lw)
+	must.Error(t, err)
+	must.EqError(t, err,
 		"failed to initialize nomad license: 1 error occurred:\n\t* license is no longer valid\n\n")
+}
+
+// TestLicenseWatcher_Init_FutureBuildDate verifies that a BuildDate later than
+// license expiration fails the LicenseWatcher start
+func TestLicenseWatcher_Init_FutureBuildDate(t *testing.T) {
+	ci.Parallel(t)
+
+	cfg := defaultTestLicenseConfig()
+	cfg.BuildDate = time.Now().Add(time.Hour * 24)
+
+	lw, err := NewLicenseWatcher(cfg)
+	must.Nil(t, lw)
+	must.Error(t, err)
+	must.ErrorIs(t, err, licensing.ErrExpirationBeforeBuildDate)
 }
 
 // TestLicenseWatcher_Start_ValidLicenseFile_Ok verifies that during startup a
@@ -96,13 +116,7 @@ func TestLicenseWatcher_Init_ExpiredLicenseFile(t *testing.T) {
 func TestLicenseWatcher_Start_ValidLicenseFile_Ok(t *testing.T) {
 	ci.Parallel(t)
 
-	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = defaultTestLicense()
-		c.LicenseConfig = &LicenseConfig{
-			AdditionalPubKeys: encodedTestLicensePubKeys(),
-			Logger:            hclog.NewInterceptLogger(nil),
-		}
-	})
+	s1, cleanupS1 := TestServer(t, nil)
 	defer cleanupS1()
 	lw := s1.EnterpriseState.licenseWatcher
 
@@ -113,7 +127,7 @@ func TestLicenseWatcher_Start_ValidLicenseFile_Ok(t *testing.T) {
 			!lw.hasFeature(nomadLicense.FeatureAuditLogging) &&
 			!lw.hasFeature(nomadLicense.FeatureMultiregionDeployments), nil
 	}, func(err error) {
-		require.FailNow(t, "expected valid license")
+		t.Fatal("expected valid license")
 	})
 }
 
@@ -123,10 +137,7 @@ func TestLicenseWatcher_Reload_NoOp(t *testing.T) {
 	ci.Parallel(t)
 
 	initLicense := defaultTestLicense()
-	cfg := &LicenseConfig{
-		AdditionalPubKeys: encodedTestLicensePubKeys(),
-		Logger:            hclog.NewInterceptLogger(nil),
-	}
+	cfg := defaultTestLicenseConfig()
 
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseEnv = initLicense
@@ -136,21 +147,21 @@ func TestLicenseWatcher_Reload_NoOp(t *testing.T) {
 	lw := s1.EnterpriseState.licenseWatcher
 
 	lic := s1.EnterpriseState.License()
-	require.NotNil(t, lic)
-	require.Equal(t, "test-license", lic.LicenseID)
+	must.NotNil(t, lic)
+	must.Eq(t, "test-license", lic.LicenseID)
 
-	require.NoError(t, lw.Reload(cfg))
+	must.NoError(t, lw.Reload(cfg))
 
 	lic = s1.EnterpriseState.License()
-	require.NotNil(t, lic)
-	require.Equal(t, "test-license", lic.LicenseID)
+	must.NotNil(t, lic)
+	must.Eq(t, "test-license", lic.LicenseID)
 
 	// reload with an empty config as well
-	require.NoError(t, lw.Reload(&LicenseConfig{}))
+	must.NoError(t, lw.Reload(&LicenseConfig{}))
 
 	lic = s1.EnterpriseState.License()
-	require.NotNil(t, lic)
-	require.Equal(t, "test-license", lic.LicenseID)
+	must.NotNil(t, lic)
+	must.Eq(t, "test-license", lic.LicenseID)
 }
 
 // TestLicenseWatcher_Reload_NewValid verifies that, given a running server
@@ -162,10 +173,7 @@ func TestLicenseWatcher_Reload_NewValid(t *testing.T) {
 
 	initLicense := defaultTestLicense()
 
-	cfg := &LicenseConfig{
-		AdditionalPubKeys: encodedTestLicensePubKeys(),
-		Logger:            hclog.NewInterceptLogger(nil),
-	}
+	cfg := defaultTestLicenseConfig()
 
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseEnv = initLicense
@@ -175,15 +183,15 @@ func TestLicenseWatcher_Reload_NewValid(t *testing.T) {
 	lw := s1.EnterpriseState.licenseWatcher
 
 	lic := s1.EnterpriseState.License()
-	require.NotNil(t, lic)
-	require.Equal(t, "test-license", lic.LicenseID)
+	must.NotNil(t, lic)
+	must.Eq(t, "test-license", lic.LicenseID)
 
 	file := testLicense("reload-id", time.Now(), time.Now().Add(1*time.Hour))
 	f, err := ioutil.TempFile("", "licensewatcher")
-	require.NoError(t, err)
+	must.NoError(t, err)
 	_, err = io.WriteString(f, file)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
+	must.NoError(t, err)
+	must.NoError(t, f.Close())
 
 	defer os.Remove(f.Name())
 
@@ -193,11 +201,11 @@ func TestLicenseWatcher_Reload_NewValid(t *testing.T) {
 		Logger:            hclog.NewInterceptLogger(nil),
 	}
 
-	require.NoError(t, lw.Reload(cfg))
+	must.NoError(t, lw.Reload(cfg))
 
 	lic = s1.EnterpriseState.License()
-	require.NotNil(t, lic)
-	require.Equal(t, "reload-id", lic.LicenseID)
+	must.NotNil(t, lic)
+	must.Eq(t, "reload-id", lic.LicenseID)
 }
 
 // TestLicenseWatcher_Reload_NewExpired verifies that, given a running server
@@ -209,10 +217,7 @@ func TestLicenseWatcher_Reload_NewExpired(t *testing.T) {
 
 	initLicense := testLicense("test",
 		time.Now().Add(-5*time.Minute), time.Now().Add(15*time.Minute))
-	cfg := &LicenseConfig{
-		AdditionalPubKeys: encodedTestLicensePubKeys(),
-		Logger:            hclog.NewInterceptLogger(nil),
-	}
+	cfg := defaultTestLicenseConfig()
 
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseEnv = initLicense
@@ -222,20 +227,20 @@ func TestLicenseWatcher_Reload_NewExpired(t *testing.T) {
 	lw := s1.EnterpriseState.licenseWatcher
 
 	lic := s1.EnterpriseState.License()
-	require.NotNil(t, lic)
-	require.Equal(t, "test", lic.LicenseID)
+	must.NotNil(t, lic)
+	must.Eq(t, "test", lic.LicenseID)
 
 	expiredLicense := testLicense("expired-license",
 		time.Now().Add(-2*time.Minute), time.Now().Add(-1*time.Minute))
 	cfg.LicenseEnvBytes = expiredLicense
 
 	err := lw.Reload(cfg)
-	require.EqualError(t, err,
+	must.EqError(t, err,
 		"error validating license: 1 error occurred:\n\t* license is no longer valid\n\n")
 
 	lic = s1.EnterpriseState.License()
-	require.NotNil(t, lic)
-	require.Equal(t, "test", lic.LicenseID)
+	must.NotNil(t, lic)
+	must.Eq(t, "test", lic.LicenseID)
 }
 
 // TestLicenseWatcher_Reload_NewInvalidFormat verifies that, given a running
@@ -247,10 +252,7 @@ func TestLicenseWatcher_Reload_NewInvalidFormat(t *testing.T) {
 
 	initLicense := testLicense("test",
 		time.Now().Add(-5*time.Minute), time.Now().Add(15*time.Minute))
-	cfg := &LicenseConfig{
-		AdditionalPubKeys: encodedTestLicensePubKeys(),
-		Logger:            hclog.NewInterceptLogger(nil),
-	}
+	cfg := defaultTestLicenseConfig()
 
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseEnv = initLicense
@@ -260,18 +262,18 @@ func TestLicenseWatcher_Reload_NewInvalidFormat(t *testing.T) {
 	lw := s1.EnterpriseState.licenseWatcher
 
 	lic := s1.EnterpriseState.License()
-	require.NotNil(t, lic)
-	require.Equal(t, "test", lic.LicenseID)
+	must.NotNil(t, lic)
+	must.Eq(t, "test", lic.LicenseID)
 
 	cfg.LicenseEnvBytes = "invalid-license"
 
 	err := lw.Reload(cfg)
-	require.EqualError(t, err,
+	must.EqError(t, err,
 		"error validating license: error decoding version: expected integer")
 
 	lic = s1.EnterpriseState.License()
-	require.NotNil(t, lic)
-	require.Equal(t, "test", lic.LicenseID)
+	must.NotNil(t, lic)
+	must.Eq(t, "test", lic.LicenseID)
 }
 
 // TestLicenseWatcher_Expired_NoFeatures verifies that, given a running server
@@ -299,10 +301,7 @@ func TestLicenseWatcher_Expired_NoFeatures(t *testing.T) {
 	}
 	signed, _ := lic.SignedString(nomadLicense.TestPrivateKey)
 
-	cfg := &LicenseConfig{
-		AdditionalPubKeys: encodedTestLicensePubKeys(),
-		Logger:            hclog.NewInterceptLogger(nil),
-	}
+	cfg := defaultTestLicenseConfig()
 
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseEnv = signed
@@ -314,6 +313,6 @@ func TestLicenseWatcher_Expired_NoFeatures(t *testing.T) {
 	testutil.WaitForResult(func() (bool, error) {
 		return !lw.hasFeature(nomadLicense.FeatureAuditLogging), nil
 	}, func(err error) {
-		require.FailNow(t, "expected license to expire and have no features")
+		t.Fatal("expected license to expire and have no features")
 	})
 }
