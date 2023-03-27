@@ -59,7 +59,7 @@ jobs:
       - name: Setup Git
         run: |
           if [ "${{ secrets.ELEVATED_GITHUB_TOKEN }}" ]; then
-            git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com/".insteadOf "https://github.com"
+            git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com"
           fi
           git config --global user.email "github-team-nomad-core@hashicorp.com"
           git config --global user.name "hc-github-team-nomad-core"
