@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"time"
 
-	hclog "github.com/hashicorp/go-hclog"
 	licensing "github.com/hashicorp/go-licensing/v3"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 )
@@ -17,12 +16,7 @@ var oneYearAgo = time.Now().Add(-time.Hour * 24 * 365)
 // license that lasts longer than any test run. This gets called early in
 // nomad.TestServer so you can still override the license for a given test.
 func defaultEnterpriseTestConfig(c *Config) {
-	c.BuildDate = oneYearAgo
-	c.LicenseEnv = defaultTestLicense()
-	c.LicenseConfig = &LicenseConfig{
-		AdditionalPubKeys: encodedTestLicensePubKeys(),
-		Logger:            hclog.NewInterceptLogger(nil),
-	}
+	c.LicenseConfig = defaultTestLicenseConfig()
 }
 
 func defaultTestLicenseConfig() *LicenseConfig {
@@ -30,7 +24,6 @@ func defaultTestLicenseConfig() *LicenseConfig {
 		AdditionalPubKeys: encodedTestLicensePubKeys(),
 		BuildDate:         oneYearAgo,
 		LicenseEnvBytes:   defaultTestLicense(),
-		Logger:            hclog.NewInterceptLogger(nil),
 	}
 }
 

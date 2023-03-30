@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -54,8 +53,8 @@ type LicenseWatcher struct {
 	logTimes map[nomadLicense.Features]time.Time
 }
 
-func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
-	blob, err := licenseFromLicenseConfig(cfg)
+func NewLicenseWatcher(logger hclog.Logger, cfg *LicenseConfig) (*LicenseWatcher, error) {
+	blob, err := cfg.licenseString()
 	if err != nil {
 		return nil, err
 	}
@@ -70,20 +69,13 @@ func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 
 	lw := &LicenseWatcher{
 		fileLicense: blob,
-		logger:      cfg.Logger.Named("licensing"),
+		logger:      logger.Named("licensing"),
 		logTimes:    make(map[nomadLicense.Features]time.Time),
 	}
 
-	validatorOpts := licensing.ValidatorOptions{
-		ProductName:    nomadLicense.ProductName,
-		StringKeys:     cfg.AdditionalPubKeys,
-		InstallationID: "",
-		BuildDate:      cfg.BuildDate,
-	}
-
-	validator, err := licensing.NewValidatorFromOptions(validatorOpts)
+	validator, err := cfg.validator()
 	if err != nil {
-		return nil, fmt.Errorf("error initializing licensing validator: %w", err)
+		return nil, err
 	}
 
 	opts := &licensing.WatcherOptions{
@@ -107,7 +99,7 @@ func NewLicenseWatcher(cfg *LicenseConfig) (*LicenseWatcher, error) {
 
 // Reload updates the license from the config
 func (lw *LicenseWatcher) Reload(cfg *LicenseConfig) error {
-	blob, err := licenseFromLicenseConfig(cfg)
+	blob, err := cfg.licenseString()
 	if err != nil {
 		return err
 	}
@@ -267,24 +259,4 @@ func (lw *LicenseWatcher) monitorWatcher(ctx context.Context) {
 			metrics.SetGauge([]string{"license", "expiration_time_epoch"}, float32(lw.License().ExpirationTime.Unix()))
 		}
 	}
-}
-
-func licenseFromLicenseConfig(cfg *LicenseConfig) (string, error) {
-	if cfg.LicenseEnvBytes != "" {
-		return cfg.LicenseEnvBytes, nil
-	}
-
-	if cfg.LicensePath != "" {
-		licRaw, err := ioutil.ReadFile(cfg.LicensePath)
-		if err != nil {
-			return "", fmt.Errorf("failed to read license file %w", err)
-		}
-		return strings.TrimRight(string(licRaw), "\r\n"), nil
-	}
-
-	blob, err := defaultEnterpriseLicense(cfg)
-	if err != nil {
-		return "", fmt.Errorf("failed to set default license %w", err)
-	}
-	return blob, nil
 }

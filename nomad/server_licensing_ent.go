@@ -64,9 +64,5 @@ func (es *EnterpriseState) ReloadLicense(cfg *Config) error {
 	if es.licenseWatcher == nil {
 		return nil
 	}
-	licenseConfig := &LicenseConfig{
-		LicenseEnvBytes: cfg.LicenseEnv,
-		LicensePath:     cfg.LicensePath,
-	}
-	return es.licenseWatcher.Reload(licenseConfig)
+	return es.licenseWatcher.Reload(cfg.LicenseConfig)
 }

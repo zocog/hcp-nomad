@@ -4,6 +4,7 @@ package nomad
 
 import (
 	"fmt"
+
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/sentinel/sentinel"
 )
@@ -50,16 +51,7 @@ func (s *Server) setupEnterprise(config *Config) error {
 		autopilot.WithPromoter(s.autopilotPromoter()),
 	)
 
-	// Set License config options
-	config.LicenseConfig = &LicenseConfig{
-		AdditionalPubKeys: config.LicenseConfig.AdditionalPubKeys,
-		BuildDate:         config.BuildDate,
-		LicenseEnvBytes:   config.LicenseEnv,
-		LicensePath:       config.LicensePath,
-		Logger:            s.logger,
-	}
-
-	licenseWatcher, err := NewLicenseWatcher(config.LicenseConfig)
+	licenseWatcher, err := NewLicenseWatcher(s.logger, config.LicenseConfig)
 	if err != nil {
 		return fmt.Errorf("failed to initialize enterprise licensing: %w", err)
 	}

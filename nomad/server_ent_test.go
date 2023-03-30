@@ -3,20 +3,57 @@
 package nomad
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/go-licensing/v3"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/ci"
+	"github.com/hashicorp/nomad/command/agent/consul"
 	"github.com/hashicorp/nomad/testutil"
+	"github.com/shoenig/test"
+	"github.com/shoenig/test/must"
 	"github.com/stretchr/testify/require"
 )
+
+// TestServer_Bad_License verifies that an invalid license prevents the server from writing state,
+// mainly so an upgrade that fails due to license expiration can be rolled back.
+func TestServer_Bad_License(t *testing.T) {
+	ci.Parallel(t)
+
+	config := TestConfigForServer(t)
+	config.DevMode = false // raft should actually happen if our expected error doesn't occur
+	config.LicenseConfig.BuildDate = time.Now().Add(time.Hour * 24 * 365)
+
+	s, err := NewServer(config, &consul.MockCatalog{}, &consul.MockConfigsAPI{}, &consul.MockACLsAPI{})
+	t.Cleanup(func() { // in case somehow it manages to start
+		if s == nil {
+			return
+		}
+		if e := s.Shutdown(); e != nil {
+			t.Error(e)
+		}
+	})
+
+	// check that raft didn't happen. this is pretty fragile, but it's something.
+	// its logger gets set pretty early in Server.setupRaft()
+	test.Nil(t, config.RaftConfig.Logger, test.Sprint("raft logger should be nil"))
+	// perhaps less fragile, also double-check whether raft data dir was created.
+	// usage of DirNotExistsFS is a bit strange, but the leading slash
+	raftDir := strings.TrimLeft(filepath.Join(config.DataDir, raftState), "/")
+	test.DirNotExistsFS(t, os.DirFS("/"), raftDir, test.Sprintf("raft dir in %s", config.DataDir))
+
+	// assert that this is all due to our desired error
+	test.Nil(t, s, test.Sprint("*Server should be nil"))
+	must.Error(t, err)
+	must.ErrorContains(t, err, "invalid license config")
+}
 
 func TestServer_Reload_License(t *testing.T) {
 	ci.Parallel(t)
@@ -47,11 +84,9 @@ func TestServer_Reload_License(t *testing.T) {
 	defer os.Remove(f.Name())
 
 	server, cleanup := TestServer(t, func(c *Config) {
-		c.LicensePath = f.Name()
-		c.LicenseEnv = ""
-		c.LicenseConfig = &LicenseConfig{
-			AdditionalPubKeys: []string{base64.StdEncoding.EncodeToString(nomadLicense.TestPublicKey)},
-		}
+		// use the on-disk license instead of the default test one in env
+		c.LicenseConfig.LicenseEnvBytes = ""
+		c.LicenseConfig.LicensePath = f.Name()
 	})
 
 	defer cleanup()
@@ -74,7 +109,7 @@ func TestServer_Reload_License(t *testing.T) {
 
 	newConfig := DefaultConfig()
 	// path is unchanged; contents were changed
-	newConfig.LicensePath = f.Name()
+	newConfig.LicenseConfig.LicensePath = f.Name()
 
 	err = server.Reload(newConfig)
 	require.NoError(t, err)

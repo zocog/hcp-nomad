@@ -304,7 +304,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 		c.AuthoritativeRegion = "west"
 		c.ACLEnabled = true
 		c.NumSchedulers = 1
-		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupWest()
 
@@ -315,7 +315,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 		c.ReplicationBackoff = 20 * time.Millisecond
 		c.ReplicationToken = root.SecretID
 		c.NumSchedulers = 1
-		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupEast()
 
@@ -327,7 +327,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 		c.ReplicationBackoff = 20 * time.Millisecond
 		c.ReplicationToken = root.SecretID
 		c.NumSchedulers = 1
-		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupNorth()
 
@@ -459,7 +459,7 @@ func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {
 		c.AuthoritativeRegion = "west"
 		c.ACLEnabled = true
 		c.NumSchedulers = 1
-		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupWest()
 
@@ -470,7 +470,7 @@ func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {
 		c.ReplicationBackoff = 20 * time.Millisecond
 		c.ReplicationToken = root.SecretID
 		c.NumSchedulers = 1
-		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupEast()
 
@@ -605,7 +605,7 @@ func TestJobEndpoint_Deregister_Multiregion(t *testing.T) {
 		c.AuthoritativeRegion = "west"
 		c.ACLEnabled = true
 		c.NumSchedulers = 1
-		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupWest()
 
@@ -616,7 +616,7 @@ func TestJobEndpoint_Deregister_Multiregion(t *testing.T) {
 		c.ReplicationBackoff = 20 * time.Millisecond
 		c.ReplicationToken = root.SecretID
 		c.NumSchedulers = 1
-		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupEast()
 
@@ -627,7 +627,7 @@ func TestJobEndpoint_Deregister_Multiregion(t *testing.T) {
 		c.ReplicationBackoff = 20 * time.Millisecond
 		c.ReplicationToken = root.SecretID
 		c.NumSchedulers = 1
-		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupNorth()
 
@@ -854,7 +854,7 @@ func buildMultiregionCluster(t *testing.T) (*structs.ACLToken, func(), func(), f
 		c.AuthoritativeRegion = "west"
 		c.ACLEnabled = true
 		c.NumSchedulers = 1
-		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
 
 	east, _, cleanupEast := TestACLServer(t, func(c *Config) {
@@ -864,7 +864,7 @@ func buildMultiregionCluster(t *testing.T) (*structs.ACLToken, func(), func(), f
 		c.ReplicationBackoff = 20 * time.Millisecond
 		c.ReplicationToken = root.SecretID
 		c.NumSchedulers = 1
-		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
 
 	north, _, cleanupNorth := TestACLServer(t, func(c *Config) {
@@ -874,7 +874,7 @@ func buildMultiregionCluster(t *testing.T) (*structs.ACLToken, func(), func(), f
 		c.ReplicationBackoff = 20 * time.Millisecond
 		c.ReplicationToken = root.SecretID
 		c.NumSchedulers = 1
-		c.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
 
 	TestJoin(t, west, east, north)

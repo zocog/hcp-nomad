@@ -23,7 +23,7 @@ func TestQuotaEndpoint_GetQuotaSpec(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 
@@ -55,7 +55,7 @@ func TestQuotaEndpoint_GetQuotaSpec_ACL(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
@@ -118,7 +118,7 @@ func TestQuotaEndpoint_GetQuotaSpec_Blocking(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 
@@ -180,7 +180,7 @@ func TestQuotaEndpoint_GetQuotaSpecs(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
@@ -227,7 +227,7 @@ func TestQuotaEndpoint_GetQuotaSpecs_Blocking(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 	state := s1.fsm.State()
@@ -289,7 +289,7 @@ func TestQuotaEndpoint_ListQuotaSpecs(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 
@@ -330,7 +330,7 @@ func TestQuotaEndpoint_ListQuotaSpecs_ACL(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
@@ -410,7 +410,7 @@ func TestQuotaEndpoint_ListQuotaSpecs_Blocking(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 	state := s1.fsm.State()
@@ -462,7 +462,7 @@ func TestQuotaEndpoint_DeleteQuotaSpecs(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
@@ -487,7 +487,7 @@ func TestQuotaEndpoint_DeleteQuotaSpecs_ACL(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
@@ -562,7 +562,7 @@ func TestQuotaEndpoint_UpsertQuotaSpecs(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
@@ -594,7 +594,7 @@ func TestQuotaEndpoint_UpsertQuotaSpecs_ACL(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
@@ -674,7 +674,7 @@ func TestQuotaEndpoint_ListQuotaUsages(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 
@@ -715,7 +715,7 @@ func TestQuotaEndpoint_ListQuotaUsages_ACL(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
@@ -795,7 +795,7 @@ func TestQuotaEndpoint_ListQuotaUsages_Blocking(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 	defer s1.Shutdown()
@@ -848,7 +848,7 @@ func TestQuotaEndpoint_GetQuotaUsage(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
@@ -878,7 +878,7 @@ func TestQuotaEndpoint_GetQuotaUsage(t *testing.T) {
 func TestQuotaEndpoint_GetQuotaUsageWithVariables(t *testing.T) {
 	ci.Parallel(t)
 	srv, cleanup := TestServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanup()
 	codec := rpcClient(t, srv)
@@ -935,7 +935,7 @@ func TestQuotaEndpoint_GetQuotaUsage_ACL(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)
@@ -998,7 +998,7 @@ func TestQuotaEndpoint_GetQuotaUsage_Blocking(t *testing.T) {
 	assert := assert.New(t)
 	ci.Parallel(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = licenseForGovernance().Signed
+		c.LicenseConfig.LicenseEnvBytes = licenseForGovernance().Signed
 	})
 	defer cleanupS1()
 

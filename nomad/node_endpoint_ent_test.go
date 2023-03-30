@@ -25,9 +25,9 @@ func TestClientEndpoint_Drain_Multiregion(t *testing.T) {
 
 	// Create a server in a client in the same region. Even though this is a
 	// multiregion test we only need to act in a single region.
-	s, cleanupS := TestServer(t, func(conf *Config) {
-		conf.Region = "east"
-		conf.LicenseEnv = licenseForMulticlusterEfficiency().Signed
+	s, cleanupS := TestServer(t, func(c *Config) {
+		c.Region = "east"
+		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
 	defer cleanupS()
 	codec := rpcClient(t, s)

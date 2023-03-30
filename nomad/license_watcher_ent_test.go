@@ -22,11 +22,10 @@ import (
 func TestLicenseWatcher_Init_MissingLicenseFile(t *testing.T) {
 	ci.Parallel(t)
 
-	cfg := &LicenseConfig{
-		Logger: hclog.NewInterceptLogger(nil),
-	}
+	cfg := &LicenseConfig{}
+	logger := hclog.NewInterceptLogger(nil)
 
-	lw, err := NewLicenseWatcher(cfg)
+	lw, err := NewLicenseWatcher(logger, cfg)
 	must.Nil(t, lw)
 	must.Error(t, err)
 	must.EqError(t, err, "failed to read license: license is missing. To add a license, configure \"license_path\" in your server configuration file, use the NOMAD_LICENSE environment variable, or use the NOMAD_LICENSE_PATH environment variable. For a trial license of Nomad Enterprise, visit https://nomadproject.io/trial.")
@@ -39,8 +38,9 @@ func TestLicenseWatcher_Init_InvalidLicenseFileFormat(t *testing.T) {
 
 	cfg := defaultTestLicenseConfig()
 	cfg.LicenseEnvBytes = "invalid-license"
+	logger := hclog.NewInterceptLogger(nil)
 
-	lw, err := NewLicenseWatcher(cfg)
+	lw, err := NewLicenseWatcher(logger, cfg)
 	must.Nil(t, lw)
 	must.Error(t, err)
 	must.EqError(t, err,
@@ -57,8 +57,9 @@ func TestLicenseWatcher_Init_InvalidKeys(t *testing.T) {
 		time.Now(),
 		time.Now().Add(15*time.Minute),
 	)
+	logger := hclog.NewInterceptLogger(nil)
 
-	lw, err := NewLicenseWatcher(cfg)
+	lw, err := NewLicenseWatcher(logger, cfg)
 	must.Nil(t, lw)
 	must.Error(t, err)
 	must.EqError(t, err, "error initializing licensing validator: failed to parse key string")
@@ -71,8 +72,9 @@ func TestLicenseWatcher_Init_InvalidLicenseSignature(t *testing.T) {
 
 	cfg := defaultTestLicenseConfig()
 	cfg.AdditionalPubKeys = []string{}
+	logger := hclog.NewInterceptLogger(nil)
 
-	lw, err := NewLicenseWatcher(cfg)
+	lw, err := NewLicenseWatcher(logger, cfg)
 	must.Nil(t, lw)
 	must.Error(t, err)
 	must.EqError(t, err,
@@ -89,8 +91,9 @@ func TestLicenseWatcher_Init_ExpiredLicenseFile(t *testing.T) {
 		"expired-license",
 		time.Now().Add(-1*time.Hour),
 		time.Now().Add(-1*time.Second))
+	logger := hclog.NewInterceptLogger(nil)
 
-	lw, err := NewLicenseWatcher(cfg)
+	lw, err := NewLicenseWatcher(logger, cfg)
 	must.Nil(t, lw)
 	must.Error(t, err)
 	must.EqError(t, err,
@@ -104,8 +107,9 @@ func TestLicenseWatcher_Init_FutureBuildDate(t *testing.T) {
 
 	cfg := defaultTestLicenseConfig()
 	cfg.BuildDate = time.Now().Add(time.Hour * 24)
+	logger := hclog.NewInterceptLogger(nil)
 
-	lw, err := NewLicenseWatcher(cfg)
+	lw, err := NewLicenseWatcher(logger, cfg)
 	must.Nil(t, lw)
 	must.Error(t, err)
 	must.ErrorIs(t, err, licensing.ErrExpirationBeforeBuildDate)
@@ -136,11 +140,9 @@ func TestLicenseWatcher_Start_ValidLicenseFile_Ok(t *testing.T) {
 func TestLicenseWatcher_Reload_NoOp(t *testing.T) {
 	ci.Parallel(t)
 
-	initLicense := defaultTestLicense()
 	cfg := defaultTestLicenseConfig()
 
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = initLicense
 		c.LicenseConfig = cfg
 	})
 	defer cleanupS1()
@@ -171,14 +173,7 @@ func TestLicenseWatcher_Reload_NoOp(t *testing.T) {
 func TestLicenseWatcher_Reload_NewValid(t *testing.T) {
 	ci.Parallel(t)
 
-	initLicense := defaultTestLicense()
-
-	cfg := defaultTestLicenseConfig()
-
-	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = initLicense
-		c.LicenseConfig = cfg
-	})
+	s1, cleanupS1 := TestServer(t, nil)
 	defer cleanupS1()
 	lw := s1.EnterpriseState.licenseWatcher
 
@@ -195,10 +190,9 @@ func TestLicenseWatcher_Reload_NewValid(t *testing.T) {
 
 	defer os.Remove(f.Name())
 
-	cfg = &LicenseConfig{
+	cfg := &LicenseConfig{
 		LicensePath:       f.Name(),
 		AdditionalPubKeys: encodedTestLicensePubKeys(),
-		Logger:            hclog.NewInterceptLogger(nil),
 	}
 
 	must.NoError(t, lw.Reload(cfg))
@@ -218,9 +212,9 @@ func TestLicenseWatcher_Reload_NewExpired(t *testing.T) {
 	initLicense := testLicense("test",
 		time.Now().Add(-5*time.Minute), time.Now().Add(15*time.Minute))
 	cfg := defaultTestLicenseConfig()
+	cfg.LicenseEnvBytes = initLicense
 
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = initLicense
 		c.LicenseConfig = cfg
 	})
 	defer cleanupS1()
@@ -253,9 +247,9 @@ func TestLicenseWatcher_Reload_NewInvalidFormat(t *testing.T) {
 	initLicense := testLicense("test",
 		time.Now().Add(-5*time.Minute), time.Now().Add(15*time.Minute))
 	cfg := defaultTestLicenseConfig()
+	cfg.LicenseEnvBytes = initLicense
 
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = initLicense
 		c.LicenseConfig = cfg
 	})
 	defer cleanupS1()
@@ -301,11 +295,8 @@ func TestLicenseWatcher_Expired_NoFeatures(t *testing.T) {
 	}
 	signed, _ := lic.SignedString(nomadLicense.TestPrivateKey)
 
-	cfg := defaultTestLicenseConfig()
-
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
-		c.LicenseEnv = signed
-		c.LicenseConfig = cfg
+		c.LicenseConfig.LicenseEnvBytes = signed
 	})
 	defer cleanupS1()
 	lw := s1.EnterpriseState.licenseWatcher
