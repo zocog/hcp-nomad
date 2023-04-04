@@ -10,12 +10,12 @@ Nomad is available as a pre-compiled binary or as a package for several
 operating systems. You can also [build Nomad from source](#from-source).
 
 -> If you are interested in trialing Nomad without installing it locally, see the
-[Quickstart](/docs/install/quickstart) for options to get started with Nomad.
+[Quickstart](/nomad/docs/install/quickstart) for options to get started with Nomad.
 
 <Tabs>
 <Tab heading="Manual installation" group="manual">
 
-You can download a [precompiled binary](/downloads) and
+You can download a [precompiled binary](/nomad/downloads) and
 run it on your machine locally. You can also verify the binary using the
 available SHA-256 sums. After downloading Nomad, unzip the package. Make sure
 that the `nomad` binary is available on your `PATH` before continuing with the
@@ -74,16 +74,23 @@ distributions.
 <Tabs>
 <Tab heading="Ubuntu/Debian">
 
+Install the required packages.
+
+```shell-session
+$ sudo apt-get update && \
+  sudo apt-get install wget gpg coreutils
+```
+
 Add the HashiCorp [GPG key][gpg-key].
 
 ```shell-session
-$ curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+$ wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /keyrings/hashicorp-archive-keyring.gpg
 ```
 
 Add the official HashiCorp Linux repository.
 
 ```shell-session
-$ sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+$ echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 ```
 
 Update and install.
@@ -159,8 +166,8 @@ $ sudo yum -y install nomad
 </Tabs>
 
 -> **TIP:** Now that you have added the HashiCorp repository, you can install
-[Consul](https://learn.hashicorp.com/consul) and
-[Vault](https://learn.hashicorp.com/vault) with the same command.
+[Consul](/consul/tutorials) and
+[Vault](/vault/tutorials) with the same command.
 
 </Tab>
 </Tabs>
@@ -374,7 +381,7 @@ as a copy of [`git`](https://www.git-scm.com/) in your `PATH`.
    ```
 
 [consul-dev]: https://learn.hashicorp.com/consul/getting-started/agent#starting-the-agent
-[consul-download]: https://www.consul.io/downloads
-[destroy]: https://www.vagrantup.com/docs/cli/destroy
+[consul-download]: /consul/downloads
+[destroy]: /vagrant/docs/cli/destroy
 [gh-7865]: https://github.com/hashicorp/nomad/issues/7865
 [gpg-key]: https://apt.releases.hashicorp.com/gpg 'HashiCorp GPG key'
