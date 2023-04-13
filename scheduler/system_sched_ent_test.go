@@ -38,7 +38,7 @@ func TestSystemSched_JobRegister_QuotaLimit(t *testing.T) {
 	// Quota Limit: (2000 CPU, 2000 MB)
 	// Should be able to place 4
 	// Quota would be (2000, 1024)
-	assert.Nil(h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), job))
+	assert.Nil(h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), nil, job))
 
 	// Create several node
 	var nodes []*structs.Node

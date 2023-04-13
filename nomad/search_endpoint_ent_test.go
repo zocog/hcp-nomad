@@ -72,11 +72,11 @@ func TestSearch_PrefixSearch_Quota_ACL(t *testing.T) {
 	assert.Nil(state.UpsertNamespaces(500, []*structs.Namespace{ns}))
 
 	job1 := mock.Job()
-	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 502, job1))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 502, nil, job1))
 
 	job2 := mock.Job()
 	job2.Namespace = ns.Name
-	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 504, job2))
+	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 504, nil, job2))
 
 	assert.Nil(state.UpsertNode(structs.MsgTypeTestSetup, 1001, mock.Node()))
 
@@ -181,7 +181,7 @@ func TestSearch_PrefixSearch_Recommendation(t *testing.T) {
 
 	job := mock.Job()
 	rec := mock.Recommendation(job)
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 1000, job))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 1000, nil, job))
 	require.NoError(t, state.UpsertRecommendation(1000, rec))
 
 	prefix := rec.ID[:len(rec.ID)-2]

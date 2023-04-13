@@ -64,7 +64,7 @@ func TestScalingEndpoint_List_MultiNamespace(t *testing.T) {
 	pol1a1M.Type = structs.ScalingPolicyTypeVerticalMem
 	pol1a1M.TargetTask(job1a, job1a.TaskGroups[1], job1a.TaskGroups[1].Tasks[0])
 	job1a.TaskGroups[1].Tasks[0].ScalingPolicies = append(job1a.TaskGroups[1].Tasks[0].ScalingPolicies, pol1a1M)
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, job1a))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, nil, job1a))
 
 	// job1b
 	job1b := mock.Job()
@@ -75,7 +75,7 @@ func TestScalingEndpoint_List_MultiNamespace(t *testing.T) {
 	pol1bH.ID = "dd" + pol1bH.ID[2:]
 	pol1bH.TargetTaskGroup(job1b, job1b.TaskGroups[0])
 	job1b.TaskGroups[0].Scaling = pol1bH
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 902, job1b))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 902, nil, job1b))
 
 	// job2
 	job2 := mock.Job()
@@ -93,7 +93,7 @@ func TestScalingEndpoint_List_MultiNamespace(t *testing.T) {
 	pol2C.Type = structs.ScalingPolicyTypeVerticalCPU
 	pol2C.TargetTask(job2, job2.TaskGroups[0], job2.TaskGroups[0].Tasks[0])
 	job2.TaskGroups[0].Tasks[0].ScalingPolicies = []*structs.ScalingPolicy{pol2C}
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 903, job2))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 903, nil, job2))
 
 	cases := []struct {
 		Label     string
@@ -253,15 +253,15 @@ func TestScalingEndpoint_List_MultiNamespace_ACL(t *testing.T) {
 	job1a, pol1a := mock.JobWithScalingPolicy()
 	job1a.Namespace = ns1.Name
 	pol1a.TargetTaskGroup(job1a, job1a.TaskGroups[0])
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, job1a))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job1a))
 	job1b, pol1b := mock.JobWithScalingPolicy()
 	job1b.Namespace = ns1.Name
 	pol1b.TargetTaskGroup(job1b, job1b.TaskGroups[0])
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, job1b))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job1b))
 	job2, pol2 := mock.JobWithScalingPolicy()
 	job2.Namespace = ns2.Name
 	pol2.TargetTaskGroup(job2, job2.TaskGroups[0])
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, job2))
+	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job2))
 
 	cases := []struct {
 		Label     string

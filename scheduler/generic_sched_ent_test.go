@@ -48,7 +48,7 @@ func TestServiceSched_JobModify_IncrCount_QuotaLimit(t *testing.T) {
 	// Total Usage at count 2 : (1000, 512)
 	// Should be able to place 4 o
 	// Quota would be (2000, 1024)
-	assert.Nil(h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), job))
+	assert.Nil(h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), nil, job))
 
 	// Create several node
 	var nodes []*structs.Node
@@ -77,7 +77,7 @@ func TestServiceSched_JobModify_IncrCount_QuotaLimit(t *testing.T) {
 	// Update the task group count to 10 each
 	job2 := job.Copy()
 	job2.TaskGroups[0].Count = 10
-	require.NoError(t, h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), job2))
+	require.NoError(t, h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), nil, job2))
 
 	// Create a mock evaluation to deal with drain
 	eval := &structs.Evaluation{
@@ -164,7 +164,7 @@ func TestServiceSched_QuotaInteractionsWithConstraints(t *testing.T) {
 	r1.Networks = nil
 
 	// quota usage should now be 800/2000
-	require.NoError(h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), job))
+	require.NoError(h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), nil, job))
 
 	goodNode := mock.Node()
 	goodNode.NodeClass = "good"
@@ -204,7 +204,7 @@ func TestServiceSched_QuotaInteractionsWithConstraints(t *testing.T) {
 	job2 := job.Copy()
 	job2.TaskGroups[0].Count = 2
 	job2.TaskGroups[0].Tasks[0].Env = map[string]string{"example": "2"}
-	require.NoError(h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), job2))
+	require.NoError(h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), nil, job2))
 
 	eval := &structs.Evaluation{
 		Namespace:   ns.Name,

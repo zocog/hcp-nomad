@@ -1281,7 +1281,7 @@ func TestStateStore_UpsertRecommendation(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 	rec := mock.Recommendation(job)
 
 	// Create a watchset so we can test that upsert fires the watch
@@ -1308,12 +1308,12 @@ func TestStateStore_ListRecommendationsByJob(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job1 := mock.Job()
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job1))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job1))
 	ns2 := mock.Namespace()
 	require.NoError(state.UpsertNamespaces(909, []*structs.Namespace{ns2}))
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 910, job2))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 910, nil, job2))
 
 	// Create watchsets so we can test that upsert fires the watches
 	wsList1 := memdb.NewWatchSet()
@@ -1353,15 +1353,15 @@ func TestStateStore_ListRecommendationsByNamespace(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job1 := mock.Job()
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job1))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job1))
 	ns2 := mock.Namespace()
 	require.NoError(state.UpsertNamespaces(909, []*structs.Namespace{ns2}))
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 910, job2))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 910, nil, job2))
 	job3 := mock.Job()
 	job3.Namespace = ns2.Name
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 915, job3))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 915, nil, job3))
 
 	// Create watchsets so we can test that upsert fires the watches
 	wsList1 := memdb.NewWatchSet()
@@ -1406,15 +1406,15 @@ func TestStateStore_ListAllRecommendations(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job1 := mock.Job()
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job1))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job1))
 	ns2 := mock.Namespace()
 	require.NoError(state.UpsertNamespaces(909, []*structs.Namespace{ns2}))
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 910, job2))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 910, nil, job2))
 	job3 := mock.Job()
 	job3.Namespace = ns2.Name
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 915, job3))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 915, nil, job3))
 
 	// Create watchsets so we can test that upsert fires the watches
 	wsList := memdb.NewWatchSet()
@@ -1459,7 +1459,7 @@ func TestStateStore_UpsertRecommendation_UpdateExistingPath(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 	job.TaskGroups[0].Name = "this is a [more interesting] group name 🤣"
 	job.TaskGroups[0].Tasks[0].Name = "and this is a [more interesting] task name 🤣🤣🤣"
 
@@ -1529,7 +1529,7 @@ func TestStateStore_DeleteRecommendation(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 	rec1 := mock.Recommendation(job)
 	rec2 := mock.Recommendation(job)
 	rec2.Target(job.TaskGroups[0].Name, job.TaskGroups[0].Tasks[0].Name, "MemoryMB")
@@ -1566,7 +1566,7 @@ func TestStateStore_DeleteJob_DeletesRecommendations(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 	rec1 := mock.Recommendation(job)
 	rec2 := mock.Recommendation(job)
 	rec2.Target(job.TaskGroups[0].Name, job.TaskGroups[0].Tasks[0].Name, "MemoryMB")
@@ -1600,7 +1600,7 @@ func TestStateStore_UpdateJob_DeletesFixedRecommendations(t *testing.T) {
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 	rec1 := mock.Recommendation(job)
 	rec1.EnforceVersion = true
 	rec2 := mock.Recommendation(job)
@@ -1622,7 +1622,7 @@ func TestStateStore_UpdateJob_DeletesFixedRecommendations(t *testing.T) {
 	updatedJob := job.Copy()
 	updatedJob.Meta["updated"] = "true"
 	updatedJob.Version = job.Version + 1
-	require.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1020, updatedJob))
+	require.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1020, nil, updatedJob))
 
 	out, err := state.RecommendationByID(nil, rec1.ID)
 	require.NoError(err)
@@ -1647,7 +1647,7 @@ func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteGroup(t *test
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 	rec := mock.Recommendation(job)
 
 	require.NoError(state.UpsertRecommendation(1000, rec))
@@ -1659,7 +1659,7 @@ func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteGroup(t *test
 	updatedJob := job.Copy()
 	updatedJob.TaskGroups[0].Name = "new task group"
 	updatedJob.Version = job.Version + 1
-	require.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1020, updatedJob))
+	require.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1020, nil, updatedJob))
 
 	out, err := state.RecommendationByID(nil, rec.ID)
 	require.NoError(err)
@@ -1679,7 +1679,7 @@ func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteTask(t *testi
 	require := require.New(t)
 	state := testStateStore(t)
 	job := mock.Job()
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 	rec := mock.Recommendation(job)
 
 	require.NoError(state.UpsertRecommendation(1000, rec))
@@ -1691,7 +1691,7 @@ func TestStateStore_UpdateJob_DeletesOrphanedRecommendations_DeleteTask(t *testi
 	updatedJob := job.Copy()
 	updatedJob.TaskGroups[0].Tasks[0].Name = "new task"
 	updatedJob.Version = job.Version + 1
-	require.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1020, updatedJob))
+	require.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1020, nil, updatedJob))
 
 	out, err := state.RecommendationByID(nil, rec.ID)
 	require.NoError(err)
@@ -1711,7 +1711,7 @@ func TestStateStore_UpdateJob_UpdateRecCurrent(t *testing.T) {
 	state := testStateStore(t)
 	job := mock.Job()
 
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, job))
+	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 	recCPU := mock.Recommendation(job)
 	recMem := mock.Recommendation(job)
 	recMem.Resource = "MemoryMB"
@@ -1732,7 +1732,7 @@ func TestStateStore_UpdateJob_UpdateRecCurrent(t *testing.T) {
 	updatedJob.TaskGroups[0].Tasks[0].Resources.CPU *= 4
 	updatedJob.TaskGroups[0].Tasks[0].Resources.MemoryMB *= 4
 	updatedJob.Version = job.Version + 1
-	require.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1020, updatedJob))
+	require.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 1020, nil, updatedJob))
 
 	require.True(watchFired(wsCPU))
 	out, err := state.RecommendationByID(nil, recCPU.ID)
@@ -1864,7 +1864,7 @@ func TestStateStore_UpsertJob_UpsertScalingPolicies(t *testing.T) {
 	require.Nil(out)
 
 	var newIndex uint64 = 1000
-	err = state.UpsertJob(structs.MsgTypeTestSetup, newIndex, job)
+	err = state.UpsertJob(structs.MsgTypeTestSetup, newIndex, nil, job)
 	require.NoError(err)
 	require.True(watchFired(ws), "watch should have fired on job upsert")
 
@@ -1891,7 +1891,7 @@ func TestStateStore_UpsertJob_UpsertScalingPolicies(t *testing.T) {
 
 	out, err = state.ScalingPolicyByTargetAndType(nil, policy.Target, policy.Type)
 	newIndex = 1100
-	err = state.UpsertJob(structs.MsgTypeTestSetup, newIndex, job)
+	err = state.UpsertJob(structs.MsgTypeTestSetup, newIndex, nil, job)
 	require.NoError(err)
 	require.True(watchFired(ws), "watch should have fired on job upsert")
 
@@ -1918,7 +1918,7 @@ func TestStateStore_UpsertJob_UpsertScalingPolicies(t *testing.T) {
 	ws = memdb.NewWatchSet()
 	out, err = state.ScalingPolicyByTargetAndType(ws, policy.Target, policy.Type)
 	newIndex = 1200
-	err = state.UpsertJob(structs.MsgTypeTestSetup, newIndex, job)
+	err = state.UpsertJob(structs.MsgTypeTestSetup, newIndex, nil, job)
 	require.NoError(err)
 	require.False(watchFired(ws), "watch should not have fired on job upsert")
 	index, err = state.Index("scaling_policy")

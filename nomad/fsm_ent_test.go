@@ -450,7 +450,7 @@ func TestFSM_UpsertRecommdation(t *testing.T) {
 	job.Namespace = ns.Name
 	rec := mock.Recommendation(job)
 	require.NoError(fsm.State().UpsertNamespaces(1000, []*structs.Namespace{ns}))
-	require.NoError(fsm.State().UpsertJob(structs.MsgTypeTestSetup, 1010, job))
+	require.NoError(fsm.State().UpsertJob(structs.MsgTypeTestSetup, 1010, nil, job))
 	req := structs.RecommendationUpsertRequest{
 		Recommendation: rec,
 	}
@@ -475,8 +475,8 @@ func TestFSM_DeleteRecommendations(t *testing.T) {
 	job1.Namespace = ns1.Name
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
-	require.NoError(fsm.State().UpsertJob(structs.MsgTypeTestSetup, 1001, job1))
-	require.NoError(fsm.State().UpsertJob(structs.MsgTypeTestSetup, 1002, job2))
+	require.NoError(fsm.State().UpsertJob(structs.MsgTypeTestSetup, 1001, nil, job1))
+	require.NoError(fsm.State().UpsertJob(structs.MsgTypeTestSetup, 1002, nil, job2))
 	rec1 := mock.Recommendation(job1)
 	rec2 := mock.Recommendation(job2)
 	require.NoError(fsm.State().UpsertRecommendation(1002, rec1))
@@ -508,8 +508,8 @@ func TestFSM_SnapshotRestore_Recommendations(t *testing.T) {
 	job2 := mock.Job()
 	rec1 := mock.Recommendation(job1)
 	rec2 := mock.Recommendation(job2)
-	state.UpsertJob(structs.MsgTypeTestSetup, 1000, job1)
-	state.UpsertJob(structs.MsgTypeTestSetup, 1001, job2)
+	state.UpsertJob(structs.MsgTypeTestSetup, 1000, nil, job1)
+	state.UpsertJob(structs.MsgTypeTestSetup, 1001, nil, job2)
 	state.UpsertRecommendation(1002, rec1)
 	state.UpsertRecommendation(1003, rec2)
 
