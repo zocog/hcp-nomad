@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/nomad/helper/pointer"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/structs/config"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestSetupEnterpriseAgent(t *testing.T) {
@@ -43,7 +43,7 @@ func TestSetupEnterpriseAgent(t *testing.T) {
 	}
 
 	err := a.setupEnterpriseAgent(testlog.HCLogger(t))
-	require.NoError(t, err)
+	must.NoError(t, err)
 }
 
 // TestSetupEnterpriseAgent_Disabled ensures a disabled, unconfigured
@@ -57,16 +57,16 @@ func TestSetupEnterpriseAgent_Disabled(t *testing.T) {
 	}
 
 	err := a.setupEnterpriseAgent(testlog.HCLogger(t))
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// Ensure eventer is disabled
-	require.False(t, a.auditor.Enabled())
+	must.False(t, a.auditor.Enabled())
 }
 
 func TestEntReloadEventer(t *testing.T) {
 	ci.Parallel(t)
 	tmpDir, err := ioutil.TempDir("", t.Name())
-	require.NoError(t, err)
+	must.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
 	a := &Agent{
@@ -88,7 +88,7 @@ func TestEntReloadEventer(t *testing.T) {
 
 	// Setup eventer
 	err = a.setupEnterpriseAgent(testlog.HCLogger(t))
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// Reload and disable
 
@@ -97,7 +97,7 @@ func TestEntReloadEventer(t *testing.T) {
 	}
 
 	err = a.entReloadEventer(cfg)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
-	require.False(t, a.auditor.Enabled())
+	must.False(t, a.auditor.Enabled())
 }

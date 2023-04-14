@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestHTTP_RecommendationList(t *testing.T) {
@@ -34,7 +34,7 @@ func TestHTTP_RecommendationList(t *testing.T) {
 					Region: "global",
 				},
 			}
-			require.NoError(t, s.Agent.RPC("Namespace.UpsertNamespaces", &nsArgs, &structs.GenericResponse{}))
+			must.NoError(t, s.Agent.RPC("Namespace.UpsertNamespaces", &nsArgs, &structs.GenericResponse{}))
 			for j := 0; j < 2; j++ {
 				job := mock.Job()
 				jobs = append(jobs, job)
@@ -46,7 +46,7 @@ func TestHTTP_RecommendationList(t *testing.T) {
 						Namespace: job.Namespace,
 					},
 				}
-				require.NoError(t, s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
+				must.NoError(t, s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
 				rec := mock.Recommendation(job)
 				// set the prefixes for prefix search testing
 				if j == 0 {
@@ -137,15 +137,15 @@ func TestHTTP_RecommendationList(t *testing.T) {
 		for _, tc := range cases {
 			t.Run(tc.Label, func(t *testing.T) {
 				req, err := http.NewRequest("GET", tc.URL, nil)
-				require.NoError(t, err)
+				must.NoError(t, err)
 				respW := httptest.NewRecorder()
 
 				obj, err := s.Server.RecommendationsListRequest(respW, req)
-				require.NoError(t, err)
+				must.NoError(t, err)
 
-				require.NotZero(t, respW.Header().Get("X-Nomad-Index"), "missing index response header")
-				require.NotZero(t, respW.Header().Get("X-Nomad-KnownLeader"), "missing known leader response header")
-				require.NotZero(t, respW.Header().Get("X-Nomad-LastContact"), "missing last contact response header")
+				must.NotEq(t, respW.Header().Get("X-Nomad-Index"), "", must.Sprint("missing index response header"))
+				must.NotEq(t, respW.Header().Get("X-Nomad-KnownLeader"), "", must.Sprint("missing known leader response header"))
+				must.NotEq(t, respW.Header().Get("X-Nomad-LastContact"), "", must.Sprint("missing last contact response header"))
 
 				actualRecs := obj.([]*structs.Recommendation)
 				sort.Slice(actualRecs, func(i int, j int) bool {
@@ -154,7 +154,7 @@ func TestHTTP_RecommendationList(t *testing.T) {
 				sort.Slice(tc.ExpRecs, func(i int, j int) bool {
 					return tc.ExpRecs[i].ID < tc.ExpRecs[j].ID
 				})
-				require.Equal(t, tc.ExpRecs, actualRecs)
+				must.Eq(t, tc.ExpRecs, actualRecs)
 			})
 		}
 	})
@@ -173,7 +173,7 @@ func TestHTTP_RecommendationGet(t *testing.T) {
 				Region: "global",
 			},
 		}
-		require.NoError(t, s.Agent.RPC("Namespace.UpsertNamespaces", &nsArgs, &structs.GenericResponse{}))
+		must.NoError(t, s.Agent.RPC("Namespace.UpsertNamespaces", &nsArgs, &structs.GenericResponse{}))
 		job := mock.Job()
 		job.Namespace = ns.Name
 		jobArgs := structs.JobRegisterRequest{
@@ -183,7 +183,7 @@ func TestHTTP_RecommendationGet(t *testing.T) {
 				Namespace: job.Namespace,
 			},
 		}
-		require.NoError(t, s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
+		must.NoError(t, s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
 		rec := mock.Recommendation(job)
 		recUpsert := structs.RecommendationUpsertRequest{
 			Recommendation: rec,
@@ -193,7 +193,7 @@ func TestHTTP_RecommendationGet(t *testing.T) {
 			},
 		}
 		var recResp structs.SingleRecommendationResponse
-		require.NoError(t, s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
+		must.NoError(t, s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
 		rec = recResp.Recommendation
 
 		cases := []struct {
@@ -221,24 +221,24 @@ func TestHTTP_RecommendationGet(t *testing.T) {
 		for _, tc := range cases {
 			t.Run(tc.Label, func(t *testing.T) {
 				req, err := http.NewRequest("GET", tc.URL, nil)
-				require.NoError(t, err)
+				must.NoError(t, err)
 				respW := httptest.NewRecorder()
 
 				obj, err := s.Server.RecommendationSpecificRequest(respW, req)
 
-				require.NotZero(t, respW.Header().Get("X-Nomad-Index"), "missing index response header")
-				require.NotZero(t, respW.Header().Get("X-Nomad-KnownLeader"), "missing known leader response header")
-				require.NotZero(t, respW.Header().Get("X-Nomad-LastContact"), "missing last contact response header")
+				must.NotEq(t, respW.Header().Get("X-Nomad-Index"), "", must.Sprint("missing index response header"))
+				must.NotEq(t, respW.Header().Get("X-Nomad-KnownLeader"), "", must.Sprint("missing known leader response header"))
+				must.NotEq(t, respW.Header().Get("X-Nomad-LastContact"), "", must.Sprint("missing last contact response header"))
 
 				if tc.ExpRec == nil {
-					require.Error(t, err)
-					require.Contains(t, err.Error(), "Recommendation not found")
+					must.Error(t, err)
+					must.StrContains(t, err.Error(), "Recommendation not found")
 
 				} else {
-					require.NoError(t, err)
-					require.NotNil(t, obj)
+					must.NoError(t, err)
+					must.NotNil(t, obj)
 					out := obj.(*structs.Recommendation)
-					require.Equal(t, tc.ExpRec, out)
+					must.Eq(t, tc.ExpRec, out)
 				}
 			})
 		}
@@ -258,7 +258,7 @@ func TestHTTP_RecommendationDelete(t *testing.T) {
 				Region: "global",
 			},
 		}
-		require.NoError(t, s.Agent.RPC("Namespace.UpsertNamespaces", &nsArgs, &structs.GenericResponse{}))
+		must.NoError(t, s.Agent.RPC("Namespace.UpsertNamespaces", &nsArgs, &structs.GenericResponse{}))
 		job := mock.Job()
 		job.Namespace = ns.Name
 		jobArgs := structs.JobRegisterRequest{
@@ -268,7 +268,7 @@ func TestHTTP_RecommendationDelete(t *testing.T) {
 				Namespace: job.Namespace,
 			},
 		}
-		require.NoError(t, s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
+		must.NoError(t, s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
 		rec := mock.Recommendation(job)
 		recUpsert := structs.RecommendationUpsertRequest{
 			Recommendation: rec,
@@ -278,12 +278,12 @@ func TestHTTP_RecommendationDelete(t *testing.T) {
 			},
 		}
 		var recResp structs.SingleRecommendationResponse
-		require.NoError(t, s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
+		must.NoError(t, s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
 		rec = recResp.Recommendation
 		rec2 := mock.Recommendation(job)
 		rec2.Resource = "MemoryMB"
 		recUpsert.Recommendation = rec2
-		require.NoError(t, s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
+		must.NoError(t, s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
 		rec2 = recResp.Recommendation
 
 		cases := []struct {
@@ -312,23 +312,23 @@ func TestHTTP_RecommendationDelete(t *testing.T) {
 		for _, tc := range cases {
 			t.Run(tc.Label, func(t *testing.T) {
 				req, err := http.NewRequest("DELETE", tc.URL, nil)
-				require.NoError(t, err)
+				must.NoError(t, err)
 				respW := httptest.NewRecorder()
 
 				obj, err := s.Server.RecommendationSpecificRequest(respW, req)
 				if tc.Error != "" {
-					require.Error(t, err)
-					require.Contains(t, err.Error(), tc.Error)
+					must.Error(t, err)
+					must.StrContains(t, err.Error(), tc.Error)
 				} else {
-					require.NoError(t, err)
-					require.NotZero(t, respW.Header().Get("X-Nomad-Index"), "missing index response header")
+					must.NoError(t, err)
+					must.NotEq(t, respW.Header().Get("X-Nomad-Index"), "", must.Sprint("missing index response header"))
 
 					out := obj.(*structs.GenericResponse)
-					require.NotEmpty(t, out.Index)
+					must.NonZero(t, out.Index)
 
 					r, err := s.server.State().RecommendationByID(nil, rec.ID)
-					require.NoError(t, err)
-					require.Nil(t, r, "was not actually deleted")
+					must.NoError(t, err)
+					must.Nil(t, r, must.Sprint("was not actually deleted"))
 				}
 			})
 		}
@@ -337,7 +337,6 @@ func TestHTTP_RecommendationDelete(t *testing.T) {
 
 func TestHTTP_RecommendationCreate(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	httpTest(t, nil, func(s *TestAgent) {
 		// Create the job and recommendation
 		ns := mock.Namespace()
@@ -347,7 +346,7 @@ func TestHTTP_RecommendationCreate(t *testing.T) {
 				Region: "global",
 			},
 		}
-		require.NoError(s.Agent.RPC("Namespace.UpsertNamespaces", &nsArgs, &structs.GenericResponse{}))
+		must.NoError(t, s.Agent.RPC("Namespace.UpsertNamespaces", &nsArgs, &structs.GenericResponse{}))
 		job := mock.Job()
 		job.Namespace = ns.Name
 		jobArgs := structs.JobRegisterRequest{
@@ -357,28 +356,28 @@ func TestHTTP_RecommendationCreate(t *testing.T) {
 				Namespace: job.Namespace,
 			},
 		}
-		require.NoError(s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
+		must.NoError(t, s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
 
 		rec := mock.Recommendation(job)
 		buf := encodeReq(rec)
 		req, err := http.NewRequest("PUT", "/v1/recommendation", buf)
-		require.NoError(err)
+		must.NoError(t, err)
 		respW := httptest.NewRecorder()
 
 		// Make the request
 		obj, err := s.Server.RecommendationCreateRequest(respW, req)
-		require.NoError(err)
-		require.NotNil(obj)
+		must.NoError(t, err)
+		must.NotNil(t, obj)
 
 		resp := obj.(*structs.Recommendation)
 
 		// Check for the index
-		require.NotZero(respW.Header().Get("X-Nomad-Index"))
-		require.NotEmpty(resp.ID)
-		require.NotEmpty(resp.CreateIndex)
-		require.Equal(resp.CreateIndex, resp.ModifyIndex)
+		must.NotEq(t, respW.Header().Get("X-Nomad-Index"), "")
+		must.NotEq(t, resp.ID, "")
+		must.NonZero(t, resp.CreateIndex)
+		must.Eq(t, resp.CreateIndex, resp.ModifyIndex)
 
-		require.Equal(&structs.Recommendation{
+		must.Eq(t, &structs.Recommendation{
 			ID:             resp.ID,
 			Region:         "global",
 			Namespace:      ns.Name,
@@ -399,14 +398,13 @@ func TestHTTP_RecommendationCreate(t *testing.T) {
 
 		// Check that the recommendation was created
 		existing, err := s.Agent.server.State().RecommendationByID(nil, resp.ID)
-		require.NoError(err)
-		require.NotNil(existing)
+		must.NoError(t, err)
+		must.NotNil(t, existing)
 	})
 }
 
 func TestHTTP_RecommendationCreate_NoNils(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	httpTest(t, nil, func(s *TestAgent) {
 		// Create the job and recommendation
 		ns := mock.Namespace()
@@ -416,7 +414,7 @@ func TestHTTP_RecommendationCreate_NoNils(t *testing.T) {
 				Region: "global",
 			},
 		}
-		require.NoError(s.Agent.RPC("Namespace.UpsertNamespaces", &nsArgs, &structs.GenericResponse{}))
+		must.NoError(t, s.Agent.RPC("Namespace.UpsertNamespaces", &nsArgs, &structs.GenericResponse{}))
 		job := mock.Job()
 		job.Namespace = ns.Name
 		jobArgs := structs.JobRegisterRequest{
@@ -426,7 +424,7 @@ func TestHTTP_RecommendationCreate_NoNils(t *testing.T) {
 				Namespace: job.Namespace,
 			},
 		}
-		require.NoError(s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
+		must.NoError(t, s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
 
 		rec := structsRecommendationToApi(mock.Recommendation(job))
 		rec.ID = ""
@@ -434,32 +432,31 @@ func TestHTTP_RecommendationCreate_NoNils(t *testing.T) {
 		rec.Meta = nil
 		buf := encodeReq(rec)
 		req, err := http.NewRequest("PUT", "/v1/recommendation", buf)
-		require.NoError(err)
+		must.NoError(t, err)
 		respW := httptest.NewRecorder()
 
 		// Make the request
 		obj, err := s.Server.RecommendationCreateRequest(respW, req)
-		require.NoError(err)
-		require.NotNil(obj)
+		must.NoError(t, err)
+		must.NotNil(t, obj)
 
 		resp := obj.(*structs.Recommendation)
 
-		require.NotNil(resp.Meta)
-		require.NotNil(resp.Stats)
-		require.NotEmpty(resp.ID)
+		must.NotNil(t, resp.Meta)
+		must.NotNil(t, resp.Stats)
+		must.NotEq(t, resp.ID, "")
 
 		existing, err := s.Agent.server.State().RecommendationByID(nil, resp.ID)
-		require.NoError(err)
-		require.NotNil(existing)
-		require.Equal(map[string]interface{}{}, existing.Meta)
-		require.Equal(map[string]float64{}, existing.Stats)
+		must.NoError(t, err)
+		must.NotNil(t, existing)
+		must.Eq(t, map[string]interface{}{}, existing.Meta)
+		must.Eq(t, map[string]float64{}, existing.Stats)
 	})
 }
 
 func TestHTTP_RecommendationApply(t *testing.T) {
 	ci.Parallel(t)
 	httpTest(t, nil, func(s *TestAgent) {
-		require := require.New(t)
 		state := s.server.State()
 
 		ns1 := mock.Namespace()
@@ -470,7 +467,7 @@ func TestHTTP_RecommendationApply(t *testing.T) {
 				Region: "global",
 			},
 		}
-		require.NoError(s.Agent.RPC("Namespace.UpsertNamespaces", &nsArgs, &structs.GenericResponse{}))
+		must.NoError(t, s.Agent.RPC("Namespace.UpsertNamespaces", &nsArgs, &structs.GenericResponse{}))
 
 		job1 := mock.Job()
 		job1.Namespace = ns1.Name
@@ -481,7 +478,7 @@ func TestHTTP_RecommendationApply(t *testing.T) {
 				Namespace: job1.Namespace,
 			},
 		}
-		require.NoError(s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
+		must.NoError(t, s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
 		rec1cpu := mock.Recommendation(job1)
 		rec1cpu.Resource = "CPU"
 		rec1cpu.Value = job1.TaskGroups[0].Tasks[0].Resources.CPU * 2
@@ -493,47 +490,47 @@ func TestHTTP_RecommendationApply(t *testing.T) {
 			},
 		}
 		var recResp structs.SingleRecommendationResponse
-		require.NoError(s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
+		must.NoError(t, s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
 		rec1cpu = recResp.Recommendation
 		rec1mem := mock.Recommendation(job1)
 		rec1mem.Resource = "MemoryMB"
 		rec1mem.Value = job1.TaskGroups[0].Tasks[0].Resources.CPU * 3
 		recUpsert.Recommendation = rec1mem
-		require.NoError(s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
+		must.NoError(t, s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
 		rec1mem = recResp.Recommendation
 
 		job2 := mock.Job()
 		job2.Namespace = ns1.Name
 		jobArgs.Job = job2
-		require.NoError(s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
+		must.NoError(t, s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
 		rec2cpu := mock.Recommendation(job2)
 		rec2cpu.Resource = "CPU"
 		rec2cpu.Value = job2.TaskGroups[0].Tasks[0].Resources.CPU * 4
 		recUpsert.Recommendation = rec2cpu
-		require.NoError(s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
+		must.NoError(t, s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
 		rec2cpu = recResp.Recommendation
 		rec2mem := mock.Recommendation(job2)
 		rec2mem.Resource = "MemoryMB"
 		rec2mem.Value = job2.TaskGroups[0].Tasks[0].Resources.MemoryMB * 5
 		recUpsert.Recommendation = rec2mem
-		require.NoError(s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
+		must.NoError(t, s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
 		rec2mem = recResp.Recommendation
 
 		job3 := mock.Job()
 		job3.Namespace = ns1.Name
 		jobArgs.Job = job3
-		require.NoError(s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
+		must.NoError(t, s.Agent.RPC("Job.Register", &jobArgs, &structs.JobRegisterResponse{}))
 		rec3cpu := mock.Recommendation(job3)
 		rec3cpu.Resource = "CPU"
 		rec3cpu.Value = job3.TaskGroups[0].Tasks[0].Resources.CPU * 6
 		recUpsert.Recommendation = rec3cpu
-		require.NoError(s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
+		must.NoError(t, s.Agent.RPC("Recommendation.UpsertRecommendation", &recUpsert, &recResp))
 		rec3cpu = recResp.Recommendation
 		// rec3mem is actually invalid, we'll manually insert it into the state store to test errors
 		rec3mem := mock.Recommendation(job3)
 		rec3mem.Resource = "MemoryMB"
 		rec3mem.Value = 5
-		require.NoError(state.UpsertRecommendation(900, rec3mem))
+		must.NoError(t, state.UpsertRecommendation(900, rec3mem))
 
 		iter, _ := state.Recommendations(nil)
 		for {
@@ -548,11 +545,11 @@ func TestHTTP_RecommendationApply(t *testing.T) {
 		apply := api.RecommendationApplyRequest{}
 		buf := encodeReq(apply)
 		req, err := http.NewRequest("POST", "/v1/recommendations/apply", buf)
-		require.NoError(err)
+		must.NoError(t, err)
 		respW := httptest.NewRecorder()
 		obj, err := s.Server.RecommendationsApplyRequest(respW, req)
-		require.Error(err)
-		require.Contains(err.Error(), "one or more recommendations")
+		must.Error(t, err)
+		must.StrContains(t, err.Error(), "one or more recommendations")
 
 		// Test 1: rec3mem should result in an error, rec1cpu should be fine, and delete rec1mem
 		// only job1 CPU is updated
@@ -562,31 +559,31 @@ func TestHTTP_RecommendationApply(t *testing.T) {
 		}
 		buf = encodeReq(apply)
 		req, err = http.NewRequest("POST", "/v1/recommendations/apply", buf)
-		require.NoError(err)
+		must.NoError(t, err)
 		respW = httptest.NewRecorder()
 		obj, err = s.Server.RecommendationsApplyRequest(respW, req)
-		require.NoError(err)
-		require.NotZero(respW.Header().Get("X-Nomad-Index"), "missing index response header")
+		must.NoError(t, err)
+		must.NotEq(t, respW.Header().Get("X-Nomad-Index"), "", must.Sprint("missing index response header"))
 		for _, id := range append(apply.Apply, apply.Dismiss...) {
 			r, err := state.RecommendationByID(nil, id)
-			require.NoError(err)
-			require.Nil(r)
+			must.NoError(t, err)
+			must.Nil(t, r)
 		}
 		result := obj.(*api.RecommendationApplyResponse)
-		require.Len(result.Errors, 1)
-		require.Equal(result.Errors[0], &api.SingleRecommendationApplyError{
+		must.Len(t, 1, result.Errors)
+		must.Eq(t, result.Errors[0], &api.SingleRecommendationApplyError{
 			Namespace:       job3.Namespace,
 			JobID:           job3.ID,
 			Recommendations: []string{rec3mem.ID},
 			Error:           result.Errors[0].Error, // check this separately
 		})
-		require.Contains(result.Errors[0].Error, "minimum MemoryMB value is 10")
-		require.Len(result.UpdatedJobs, 1)
+		must.StrContains(t, result.Errors[0].Error, "minimum MemoryMB value is 10")
+		must.Len(t, 1, result.UpdatedJobs)
 		job1, err = state.JobByID(nil, job1.Namespace, job1.ID)
 		eval1, err := state.EvalByID(nil, result.UpdatedJobs[0].EvalID)
-		require.NoError(err)
-		require.NotNil(eval1)
-		require.Equal(result.UpdatedJobs[0], &api.SingleRecommendationApplyResult{
+		must.NoError(t, err)
+		must.NotNil(t, eval1)
+		must.Eq(t, result.UpdatedJobs[0], &api.SingleRecommendationApplyResult{
 			Namespace:       job1.Namespace,
 			JobID:           job1.ID,
 			JobModifyIndex:  job1.ModifyIndex,
@@ -595,7 +592,7 @@ func TestHTTP_RecommendationApply(t *testing.T) {
 			Warnings:        "",
 			Recommendations: []string{rec1cpu.ID},
 		})
-		require.Equal(rec1cpu.Value, job1.TaskGroups[0].Tasks[0].Resources.CPU)
+		must.Eq(t, rec1cpu.Value, job1.TaskGroups[0].Tasks[0].Resources.CPU)
 
 		// Test 2: rec3cpu, rec2cpu and rec2mem
 		// test that job2 is updated with both, job3 with cpu
@@ -604,34 +601,34 @@ func TestHTTP_RecommendationApply(t *testing.T) {
 		}
 		buf = encodeReq(apply)
 		req, err = http.NewRequest("POST", "/v1/recommendations/apply", buf)
-		require.NoError(err)
+		must.NoError(t, err)
 		respW = httptest.NewRecorder()
 		obj, err = s.Server.RecommendationsApplyRequest(respW, req)
-		require.NoError(err)
-		require.NotZero(respW.Header().Get("X-Nomad-Index"), "missing index response header")
+		must.NoError(t, err)
+		must.NotEq(t, respW.Header().Get("X-Nomad-Index"), "", must.Sprint("missing index response header"))
 		for _, id := range append(apply.Apply, apply.Dismiss...) {
 			r, err := state.RecommendationByID(nil, id)
-			require.NoError(err)
-			require.Nil(r)
+			must.NoError(t, err)
+			must.Nil(t, r)
 		}
 		//
 		result = obj.(*api.RecommendationApplyResponse)
-		require.Len(result.Errors, 0)
-		require.Len(result.UpdatedJobs, 2)
+		must.Len(t, 0, result.Errors)
+		must.Len(t, 2, result.UpdatedJobs)
 		if result.UpdatedJobs[1].JobID == job2.ID {
 			result.UpdatedJobs[0], result.UpdatedJobs[1] = result.UpdatedJobs[1], result.UpdatedJobs[0]
 		}
 		job2, err = state.JobByID(nil, job2.Namespace, job2.ID)
-		require.NoError(err)
+		must.NoError(t, err)
 		job3, err = state.JobByID(nil, job3.Namespace, job3.ID)
-		require.NoError(err)
+		must.NoError(t, err)
 		eval2, err := state.EvalByID(nil, result.UpdatedJobs[0].EvalID)
-		require.NoError(err)
-		require.NotNil(eval2)
+		must.NoError(t, err)
+		must.NotNil(t, eval2)
 		eval3, err := state.EvalByID(nil, result.UpdatedJobs[1].EvalID)
-		require.NoError(err)
-		require.NotNil(eval3)
-		require.Equal(result.UpdatedJobs[0], &api.SingleRecommendationApplyResult{
+		must.NoError(t, err)
+		must.NotNil(t, eval3)
+		must.Eq(t, result.UpdatedJobs[0], &api.SingleRecommendationApplyResult{
 			Namespace:       job2.Namespace,
 			JobID:           job2.ID,
 			JobModifyIndex:  job2.ModifyIndex,
@@ -640,9 +637,9 @@ func TestHTTP_RecommendationApply(t *testing.T) {
 			Warnings:        "",
 			Recommendations: []string{rec2cpu.ID, rec2mem.ID},
 		})
-		require.Equal(rec2cpu.Value, job2.TaskGroups[0].Tasks[0].Resources.CPU)
-		require.Equal(rec2mem.Value, job2.TaskGroups[0].Tasks[0].Resources.MemoryMB)
-		require.Equal(result.UpdatedJobs[1], &api.SingleRecommendationApplyResult{
+		must.Eq(t, rec2cpu.Value, job2.TaskGroups[0].Tasks[0].Resources.CPU)
+		must.Eq(t, rec2mem.Value, job2.TaskGroups[0].Tasks[0].Resources.MemoryMB)
+		must.Eq(t, result.UpdatedJobs[1], &api.SingleRecommendationApplyResult{
 			Namespace:       job3.Namespace,
 			JobID:           job3.ID,
 			JobModifyIndex:  job3.ModifyIndex,
@@ -651,7 +648,7 @@ func TestHTTP_RecommendationApply(t *testing.T) {
 			Warnings:        "",
 			Recommendations: []string{rec3cpu.ID},
 		})
-		require.Equal(rec3cpu.Value, job3.TaskGroups[0].Tasks[0].Resources.CPU)
-		require.Equal(256, job3.TaskGroups[0].Tasks[0].Resources.MemoryMB)
+		must.Eq(t, rec3cpu.Value, job3.TaskGroups[0].Tasks[0].Resources.CPU)
+		must.Eq(t, 256, job3.TaskGroups[0].Tasks[0].Resources.MemoryMB)
 	})
 }

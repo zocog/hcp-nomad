@@ -4,7 +4,6 @@
 package nomad
 
 import (
-	"fmt"
 	"net/rpc"
 	"strings"
 	"testing"
@@ -20,7 +19,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestJobEndpoint_Register_Sentinel(t *testing.T) {
@@ -194,10 +193,10 @@ func TestJobEndpoint_Register_Sentinel_Token_And_Namespace(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := s1.State().UpsertACLTokens(structs.MsgTypeTestSetup, 100, []*structs.ACLToken{tc.token})
-			require.NoError(t, err, "failed to upsert ACL token: %v", err)
+			must.NoError(t, err, must.Sprintf("failed to upsert ACL token: %v", err))
 
 			err = s1.State().UpsertNamespaces(125, []*structs.Namespace{tc.namespace})
-			require.NoError(t, err, "failed to upsert namespace")
+			must.NoError(t, err, must.Sprintf("failed to upsert namespace"))
 
 			job := mock.Job()
 			job.Namespace = tc.namespace.Name
@@ -219,16 +218,16 @@ func TestJobEndpoint_Register_Sentinel_Token_And_Namespace(t *testing.T) {
 			var resp structs.JobRegisterResponse
 			err = msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp)
 			if tc.expectError == "" {
-				require.NoError(t, err, "failed to register job")
+				must.NoError(t, err, must.Sprint("failed to register job"))
 			} else {
-				require.Error(t, err, "should have errored")
-				require.Contains(t, err.Error(), tc.expectError)
+				must.Error(t, err, must.Sprint("should have errored"))
+				must.StrContains(t, err.Error(), tc.expectError)
 
 				// Should fail even with override because policy level is mandatory
 				req.PolicyOverride = true
 				err = msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp)
-				require.Error(t, err, "should have errored with override")
-				require.Contains(t, err.Error(), tc.expectError)
+				must.Error(t, err, must.Sprint("should have errored with override"))
+				must.StrContains(t, err.Error(), tc.expectError)
 			}
 		})
 	}
@@ -297,7 +296,6 @@ func TestJobEndpoint_Plan_Sentinel(t *testing.T) {
 
 func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 
 	west, root, cleanupWest := TestACLServer(t, func(c *Config) {
 		c.Region = "west"
@@ -358,7 +356,7 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 
 	var resp structs.JobRegisterResponse
 	err := msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	getReq := &structs.JobSpecificRequest{
 		JobID: job.ID,
@@ -369,56 +367,56 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	}
 	var getResp structs.SingleJobResponse
 	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	eastJob := getResp.Job
-	require.NotNil(eastJob, fmt.Sprintf("getResp: %#v", getResp))
-	require.Equal("east", eastJob.Region)
-	require.Equal([]string{"east-1"}, eastJob.Datacenters)
-	require.Equal("E", eastJob.Meta["region_code"])
-	require.Equal(10, eastJob.TaskGroups[0].Count)
-	require.EqualValues(0, eastJob.Version)
+	must.NotNil(t, eastJob, must.Sprintf("getResp: %#v", getResp))
+	must.Eq(t, "east", eastJob.Region)
+	must.Eq(t, []string{"east-1"}, eastJob.Datacenters)
+	must.Eq(t, "E", eastJob.Meta["region_code"])
+	must.Eq(t, 10, eastJob.TaskGroups[0].Count)
+	must.Eq(t, 0, eastJob.Version)
 
 	getReq.Region = "west"
 	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
-	require.NoError(err)
+	must.NoError(t, err)
 	westJob := getResp.Job
 
-	require.NotNil(westJob, fmt.Sprintf("getResp: %#v", getResp))
-	require.Equal("west", westJob.Region)
-	require.Equal([]string{"west-1", "west-2"}, westJob.Datacenters)
-	require.Equal("W", westJob.Meta["region_code"])
-	require.Equal(10, westJob.TaskGroups[0].Count)
-	require.EqualValues(westJob.Version, eastJob.Version)
+	must.NotNil(t, westJob, must.Sprintf("getResp: %#v", getResp))
+	must.Eq(t, "west", westJob.Region)
+	must.Eq(t, []string{"west-1", "west-2"}, westJob.Datacenters)
+	must.Eq(t, "W", westJob.Meta["region_code"])
+	must.Eq(t, 10, westJob.TaskGroups[0].Count)
+	must.Eq(t, westJob.Version, eastJob.Version)
 	oldVersion := westJob.Version
 
 	getReq.Region = "north"
 	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
-	require.NoError(err)
-	require.Nil(getResp.Job, fmt.Sprintf("getResp: %#v", getResp))
+	must.NoError(t, err)
+	must.Nil(t, getResp.Job, must.Sprintf("getResp: %#v", getResp))
 
 	// Update the job
 	job.TaskGroups[0].Count = 0
 	req.Job = job
 	err = msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	getReq.Region = "east"
 	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	eastJob = getResp.Job
-	require.NotNil(eastJob, fmt.Sprintf("getResp: %#v", getResp))
-	require.Equal(1, eastJob.TaskGroups[0].Count)
+	must.NotNil(t, eastJob, must.Sprintf("getResp: %#v", getResp))
+	must.Eq(t, 1, eastJob.TaskGroups[0].Count)
 
 	getReq.Region = "west"
 	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
-	require.NoError(err)
+	must.NoError(t, err)
 	westJob = getResp.Job
-	require.Equal(2, westJob.TaskGroups[0].Count)
+	must.Eq(t, 2, westJob.TaskGroups[0].Count)
 
-	require.Greater(eastJob.Version, oldVersion)
-	require.EqualValues(eastJob.Version, westJob.Version)
+	must.Greater(t, oldVersion, eastJob.Version)
+	must.Eq(t, eastJob.Version, westJob.Version)
 	oldVersion = eastJob.Version
 
 	// Update the job again, dropping one region
@@ -434,25 +432,24 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	req.WriteRequest.Region = "west"
 
 	err = msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	getReq.Region = "east"
 	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
-	require.NoError(err)
+	must.NoError(t, err)
 	eastJob = getResp.Job
-	require.True(eastJob.Stopped(), "expected job to be stopped")
+	must.True(t, eastJob.Stopped(), must.Sprint("expected job to be stopped"))
 
 	getReq.Region = "west"
 	err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
-	require.NoError(err)
+	must.NoError(t, err)
 	westJob = getResp.Job
-	require.Greater(westJob.Version, oldVersion)
-	require.False(westJob.Stopped(), "expected job to be running")
+	must.Greater(t, oldVersion, westJob.Version)
+	must.False(t, westJob.Stopped(), must.Sprint("expected job to be running"))
 }
 
 func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 
 	west, root, cleanupWest := TestACLServer(t, func(c *Config) {
 		c.Region = "west"
@@ -499,15 +496,15 @@ func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {
 			AuthToken: root.SecretID,
 		},
 	}
-	require.NoError(msgpackrpc.CallWithCodec(codecEast, "Job.Register", eastRegReq, &structs.JobRegisterResponse{}))
+	must.NoError(t, msgpackrpc.CallWithCodec(codecEast, "Job.Register", eastRegReq, &structs.JobRegisterResponse{}))
 	initJob.Meta["take"] = "two"
-	require.NoError(msgpackrpc.CallWithCodec(codecEast, "Job.Register", eastRegReq, &structs.JobRegisterResponse{}))
+	must.NoError(t, msgpackrpc.CallWithCodec(codecEast, "Job.Register", eastRegReq, &structs.JobRegisterResponse{}))
 	initJob.Meta["take"] = "three"
-	require.NoError(msgpackrpc.CallWithCodec(codecEast, "Job.Register", eastRegReq, &structs.JobRegisterResponse{}))
+	must.NoError(t, msgpackrpc.CallWithCodec(codecEast, "Job.Register", eastRegReq, &structs.JobRegisterResponse{}))
 	eastJob, err := east.State().JobByID(nil, job.Namespace, job.ID)
-	require.NoError(err)
-	require.NotNil(eastJob)
-	require.EqualValues(2, eastJob.Version)
+	must.NoError(t, err)
+	must.NotNil(t, eastJob)
+	must.Eq(t, 2, eastJob.Version)
 	eastJobModifyIndex := eastJob.JobModifyIndex
 
 	// register into west with version 0
@@ -520,11 +517,11 @@ func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {
 			AuthToken: root.SecretID,
 		},
 	}
-	require.NoError(msgpackrpc.CallWithCodec(codecEast, "Job.Register", westRegReq, &structs.JobRegisterResponse{}))
+	must.NoError(t, msgpackrpc.CallWithCodec(codecEast, "Job.Register", westRegReq, &structs.JobRegisterResponse{}))
 	westJob, err := west.State().JobByID(nil, job.Namespace, job.ID)
-	require.NoError(err)
-	require.NotNil(westJob)
-	require.EqualValues(0, westJob.Version)
+	must.NoError(t, err)
+	must.NotNil(t, westJob)
+	must.Eq(t, 0, westJob.Version)
 	westJobModifyIndex := westJob.JobModifyIndex
 
 	// Register the multiregion job; this should result in a job with synchronized versions
@@ -536,29 +533,28 @@ func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {
 		},
 	}
 	err = msgpackrpc.CallWithCodec(codecEast, "Job.Register", multiRegReq, &api.JobRegisterResponse{})
-	require.NoError(err)
+	must.NoError(t, err)
 
 	// check that job versions are synchronized at 3
 	eastJob, err = east.State().JobByID(nil, job.Namespace, job.ID)
-	require.NoError(err)
-	require.NotNil(eastJob)
-	require.EqualValues(3, eastJob.Version)
-	require.Greater(eastJob.JobModifyIndex, eastJobModifyIndex)
+	must.NoError(t, err)
+	must.NotNil(t, eastJob)
+	must.Eq(t, 3, eastJob.Version)
+	must.Greater(t, eastJobModifyIndex, eastJob.JobModifyIndex)
 
 	westJob, err = west.State().JobByID(nil, job.Namespace, job.ID)
-	require.NoError(err)
-	require.NotNil(westJob)
-	require.EqualValues(3, westJob.Version)
-	require.Greater(westJob.JobModifyIndex, westJobModifyIndex)
+	must.NoError(t, err)
+	must.NotNil(t, westJob)
+	must.Eq(t, 3, westJob.Version)
+	must.Greater(t, westJobModifyIndex, westJob.JobModifyIndex)
 }
 
 func TestJobEndpoint_MultiregionStarter(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 
 	j := &structs.Job{}
 	j.Type = "service"
-	require.True(jobIsMultiregionStarter(j, "north"))
+	must.True(t, jobIsMultiregionStarter(j, "north"))
 
 	tc := &structs.Multiregion{
 		Strategy: &structs.MultiregionStrategy{},
@@ -573,32 +569,31 @@ func TestJobEndpoint_MultiregionStarter(t *testing.T) {
 	b := &structs.Job{}
 	b.Type = "batch"
 	b.Multiregion = tc
-	require.True(jobIsMultiregionStarter(b, "west"))
+	must.True(t, jobIsMultiregionStarter(b, "west"))
 
 	j.Multiregion = tc
-	require.True(jobIsMultiregionStarter(j, "north"))
-	require.True(jobIsMultiregionStarter(j, "south"))
-	require.True(jobIsMultiregionStarter(j, "east"))
-	require.True(jobIsMultiregionStarter(j, "west"))
+	must.True(t, jobIsMultiregionStarter(j, "north"))
+	must.True(t, jobIsMultiregionStarter(j, "south"))
+	must.True(t, jobIsMultiregionStarter(j, "east"))
+	must.True(t, jobIsMultiregionStarter(j, "west"))
 
 	tc.Strategy = &structs.MultiregionStrategy{MaxParallel: 1}
 	j.Multiregion = tc
-	require.True(jobIsMultiregionStarter(j, "north"))
-	require.False(jobIsMultiregionStarter(j, "south"))
-	require.False(jobIsMultiregionStarter(j, "east"))
-	require.False(jobIsMultiregionStarter(j, "west"))
+	must.True(t, jobIsMultiregionStarter(j, "north"))
+	must.False(t, jobIsMultiregionStarter(j, "south"))
+	must.False(t, jobIsMultiregionStarter(j, "east"))
+	must.False(t, jobIsMultiregionStarter(j, "west"))
 
 	tc.Strategy = &structs.MultiregionStrategy{MaxParallel: 2}
 	j.Multiregion = tc
-	require.True(jobIsMultiregionStarter(j, "north"))
-	require.True(jobIsMultiregionStarter(j, "south"))
-	require.False(jobIsMultiregionStarter(j, "east"))
-	require.False(jobIsMultiregionStarter(j, "west"))
+	must.True(t, jobIsMultiregionStarter(j, "north"))
+	must.True(t, jobIsMultiregionStarter(j, "south"))
+	must.False(t, jobIsMultiregionStarter(j, "east"))
+	must.False(t, jobIsMultiregionStarter(j, "west"))
 }
 
 func TestJobEndpoint_Deregister_Multiregion(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 
 	west, root, cleanupWest := TestACLServer(t, func(c *Config) {
 		c.Region = "west"
@@ -665,7 +660,7 @@ func TestJobEndpoint_Deregister_Multiregion(t *testing.T) {
 
 	err := msgpackrpc.CallWithCodec(codec, "Job.Register", req,
 		&structs.JobRegisterResponse{})
-	require.NoError(err)
+	must.NoError(t, err)
 
 	assertStatus := func(region string, isRunning bool) {
 		getReq := &structs.JobSpecificRequest{
@@ -677,9 +672,9 @@ func TestJobEndpoint_Deregister_Multiregion(t *testing.T) {
 		}
 		var getResp structs.SingleJobResponse
 		err = msgpackrpc.CallWithCodec(codec, "Job.GetJob", getReq, &getResp)
-		require.NoError(err)
-		require.Equal(!isRunning, getResp.Job.Stopped(),
-			"expected %q region to be running=%v", region, isRunning)
+		must.NoError(t, err)
+		must.Eq(t, !isRunning, getResp.Job.Stopped(),
+			must.Sprintf("expected %q region to be running=%v", region, isRunning))
 	}
 
 	assertStatus("east", true)
@@ -741,7 +736,7 @@ func TestJobEndpoint_Deregister_Reregister_Multiregion(t *testing.T) {
 				getResp.Job.Version == version, nil
 
 		}, func(err error) {
-			require.NoError(t, err)
+			must.NoError(t, err)
 		})
 	}
 
@@ -811,7 +806,7 @@ func TestJobEndpoint_Deregister_Reregister_Multiregion(t *testing.T) {
 
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", req,
 				&structs.JobRegisterResponse{})
-			require.NoError(t, err)
+			must.NoError(t, err)
 
 			assertStatusAndVersion(job.ID, "east", root.SecretID, codec, false, 0)
 			assertStatusAndVersion(job.ID, "west", root.SecretID, codec, false, 0)
@@ -832,14 +827,14 @@ func TestJobEndpoint_Deregister_Reregister_Multiregion(t *testing.T) {
 
 				deResp := &structs.JobDeregisterResponse{}
 				err = msgpackrpc.CallWithCodec(codec, "Job.Deregister", deReq, deResp)
-				require.NoError(t, err)
+				must.NoError(t, err)
 				assertStatusAndVersion(job.ID, stopInRegion, root.SecretID, codec, true, 0)
 			}
 
 			// Now re-register the job after de-registering the target regions
 			err = msgpackrpc.CallWithCodec(codec, "Job.Register", req,
 				&structs.JobRegisterResponse{})
-			require.NoError(t, err)
+			must.NoError(t, err)
 
 			assertStatusAndVersion(job.ID, "east", root.SecretID, codec, false, 1)
 			assertStatusAndVersion(job.ID, "west", root.SecretID, codec, false, 1)
@@ -888,7 +883,7 @@ func buildMultiregionCluster(t *testing.T) (*structs.ACLToken, func(), func(), f
 	testutil.WaitForResult(func() (bool, error) {
 		return west.serf.NumNodes() == 3, nil
 	}, func(err error) {
-		require.NoError(t, err, "should have 3 peers")
+		must.NoError(t, err, must.Sprint("should have 3 peers"))
 	})
 	return root, cleanupWest, cleanupEast, cleanupNorth, codec
 }
@@ -946,9 +941,9 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 		fsmState := s1.State()
 		ws := memdb.NewWatchSet()
 		storedJob, err := fsmState.JobByID(ws, job.Namespace, job.ID)
-		require.NoError(t, err)
-		require.NotNil(t, storedJob)
-		require.Empty(t, storedJob.ConsulToken)
+		must.NoError(t, err)
+		must.NotNil(t, storedJob)
+		must.Eq(t, storedJob.ConsulToken, "")
 	}
 
 	// Non-sense Consul ACL tokens that should be rejected
@@ -977,7 +972,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = missingToken
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, "job-submitter consul token denied: missing consul token")
+			must.EqError(t, err, "job-submitter consul token denied: missing consul token")
 		})
 
 		t.Run("unknown token provided", func(t *testing.T) {
@@ -985,7 +980,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = fakeToken
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, "job-submitter consul token denied: unable to read consul token: no such token")
+			must.EqError(t, err, "job-submitter consul token denied: unable to read consul token: no such token")
 		})
 
 		t.Run("unauthorized oss token provided", func(t *testing.T) {
@@ -993,7 +988,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = ossTokenNoPolicyNoNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, `job-submitter consul token denied: insufficient Consul ACL permissions to write service "service1"`)
+			must.EqError(t, err, `job-submitter consul token denied: insufficient Consul ACL permissions to write service "service1"`)
 		})
 
 		t.Run("authorized oss token provided", func(t *testing.T) {
@@ -1002,7 +997,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = ossTokenNoNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.NoError(t, err)
+			must.NoError(t, err)
 			noTokenOnJob(t, job)
 		})
 
@@ -1012,7 +1007,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = entTokenNoPolicyDefaultNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, `job-submitter consul token denied: insufficient Consul ACL permissions to write service "service1"`)
+			must.EqError(t, err, `job-submitter consul token denied: insufficient Consul ACL permissions to write service "service1"`)
 		})
 
 		t.Run("authorized token in default namespace", func(t *testing.T) {
@@ -1021,7 +1016,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = entTokenDefaultNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.NoError(t, err)
+			must.NoError(t, err)
 			noTokenOnJob(t, job)
 		})
 
@@ -1031,7 +1026,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = entTokenNoPolicyBananaNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, `job-submitter consul token denied: consul ACL token requires using namespace "banana"`)
+			must.EqError(t, err, `job-submitter consul token denied: consul ACL token requires using namespace "banana"`)
 		})
 
 		t.Run("authorized token in banana namespace", func(t *testing.T) {
@@ -1040,7 +1035,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = entTokenBananaNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, `job-submitter consul token denied: consul ACL token requires using namespace "banana"`)
+			must.EqError(t, err, `job-submitter consul token denied: consul ACL token requires using namespace "banana"`)
 		})
 	})
 
@@ -1058,7 +1053,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = missingToken
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, "job-submitter consul token denied: missing consul token")
+			must.EqError(t, err, "job-submitter consul token denied: missing consul token")
 		})
 
 		t.Run("unknown token provided", func(t *testing.T) {
@@ -1066,7 +1061,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = fakeToken
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, "job-submitter consul token denied: unable to read consul token: no such token")
+			must.EqError(t, err, "job-submitter consul token denied: unable to read consul token: no such token")
 		})
 
 		t.Run("unauthorized oss token provided", func(t *testing.T) {
@@ -1074,7 +1069,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = ossTokenNoPolicyNoNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, `job-submitter consul token denied: consul ACL token cannot use namespace "banana"`)
+			must.EqError(t, err, `job-submitter consul token denied: consul ACL token cannot use namespace "banana"`)
 		})
 
 		t.Run("authorized oss token provided", func(t *testing.T) {
@@ -1083,7 +1078,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = ossTokenNoNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, `job-submitter consul token denied: consul ACL token cannot use namespace "banana"`)
+			must.EqError(t, err, `job-submitter consul token denied: consul ACL token cannot use namespace "banana"`)
 		})
 
 		t.Run("unauthorized token in default namespace", func(t *testing.T) {
@@ -1092,7 +1087,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = entTokenNoPolicyDefaultNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, `job-submitter consul token denied: insufficient Consul ACL permissions to write service "service1"`)
+			must.EqError(t, err, `job-submitter consul token denied: insufficient Consul ACL permissions to write service "service1"`)
 		})
 
 		t.Run("authorized token in default namespace", func(t *testing.T) {
@@ -1101,7 +1096,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = entTokenDefaultNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, `job-submitter consul token denied: insufficient Consul ACL permissions to write service "service1"`)
+			must.EqError(t, err, `job-submitter consul token denied: insufficient Consul ACL permissions to write service "service1"`)
 		})
 
 		t.Run("unauthorized token in banana namespace", func(t *testing.T) {
@@ -1110,7 +1105,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = entTokenNoPolicyBananaNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, `job-submitter consul token denied: insufficient Consul ACL permissions to write service "service1"`)
+			must.EqError(t, err, `job-submitter consul token denied: insufficient Consul ACL permissions to write service "service1"`)
 		})
 
 		t.Run("authorized token in banana namespace", func(t *testing.T) {
@@ -1119,7 +1114,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = entTokenBananaNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.NoError(t, err)
+			must.NoError(t, err)
 			noTokenOnJob(t, job)
 		})
 	})
@@ -1135,7 +1130,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = missingToken
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, "job-submitter consul token denied: missing consul token")
+			must.EqError(t, err, "job-submitter consul token denied: missing consul token")
 		})
 
 		t.Run("unknown token provided", func(t *testing.T) {
@@ -1143,7 +1138,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = fakeToken
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, "job-submitter consul token denied: unable to read consul token: no such token")
+			must.EqError(t, err, "job-submitter consul token denied: unable to read consul token: no such token")
 		})
 
 		t.Run("unauthorized oss token provided", func(t *testing.T) {
@@ -1151,7 +1146,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = ossTokenNoPolicyNoNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, `job-submitter consul token denied: consul ACL token cannot use namespace "default"`)
+			must.EqError(t, err, `job-submitter consul token denied: consul ACL token cannot use namespace "default"`)
 		})
 
 		t.Run("authorized oss token provided", func(t *testing.T) {
@@ -1160,7 +1155,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = ossTokenNoNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, `job-submitter consul token denied: consul ACL token cannot use namespace "default"`)
+			must.EqError(t, err, `job-submitter consul token denied: consul ACL token cannot use namespace "default"`)
 		})
 
 		t.Run("unauthorized token in default namespace", func(t *testing.T) {
@@ -1169,7 +1164,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = entTokenNoPolicyDefaultNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, `job-submitter consul token denied: insufficient Consul ACL permissions to write service "service1"`)
+			must.EqError(t, err, `job-submitter consul token denied: insufficient Consul ACL permissions to write service "service1"`)
 		})
 
 		t.Run("authorized token in default namespace", func(t *testing.T) {
@@ -1178,7 +1173,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = entTokenDefaultNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.NoError(t, err)
+			must.NoError(t, err)
 			noTokenOnJob(t, job)
 		})
 
@@ -1188,7 +1183,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = entTokenNoPolicyBananaNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, `job-submitter consul token denied: consul ACL token cannot use namespace "default"`)
+			must.EqError(t, err, `job-submitter consul token denied: consul ACL token cannot use namespace "default"`)
 		})
 
 		t.Run("authorized token in banana namespace", func(t *testing.T) {
@@ -1197,7 +1192,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 			request.Job.ConsulToken = entTokenBananaNS
 			var response structs.JobRegisterResponse
 			err := msgpackrpc.CallWithCodec(codec, "Job.Register", request, &response)
-			require.EqualError(t, err, `job-submitter consul token denied: consul ACL token cannot use namespace "default"`)
+			must.EqError(t, err, `job-submitter consul token denied: consul ACL token cannot use namespace "default"`)
 		})
 	})
 }

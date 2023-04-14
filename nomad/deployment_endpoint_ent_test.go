@@ -12,12 +12,11 @@ import (
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestDeploymentEndpoint_Get_CrossNamespace(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 
 	s1, _, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.NumSchedulers = 0 // Prevent automatic dequeue
@@ -30,7 +29,7 @@ func TestDeploymentEndpoint_Get_CrossNamespace(t *testing.T) {
 	ns1 := mock.Namespace()
 	ns2 := mock.Namespace()
 	state := s1.fsm.State()
-	require.NoError(state.UpsertNamespaces(1000, []*structs.Namespace{ns1, ns2}))
+	must.NoError(t, state.UpsertNamespaces(1000, []*structs.Namespace{ns1, ns2}))
 
 	// Create the policies nd tokens
 	token1 := mock.CreatePolicyAndToken(t, state, 1001, "policy1",
@@ -41,7 +40,7 @@ func TestDeploymentEndpoint_Get_CrossNamespace(t *testing.T) {
 	// Create deployment in ns1
 	depl := mock.Deployment()
 	depl.Namespace = ns1.Name
-	require.NoError(state.UpsertDeployment(1003, depl))
+	must.NoError(t, state.UpsertDeployment(1003, depl))
 
 	// Access deployment from ns1, mostly making sure everything is set up correctly
 	var resp structs.SingleDeploymentResponse
@@ -54,13 +53,13 @@ func TestDeploymentEndpoint_Get_CrossNamespace(t *testing.T) {
 		},
 	}
 	err := msgpackrpc.CallWithCodec(codec, "Deployment.GetDeployment", req, &resp)
-	require.NoError(err)
-	require.NotNil(resp.Deployment)
+	must.NoError(t, err)
+	must.NotNil(t, resp.Deployment)
 
 	// Access using credentials for ns2; should 404 because our token doesn't have read-job on ns1
 	req.Namespace = ns2.Name
 	req.AuthToken = token2.SecretID
 	err = msgpackrpc.CallWithCodec(codec, "Deployment.GetDeployment", req, &resp)
-	require.NoError(err)
-	require.Nil(resp.Deployment)
+	must.NoError(t, err)
+	must.Nil(t, resp.Deployment)
 }

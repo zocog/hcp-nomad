@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/command/agent/consul"
 	"github.com/hashicorp/nomad/helper/testlog"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestConsulACLsAPI_hasSufficientPolicy_ent(t *testing.T) {
@@ -23,8 +23,8 @@ func TestConsulACLsAPI_hasSufficientPolicy_ent(t *testing.T) {
 			logger:    logger,
 		}
 		result, err := cAPI.canWriteService(namespace, task, token)
-		require.NoError(t, err)
-		require.Equal(t, exp, result)
+		must.NoError(t, err)
+		must.Eq(t, exp, result)
 	}
 
 	// In Nomad ENT, group consul namespace is respected.

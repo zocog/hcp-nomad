@@ -7,12 +7,11 @@ import (
 	"testing"
 
 	"github.com/hashicorp/nomad/ci"
-	"github.com/stretchr/testify/assert"
+	"github.com/shoenig/test/must"
 )
 
 func TestUpdateUsageFromPlan(t *testing.T) {
 	ci.Parallel(t)
-	assert := assert.New(t)
 
 	// Create a quota usage that has some amount set
 	usage := &QuotaUsage{
@@ -87,7 +86,7 @@ func TestUpdateUsageFromPlan(t *testing.T) {
 	plan.NodeUpdate[nodeID] = append(plan.NodeUpdate[nodeID], rm)
 
 	effected := UpdateUsageFromPlan(usage, plan)
-	assert.Len(effected, 1)
+	must.Len(t, 1, effected)
 
 	expected := &QuotaLimit{
 		Region: "global",
@@ -97,5 +96,5 @@ func TestUpdateUsageFromPlan(t *testing.T) {
 			MemoryMaxMB: 2946,
 		},
 	}
-	assert.Equal(expected, effected[0])
+	must.Eq(t, expected, effected[0])
 }

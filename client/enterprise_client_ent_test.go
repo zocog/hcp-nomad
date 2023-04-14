@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/testlog"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestEnterpriseClient_InitialFeatures(t *testing.T) {
@@ -17,8 +17,8 @@ func TestEnterpriseClient_InitialFeatures(t *testing.T) {
 	log := testlog.HCLogger(t)
 	c := newEnterpriseClient(log)
 
-	require.NoError(t, c.FeatureCheck(license.FeatureAuditLogging, true))
-	require.NoError(t, c.FeatureCheck(license.AllFeatures(), true))
+	must.NoError(t, c.FeatureCheck(license.FeatureAuditLogging, true))
+	must.NoError(t, c.FeatureCheck(license.AllFeatures(), true))
 }
 
 func TestEnterpriseClient_FeatureCheck(t *testing.T) {
@@ -29,19 +29,19 @@ func TestEnterpriseClient_FeatureCheck(t *testing.T) {
 	// Empty out features
 	c.SetFeatures(0)
 
-	require.Error(t, c.FeatureCheck(license.FeatureAuditLogging, true))
+	must.Error(t, c.FeatureCheck(license.FeatureAuditLogging, true))
 	t1 := c.logTimes[license.FeatureAuditLogging]
 
 	// Log again, ensure the time hasn't changed
-	require.Error(t, c.FeatureCheck(license.FeatureAuditLogging, true))
+	must.Error(t, c.FeatureCheck(license.FeatureAuditLogging, true))
 	t2 := c.logTimes[license.FeatureAuditLogging]
 
 	// Ensure the time hasn't changed
-	require.Equal(t, t1, t2)
+	must.Equal(t, t1, t2)
 
 	// Set some features
 	c.SetFeatures(uint64(license.FeatureAuditLogging | license.FeatureNamespaces))
 
 	// Ensure no error
-	require.NoError(t, c.FeatureCheck(license.FeatureAuditLogging, false))
+	must.NoError(t, c.FeatureCheck(license.FeatureAuditLogging, false))
 }

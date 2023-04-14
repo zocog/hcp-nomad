@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 // TestClientEndpoint_Drain_Multiregion asserts that a multiregion job gets the
@@ -80,7 +80,7 @@ func TestClientEndpoint_Drain_Multiregion(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Region: "east"},
 	}
 	err := msgpackrpc.CallWithCodec(codec, "Job.Register", jobReq, &jobResp)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// Wait for deployment to complete.
 	testutil.WaitForResultUntil(time.Duration(testutil.TestMultiplier())*time.Minute, func() (bool, error) {
@@ -117,7 +117,7 @@ func TestClientEndpoint_Drain_Multiregion(t *testing.T) {
 	}
 	var drainResp structs.NodeDrainUpdateResponse
 	err = msgpackrpc.CallWithCodec(codec, "Node.UpdateDrain", drainReq, &drainResp)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// Wait for allocation to be complete.
 	testutil.WaitForResultUntil(time.Duration(testutil.TestMultiplier())*time.Minute, func() (bool, error) {
@@ -147,8 +147,8 @@ func TestClientEndpoint_Drain_Multiregion(t *testing.T) {
 	drainReq.DrainStrategy = nil
 	drainReq.MarkEligible = true
 	err = msgpackrpc.CallWithCodec(codec, "Node.UpdateDrain", drainReq, &drainResp)
-	require.NoError(t, err)
-	require.Len(t, drainResp.EvalIDs, 1)
+	must.NoError(t, err)
+	must.Len(t, 1, drainResp.EvalIDs)
 
 	// Wait for allocation to be running.
 	testutil.WaitForResultUntil(time.Duration(testutil.TestMultiplier())*time.Minute, func() (bool, error) {

@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/nomad/command/agent/consul"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/structs"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestConsulACLsAPI_CheckPermissions_ent(t *testing.T) {
@@ -27,10 +27,10 @@ func TestConsulACLsAPI_CheckPermissions_ent(t *testing.T) {
 
 		err := cAPI.CheckPermissions(context.Background(), namespace, usage, secretID)
 		if exp == nil {
-			require.NoError(t, err)
+			must.NoError(t, err)
 		} else {
-			require.Error(t, err)
-			require.Equal(t, exp.Error(), err.Error())
+			must.Error(t, err)
+			must.Eq(t, exp.Error(), err.Error())
 		}
 	}
 

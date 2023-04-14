@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/nomad/command/agent"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 // TestJobStatusCommand_Multiregion tests multiregion deployment output
@@ -65,27 +65,27 @@ func TestJobStatusCommand_Multiregion(t *testing.T) {
 	// Register multiregion job in east
 	jobEast := testMultiRegionJob("job1_sfxx", "east", "east-1")
 	resp, _, err := clientEast.Jobs().Register(jobEast, nil)
-	require.NoError(t, err)
+	must.NoError(t, err)
 	code := waitForSuccess(ui, clientEast, fullId, t, resp.EvalID)
 	if code != 1 {
 		t.Fatalf("expected monitor to show blocked deployment: %d", code)
 	}
 
 	jobs, _, err := clientEast.Jobs().List(&api.QueryOptions{})
-	require.NoError(t, err)
-	require.Len(t, jobs, 1)
+	must.NoError(t, err)
+	must.Len(t, 1, jobs)
 
 	deploys, _, err := clientEast.Jobs().Deployments(jobs[0].ID, true, &api.QueryOptions{})
-	require.NoError(t, err)
-	require.Len(t, deploys, 1)
+	must.NoError(t, err)
+	must.Len(t, 1, deploys)
 
 	// Grab both deployments to verify output
 	eastDeploys, _, err := clientEast.Jobs().Deployments(jobs[0].ID, true, &api.QueryOptions{Region: "east"})
-	require.NoError(t, err)
-	require.Len(t, eastDeploys, 1)
+	must.NoError(t, err)
+	must.Len(t, 1, eastDeploys)
 
 	westDeploys, _, err := clientWest.Jobs().Deployments(jobs[0].ID, true, &api.QueryOptions{Region: "west"})
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// Run command for specific deploy
 	if code := cmd.Run([]string{"-address=" + url, jobs[0].ID}); code != 0 {
@@ -94,19 +94,19 @@ func TestJobStatusCommand_Multiregion(t *testing.T) {
 
 	// Verify Multi-region Deployment info populated
 	out := ui.OutputWriter.String()
-	require.Contains(t, out, "Multiregion Deployment")
-	require.Contains(t, out, "Region")
-	require.Contains(t, out, "ID")
-	require.Contains(t, out, "Status")
-	require.Contains(t, out, "east")
-	require.Contains(t, out, eastDeploys[0].ID[0:7])
-	require.Contains(t, out, "west")
-	require.Contains(t, out, westDeploys[0].ID[0:7])
+	must.StrContains(t, out, "Multiregion Deployment")
+	must.StrContains(t, out, "Region")
+	must.StrContains(t, out, "ID")
+	must.StrContains(t, out, "Status")
+	must.StrContains(t, out, "east")
+	must.StrContains(t, out, eastDeploys[0].ID[0:7])
+	must.StrContains(t, out, "west")
+	must.StrContains(t, out, westDeploys[0].ID[0:7])
 
 	// this will always be pending because we're not really doing a multiregion
 	// register here in OSS
-	require.Contains(t, out, "pending")
+	must.StrContains(t, out, "pending")
 
-	require.NotContains(t, out, "<none>")
+	must.StrNotContains(t, out, "<none>")
 
 }

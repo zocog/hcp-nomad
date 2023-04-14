@@ -10,8 +10,7 @@ import (
 
 	"github.com/hashicorp/nomad/ci"
 	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestQuotaApplyCommand_Good_HCL(t *testing.T) {
@@ -39,14 +38,14 @@ func TestQuotaApplyCommand_Good_HCL(t *testing.T) {
 	}
 
 	quotas, _, err := client.Quotas().List(nil)
-	require.NoError(t, err)
-	require.Len(t, quotas, 1)
-	require.Len(t, quotas[0].Limits, 1)
+	must.NoError(t, err)
+	must.Len(t, 1, quotas)
+	must.Len(t, 1, quotas[0].Limits)
 	limit := quotas[0].Limits[0]
-	require.Equal(t, *limit.RegionLimit.CPU, 2500, "cpu")
-	require.Equal(t, *limit.RegionLimit.MemoryMB, 1000, "memory")
-	require.Equal(t, *limit.RegionLimit.MemoryMaxMB, 1000, "memory_max")
-	require.Equal(t, *limit.VariablesLimit, 1000, "variables_limit")
+	must.Eq(t, *limit.RegionLimit.CPU, 2500, must.Sprint("cpu"))
+	must.Eq(t, *limit.RegionLimit.MemoryMB, 1000, must.Sprint("memory"))
+	must.Eq(t, *limit.RegionLimit.MemoryMaxMB, 1000, must.Sprint("memory_max"))
+	must.Eq(t, *limit.VariablesLimit, 1000, must.Sprint("variables_limit"))
 }
 
 func TestQuotaApplyCommand_Good_JSON(t *testing.T) {
@@ -74,6 +73,6 @@ func TestQuotaApplyCommand_Good_JSON(t *testing.T) {
 	}
 
 	quotas, _, err := client.Quotas().List(nil)
-	assert.Nil(t, err)
-	assert.Len(t, quotas, 1)
+	must.Nil(t, err)
+	must.Len(t, 1, quotas)
 }

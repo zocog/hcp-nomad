@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/nomad/ci"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestJob_ConfigEntries(t *testing.T) {
@@ -105,5 +105,5 @@ func TestJob_ConfigEntries(t *testing.T) {
 	}
 
 	entries := j.ConfigEntries()
-	require.EqualValues(t, exp, entries)
+	must.Eq(t, exp, entries)
 }

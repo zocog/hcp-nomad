@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/nomad"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestOperator_GetLicense(t *testing.T) {
@@ -38,18 +38,18 @@ func TestOperator_GetLicense(t *testing.T) {
 
 		body := bytes.NewBuffer(nil)
 		req, err := http.NewRequest("GET", "/v1/operator/license", body)
-		require.NoError(t, err)
+		must.NoError(t, err)
 
 		resp := httptest.NewRecorder()
 		lic, err := s.Server.LicenseRequest(resp, req)
-		require.NoError(t, err)
-		require.Equal(t, resp.Code, 200)
+		must.NoError(t, err)
+		must.Eq(t, resp.Code, 200)
 
 		out, ok := lic.(api.LicenseReply)
-		require.True(t, ok)
-		require.True(t, out.License.ExpirationTime.After(start.Add(1*time.Hour)))
-		require.Equal(t, "governance-policy", out.License.Modules[0])
-		require.Equal(t, "multicluster-and-efficiency", out.License.Modules[1])
+		must.True(t, ok)
+		must.True(t, out.License.ExpirationTime.After(start.Add(1*time.Hour)))
+		must.Eq(t, "governance-policy", out.License.Modules[0])
+		must.Eq(t, "multicluster-and-efficiency", out.License.Modules[1])
 	})
 }
 
@@ -59,15 +59,15 @@ func TestOperator_License_UnknownVerb(t *testing.T) {
 	httpTest(t, nil, func(s *TestAgent) {
 		body := bytes.NewBuffer(nil)
 		req, err := http.NewRequest("POST", "/v1/operator/license", body)
-		require.NoError(t, err)
+		must.NoError(t, err)
 
 		resp := httptest.NewRecorder()
 		lic, err := s.Server.LicenseRequest(resp, req)
-		require.Error(t, err)
-		require.Nil(t, lic)
+		must.Error(t, err)
+		must.Nil(t, lic)
 
 		codedErr, ok := err.(HTTPCodedError)
-		require.True(t, ok)
-		require.Equal(t, codedErr.Code(), 405)
+		must.True(t, ok)
+		must.Eq(t, codedErr.Code(), 405)
 	})
 }

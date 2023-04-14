@@ -74,12 +74,12 @@ func TestServer_Reload_License(t *testing.T) {
 	}
 
 	licenseString, err := l.SignedString(nomadLicense.TestPrivateKey)
-	require.NoError(t, err)
+	must.NoError(t, err)
 	f, err := ioutil.TempFile("", "license.hclic")
-	require.NoError(t, err)
+	must.NoError(t, err)
 	_, err = io.WriteString(f, licenseString)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
+	must.NoError(t, err)
+	must.NoError(t, f.Close())
 
 	defer os.Remove(f.Name())
 
@@ -92,27 +92,27 @@ func TestServer_Reload_License(t *testing.T) {
 	defer cleanup()
 
 	origLicense := server.EnterpriseState.License()
-	require.Equal(t, origLicense.LicenseID, "some-license")
+	must.Eq(t, origLicense.LicenseID, "some-license")
 
 	// write updated license
 	l.LicenseID = "some-new-license"
 	l.IssueTime = time.Now()
 	licenseString, err = l.SignedString(nomadLicense.TestPrivateKey)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	f, err = os.OpenFile(f.Name(), os.O_WRONLY|os.O_TRUNC, 0700)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	_, err = io.WriteString(f, licenseString)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
+	must.NoError(t, err)
+	must.NoError(t, f.Close())
 
 	newConfig := DefaultConfig()
 	// path is unchanged; contents were changed
 	newConfig.LicenseConfig.LicensePath = f.Name()
 
 	err = server.Reload(newConfig)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	testutil.WaitForResult(func() (bool, error) {
 		license := server.EnterpriseState.licenseWatcher.License()

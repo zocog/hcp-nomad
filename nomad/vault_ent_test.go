@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/structs/config"
 	vaultconsts "github.com/hashicorp/vault/sdk/helper/consts"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestTokenAuthForTask(t *testing.T) {
@@ -35,12 +35,12 @@ func TestTokenAuthForTask(t *testing.T) {
 	}
 
 	c, err := NewVaultClient(conf, logger, nil, ent)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	nsClient, err := c.entHandler.clientForTask(c, "new-namespace")
 
-	require.NoError(t, err)
-	require.Equal(t, "new-namespace", nsClient.Headers().Get(vaultconsts.NamespaceHeaderName))
+	must.NoError(t, err)
+	must.Eq(t, "new-namespace", nsClient.Headers().Get(vaultconsts.NamespaceHeaderName))
 }
 
 func TestTokenAuthForTask_Unlicensed_Requested_Different_NS(t *testing.T) {
@@ -63,11 +63,11 @@ func TestTokenAuthForTask_Unlicensed_Requested_Different_NS(t *testing.T) {
 	}
 
 	c, err := NewVaultClient(conf, logger, nil, ent)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	nsClient, err := c.entHandler.clientForTask(c, "new-namespace")
-	require.Error(t, err)
-	require.Nil(t, nsClient)
+	must.Error(t, err)
+	must.Nil(t, nsClient)
 }
 
 type testChecker struct {

@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 // TestCSIPluginEndpoint_ACLNamespaceAlloc checks that allocations are filtered by namespace
@@ -30,7 +30,7 @@ func TestCSIPluginEndpoint_ACLNamespaceAlloc(t *testing.T) {
 	s := srv.fsm.State()
 
 	ns1 := mock.Namespace()
-	require.NoError(t, s.UpsertNamespaces(1000, []*structs.Namespace{ns1}))
+	must.NoError(t, s.UpsertNamespaces(1000, []*structs.Namespace{ns1}))
 
 	// Setup ACLs
 	s.BootstrapACLTokens(structs.MsgTypeTestSetup, 1, 0, mock.ACLManagementToken())
@@ -58,11 +58,11 @@ func TestCSIPluginEndpoint_ACLNamespaceAlloc(t *testing.T) {
 		allocs = append(allocs, a)
 	}
 
-	require.Equal(t, 3, len(allocs))
+	must.Eq(t, 3, len(allocs))
 	allocs[0].Namespace = ns1.Name
 
 	err := s.UpsertAllocs(structs.MsgTypeTestSetup, 1003, allocs)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	req := &structs.CSIPluginGetRequest{
 		ID: "foo",
@@ -73,17 +73,17 @@ func TestCSIPluginEndpoint_ACLNamespaceAlloc(t *testing.T) {
 	}
 	resp := &structs.CSIPluginGetResponse{}
 	err = msgpackrpc.CallWithCodec(codec, "CSIPlugin.Get", req, resp)
-	require.NoError(t, err)
-	require.Equal(t, 2, len(resp.Plugin.Allocations))
+	must.NoError(t, err)
+	must.Eq(t, 2, len(resp.Plugin.Allocations))
 
 	for _, a := range resp.Plugin.Allocations {
-		require.Equal(t, structs.DefaultNamespace, a.Namespace)
+		must.Eq(t, structs.DefaultNamespace, a.Namespace)
 	}
 
 	p2 := mock.PluginPolicy("read")
 	t2 := mock.CreatePolicyAndToken(t, s, 1004, "plugin-read2", p2)
 	req.AuthToken = t2.SecretID
 	err = msgpackrpc.CallWithCodec(codec, "CSIPlugin.Get", req, resp)
-	require.NoError(t, err)
-	require.Equal(t, 0, len(resp.Plugin.Allocations))
+	must.NoError(t, err)
+	must.Eq(t, 0, len(resp.Plugin.Allocations))
 }

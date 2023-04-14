@@ -11,23 +11,21 @@ import (
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestPlanApply_EvalPlanQuota_Under(t *testing.T) {
 	ci.Parallel(t)
-	assert := assert.New(t)
 	state := testStateStore(t)
 
 	// Create the quota spec
 	qs := mock.QuotaSpec()
-	assert.Nil(state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
+	must.Nil(t, state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
 
 	// Create the namespace
 	ns := mock.Namespace()
 	ns.Quota = qs.Name
-	assert.Nil(state.UpsertNamespaces(200, []*structs.Namespace{ns}))
+	must.Nil(t, state.UpsertNamespaces(200, []*structs.Namespace{ns}))
 
 	// Create the job
 	job := mock.Job()
@@ -49,23 +47,22 @@ func TestPlanApply_EvalPlanQuota_Under(t *testing.T) {
 
 	snap, _ := state.Snapshot()
 	over, err := evaluatePlanQuota(snap, plan)
-	assert.Nil(err)
-	assert.False(over)
+	must.Nil(t, err)
+	must.False(t, over)
 }
 
 func TestPlanApply_EvalPlanQuota_Above(t *testing.T) {
 	ci.Parallel(t)
-	assert := assert.New(t)
 	state := testStateStore(t)
 
 	// Create the quota spec
 	qs := mock.QuotaSpec()
-	assert.Nil(state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
+	must.Nil(t, state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
 
 	// Create the namespace
 	ns := mock.Namespace()
 	ns.Quota = qs.Name
-	assert.Nil(state.UpsertNamespaces(200, []*structs.Namespace{ns}))
+	must.Nil(t, state.UpsertNamespaces(200, []*structs.Namespace{ns}))
 
 	// Create the job
 	job := mock.Job()
@@ -89,23 +86,22 @@ func TestPlanApply_EvalPlanQuota_Above(t *testing.T) {
 
 	snap, _ := state.Snapshot()
 	over, err := evaluatePlanQuota(snap, plan)
-	assert.Nil(err)
-	assert.True(over)
+	must.Nil(t, err)
+	must.True(t, over)
 }
 
 func TestPlanApply_EvalPlan_AboveQuota(t *testing.T) {
 	ci.Parallel(t)
-	assert := assert.New(t)
 	state := testStateStore(t)
 
 	// Create the quota spec
 	qs := mock.QuotaSpec()
-	assert.Nil(state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
+	must.Nil(t, state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
 
 	// Create the namespace
 	ns := mock.Namespace()
 	ns.Quota = qs.Name
-	assert.Nil(state.UpsertNamespaces(200, []*structs.Namespace{ns}))
+	must.Nil(t, state.UpsertNamespaces(200, []*structs.Namespace{ns}))
 
 	// Create the job
 	job := mock.Job()
@@ -141,27 +137,26 @@ func TestPlanApply_EvalPlan_AboveQuota(t *testing.T) {
 	defer pool.Shutdown()
 
 	result, err := evaluatePlan(pool, snap, plan, testlog.HCLogger(t))
-	assert.Nil(err)
-	assert.NotNil(result)
-	assert.Empty(result.NodeAllocation)
-	assert.EqualValues(1000, result.RefreshIndex)
-	assert.Nil(result.Deployment)
-	assert.Empty(result.DeploymentUpdates)
+	must.Nil(t, err)
+	must.NotNil(t, result)
+	must.MapEmpty(t, result.NodeAllocation)
+	must.Eq(t, 1000, result.RefreshIndex)
+	must.Nil(t, result.Deployment)
+	must.SliceEmpty(t, result.DeploymentUpdates)
 }
 
 func TestPlanApply_EvalPlanQuota_NilJob(t *testing.T) {
 	ci.Parallel(t)
-	assert := assert.New(t)
 	state := testStateStore(t)
 
 	// Create the quota spec
 	qs := mock.QuotaSpec()
-	assert.Nil(state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
+	must.Nil(t, state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
 
 	// Create the namespace
 	ns := mock.Namespace()
 	ns.Quota = qs.Name
-	assert.Nil(state.UpsertNamespaces(200, []*structs.Namespace{ns}))
+	must.Nil(t, state.UpsertNamespaces(200, []*structs.Namespace{ns}))
 
 	// Create the node
 	node := mock.Node()
@@ -178,8 +173,8 @@ func TestPlanApply_EvalPlanQuota_NilJob(t *testing.T) {
 
 	snap, _ := state.Snapshot()
 	over, err := evaluatePlanQuota(snap, plan)
-	assert.Nil(err)
-	assert.False(over)
+	must.Nil(t, err)
+	must.False(t, over)
 }
 
 // TestPlanApply_EvalPlan_PriorFailedDeploy verifies that when a previous
@@ -187,17 +182,16 @@ func TestPlanApply_EvalPlanQuota_NilJob(t *testing.T) {
 // allocations
 func TestPlanApply_EvalPlan_PriorFailedDeploy(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	state := testStateStore(t)
 
 	// Create the quota spec
 	qs := mock.QuotaSpec()
-	require.Nil(state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
+	must.Nil(t, state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
 
 	// Create the namespace
 	ns := mock.Namespace()
 	ns.Quota = qs.Name
-	require.Nil(state.UpsertNamespaces(200, []*structs.Namespace{ns}))
+	must.Nil(t, state.UpsertNamespaces(200, []*structs.Namespace{ns}))
 
 	// Create the node
 	node := mock.Node()
@@ -252,8 +246,8 @@ func TestPlanApply_EvalPlan_PriorFailedDeploy(t *testing.T) {
 	snap, _ := state.Snapshot()
 
 	usage, err := snap.QuotaUsageByName(nil, qs.Name)
-	require.NoError(err)
-	require.Equal(1200, usage.Used[string(qs.Limits[0].Hash)].RegionLimit.CPU)
+	must.NoError(t, err)
+	must.Eq(t, 1200, usage.Used[string(qs.Limits[0].Hash)].RegionLimit.CPU)
 
 	// usage is 1200:
 	// +0   alloc[0] is dead
@@ -289,11 +283,11 @@ func TestPlanApply_EvalPlan_PriorFailedDeploy(t *testing.T) {
 	defer pool.Shutdown()
 
 	result, err := evaluatePlan(pool, snap, plan, testlog.HCLogger(t))
-	require.NoError(err)
-	require.NotNil(result)
-	require.EqualValues(0, result.RefreshIndex,
-		"fully-applied plan should not require scheduler to refresh state")
-	require.Len(result.NodeAllocation[node.ID], 2)
+	must.NoError(t, err)
+	must.NotNil(t, result)
+	must.Eq(t, 0, result.RefreshIndex,
+		must.Sprint("fully-applied plan should not require scheduler to refresh state"))
+	must.Len(t, 2, result.NodeAllocation[node.ID])
 
 	// Modify plan to go over quota
 	plan.NodeAllocation[node.ID] = []*structs.Allocation{allocs[2], allocs[3], allocs[4]}
@@ -311,9 +305,9 @@ func TestPlanApply_EvalPlan_PriorFailedDeploy(t *testing.T) {
 	// +1200 alloc[4] is new
 
 	result, err = evaluatePlan(pool, snap, plan, testlog.HCLogger(t))
-	require.NoError(err)
-	require.NotNil(result)
-	require.EqualValues(1001, result.RefreshIndex,
-		"partially-applied plan should require scheduler to refresh state")
-	require.Empty(result.NodeAllocation, "plan should not have applied fully")
+	must.NoError(t, err)
+	must.NotNil(t, result)
+	must.Eq(t, 1001, result.RefreshIndex,
+		must.Sprint("partially-applied plan should require scheduler to refresh state"))
+	must.MapEmpty(t, result.NodeAllocation, must.Sprint("plan should not have applied fully"))
 }

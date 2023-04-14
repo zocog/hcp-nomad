@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/structs"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 var _ http.Hijacker = &auditResponseWriter{}
@@ -74,7 +74,7 @@ func TestAuditWrapHTTPHandler(t *testing.T) {
 			}
 
 			tmpDir, err := ioutil.TempDir("", parentTestName+"-"+tc.desc)
-			require.NoError(t, err)
+			must.NoError(t, err)
 			defer os.RemoveAll(tmpDir)
 
 			auditor, err := audit.NewAuditor(&audit.Config{
@@ -92,7 +92,7 @@ func TestAuditWrapHTTPHandler(t *testing.T) {
 				},
 				FeatureChecker: &s.server.EnterpriseState,
 			})
-			require.NoError(t, err)
+			must.NoError(t, err)
 
 			// Set the auditor on the agent and http servers
 			s.auditor = &testAuditor{auditor: auditor, auditErr: tc.auditErr}
@@ -102,20 +102,20 @@ func TestAuditWrapHTTPHandler(t *testing.T) {
 
 			resp := httptest.NewRecorder()
 			req, err := http.NewRequest("GET", tc.path, nil)
-			require.NoError(t, err)
+			must.NoError(t, err)
 
 			s.Server.wrap(handler)(resp, req)
-			require.Equal(t, tc.expectedCode, resp.Code)
+			must.Eq(t, tc.expectedCode, resp.Code)
 
 			if tc.body != "" {
-				require.Equal(t, tc.body, resp.Body.String())
+				must.Eq(t, tc.body, resp.Body.String())
 			}
 
 			if tc.auditErr == nil {
 				// Read from audit log
 				dat, err := ioutil.ReadFile(filepath.Join(tmpDir, "audit.log"))
-				require.NoError(t, err)
-				require.NotEmpty(t, dat)
+				must.NoError(t, err)
+				must.SliceNotEmpty(t, dat)
 			}
 		})
 	}
@@ -126,7 +126,7 @@ func TestEventFromReq(t *testing.T) {
 	defer s.Shutdown()
 
 	req, err := http.NewRequest("GET", "/v1/metrics", nil)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// Add to request context
 	ctx := req.Context()
@@ -144,10 +144,10 @@ func TestEventFromReq(t *testing.T) {
 	srv := s.Server
 	event := srv.eventFromReq(ctx, req, auth)
 
-	require.Equal(t, srv.agent.GetConfig().AdvertiseAddrs.HTTP, event.Request.NodeMeta["ip"])
-	require.Equal(t, audit.OperationReceived, event.Stage)
-	require.Equal(t, reqID, event.Request.ID)
-	require.Equal(t, auth, event.Auth)
+	must.Eq(t, srv.agent.GetConfig().AdvertiseAddrs.HTTP, event.Request.NodeMeta["ip"])
+	must.Eq(t, audit.OperationReceived, event.Stage)
+	must.Eq(t, reqID, event.Request.ID)
+	must.Eq(t, auth, event.Auth)
 }
 
 func TestAuditNonJSONHandler(t *testing.T) {
@@ -211,7 +211,7 @@ func TestAuditNonJSONHandler(t *testing.T) {
 				},
 				FeatureChecker: &s.server.EnterpriseState,
 			})
-			require.NoError(t, err)
+			must.NoError(t, err)
 
 			// Set the auditor on the agent and http servers
 			s.auditor = &testAuditor{auditor: auditor, auditErr: tc.auditErr}
@@ -221,20 +221,20 @@ func TestAuditNonJSONHandler(t *testing.T) {
 
 			resp := httptest.NewRecorder()
 			req, err := http.NewRequest("GET", tc.path, nil)
-			require.NoError(t, err)
+			must.NoError(t, err)
 
 			s.Server.wrapNonJSON(handler)(resp, req)
-			require.Equal(t, tc.expectedCode, resp.Code)
+			must.Eq(t, tc.expectedCode, resp.Code)
 
 			if tc.body != "" {
-				require.Equal(t, tc.body, resp.Body.String())
+				must.Eq(t, tc.body, resp.Body.String())
 			}
 
 			if tc.auditErr == nil {
 				// Read from audit log
 				dat, err := ioutil.ReadFile(filepath.Join(tmpDir, "audit.log"))
-				require.NoError(t, err)
-				require.NotEmpty(t, dat)
+				must.NoError(t, err)
+				must.SliceNotEmpty(t, dat)
 			}
 		})
 	}

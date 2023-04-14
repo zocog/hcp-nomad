@@ -12,25 +12,23 @@ import (
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 // Test that scaling up a job in a way that will cause the job to exceed the
 // quota limit places the maximum number of allocations
 func TestServiceSched_JobModify_IncrCount_QuotaLimit(t *testing.T) {
 	ci.Parallel(t)
-	assert := assert.New(t)
 	h := NewHarness(t)
 
 	// Create the quota spec
 	qs := mock.QuotaSpec()
-	assert.Nil(h.State.UpsertQuotaSpecs(h.NextIndex(), []*structs.QuotaSpec{qs}))
+	must.Nil(t, h.State.UpsertQuotaSpecs(h.NextIndex(), []*structs.QuotaSpec{qs}))
 
 	// Create the namespace
 	ns := mock.Namespace()
 	ns.Quota = qs.Name
-	assert.Nil(h.State.UpsertNamespaces(h.NextIndex(), []*structs.Namespace{ns}))
+	must.Nil(t, h.State.UpsertNamespaces(h.NextIndex(), []*structs.Namespace{ns}))
 
 	// Create the job with two task groups with slightly different resource
 	// requirements
@@ -48,13 +46,13 @@ func TestServiceSched_JobModify_IncrCount_QuotaLimit(t *testing.T) {
 	// Total Usage at count 2 : (1000, 512)
 	// Should be able to place 4 o
 	// Quota would be (2000, 1024)
-	assert.Nil(h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), nil, job))
+	must.Nil(t, h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), nil, job))
 
 	// Create several node
 	var nodes []*structs.Node
 	for i := 0; i < 10; i++ {
 		nodes = append(nodes, mock.Node())
-		assert.Nil(h.State.UpsertNode(structs.MsgTypeTestSetup, h.NextIndex(), nodes[i]))
+		must.Nil(t, h.State.UpsertNode(structs.MsgTypeTestSetup, h.NextIndex(), nodes[i]))
 	}
 
 	var allocs []*structs.Allocation
@@ -72,12 +70,12 @@ func TestServiceSched_JobModify_IncrCount_QuotaLimit(t *testing.T) {
 		}
 		allocs = append(allocs, alloc)
 	}
-	require.NoError(t, h.State.UpsertAllocs(structs.MsgTypeTestSetup, h.NextIndex(), allocs))
+	must.NoError(t, h.State.UpsertAllocs(structs.MsgTypeTestSetup, h.NextIndex(), allocs))
 
 	// Update the task group count to 10 each
 	job2 := job.Copy()
 	job2.TaskGroups[0].Count = 10
-	require.NoError(t, h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), nil, job2))
+	must.NoError(t, h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), nil, job2))
 
 	// Create a mock evaluation to deal with drain
 	eval := &structs.Evaluation{
@@ -88,13 +86,13 @@ func TestServiceSched_JobModify_IncrCount_QuotaLimit(t *testing.T) {
 		JobID:       job.ID,
 		Status:      structs.EvalStatusPending,
 	}
-	require.NoError(t, h.State.UpsertEvals(structs.MsgTypeTestSetup, h.NextIndex(), []*structs.Evaluation{eval}))
+	must.NoError(t, h.State.UpsertEvals(structs.MsgTypeTestSetup, h.NextIndex(), []*structs.Evaluation{eval}))
 
 	// Process the evaluation
-	assert.Nil(h.Process(NewServiceScheduler, eval))
+	must.Nil(t, h.Process(NewServiceScheduler, eval))
 
 	// Ensure a single plan
-	assert.Len(h.Plans, 1)
+	must.Len(t, 1, h.Plans)
 	plan := h.Plans[0]
 
 	// Ensure the plan didn't evicted the alloc
@@ -102,49 +100,48 @@ func TestServiceSched_JobModify_IncrCount_QuotaLimit(t *testing.T) {
 	for _, updateList := range plan.NodeUpdate {
 		update = append(update, updateList...)
 	}
-	assert.Empty(update)
+	must.SliceEmpty(t, update)
 
 	// Ensure the plan allocated
 	var planned []*structs.Allocation
 	for _, allocList := range plan.NodeAllocation {
 		planned = append(planned, allocList...)
 	}
-	assert.Len(planned, 4)
+	must.Len(t, 4, planned)
 
 	// Ensure the plan had a failures
-	assert.Len(h.Evals, 1)
+	must.Len(t, 1, h.Evals)
 
 	// Ensure the eval has spawned blocked eval
-	assert.Len(h.CreateEvals, 1)
+	must.Len(t, 1, h.CreateEvals)
 
 	// Ensure that eval says that it was because of a quota limit
 	blocked := h.CreateEvals[0]
-	assert.Equal(qs.Name, blocked.QuotaLimitReached)
+	must.Eq(t, qs.Name, blocked.QuotaLimitReached)
 
 	// Lookup the allocations by JobID and make sure we have the right amount of
 	// each type
 	ws := memdb.NewWatchSet()
 	out, err := h.State.AllocsByJob(ws, job.Namespace, job.ID, false)
-	assert.Nil(err)
+	must.Nil(t, err)
 
-	assert.Len(out, 4)
+	must.Len(t, 4, out)
 	h.AssertEvalStatus(t, structs.EvalStatusComplete)
 }
 
 func TestServiceSched_QuotaInteractionsWithConstraints(t *testing.T) {
 	ci.Parallel(t)
 
-	require := require.New(t)
 	h := NewHarness(t)
 
 	// Create the quota spec (2000 cpu/mem)
 	qs := mock.QuotaSpec()
-	require.NoError(h.State.UpsertQuotaSpecs(h.NextIndex(), []*structs.QuotaSpec{qs}))
+	must.NoError(t, h.State.UpsertQuotaSpecs(h.NextIndex(), []*structs.QuotaSpec{qs}))
 
 	// Create the namespace
 	ns := mock.Namespace()
 	ns.Quota = qs.Name
-	require.NoError(h.State.UpsertNamespaces(h.NextIndex(), []*structs.Namespace{ns}))
+	must.NoError(t, h.State.UpsertNamespaces(h.NextIndex(), []*structs.Namespace{ns}))
 
 	// Create a job with resources that allow for exactly one alloc
 	job := mock.Job()
@@ -164,24 +161,24 @@ func TestServiceSched_QuotaInteractionsWithConstraints(t *testing.T) {
 	r1.Networks = nil
 
 	// quota usage should now be 800/2000
-	require.NoError(h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), nil, job))
+	must.NoError(t, h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), nil, job))
 
 	goodNode := mock.Node()
 	goodNode.NodeClass = "good"
 	goodNode.ComputeClass()
-	require.NoError(h.State.UpsertNode(structs.MsgTypeTestSetup, h.NextIndex(), goodNode))
+	must.NoError(t, h.State.UpsertNode(structs.MsgTypeTestSetup, h.NextIndex(), goodNode))
 
 	goodNode2 := mock.Node()
 	goodNode2.NodeClass = "good"
 	goodNode2.ComputeClass()
-	require.NoError(h.State.UpsertNode(structs.MsgTypeTestSetup, h.NextIndex(), goodNode2))
+	must.NoError(t, h.State.UpsertNode(structs.MsgTypeTestSetup, h.NextIndex(), goodNode2))
 
 	// create a whole bunch of bad nodes to ensure we hit the failure case
 	for i := 0; i < 100; i++ {
 		badNode := mock.Node()
 		badNode.NodeClass = "bad"
 		badNode.ComputeClass()
-		require.NoError(h.State.UpsertNode(structs.MsgTypeTestSetup, h.NextIndex(), badNode))
+		must.NoError(t, h.State.UpsertNode(structs.MsgTypeTestSetup, h.NextIndex(), badNode))
 	}
 
 	alloc := mock.Alloc()
@@ -197,14 +194,14 @@ func TestServiceSched_QuotaInteractionsWithConstraints(t *testing.T) {
 		"web": r1.Copy(),
 	}
 
-	require.NoError(h.State.UpsertAllocs(
+	must.NoError(t, h.State.UpsertAllocs(
 		structs.MsgTypeTestSetup, h.NextIndex(), []*structs.Allocation{alloc}))
 
 	// Update the env to force an update
 	job2 := job.Copy()
 	job2.TaskGroups[0].Count = 2
 	job2.TaskGroups[0].Tasks[0].Env = map[string]string{"example": "2"}
-	require.NoError(h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), nil, job2))
+	must.NoError(t, h.State.UpsertJob(structs.MsgTypeTestSetup, h.NextIndex(), nil, job2))
 
 	eval := &structs.Evaluation{
 		Namespace:   ns.Name,
@@ -214,11 +211,11 @@ func TestServiceSched_QuotaInteractionsWithConstraints(t *testing.T) {
 		JobID:       job2.ID,
 		Status:      structs.EvalStatusPending,
 	}
-	require.NoError(h.State.UpsertEvals(
+	must.NoError(t, h.State.UpsertEvals(
 		structs.MsgTypeTestSetup, h.NextIndex(), []*structs.Evaluation{eval}))
 
 	// Process the evaluation
-	require.NoError(h.Process(NewServiceScheduler, eval))
+	must.NoError(t, h.Process(NewServiceScheduler, eval))
 
 	quotaErrForEvals := func(evals []*structs.Evaluation) string {
 		if len(evals) < 1 {
@@ -239,20 +236,20 @@ func TestServiceSched_QuotaInteractionsWithConstraints(t *testing.T) {
 	}
 
 	// Ensure the plan has no failures or blocked evals
-	require.Len(h.CreateEvals, 0, quotaErrForEvals(h.CreateEvals))
-	require.Len(h.Evals, 1)
+	must.Len(t, 0, h.CreateEvals, must.Sprint(quotaErrForEvals(h.CreateEvals)))
+	must.Len(t, 1, h.Evals)
 	h.AssertEvalStatus(t, structs.EvalStatusComplete)
 
 	// Ensure a single plan that evicts the running alloc and gives us a new alloc
-	require.Len(h.Plans, 1, "we should have exactly 1 plan")
+	must.Len(t, 1, h.Plans, must.Sprint("we should have exactly 1 plan"))
 	plan := h.Plans[0]
-	require.Len(plan.NodeUpdate[alloc.NodeID], 1)
+	must.Len(t, 1, plan.NodeUpdate[alloc.NodeID])
 
 	// Ensure the plan allocated
 	var planned []*structs.Allocation
 	for _, allocList := range plan.NodeAllocation {
 		planned = append(planned, allocList...)
 	}
-	require.Len(planned, 2)
+	must.Len(t, 2, planned)
 
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestScalingEndpoint_List_MultiNamespace(t *testing.T) {
@@ -27,7 +27,7 @@ func TestScalingEndpoint_List_MultiNamespace(t *testing.T) {
 	// two namespaces
 	ns1 := mock.Namespace()
 	ns2 := mock.Namespace()
-	require.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
+	must.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
 
 	// job1a
 	job1a := mock.Job()
@@ -64,7 +64,7 @@ func TestScalingEndpoint_List_MultiNamespace(t *testing.T) {
 	pol1a1M.Type = structs.ScalingPolicyTypeVerticalMem
 	pol1a1M.TargetTask(job1a, job1a.TaskGroups[1], job1a.TaskGroups[1].Tasks[0])
 	job1a.TaskGroups[1].Tasks[0].ScalingPolicies = append(job1a.TaskGroups[1].Tasks[0].ScalingPolicies, pol1a1M)
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, nil, job1a))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, nil, job1a))
 
 	// job1b
 	job1b := mock.Job()
@@ -75,7 +75,7 @@ func TestScalingEndpoint_List_MultiNamespace(t *testing.T) {
 	pol1bH.ID = "dd" + pol1bH.ID[2:]
 	pol1bH.TargetTaskGroup(job1b, job1b.TaskGroups[0])
 	job1b.TaskGroups[0].Scaling = pol1bH
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 902, nil, job1b))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 902, nil, job1b))
 
 	// job2
 	job2 := mock.Job()
@@ -93,7 +93,7 @@ func TestScalingEndpoint_List_MultiNamespace(t *testing.T) {
 	pol2C.Type = structs.ScalingPolicyTypeVerticalCPU
 	pol2C.TargetTask(job2, job2.TaskGroups[0], job2.TaskGroups[0].Tasks[0])
 	job2.TaskGroups[0].Tasks[0].ScalingPolicies = []*structs.ScalingPolicy{pol2C}
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 903, nil, job2))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 903, nil, job2))
 
 	cases := []struct {
 		Label     string
@@ -213,12 +213,12 @@ func TestScalingEndpoint_List_MultiNamespace(t *testing.T) {
 						Prefix:    tc.Prefix,
 					},
 				}, &resp)
-			require.NoError(t, err)
+			must.NoError(t, err)
 			exp := make([]*structs.ScalingPolicyListStub, len(tc.Pols))
 			for i, p := range tc.Pols {
 				exp[i] = p.Stub()
 			}
-			require.ElementsMatch(t, exp, resp.Policies)
+			must.SliceContainsAll(t, exp, resp.Policies)
 		})
 	}
 }
@@ -234,7 +234,7 @@ func TestScalingEndpoint_List_MultiNamespace_ACL(t *testing.T) {
 
 	ns1 := mock.Namespace()
 	ns2 := mock.Namespace()
-	require.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
+	must.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
 
 	ns1token := mock.CreatePolicyAndToken(t, state, 1001, "ns1",
 		mock.NamespacePolicy(ns1.Name, "", []string{acl.NamespaceCapabilityListScalingPolicies}))
@@ -249,19 +249,19 @@ func TestScalingEndpoint_List_MultiNamespace_ACL(t *testing.T) {
 		mock.NamespacePolicy("default", "", []string{acl.NamespaceCapabilityListJobs}))
 
 	// two namespaces
-	require.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
+	must.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
 	job1a, pol1a := mock.JobWithScalingPolicy()
 	job1a.Namespace = ns1.Name
 	pol1a.TargetTaskGroup(job1a, job1a.TaskGroups[0])
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job1a))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job1a))
 	job1b, pol1b := mock.JobWithScalingPolicy()
 	job1b.Namespace = ns1.Name
 	pol1b.TargetTaskGroup(job1b, job1b.TaskGroups[0])
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job1b))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job1b))
 	job2, pol2 := mock.JobWithScalingPolicy()
 	job2.Namespace = ns2.Name
 	pol2.TargetTaskGroup(job2, job2.TaskGroups[0])
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job2))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job2))
 
 	cases := []struct {
 		Label     string
@@ -362,21 +362,21 @@ func TestScalingEndpoint_List_MultiNamespace_ACL(t *testing.T) {
 					},
 				}, &resp)
 			if tc.Error {
-				require.Error(t, err)
+				must.Error(t, err)
 				if tc.Message != "" {
-					require.Equal(t, err.Error(), tc.Message)
+					must.Eq(t, err.Error(), tc.Message)
 				} else {
-					require.Equal(t, err.Error(), structs.ErrPermissionDenied.Error())
+					must.Eq(t, err.Error(), structs.ErrPermissionDenied.Error())
 				}
 			} else {
-				require.NoError(t, err)
+				must.NoError(t, err)
 				exp := make([]*structs.ScalingPolicyListStub, len(tc.Pols))
 				for i, p := range tc.Pols {
 					exp[i] = p.Stub()
 					exp[i].CreateIndex = 900
 					exp[i].ModifyIndex = 900
 				}
-				require.ElementsMatch(t, exp, resp.Policies)
+				must.SliceContainsAll(t, exp, resp.Policies)
 			}
 		})
 	}

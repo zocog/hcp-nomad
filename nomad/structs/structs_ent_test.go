@@ -14,8 +14,7 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestNamespace_Validate(t *testing.T) {
@@ -83,22 +82,21 @@ func TestNamespace_Validate(t *testing.T) {
 
 func TestNamespace_SetHash(t *testing.T) {
 	ci.Parallel(t)
-	assert := assert.New(t)
 	ns := &Namespace{
 		Name:        "foo",
 		Description: "bar",
 	}
 	out1 := ns.SetHash()
-	assert.NotNil(out1)
-	assert.NotNil(ns.Hash)
-	assert.Equal(out1, ns.Hash)
+	must.NotNil(t, out1)
+	must.NotNil(t, ns.Hash)
+	must.Eq(t, out1, ns.Hash)
 
 	ns.Description = "bam"
 	out2 := ns.SetHash()
-	assert.NotNil(out2)
-	assert.NotNil(ns.Hash)
-	assert.Equal(out2, ns.Hash)
-	assert.NotEqual(out1, out2)
+	must.NotNil(t, out2)
+	must.NotNil(t, ns.Hash)
+	must.Eq(t, out2, ns.Hash)
+	must.NotEq(t, out1, out2)
 }
 
 func TestSentinelPolicySetHash(t *testing.T) {
@@ -112,16 +110,16 @@ func TestSentinelPolicySetHash(t *testing.T) {
 	}
 
 	out1 := sp.SetHash()
-	assert.NotNil(t, out1)
-	assert.NotNil(t, sp.Hash)
-	assert.Equal(t, out1, sp.Hash)
+	must.NotNil(t, out1)
+	must.NotNil(t, sp.Hash)
+	must.Eq(t, out1, sp.Hash)
 
 	sp.Policy = "main = rule { false }"
 	out2 := sp.SetHash()
-	assert.NotNil(t, out2)
-	assert.NotNil(t, sp.Hash)
-	assert.Equal(t, out2, sp.Hash)
-	assert.NotEqual(t, out1, out2)
+	must.NotNil(t, out2)
+	must.NotNil(t, sp.Hash)
+	must.Eq(t, out2, sp.Hash)
+	must.NotEq(t, out1, out2)
 }
 
 func TestSentinelPolicy_Validate(t *testing.T) {
@@ -135,31 +133,31 @@ func TestSentinelPolicy_Validate(t *testing.T) {
 	}
 
 	// Test a good policy
-	assert.Nil(t, sp.Validate())
+	must.Nil(t, sp.Validate())
 
 	// Try an invalid name
 	sp.Name = "hi@there"
-	assert.NotNil(t, sp.Validate())
+	must.NotNil(t, sp.Validate())
 
 	// Try an invalid description
 	sp.Name = "test"
 	sp.Description = string(make([]byte, 1000))
-	assert.NotNil(t, sp.Validate())
+	must.NotNil(t, sp.Validate())
 
 	// Try an invalid scope
 	sp.Description = ""
 	sp.Scope = "random"
-	assert.NotNil(t, sp.Validate())
+	must.NotNil(t, sp.Validate())
 
 	// Try an invalid type
 	sp.Scope = SentinelScopeSubmitJob
 	sp.EnforcementLevel = "yolo"
-	assert.NotNil(t, sp.Validate())
+	must.NotNil(t, sp.Validate())
 
 	// Try an invalid policy
 	sp.EnforcementLevel = SentinelEnforcementLevelAdvisory
 	sp.Policy = "blah 123"
-	assert.NotNil(t, sp.Validate())
+	must.NotNil(t, sp.Validate())
 }
 
 func TestSentinelPolicy_CacheKey(t *testing.T) {
@@ -168,7 +166,7 @@ func TestSentinelPolicy_CacheKey(t *testing.T) {
 		Name:        "test",
 		ModifyIndex: 10,
 	}
-	assert.Equal(t, "test:10", sp.CacheKey())
+	must.Eq(t, "test:10", sp.CacheKey())
 }
 
 func TestSentinelPolicy_Compile(t *testing.T) {
@@ -182,9 +180,9 @@ func TestSentinelPolicy_Compile(t *testing.T) {
 	}
 
 	f, fset, err := sp.Compile()
-	assert.Nil(t, err)
-	assert.NotNil(t, fset)
-	assert.NotNil(t, f)
+	must.Nil(t, err)
+	must.NotNil(t, fset)
+	must.NotNil(t, f)
 }
 
 func TestQuotaSpec_Validate(t *testing.T) {
@@ -338,7 +336,6 @@ func TestQuotaSpec_Validate(t *testing.T) {
 
 func TestQuotaSpec_SetHash(t *testing.T) {
 	ci.Parallel(t)
-	assert := assert.New(t)
 	qs := &QuotaSpec{
 		Name:        "test",
 		Description: "test limits",
@@ -353,22 +350,21 @@ func TestQuotaSpec_SetHash(t *testing.T) {
 	}
 
 	out1 := qs.SetHash()
-	assert.NotNil(out1)
-	assert.NotNil(qs.Hash)
-	assert.Equal(out1, qs.Hash)
+	must.NotNil(t, out1)
+	must.NotNil(t, qs.Hash)
+	must.Eq(t, out1, qs.Hash)
 
 	qs.Name = "foo"
 	out2 := qs.SetHash()
-	assert.NotNil(out2)
-	assert.NotNil(qs.Hash)
-	assert.Equal(out2, qs.Hash)
-	assert.NotEqual(out1, out2)
+	must.NotNil(t, out2)
+	must.NotNil(t, qs.Hash)
+	must.Eq(t, out2, qs.Hash)
+	must.NotEq(t, out1, out2)
 }
 
 // Test that changing a region limit will also stimulate a hash change
 func TestQuotaSpec_SetHash2(t *testing.T) {
 	ci.Parallel(t)
-	assert := assert.New(t)
 	qs := &QuotaSpec{
 		Name:        "test",
 		Description: "test limits",
@@ -383,16 +379,16 @@ func TestQuotaSpec_SetHash2(t *testing.T) {
 	}
 
 	out1 := qs.SetHash()
-	assert.NotNil(out1)
-	assert.NotNil(qs.Hash)
-	assert.Equal(out1, qs.Hash)
+	must.NotNil(t, out1)
+	must.NotNil(t, qs.Hash)
+	must.Eq(t, out1, qs.Hash)
 
 	qs.Limits[0].RegionLimit.CPU = 2000
 	out2 := qs.SetHash()
-	assert.NotNil(out2)
-	assert.NotNil(qs.Hash)
-	assert.Equal(out2, qs.Hash)
-	assert.NotEqual(out1, out2)
+	must.NotNil(t, out2)
+	must.NotNil(t, qs.Hash)
+	must.Eq(t, out2, qs.Hash)
+	must.NotEq(t, out1, out2)
 }
 
 func TestQuotaUsage_Diff(t *testing.T) {
@@ -528,8 +524,8 @@ func TestQuotaUsage_Diff(t *testing.T) {
 			sort.Strings(actDeleteHashes)
 			sort.Strings(c.Create)
 			sort.Strings(c.Delete)
-			assert.Equal(t, actCreateHashes, c.Create)
-			assert.Equal(t, actDeleteHashes, c.Delete)
+			must.Eq(t, actCreateHashes, c.Create)
+			must.Eq(t, actDeleteHashes, c.Delete)
 		})
 	}
 }
@@ -663,11 +659,11 @@ func TestQuotaLimit_Superset(t *testing.T) {
 			sort.Strings(found)
 
 			if len(c.eDimensions) == 0 {
-				require.Emptyf(t, found, "found: %v", dimensions)
+				must.SliceEmpty(t, found, must.Sprintf("found: %v", dimensions))
 			} else {
-				require.Equalf(t, c.eDimensions, found, "found: %v", dimensions)
+				must.Eq(t, c.eDimensions, found, must.Sprintf("found: %v", dimensions))
 			}
-			require.Equal(t, c.eSuperset, superset)
+			must.Eq(t, c.eSuperset, superset)
 		})
 	}
 }
@@ -693,21 +689,20 @@ func TestQuotaUsageSerialization(t *testing.T) {
 
 	var buf bytes.Buffer
 	encoder := codec.NewEncoder(&buf, JsonHandle)
-	require.NoError(t, encoder.Encode(input))
+	must.NoError(t, encoder.Encode(input))
 
 	// ensure that Used key is a base64("\x01"") == `AQ==`
-	require.Contains(t, buf.String(), `"Used":{"AQ==":{`)
+	must.StrContains(t, buf.String(), `"Used":{"AQ==":{`)
 
 	var out QuotaUsage
 	decoder := codec.NewDecoder(&buf, JsonHandle)
-	require.NoError(t, decoder.Decode(&out))
+	must.NoError(t, decoder.Decode(&out))
 
-	require.Equal(t, input, out)
+	must.Eq(t, input, out)
 }
 
 func TestMultiregion_Validate(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	cases := []struct {
 		Name    string
 		JobType string
@@ -777,7 +772,7 @@ func TestMultiregion_Validate(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			err := tc.Case.Validate(tc.JobType, []string{})
 			if len(tc.Errors) == 0 {
-				require.NoError(err)
+				must.NoError(t, err)
 			} else {
 				mErr := err.(*multierror.Error)
 				for i, expectedErr := range tc.Errors {
@@ -964,17 +959,16 @@ func TestScalingPolicy_Validate_Ent(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			require := require.New(t)
 
 			err := c.input.Validate()
 
 			if len(c.expectedErr) > 0 {
-				require.Error(err)
+				must.Error(t, err)
 				mErr := err.(*multierror.Error)
-				require.Len(mErr.Errors, 1)
-				require.Contains(mErr.Errors[0].Error(), c.expectedErr)
+				must.Len(t, 1, mErr.Errors)
+				must.StrContains(t, mErr.Errors[0].Error(), c.expectedErr)
 			} else {
-				require.NoError(err)
+				must.NoError(t, err)
 			}
 		})
 	}
@@ -989,7 +983,7 @@ func TestJob_GetScalingPolicies_TaskPolicies(t *testing.T) {
 	// no policies
 	t.Run("job with no policies", func(t *testing.T) {
 		actual := job.GetScalingPolicies()
-		assert.ElementsMatch(t, expected, actual)
+		must.SliceContainsAll(t, expected, actual)
 	})
 
 	// one group policy
@@ -1006,7 +1000,7 @@ func TestJob_GetScalingPolicies_TaskPolicies(t *testing.T) {
 	expected = append(expected, pGroup)
 	t.Run("job with single group policy", func(t *testing.T) {
 		actual := job.GetScalingPolicies()
-		assert.ElementsMatch(t, expected, actual)
+		must.SliceContainsAll(t, expected, actual)
 	})
 
 	// plus a task policy
@@ -1023,7 +1017,7 @@ func TestJob_GetScalingPolicies_TaskPolicies(t *testing.T) {
 	expected = append(expected, pTaskCpu)
 	t.Run("job with a task policy", func(t *testing.T) {
 		actual := job.GetScalingPolicies()
-		assert.ElementsMatch(t, expected, actual)
+		must.SliceContainsAll(t, expected, actual)
 	})
 
 	// plus one more task policy
@@ -1040,7 +1034,7 @@ func TestJob_GetScalingPolicies_TaskPolicies(t *testing.T) {
 	expected = append(expected, pTaskMem)
 	t.Run("job with multiple task policies", func(t *testing.T) {
 		actual := job.GetScalingPolicies()
-		assert.ElementsMatch(t, expected, actual)
+		must.SliceContainsAll(t, expected, actual)
 	})
 }
 
@@ -1190,9 +1184,9 @@ func TestRecommendation_Validate(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			err := tc.Rec.Validate()
-			assert.Equal(t, tc.Error, err != nil)
+			must.Eq(t, tc.Error, err != nil)
 			if err != nil {
-				assert.Contains(t, err.Error(), tc.ErrorMsg)
+				must.StrContains(t, err.Error(), tc.ErrorMsg)
 			}
 		})
 	}
@@ -1200,11 +1194,10 @@ func TestRecommendation_Validate(t *testing.T) {
 
 func TestRecommendation_UpdateJob(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 
 	var rec *Recommendation
 
-	require.NoError(rec.UpdateJob(nil))
+	must.NoError(t, rec.UpdateJob(nil))
 
 	job := &Job{
 		Region:    "global",
@@ -1242,37 +1235,37 @@ func TestRecommendation_UpdateJob(t *testing.T) {
 	}
 	rec.Target(job.TaskGroups[0].Name, job.TaskGroups[0].Tasks[0].Name, "CPU")
 	rec.Value = 750
-	require.NoError(rec.UpdateJob(job))
-	require.Equal(rec.Value, job.LookupTaskGroup(rec.Group).LookupTask(rec.Task).Resources.CPU)
+	must.NoError(t, rec.UpdateJob(job))
+	must.Eq(t, rec.Value, job.LookupTaskGroup(rec.Group).LookupTask(rec.Task).Resources.CPU)
 
 	rec.Resource = "MemoryMB"
 	rec.Value = 2048
-	require.NoError(rec.UpdateJob(job))
-	require.Equal(rec.Value, job.LookupTaskGroup(rec.Group).LookupTask(rec.Task).Resources.MemoryMB)
+	must.NoError(t, rec.UpdateJob(job))
+	must.Eq(t, rec.Value, job.LookupTaskGroup(rec.Group).LookupTask(rec.Task).Resources.MemoryMB)
 
 	rec.Resource = "Bad Resource"
 	err := rec.UpdateJob(job)
-	require.Error(err)
-	require.Contains(err.Error(), "resource not valid")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "resource not valid")
 
 	rec.Target("bad group", job.TaskGroups[0].Tasks[0].Name, "CPU")
 	err = rec.UpdateJob(job)
-	require.Error(err)
-	require.Contains(err.Error(), "task group does not exist in job")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "task group does not exist in job")
 
 	rec.Target(job.TaskGroups[0].Name, "bad task", "CPU")
 	err = rec.UpdateJob(job)
-	require.Error(err)
-	require.Contains(err.Error(), "task does not exist in group")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "task does not exist in group")
 
 	rec.JobID = "wrong"
 	err = rec.UpdateJob(job)
-	require.Error(err)
-	require.Contains(err.Error(), "recommendation does not match job ID")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "recommendation does not match job ID")
 
 	rec.JobID = job.ID
 	rec.Namespace = "wrong"
 	err = rec.UpdateJob(job)
-	require.Error(err)
-	require.Contains(err.Error(), "recommendation does not match job namespace")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "recommendation does not match job namespace")
 }

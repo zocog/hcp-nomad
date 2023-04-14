@@ -10,23 +10,22 @@ import (
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
-	"github.com/stretchr/testify/assert"
+	"github.com/shoenig/test/must"
 )
 
 func TestQuotaIterator_BelowQuota(t *testing.T) {
 	ci.Parallel(t)
 
-	assert := assert.New(t)
 	state, ctx := testContext(t)
 
 	// Create the quota spec
 	qs := mock.QuotaSpec()
-	assert.Nil(state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
+	must.Nil(t, state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
 
 	// Create the namespace
 	ns := mock.Namespace()
 	ns.Quota = qs.Name
-	assert.Nil(state.UpsertNamespaces(200, []*structs.Namespace{ns}))
+	must.Nil(t, state.UpsertNamespaces(200, []*structs.Namespace{ns}))
 
 	// Create the job
 	job := mock.Job()
@@ -42,23 +41,22 @@ func TestQuotaIterator_BelowQuota(t *testing.T) {
 	contextual.SetJob(job)
 	contextual.SetTaskGroup(job.TaskGroups[0])
 	quota.Reset()
-	assert.Len(collectFeasible(quota), 1)
+	must.Len(t, 1, collectFeasible(quota))
 }
 
 func TestQuotaIterator_AboveQuota(t *testing.T) {
 	ci.Parallel(t)
 
-	assert := assert.New(t)
 	state, ctx := testContext(t)
 
 	// Create the quota spec
 	qs := mock.QuotaSpec()
-	assert.Nil(state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
+	must.Nil(t, state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
 
 	// Create the namespace
 	ns := mock.Namespace()
 	ns.Quota = qs.Name
-	assert.Nil(state.UpsertNamespaces(200, []*structs.Namespace{ns}))
+	must.Nil(t, state.UpsertNamespaces(200, []*structs.Namespace{ns}))
 
 	// Create the job
 	job := mock.Job()
@@ -77,32 +75,31 @@ func TestQuotaIterator_AboveQuota(t *testing.T) {
 	contextual.SetJob(job)
 	contextual.SetTaskGroup(job.TaskGroups[0])
 	quota.Reset()
-	assert.Len(collectFeasible(quota), 0)
+	must.Len(t, 0, collectFeasible(quota))
 
 	// Check that it marks the dimension that is exhausted
-	assert.Len(ctx.Metrics().QuotaExhausted, 1)
-	assert.Contains(ctx.Metrics().QuotaExhausted[0], "cpu")
+	must.Len(t, 1, ctx.Metrics().QuotaExhausted)
+	must.StrContains(t, ctx.Metrics().QuotaExhausted[0], "cpu")
 
 	// Check it marks the quota limit being reached
 	elig := ctx.Eligibility()
-	assert.NotNil(elig)
-	assert.Equal(qs.Name, elig.QuotaLimitReached())
+	must.NotNil(t, elig)
+	must.Eq(t, qs.Name, elig.QuotaLimitReached())
 }
 
 func TestQuotaIterator_BelowQuota_PlannedAdditions(t *testing.T) {
 	ci.Parallel(t)
 
-	assert := assert.New(t)
 	state, ctx := testContext(t)
 
 	// Create the quota spec
 	qs := mock.QuotaSpec()
-	assert.Nil(state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
+	must.Nil(t, state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
 
 	// Create the namespace
 	ns := mock.Namespace()
 	ns.Quota = qs.Name
-	assert.Nil(state.UpsertNamespaces(200, []*structs.Namespace{ns}))
+	must.Nil(t, state.UpsertNamespaces(200, []*structs.Namespace{ns}))
 
 	// Create the job
 	job := mock.Job()
@@ -122,23 +119,22 @@ func TestQuotaIterator_BelowQuota_PlannedAdditions(t *testing.T) {
 	contextual.SetJob(job)
 	contextual.SetTaskGroup(job.TaskGroups[0])
 	quota.Reset()
-	assert.Len(collectFeasible(quota), 1)
+	must.Len(t, 1, collectFeasible(quota))
 }
 
 func TestQuotaIterator_AboveQuota_PlannedAdditions(t *testing.T) {
 	ci.Parallel(t)
 
-	assert := assert.New(t)
 	state, ctx := testContext(t)
 
 	// Create the quota spec
 	qs := mock.QuotaSpec()
-	assert.Nil(state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
+	must.Nil(t, state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
 
 	// Create the namespace
 	ns := mock.Namespace()
 	ns.Quota = qs.Name
-	assert.Nil(state.UpsertNamespaces(200, []*structs.Namespace{ns}))
+	must.Nil(t, state.UpsertNamespaces(200, []*structs.Namespace{ns}))
 
 	// Create the job
 	job := mock.Job()
@@ -163,28 +159,27 @@ func TestQuotaIterator_AboveQuota_PlannedAdditions(t *testing.T) {
 	contextual.SetJob(job)
 	contextual.SetTaskGroup(job.TaskGroups[0])
 	quota.Reset()
-	assert.Len(collectFeasible(quota), 0)
+	must.Len(t, 0, collectFeasible(quota))
 
 	// Check it marks the quota limit being reached
 	elig := ctx.Eligibility()
-	assert.NotNil(elig)
-	assert.Equal(qs.Name, elig.QuotaLimitReached())
+	must.NotNil(t, elig)
+	must.Eq(t, qs.Name, elig.QuotaLimitReached())
 }
 
 func TestQuotaIterator_BelowQuota_DiscountStopping(t *testing.T) {
 	ci.Parallel(t)
 
-	assert := assert.New(t)
 	state, ctx := testContext(t)
 
 	// Create the quota spec
 	qs := mock.QuotaSpec()
-	assert.Nil(state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
+	must.Nil(t, state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
 
 	// Create the namespace
 	ns := mock.Namespace()
 	ns.Quota = qs.Name
-	assert.Nil(state.UpsertNamespaces(200, []*structs.Namespace{ns}))
+	must.Nil(t, state.UpsertNamespaces(200, []*structs.Namespace{ns}))
 
 	// Create the job
 	job := mock.Job()
@@ -214,7 +209,7 @@ func TestQuotaIterator_BelowQuota_DiscountStopping(t *testing.T) {
 	contextual.SetJob(job)
 	contextual.SetTaskGroup(job.TaskGroups[0])
 	quota.Reset()
-	assert.Len(collectFeasible(quota), 1)
+	must.Len(t, 1, collectFeasible(quota))
 }
 
 // TestQuotaIterator_BelowQuota_MultipleNextCallsForAlloc ensures the proposed
@@ -226,8 +221,7 @@ func TestQuotaIterator_BelowQuota_DiscountStopping(t *testing.T) {
 // for placing the allocation on.
 func TestQuotaIterator_BelowQuota_MultipleNextCallsForAlloc(t *testing.T) {
 	ci.Parallel(t)
-	
-	newAssert := assert.New(t)
+
 	state, ctx := testContext(t)
 
 	// Create a quota spec which has enough resource limit to cover over 50% of
@@ -248,12 +242,12 @@ func TestQuotaIterator_BelowQuota_MultipleNextCallsForAlloc(t *testing.T) {
 	}
 	qs.SetHash()
 
-	newAssert.Nil(state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
+	must.Nil(t, state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs}))
 
 	// Create the namespace and ensure the quota is linked.
 	ns := mock.Namespace()
 	ns.Quota = qs.Name
-	newAssert.Nil(state.UpsertNamespaces(200, []*structs.Namespace{ns}))
+	must.Nil(t, state.UpsertNamespaces(200, []*structs.Namespace{ns}))
 
 	// Create the job.
 	job := mock.Job()
@@ -284,9 +278,9 @@ func TestQuotaIterator_BelowQuota_MultipleNextCallsForAlloc(t *testing.T) {
 
 	// Iterate through nodes in the stack, each time checking that the proposed
 	// limit has not changed.
-	newAssert.Equal(currentLimitState, quota.proposedLimit)
+	must.Eq(t, currentLimitState, quota.proposedLimit)
 	_ = quota.Next()
-	newAssert.Equal(currentLimitState, quota.proposedLimit)
+	must.Eq(t, currentLimitState, quota.proposedLimit)
 	_ = quota.Next()
-	newAssert.Equal(currentLimitState, quota.proposedLimit)
+	must.Eq(t, currentLimitState, quota.proposedLimit)
 }

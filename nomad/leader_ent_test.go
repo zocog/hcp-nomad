@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/shoenig/test/must"
 )
 
 func TestLeader_ReplicateSentinelPolicies(t *testing.T) {
@@ -51,7 +51,7 @@ func TestLeader_ReplicateSentinelPolicies(t *testing.T) {
 	})
 
 	// Delete the namespace at the authoritative region
-	assert.Nil(t, s1.State().DeleteSentinelPolicies(200, []string{p1.Name}))
+	must.Nil(t, s1.State().DeleteSentinelPolicies(200, []string{p1.Name}))
 
 	// Wait for the deletion to replicate
 	testutil.WaitForResult(func() (bool, error) {
@@ -72,7 +72,7 @@ func TestLeader_DiffSentinelPolicies(t *testing.T) {
 	p1 := mock.SentinelPolicy()
 	p2 := mock.SentinelPolicy()
 	p3 := mock.SentinelPolicy()
-	assert.Nil(t, state.UpsertSentinelPolicies(100, []*structs.SentinelPolicy{p1, p2, p3}))
+	must.Nil(t, state.UpsertSentinelPolicies(100, []*structs.SentinelPolicy{p1, p2, p3}))
 
 	// Simulate a remote list
 	p2Stub := p2.Stub()
@@ -89,10 +89,10 @@ func TestLeader_DiffSentinelPolicies(t *testing.T) {
 	delete, update := diffSentinelPolicies(state, 50, remoteList)
 
 	// P1 does not exist on the remote side, should delete
-	assert.Equal(t, []string{p1.Name}, delete)
+	must.Eq(t, []string{p1.Name}, delete)
 
 	// P2 is un-modified - ignore. P3 modified, P4 new.
-	assert.Equal(t, []string{p3.Name, p4.Name}, update)
+	must.Eq(t, []string{p3.Name, p4.Name}, update)
 }
 
 func TestLeader_ReplicateQuotaSpecs(t *testing.T) {
@@ -131,7 +131,7 @@ func TestLeader_ReplicateQuotaSpecs(t *testing.T) {
 	})
 
 	// Delete the quota at the authoritative region
-	assert.Nil(t, s1.State().DeleteQuotaSpecs(200, []string{qs1.Name}))
+	must.Nil(t, s1.State().DeleteQuotaSpecs(200, []string{qs1.Name}))
 
 	// Wait for the deletion to replicate
 	testutil.WaitForResult(func() (bool, error) {
@@ -152,7 +152,7 @@ func TestLeader_DiffQuotaSpecs(t *testing.T) {
 	qs1 := mock.QuotaSpec()
 	qs2 := mock.QuotaSpec()
 	qs3 := mock.QuotaSpec()
-	assert.Nil(t, state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs1, qs2, qs3}))
+	must.Nil(t, state.UpsertQuotaSpecs(100, []*structs.QuotaSpec{qs1, qs2, qs3}))
 
 	// Simulate a remote list
 	c2 := qs2.Copy()
@@ -169,8 +169,8 @@ func TestLeader_DiffQuotaSpecs(t *testing.T) {
 	delete, update := diffQuotaSpecs(state, 50, remoteList)
 
 	// QS1 does not exist on the remote side, should delete
-	assert.Equal(t, []string{qs1.Name}, delete)
+	must.Eq(t, []string{qs1.Name}, delete)
 
 	// QS2 is un-modified - ignore. QS3 modified, QS4 new.
-	assert.Equal(t, []string{qs3.Name, qs4.Name}, update)
+	must.Eq(t, []string{qs3.Name, qs4.Name}, update)
 }

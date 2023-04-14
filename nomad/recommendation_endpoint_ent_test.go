@@ -18,8 +18,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestRecommendationEndpoint_GetRecommendation(t *testing.T) {
@@ -34,13 +33,13 @@ func TestRecommendationEndpoint_GetRecommendation(t *testing.T) {
 
 	// Create a recommendation
 	ns := mock.Namespace()
-	require.NoError(t, s1.State().UpsertNamespaces(900, []*structs.Namespace{ns}))
+	must.NoError(t, s1.State().UpsertNamespaces(900, []*structs.Namespace{ns}))
 	job := mock.Job()
 	job.Namespace = ns.Name
 	job.Version = 5
-	require.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 905, nil, job))
+	must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 905, nil, job))
 	rec := mock.Recommendation(job)
-	require.NoError(t, s1.State().UpsertRecommendation(910, rec))
+	must.NoError(t, s1.State().UpsertRecommendation(910, rec))
 
 	cases := []struct {
 		Label     string
@@ -82,12 +81,12 @@ func TestRecommendationEndpoint_GetRecommendation(t *testing.T) {
 						Namespace: tc.Namespace,
 					},
 				}, &resp)
-			require.NoError(t, err)
+			must.NoError(t, err)
 			if tc.Missing {
-				require.Nil(t, resp.Recommendation)
+				must.Nil(t, resp.Recommendation)
 			} else {
-				require.NotNil(t, resp.Recommendation)
-				require.Equal(t, resp.Recommendation.ID, rec.ID)
+				must.NotNil(t, resp.Recommendation)
+				must.Eq(t, resp.Recommendation.ID, rec.ID)
 			}
 		})
 	}
@@ -95,7 +94,6 @@ func TestRecommendationEndpoint_GetRecommendation(t *testing.T) {
 
 func TestRecommendationEndpoint_GetRecommendation_ACL(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	s1, root, cleanupS1 := TestACLServer(t, func(c *Config) {
 		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
@@ -107,7 +105,7 @@ func TestRecommendationEndpoint_GetRecommendation_ACL(t *testing.T) {
 
 	ns1 := mock.Namespace()
 	ns2 := mock.Namespace()
-	require.NoError(state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
+	must.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
 
 	ns1token := mock.CreatePolicyAndToken(t, state, 1001, "ns1",
 		mock.NamespacePolicy(ns1.Name, "", []string{acl.NamespaceCapabilityReadJob}))
@@ -117,9 +115,9 @@ func TestRecommendationEndpoint_GetRecommendation_ACL(t *testing.T) {
 	job := mock.Job()
 	job.Namespace = ns1.Name
 	job.Version = 5
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 905, nil, job))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, nil, job))
 	rec := mock.Recommendation(job)
-	require.NoError(state.UpsertRecommendation(910, rec))
+	must.NoError(t, state.UpsertRecommendation(910, rec))
 
 	cases := []struct {
 		Label     string
@@ -186,12 +184,12 @@ func TestRecommendationEndpoint_GetRecommendation_ACL(t *testing.T) {
 			err := msgpackrpc.CallWithCodec(codec, "Recommendation.GetRecommendation",
 				get, &resp)
 			if tc.Error {
-				assert.Error(t, err)
-				assert.Equal(t, err.Error(), structs.ErrPermissionDenied.Error())
+				must.Error(t, err)
+				must.Eq(t, err.Error(), structs.ErrPermissionDenied.Error())
 			} else {
-				assert.NoError(t, err)
+				must.NoError(t, err)
 			}
-			assert.Equal(t, tc.Found, resp.Recommendation != nil)
+			must.Eq(t, tc.Found, resp.Recommendation != nil)
 		})
 	}
 }
@@ -237,9 +235,9 @@ func TestRecommendationEndpoint_GetRecommendation_License(t *testing.T) {
 			codec := rpcClient(t, s)
 			state := s.fsm.State()
 			job := mock.Job()
-			require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, nil, job))
+			must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, nil, job))
 			rec := mock.Recommendation(job)
-			require.NoError(t, state.UpsertRecommendation(910, rec))
+			must.NoError(t, state.UpsertRecommendation(910, rec))
 
 			get := &structs.RecommendationSpecificRequest{
 				RecommendationID: rec.ID,
@@ -251,12 +249,12 @@ func TestRecommendationEndpoint_GetRecommendation_License(t *testing.T) {
 			var resp structs.SingleRecommendationResponse
 			err := msgpackrpc.CallWithCodec(codec, "Recommendation.GetRecommendation", get, &resp)
 			if tc.Error {
-				require.Error(t, err)
-				require.Equal(t, `Feature "Dynamic Application Sizing" is unlicensed`, err.Error())
-				require.Nil(t, resp.Recommendation)
+				must.Error(t, err)
+				must.Eq(t, `Feature "Dynamic Application Sizing" is unlicensed`, err.Error())
+				must.Nil(t, resp.Recommendation)
 			} else {
-				require.NoError(t, err)
-				require.NotNil(t, resp.Recommendation)
+				must.NoError(t, err)
+				must.NotNil(t, resp.Recommendation)
 			}
 		})
 	}
@@ -272,7 +270,6 @@ func TestRecommendationEndpoint_GetRecommendation_Blocking(t *testing.T) {
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
 	state := s1.fsm.State()
-	assert := assert.New(t)
 
 	// Create the deployments
 	job := mock.Job()
@@ -283,16 +280,16 @@ func TestRecommendationEndpoint_GetRecommendation_Blocking(t *testing.T) {
 		job.TaskGroups[0].Tasks[0].Name,
 		"MemoryMB")
 
-	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 98, nil, job), "UpsertJob")
+	must.Nil(t, state.UpsertJob(structs.MsgTypeTestSetup, 98, nil, job), must.Sprint("UpsertJob"))
 
 	// Upsert a recommendation nil, we are not interested in first.
 	time.AfterFunc(100*time.Millisecond, func() {
-		assert.Nil(state.UpsertRecommendation(100, rec1), "UpsertRecommendation")
+		must.Nil(t, state.UpsertRecommendation(100, rec1), must.Sprint("UpsertRecommendation"))
 	})
 
 	// Upsert another recommendation later which should trigger the watch.
 	time.AfterFunc(200*time.Millisecond, func() {
-		assert.Nil(state.UpsertRecommendation(200, rec2), "UpsertRecommendation")
+		must.Nil(t, state.UpsertRecommendation(200, rec2), must.Sprint("UpsertRecommendation"))
 	})
 
 	// Lookup the recommendations
@@ -306,12 +303,12 @@ func TestRecommendationEndpoint_GetRecommendation_Blocking(t *testing.T) {
 	}
 	start := time.Now()
 	var resp structs.SingleRecommendationResponse
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Recommendation.GetRecommendation", get, &resp), "RPC")
+	must.Nil(t, msgpackrpc.CallWithCodec(codec, "Recommendation.GetRecommendation", get, &resp), must.Sprint("RPC"))
 	if elapsed := time.Since(start); elapsed < 200*time.Millisecond {
 		t.Fatalf("should block (returned in %s) %#v", elapsed, resp)
 	}
-	assert.EqualValues(200, resp.Index, "resp.Index")
-	assert.Equal(rec2.ID, resp.Recommendation.ID)
+	must.Eq(t, 200, resp.Index, must.Sprint("resp.Index"))
+	must.Eq(t, rec2.ID, resp.Recommendation.ID)
 }
 
 func TestRecommendationEndpoint_ListRecommendations(t *testing.T) {
@@ -327,37 +324,37 @@ func TestRecommendationEndpoint_ListRecommendations(t *testing.T) {
 	// two namespaces
 	ns1 := mock.Namespace()
 	ns2 := mock.Namespace()
-	require.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
+	must.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
 	job1a := mock.Job()
 	job1a.Namespace = ns1.Name
 	job1a.TaskGroups = append(job1a.TaskGroups, job1a.TaskGroups[0].Copy())
 	job1a.TaskGroups[1].Name = "second group"
 	job1a.TaskGroups[1].Tasks = append(job1a.TaskGroups[1].Tasks, job1a.TaskGroups[1].Tasks[0].Copy())
 	job1a.TaskGroups[1].Tasks[1].Name = "second task"
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, nil, job1a))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, nil, job1a))
 	rec1a := mock.Recommendation(job1a)
 	rec1a.ID = "aa" + rec1a.ID[2:]
-	require.NoError(t, state.UpsertRecommendation(901, rec1a))
+	must.NoError(t, state.UpsertRecommendation(901, rec1a))
 	rec1a2 := mock.Recommendation(job1a)
 	rec1a2.ID = "bb" + rec1a2.ID[2:]
 	rec1a2.Target(job1a.TaskGroups[1].Name, job1a.TaskGroups[1].Tasks[0].Name, "CPU")
-	require.NoError(t, state.UpsertRecommendation(901, rec1a2))
+	must.NoError(t, state.UpsertRecommendation(901, rec1a2))
 	rec1a22 := mock.Recommendation(job1a)
 	rec1a22.ID = "cc" + rec1a22.ID[2:]
 	rec1a22.Target(job1a.TaskGroups[1].Name, job1a.TaskGroups[1].Tasks[1].Name, "CPU")
-	require.NoError(t, state.UpsertRecommendation(901, rec1a22))
+	must.NoError(t, state.UpsertRecommendation(901, rec1a22))
 	job1b := mock.Job()
 	job1b.Namespace = ns1.Name
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, nil, job1b))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, nil, job1b))
 	rec1b := mock.Recommendation(job1b)
 	rec1b.ID = "dd" + rec1b.ID[2:]
-	require.NoError(t, state.UpsertRecommendation(901, rec1b))
+	must.NoError(t, state.UpsertRecommendation(901, rec1b))
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 902, nil, job2))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 902, nil, job2))
 	rec2 := mock.Recommendation(job2)
 	rec2.ID = "aa" + rec2.ID[2:]
-	require.NoError(t, state.UpsertRecommendation(902, rec2))
+	must.NoError(t, state.UpsertRecommendation(902, rec2))
 
 	cases := []struct {
 		Label     string
@@ -494,10 +491,10 @@ func TestRecommendationEndpoint_ListRecommendations(t *testing.T) {
 						Region:    s1.Region(),
 					},
 				}, &resp)
-			require.NoError(t, err)
+			must.NoError(t, err)
 			sortRecsById(tc.Recs)
 			sortRecsById(resp.Recommendations)
-			require.EqualValues(t, tc.Recs, resp.Recommendations)
+			must.Eq(t, tc.Recs, resp.Recommendations)
 		})
 	}
 }
@@ -515,7 +512,7 @@ func TestRecommendationEndpoint_ListRecommendations_ACL(t *testing.T) {
 
 	ns1 := mock.Namespace()
 	ns2 := mock.Namespace()
-	require.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
+	must.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
 
 	ns1token := mock.CreatePolicyAndToken(t, state, 1001, "ns1",
 		mock.NamespacePolicy(ns1.Name, "", []string{acl.NamespaceCapabilityReadJob}))
@@ -532,22 +529,22 @@ func TestRecommendationEndpoint_ListRecommendations_ACL(t *testing.T) {
 		mock.NamespacePolicy("default", "", []string{acl.NamespaceCapabilityReadJob}))
 
 	// two namespaces
-	require.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
+	must.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
 	job1a := mock.Job()
 	job1a.Namespace = ns1.Name
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, nil, job1a))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, nil, job1a))
 	rec1a := mock.Recommendation(job1a)
-	require.NoError(t, state.UpsertRecommendation(901, rec1a))
+	must.NoError(t, state.UpsertRecommendation(901, rec1a))
 	job1b := mock.Job()
 	job1b.Namespace = ns1.Name
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, nil, job1b))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 901, nil, job1b))
 	rec1b := mock.Recommendation(job1b)
-	require.NoError(t, state.UpsertRecommendation(901, rec1b))
+	must.NoError(t, state.UpsertRecommendation(901, rec1b))
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 902, nil, job2))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 902, nil, job2))
 	rec2 := mock.Recommendation(job2)
-	require.NoError(t, state.UpsertRecommendation(902, rec2))
+	must.NoError(t, state.UpsertRecommendation(902, rec2))
 
 	cases := []struct {
 		Label     string
@@ -660,17 +657,17 @@ func TestRecommendationEndpoint_ListRecommendations_ACL(t *testing.T) {
 					},
 				}, &resp)
 			if tc.Error {
-				require.Error(t, err)
+				must.Error(t, err)
 				if tc.Message != "" {
-					require.Equal(t, err.Error(), tc.Message)
+					must.Eq(t, err.Error(), tc.Message)
 				} else {
-					require.Equal(t, err.Error(), structs.ErrPermissionDenied.Error())
+					must.Eq(t, err.Error(), structs.ErrPermissionDenied.Error())
 				}
 			} else {
-				require.NoError(t, err)
+				must.NoError(t, err)
 				sortRecsById(tc.Recs)
 				sortRecsById(resp.Recommendations)
-				require.EqualValues(t, tc.Recs, resp.Recommendations)
+				must.Eq(t, tc.Recs, resp.Recommendations)
 			}
 		})
 	}
@@ -717,9 +714,9 @@ func TestRecommendationEndpoint_ListRecommendations_License(t *testing.T) {
 			codec := rpcClient(t, s)
 			state := s.fsm.State()
 			job := mock.Job()
-			require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, nil, job))
+			must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, nil, job))
 			rec := mock.Recommendation(job)
-			require.NoError(t, state.UpsertRecommendation(910, rec))
+			must.NoError(t, state.UpsertRecommendation(910, rec))
 
 			get := &structs.RecommendationListRequest{
 				QueryOptions: structs.QueryOptions{
@@ -730,13 +727,13 @@ func TestRecommendationEndpoint_ListRecommendations_License(t *testing.T) {
 			var resp structs.RecommendationListResponse
 			err := msgpackrpc.CallWithCodec(codec, "Recommendation.ListRecommendations", get, &resp)
 			if tc.Error {
-				require.Error(t, err)
-				require.Equal(t, `Feature "Dynamic Application Sizing" is unlicensed`, err.Error())
-				require.Empty(t, resp.Recommendations)
+				must.Error(t, err)
+				must.Eq(t, `Feature "Dynamic Application Sizing" is unlicensed`, err.Error())
+				must.SliceEmpty(t, resp.Recommendations)
 			} else {
-				require.NoError(t, err)
-				require.Len(t, resp.Recommendations, 1)
-				require.Equal(t, rec.ID, resp.Recommendations[0].ID)
+				must.NoError(t, err)
+				must.Len(t, 1, resp.Recommendations)
+				must.Eq(t, rec.ID, resp.Recommendations[0].ID)
 			}
 		})
 	}
@@ -752,7 +749,6 @@ func TestRecommendationEndpoint_ListRecommendations_Blocking(t *testing.T) {
 	codec := rpcClient(t, s1)
 	testutil.WaitForLeader(t, s1.RPC)
 	state := s1.fsm.State()
-	assert := assert.New(t)
 
 	// Create the deployments
 	job := mock.Job()
@@ -763,16 +759,16 @@ func TestRecommendationEndpoint_ListRecommendations_Blocking(t *testing.T) {
 		job.TaskGroups[0].Tasks[0].Name,
 		"MemoryMB")
 
-	assert.Nil(state.UpsertJob(structs.MsgTypeTestSetup, 98, nil, job), "UpsertJob")
+	must.Nil(t, state.UpsertJob(structs.MsgTypeTestSetup, 98, nil, job), must.Sprint("UpsertJob"))
 
 	// Upsert a recommendation nil, we are not interested in first.
 	time.AfterFunc(100*time.Millisecond, func() {
-		assert.Nil(state.UpsertRecommendation(100, rec1), "UpsertRecommendation")
+		must.Nil(t, state.UpsertRecommendation(100, rec1), must.Sprint("UpsertRecommendation"))
 	})
 
 	// Upsert another recommendation later which should trigger the watch.
 	time.AfterFunc(200*time.Millisecond, func() {
-		assert.Nil(state.UpsertRecommendation(200, rec2), "UpsertRecommendation")
+		must.Nil(t, state.UpsertRecommendation(200, rec2), must.Sprint("UpsertRecommendation"))
 	})
 
 	// Lookup the recommendations
@@ -785,17 +781,16 @@ func TestRecommendationEndpoint_ListRecommendations_Blocking(t *testing.T) {
 	}
 	start := time.Now()
 	var resp structs.RecommendationListResponse
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Recommendation.ListRecommendations", get, &resp), "RPC")
+	must.Nil(t, msgpackrpc.CallWithCodec(codec, "Recommendation.ListRecommendations", get, &resp), must.Sprint("RPC"))
 	if elapsed := time.Since(start); elapsed < 200*time.Millisecond {
 		t.Fatalf("should block (returned in %s) %#v", elapsed, resp)
 	}
-	assert.EqualValues(200, resp.Index, "resp.Index")
-	assert.Len(resp.Recommendations, 2)
+	must.Eq(t, 200, resp.Index, must.Sprint("resp.Index"))
+	must.Len(t, 2, resp.Recommendations)
 }
 
 func TestRecommendationEndpoint_Upsert(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
@@ -817,9 +812,9 @@ func TestRecommendationEndpoint_Upsert(t *testing.T) {
 
 	now := time.Now().Unix()
 	var resp structs.SingleRecommendationResponse
-	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
+	must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	iter, err := s1.State().Recommendations(nil)
 	recs := make([]*structs.Recommendation, 0)
@@ -830,11 +825,11 @@ func TestRecommendationEndpoint_Upsert(t *testing.T) {
 		}
 		recs = append(recs, raw.(*structs.Recommendation))
 	}
-	require.Len(recs, 1)
-	require.Equal(resp.Recommendation.ID, recs[0].ID)
-	require.Equal(job.Version, resp.Recommendation.JobVersion)
-	require.Equal(job.TaskGroups[0].Tasks[0].Resources.CPU, recs[0].Current)
-	require.GreaterOrEqual(resp.Recommendation.SubmitTime, now)
+	must.Len(t, 1, recs)
+	must.Eq(t, resp.Recommendation.ID, recs[0].ID)
+	must.Eq(t, job.Version, resp.Recommendation.JobVersion)
+	must.Eq(t, job.TaskGroups[0].Tasks[0].Resources.CPU, recs[0].Current)
+	must.GreaterEq(t, now, resp.Recommendation.SubmitTime)
 }
 
 func TestRecommendationEndpoint_Upsert_License(t *testing.T) {
@@ -878,7 +873,7 @@ func TestRecommendationEndpoint_Upsert_License(t *testing.T) {
 			codec := rpcClient(t, s)
 			state := s.fsm.State()
 			job := mock.Job()
-			require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, nil, job))
+			must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, nil, job))
 			rec := mock.Recommendation(job)
 
 			req := &structs.RecommendationUpsertRequest{
@@ -891,12 +886,12 @@ func TestRecommendationEndpoint_Upsert_License(t *testing.T) {
 			err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
 
 			if tc.Error {
-				require.Error(t, err)
-				require.Equal(t, `Feature "Dynamic Application Sizing" is unlicensed`, err.Error())
-				require.Nil(t, resp.Recommendation)
+				must.Error(t, err)
+				must.Eq(t, `Feature "Dynamic Application Sizing" is unlicensed`, err.Error())
+				must.Nil(t, resp.Recommendation)
 			} else {
-				require.NoError(t, err)
-				require.NotNil(t, resp.Recommendation)
+				must.NoError(t, err)
+				must.NotNil(t, resp.Recommendation)
 			}
 		})
 	}
@@ -915,7 +910,7 @@ func TestRecommendationEndpoint_Upsert_NamespacePrecendence(t *testing.T) {
 
 	ns1 := mock.Namespace()
 	ns2 := mock.Namespace()
-	require.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
+	must.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
 
 	cases := []struct {
 		Label     string
@@ -971,14 +966,14 @@ func TestRecommendationEndpoint_Upsert_NamespacePrecendence(t *testing.T) {
 				},
 			}
 			var resp structs.SingleRecommendationResponse
-			require.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
+			must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 			err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
 			if tc.Error {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.Message)
+				must.Error(t, err)
+				must.StrContains(t, err.Error(), tc.Message)
 			} else {
-				require.NoError(t, err)
-				require.Equal(t, tc.ResultNS, resp.Recommendation.Namespace)
+				must.NoError(t, err)
+				must.Eq(t, tc.ResultNS, resp.Recommendation.Namespace)
 			}
 		})
 	}
@@ -997,7 +992,7 @@ func TestRecommendationEndpoint_Upsert_ACL(t *testing.T) {
 
 	ns1 := mock.Namespace()
 	ns2 := mock.Namespace()
-	require.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
+	must.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
 
 	ns1token_readJob := mock.CreatePolicyAndToken(t, state, 1000, "ns1-read",
 		mock.NamespacePolicy(ns1.Name, "", []string{acl.NamespaceCapabilityReadJob}))
@@ -1077,13 +1072,13 @@ func TestRecommendationEndpoint_Upsert_ACL(t *testing.T) {
 				},
 			}
 			var resp structs.SingleRecommendationResponse
-			require.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
+			must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 			err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
 			if tc.Error {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.Message)
+				must.Error(t, err)
+				must.StrContains(t, err.Error(), tc.Message)
 			} else {
-				require.NoError(t, err)
+				must.NoError(t, err)
 			}
 		})
 	}
@@ -1091,7 +1086,6 @@ func TestRecommendationEndpoint_Upsert_ACL(t *testing.T) {
 
 func TestRecommendationEndpoint_Upsert_TargetFailures(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
@@ -1112,42 +1106,41 @@ func TestRecommendationEndpoint_Upsert_TargetFailures(t *testing.T) {
 	// Should fail, because job doesn't exist
 	var resp structs.SingleRecommendationResponse
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
-	require.Error(err)
-	require.Contains(err.Error(), "does not exist")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "does not exist")
 
 	// Should fail, because request Namespace does not match payload
 	req.Namespace = "not-default"
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
-	require.Error(err)
-	require.Contains(err.Error(), "400")
-	require.Contains(err.Error(), "mismatched request namespace")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "400")
+	must.StrContains(t, err.Error(), "mismatched request namespace")
 
 	// Create the job
 	req.Namespace = req.Recommendation.Namespace
-	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
+	must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 
 	// Should fail because missing task group
 	req.Recommendation.Target("wrong job", "web", "CPU")
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
-	require.Error(err)
-	require.Contains(err.Error(), "does not exist in job")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "does not exist in job")
 
 	// Should fail because missing task
 	req.Recommendation.Target("web", "wrong task", "CPU")
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
-	require.Error(err)
-	require.Contains(err.Error(), "does not exist in group")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "does not exist in group")
 
 	// Should fail because bad resource
 	req.Recommendation.Target("web", "web", "GPU")
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
-	require.Error(err)
-	require.Contains(err.Error(), "resource not supported")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "resource not supported")
 }
 
 func TestRecommendationEndpoint_Upsert_ExistingRecByID(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
@@ -1157,7 +1150,7 @@ func TestRecommendationEndpoint_Upsert_ExistingRecByID(t *testing.T) {
 
 	// Create a recommendation
 	job := mock.Job()
-	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
+	must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 
 	originalRec := mock.Recommendation(job)
 	originalRec.Value = 500
@@ -1169,11 +1162,11 @@ func TestRecommendationEndpoint_Upsert_ExistingRecByID(t *testing.T) {
 	}
 	var resp structs.SingleRecommendationResponse
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
-	require.NoError(err)
+	must.NoError(t, err)
 	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
-	require.NoError(err)
-	require.Len(recs, 1)
-	require.Equal(recs[0].ID, resp.Recommendation.ID)
+	must.NoError(t, err)
+	must.Len(t, 1, recs)
+	must.Eq(t, recs[0].ID, resp.Recommendation.ID)
 	originalRec = resp.Recommendation
 
 	// Updated recommendation value
@@ -1185,19 +1178,18 @@ func TestRecommendationEndpoint_Upsert_ExistingRecByID(t *testing.T) {
 	// update should overwrite the existing recommendation
 	var updatedResp structs.SingleRecommendationResponse
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &updatedResp)
-	require.NoError(err)
+	must.NoError(t, err)
 	recs, err = s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
-	require.NoError(err)
-	require.Len(recs, 1)
-	require.EqualValues(originalRec.ID, recs[0].ID)
-	require.EqualValues(1000, recs[0].Value)
-	require.EqualValues(true, recs[0].Meta["updated"])
-	require.EqualValues(originalRec.ID, updatedResp.Recommendation.ID)
+	must.NoError(t, err)
+	must.Len(t, 1, recs)
+	must.Eq(t, originalRec.ID, recs[0].ID)
+	must.Eq(t, 1000, recs[0].Value)
+	must.Eq(t, true, recs[0].Meta["updated"])
+	must.Eq(t, originalRec.ID, updatedResp.Recommendation.ID)
 }
 
 func TestRecommendationEndpoint_Upsert_ExistingByPath(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
@@ -1207,7 +1199,7 @@ func TestRecommendationEndpoint_Upsert_ExistingByPath(t *testing.T) {
 
 	// Create a recommendation
 	job := mock.Job()
-	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
+	must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 
 	originalRec := mock.Recommendation(job)
 	originalRec.Value = 500
@@ -1219,11 +1211,11 @@ func TestRecommendationEndpoint_Upsert_ExistingByPath(t *testing.T) {
 	}
 	var resp structs.SingleRecommendationResponse
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &resp)
-	require.NoError(err)
+	must.NoError(t, err)
 	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
-	require.NoError(err)
-	require.Len(recs, 1)
-	require.Equal(recs[0].ID, resp.Recommendation.ID)
+	must.NoError(t, err)
+	must.Len(t, 1, recs)
+	must.Eq(t, recs[0].ID, resp.Recommendation.ID)
 	originalRec = resp.Recommendation
 
 	// Updated recommendation value
@@ -1236,19 +1228,18 @@ func TestRecommendationEndpoint_Upsert_ExistingByPath(t *testing.T) {
 	// update should overwrite the existing recommendation
 	var updatedResp structs.SingleRecommendationResponse
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req, &updatedResp)
-	require.NoError(err)
+	must.NoError(t, err)
 	recs, err = s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
-	require.NoError(err)
-	require.Len(recs, 1)
-	require.EqualValues(originalRec.ID, recs[0].ID)
-	require.EqualValues(1000, recs[0].Value)
-	require.EqualValues(true, recs[0].Meta["updated"])
-	require.EqualValues(originalRec.ID, updatedResp.Recommendation.ID)
+	must.NoError(t, err)
+	must.Len(t, 1, recs)
+	must.Eq(t, originalRec.ID, recs[0].ID)
+	must.Eq(t, 1000, recs[0].Value)
+	must.Eq(t, true, recs[0].Meta["updated"])
+	must.Eq(t, originalRec.ID, updatedResp.Recommendation.ID)
 }
 
 func TestRecommendationEndpoint_Upsert_MultipleRecs(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
@@ -1258,7 +1249,7 @@ func TestRecommendationEndpoint_Upsert_MultipleRecs(t *testing.T) {
 
 	// Create a recommendation
 	job := mock.Job()
-	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
+	must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 
 	rec1 := mock.Recommendation(job)
 	rec1.Value = 500
@@ -1270,11 +1261,11 @@ func TestRecommendationEndpoint_Upsert_MultipleRecs(t *testing.T) {
 	}
 	var resp1 structs.SingleRecommendationResponse
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req1, &resp1)
-	require.NoError(err)
+	must.NoError(t, err)
 	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
-	require.NoError(err)
-	require.Len(recs, 1)
-	require.Equal(recs[0].ID, resp1.Recommendation.ID)
+	must.NoError(t, err)
+	must.Len(t, 1, recs)
+	must.Eq(t, recs[0].ID, resp1.Recommendation.ID)
 
 	rec2 := mock.Recommendation(job)
 	rec2.Target("web", "web", "MemoryMB")
@@ -1287,10 +1278,10 @@ func TestRecommendationEndpoint_Upsert_MultipleRecs(t *testing.T) {
 	}
 	var resp2 structs.SingleRecommendationResponse
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req2, &resp2)
-	require.NoError(err)
+	must.NoError(t, err)
 	recs, err = s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
-	require.NoError(err)
-	require.Len(recs, 2)
+	must.NoError(t, err)
+	must.Len(t, 2, recs)
 	sort.Slice(recs, func(i, j int) bool {
 		return recs[i].ID < recs[j].ID
 	})
@@ -1298,12 +1289,11 @@ func TestRecommendationEndpoint_Upsert_MultipleRecs(t *testing.T) {
 	sort.Slice(exp, func(i, j int) bool {
 		return exp[i].ID < exp[j].ID
 	})
-	require.True(reflect.DeepEqual(exp, recs))
+	must.True(t, reflect.DeepEqual(exp, recs))
 }
 
 func TestRecommendationEndpoint_Delete_SingleRec(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
@@ -1313,7 +1303,7 @@ func TestRecommendationEndpoint_Delete_SingleRec(t *testing.T) {
 
 	// Create a recommendation
 	job := mock.Job()
-	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
+	must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 
 	rec1 := mock.Recommendation(job)
 	rec1.Value = 500
@@ -1325,7 +1315,7 @@ func TestRecommendationEndpoint_Delete_SingleRec(t *testing.T) {
 	}
 	var resp1 structs.SingleRecommendationResponse
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req1, &resp1)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	rec2 := mock.Recommendation(job)
 	rec2.Target("web", "web", "MemoryMB")
@@ -1338,7 +1328,7 @@ func TestRecommendationEndpoint_Delete_SingleRec(t *testing.T) {
 	}
 	var resp2 structs.SingleRecommendationResponse
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req2, &resp2)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	var delResp structs.GenericResponse
 	delReq := &structs.RecommendationDeleteRequest{
@@ -1348,7 +1338,7 @@ func TestRecommendationEndpoint_Delete_SingleRec(t *testing.T) {
 		},
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.DeleteRecommendations", delReq, &delResp)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	iter, err := s1.State().Recommendations(nil)
 	recs := make([]*structs.Recommendation, 0)
@@ -1359,13 +1349,12 @@ func TestRecommendationEndpoint_Delete_SingleRec(t *testing.T) {
 		}
 		recs = append(recs, raw.(*structs.Recommendation))
 	}
-	require.Len(recs, 1)
-	require.Equal(recs[0].ID, resp2.Recommendation.ID)
+	must.Len(t, 1, recs)
+	must.Eq(t, recs[0].ID, resp2.Recommendation.ID)
 }
 
 func TestRecommendationEndpoint_Delete_MultipleRecs(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
@@ -1375,7 +1364,7 @@ func TestRecommendationEndpoint_Delete_MultipleRecs(t *testing.T) {
 
 	// Create a recommendation
 	job := mock.Job()
-	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
+	must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 
 	rec1 := mock.Recommendation(job)
 	rec1.Value = 500
@@ -1387,7 +1376,7 @@ func TestRecommendationEndpoint_Delete_MultipleRecs(t *testing.T) {
 	}
 	var resp1 structs.SingleRecommendationResponse
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req1, &resp1)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	rec2 := mock.Recommendation(job)
 	rec2.Target("web", "web", "MemoryMB")
@@ -1400,7 +1389,7 @@ func TestRecommendationEndpoint_Delete_MultipleRecs(t *testing.T) {
 	}
 	var resp2 structs.SingleRecommendationResponse
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.UpsertRecommendation", req2, &resp2)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	var delResp structs.GenericResponse
 	delReq := &structs.RecommendationDeleteRequest{
@@ -1410,7 +1399,7 @@ func TestRecommendationEndpoint_Delete_MultipleRecs(t *testing.T) {
 		},
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.DeleteRecommendations", delReq, &delResp)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	iter, err := s1.State().Recommendations(nil)
 	recs := make([]*structs.Recommendation, 0)
@@ -1421,7 +1410,7 @@ func TestRecommendationEndpoint_Delete_MultipleRecs(t *testing.T) {
 		}
 		recs = append(recs, raw.(*structs.Recommendation))
 	}
-	require.Len(recs, 0)
+	must.Len(t, 0, recs)
 }
 
 func TestRecommendationEndpoint_Delete_License(t *testing.T) {
@@ -1466,9 +1455,9 @@ func TestRecommendationEndpoint_Delete_License(t *testing.T) {
 			state := s.fsm.State()
 
 			job := mock.Job()
-			require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
+			must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 			rec := mock.Recommendation(job)
-			require.NoError(t, state.UpsertRecommendation(950, rec))
+			must.NoError(t, state.UpsertRecommendation(950, rec))
 			var delResp structs.GenericResponse
 			delReq := &structs.RecommendationDeleteRequest{
 				Recommendations: []string{rec.ID},
@@ -1478,10 +1467,10 @@ func TestRecommendationEndpoint_Delete_License(t *testing.T) {
 			}
 			err := msgpackrpc.CallWithCodec(codec, "Recommendation.DeleteRecommendations", delReq, &delResp)
 			if tc.Error {
-				require.Error(t, err)
-				require.Equal(t, `Feature "Dynamic Application Sizing" is unlicensed`, err.Error())
+				must.Error(t, err)
+				must.Eq(t, `Feature "Dynamic Application Sizing" is unlicensed`, err.Error())
 			} else {
-				require.NoError(t, err)
+				must.NoError(t, err)
 			}
 		})
 	}
@@ -1489,7 +1478,6 @@ func TestRecommendationEndpoint_Delete_License(t *testing.T) {
 
 func TestRecommendationEndpoint_Delete_Errors(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 	})
@@ -1505,13 +1493,13 @@ func TestRecommendationEndpoint_Delete_Errors(t *testing.T) {
 		},
 	}
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.DeleteRecommendations", delReq, &delResp)
-	require.Error(err)
-	require.Contains(err.Error(), "does not exist")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "does not exist")
 
 	delReq.Recommendations = []string{}
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.DeleteRecommendations", delReq, &delResp)
-	require.Error(err)
-	require.Contains(err.Error(), "must specify at least one recommendation to delete")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "must specify at least one recommendation to delete")
 }
 
 func TestRecommendationEndpoint_Delete_ACL(t *testing.T) {
@@ -1527,7 +1515,7 @@ func TestRecommendationEndpoint_Delete_ACL(t *testing.T) {
 
 	ns1 := mock.Namespace()
 	ns2 := mock.Namespace()
-	require.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
+	must.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
 
 	ns1token_readJob := mock.CreatePolicyAndToken(t, state, 900, "ns1-read",
 		mock.NamespacePolicy(ns1.Name, "", []string{acl.NamespaceCapabilityReadJob}))
@@ -1546,10 +1534,10 @@ func TestRecommendationEndpoint_Delete_ACL(t *testing.T) {
 
 	job1 := mock.Job()
 	job1.Namespace = ns1.Name
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 904, nil, job1))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 904, nil, job1))
 	job2 := mock.Job()
 	job2.Namespace = ns2.Name
-	require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, nil, job2))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, nil, job2))
 	rec1 := mock.Recommendation(job1)
 	rec2 := mock.Recommendation(job2)
 
@@ -1625,8 +1613,8 @@ func TestRecommendationEndpoint_Delete_ACL(t *testing.T) {
 		t.Run(tc.Label, func(t *testing.T) {
 			// cleanup and recreate
 			_ = state.DeleteRecommendations(1000, []string{rec1.ID, rec2.ID})
-			require.NoError(t, state.UpsertRecommendation(1001, rec1))
-			require.NoError(t, state.UpsertRecommendation(1002, rec2))
+			must.NoError(t, state.UpsertRecommendation(1001, rec1))
+			must.NoError(t, state.UpsertRecommendation(1002, rec2))
 
 			delReq := structs.RecommendationDeleteRequest{
 				Recommendations: tc.Recs,
@@ -1638,10 +1626,10 @@ func TestRecommendationEndpoint_Delete_ACL(t *testing.T) {
 			var delResp structs.GenericResponse
 			err := msgpackrpc.CallWithCodec(codec, "Recommendation.DeleteRecommendations", delReq, &delResp)
 			if tc.Error {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), structs.ErrPermissionDenied.Error())
+				must.Error(t, err)
+				must.StrContains(t, err.Error(), structs.ErrPermissionDenied.Error())
 			} else {
-				require.NoError(t, err)
+				must.NoError(t, err)
 			}
 		})
 	}
@@ -1649,7 +1637,6 @@ func TestRecommendationEndpoint_Delete_ACL(t *testing.T) {
 
 func TestRecommendationEndpoint_Apply_SingleRec(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 		c.NumSchedulers = 0 // Prevent automatic dequeue
@@ -1659,21 +1646,21 @@ func TestRecommendationEndpoint_Apply_SingleRec(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC)
 
 	job := mock.Job()
-	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
+	must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 
 	rec1 := mock.Recommendation(job)
-	require.NoError(s1.State().UpsertRecommendation(910, rec1))
+	must.NoError(t, s1.State().UpsertRecommendation(910, rec1))
 
 	rec2 := mock.Recommendation(job)
 	rec2.Target("web", "web", "MemoryMB")
 	rec2.Value = job.TaskGroups[0].Tasks[0].Resources.MemoryMB * 2
 	rec2.EnforceVersion = true
-	require.NoError(s1.State().UpsertRecommendation(920, rec2))
+	must.NoError(t, s1.State().UpsertRecommendation(920, rec2))
 
 	// set up watch set for job update on rec apply
 	jobWatch := memdb.NewWatchSet()
 	_, err := s1.State().JobByID(jobWatch, job.Namespace, job.ID)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	// set up watch for rec1, which will be deleted by the job update
 	rec2Watch := memdb.NewWatchSet()
@@ -1687,31 +1674,30 @@ func TestRecommendationEndpoint_Apply_SingleRec(t *testing.T) {
 		},
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
-	require.NoError(err)
-	require.Len(applyResp.Errors, 0)
-	require.Len(applyResp.UpdatedJobs, 1)
-	require.Equal(job.Namespace, applyResp.UpdatedJobs[0].Namespace)
-	require.Equal(job.ID, applyResp.UpdatedJobs[0].JobID)
-	require.Equal([]string{rec1.ID}, applyResp.UpdatedJobs[0].Recommendations)
+	must.NoError(t, err)
+	must.Len(t, 0, applyResp.Errors)
+	must.Len(t, 1, applyResp.UpdatedJobs)
+	must.Eq(t, job.Namespace, applyResp.UpdatedJobs[0].Namespace)
+	must.Eq(t, job.ID, applyResp.UpdatedJobs[0].JobID)
+	must.Eq(t, []string{rec1.ID}, applyResp.UpdatedJobs[0].Recommendations)
 
-	require.False(jobWatch.Watch(time.After(100 * time.Millisecond)))
-	require.False(rec2Watch.Watch(time.After(100 * time.Millisecond)))
+	must.False(t, jobWatch.Watch(time.After(100*time.Millisecond)))
+	must.False(t, rec2Watch.Watch(time.After(100*time.Millisecond)))
 
 	job, err = s1.State().JobByID(nil, job.Namespace, job.ID)
-	require.NoError(err)
-	require.NotNil(job)
-	require.Equal(job.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.CPU, rec1.Value)
-	require.Equal(job.ModifyIndex, applyResp.UpdatedJobs[0].JobModifyIndex)
+	must.NoError(t, err)
+	must.NotNil(t, job)
+	must.Eq(t, job.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.CPU, rec1.Value)
+	must.Eq(t, job.ModifyIndex, applyResp.UpdatedJobs[0].JobModifyIndex)
 
 	// rec1 was deleted during application, while rec2 was deleted because of the job update
 	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
-	require.NoError(err)
-	require.Len(recs, 0)
+	must.NoError(t, err)
+	must.Len(t, 0, recs)
 }
 
 func TestRecommendationEndpoint_Apply_MultipleRecs(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 		c.NumSchedulers = 0 // Prevent automatic dequeue
@@ -1721,20 +1707,20 @@ func TestRecommendationEndpoint_Apply_MultipleRecs(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC)
 
 	job := mock.Job()
-	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
+	must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 
 	rec1 := mock.Recommendation(job)
-	require.NoError(s1.State().UpsertRecommendation(910, rec1))
+	must.NoError(t, s1.State().UpsertRecommendation(910, rec1))
 
 	rec2 := mock.Recommendation(job)
 	rec2.Target("web", "web", "MemoryMB")
 	rec2.Value = job.TaskGroups[0].Tasks[0].Resources.MemoryMB * 2
-	require.NoError(s1.State().UpsertRecommendation(920, rec2))
+	must.NoError(t, s1.State().UpsertRecommendation(920, rec2))
 
 	// set up watch set for job update on rec apply
 	jobWatch := memdb.NewWatchSet()
 	_, err := s1.State().JobByID(jobWatch, job.Namespace, job.ID)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	// set up watch for rec1, which will be deleted by the job update
 	rec2Watch := memdb.NewWatchSet()
@@ -1748,32 +1734,31 @@ func TestRecommendationEndpoint_Apply_MultipleRecs(t *testing.T) {
 		},
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
-	require.NoError(err)
-	require.Len(applyResp.Errors, 0)
-	require.Len(applyResp.UpdatedJobs, 1)
-	require.Equal(job.Namespace, applyResp.UpdatedJobs[0].Namespace)
-	require.Equal(job.ID, applyResp.UpdatedJobs[0].JobID)
-	require.Equal([]string{rec1.ID, rec2.ID}, applyResp.UpdatedJobs[0].Recommendations)
+	must.NoError(t, err)
+	must.Len(t, 0, applyResp.Errors)
+	must.Len(t, 1, applyResp.UpdatedJobs)
+	must.Eq(t, job.Namespace, applyResp.UpdatedJobs[0].Namespace)
+	must.Eq(t, job.ID, applyResp.UpdatedJobs[0].JobID)
+	must.Eq(t, []string{rec1.ID, rec2.ID}, applyResp.UpdatedJobs[0].Recommendations)
 
-	require.False(jobWatch.Watch(time.After(100 * time.Millisecond)))
-	require.False(rec2Watch.Watch(time.After(100 * time.Millisecond)))
+	must.False(t, jobWatch.Watch(time.After(100*time.Millisecond)))
+	must.False(t, rec2Watch.Watch(time.After(100*time.Millisecond)))
 
 	job, err = s1.State().JobByID(nil, job.Namespace, job.ID)
-	require.NoError(err)
-	require.NotNil(job)
-	require.Equal(job.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.CPU, rec1.Value)
-	require.Equal(job.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.MemoryMB, rec2.Value)
-	require.Equal(job.ModifyIndex, applyResp.UpdatedJobs[0].JobModifyIndex)
+	must.NoError(t, err)
+	must.NotNil(t, job)
+	must.Eq(t, job.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.CPU, rec1.Value)
+	must.Eq(t, job.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.MemoryMB, rec2.Value)
+	must.Eq(t, job.ModifyIndex, applyResp.UpdatedJobs[0].JobModifyIndex)
 
 	// both recommendations were deleted during update
 	recs, err := s1.State().RecommendationsByJob(nil, job.Namespace, job.ID, nil)
-	require.NoError(err)
-	require.Len(recs, 0)
+	must.NoError(t, err)
+	must.Len(t, 0, recs)
 }
 
 func TestRecommendationEndpoint_Apply_MultipleJobs(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 		c.NumSchedulers = 0 // Prevent automatic dequeue
@@ -1783,24 +1768,24 @@ func TestRecommendationEndpoint_Apply_MultipleJobs(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC)
 
 	job1 := mock.Job()
-	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job1))
+	must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job1))
 	rec1 := mock.Recommendation(job1)
-	require.NoError(s1.State().UpsertRecommendation(910, rec1))
+	must.NoError(t, s1.State().UpsertRecommendation(910, rec1))
 
 	job2 := mock.Job()
-	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 901, nil, job2))
+	must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 901, nil, job2))
 	rec2 := mock.Recommendation(job2)
 	rec2.Target("web", "web", "MemoryMB")
 	rec2.Value = job2.TaskGroups[0].Tasks[0].Resources.MemoryMB * 2
-	require.NoError(s1.State().UpsertRecommendation(920, rec2))
+	must.NoError(t, s1.State().UpsertRecommendation(920, rec2))
 
 	// set up watch set for job updates on rec apply
 	job1Watch := memdb.NewWatchSet()
 	_, err := s1.State().JobByID(job1Watch, job1.Namespace, job1.ID)
-	require.NoError(err)
+	must.NoError(t, err)
 	job2Watch := memdb.NewWatchSet()
 	_, err = s1.State().JobByID(job2Watch, job2.Namespace, job2.ID)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	var applyResp structs.RecommendationApplyResponse
 	applyReq := &structs.RecommendationApplyRequest{
@@ -1810,9 +1795,9 @@ func TestRecommendationEndpoint_Apply_MultipleJobs(t *testing.T) {
 		},
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
-	require.NoError(err)
-	require.Len(applyResp.Errors, 0)
-	require.Len(applyResp.UpdatedJobs, 2)
+	must.NoError(t, err)
+	must.Len(t, 0, applyResp.Errors)
+	must.Len(t, 2, applyResp.UpdatedJobs)
 
 	jobs := []*structs.Job{job1, job2}
 	sort.Slice(jobs, func(i int, j int) bool {
@@ -1822,33 +1807,32 @@ func TestRecommendationEndpoint_Apply_MultipleJobs(t *testing.T) {
 		return applyResp.UpdatedJobs[i].JobID < applyResp.UpdatedJobs[j].JobID
 	})
 
-	require.Equal(jobs[0].Namespace, applyResp.UpdatedJobs[0].Namespace)
-	require.Equal(jobs[0].ID, applyResp.UpdatedJobs[0].JobID)
-	require.Equal(jobs[1].Namespace, applyResp.UpdatedJobs[1].Namespace)
-	require.Equal(jobs[1].ID, applyResp.UpdatedJobs[1].JobID)
+	must.Eq(t, jobs[0].Namespace, applyResp.UpdatedJobs[0].Namespace)
+	must.Eq(t, jobs[0].ID, applyResp.UpdatedJobs[0].JobID)
+	must.Eq(t, jobs[1].Namespace, applyResp.UpdatedJobs[1].Namespace)
+	must.Eq(t, jobs[1].ID, applyResp.UpdatedJobs[1].JobID)
 
-	require.False(job1Watch.Watch(time.After(100 * time.Millisecond)))
-	require.False(job2Watch.Watch(time.After(100 * time.Millisecond)))
+	must.False(t, job1Watch.Watch(time.After(100*time.Millisecond)))
+	must.False(t, job2Watch.Watch(time.After(100*time.Millisecond)))
 
 	job1, err = s1.State().JobByID(nil, job1.Namespace, job1.ID)
-	require.NoError(err)
-	require.NotNil(job1)
-	require.Equal(job1.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.CPU, rec1.Value)
+	must.NoError(t, err)
+	must.NotNil(t, job1)
+	must.Eq(t, job1.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.CPU, rec1.Value)
 
 	job2, err = s1.State().JobByID(nil, job2.Namespace, job2.ID)
-	require.NoError(err)
-	require.NotNil(job2)
-	require.Equal(job2.LookupTaskGroup(rec2.Group).LookupTask(rec2.Task).Resources.MemoryMB, rec2.Value)
+	must.NoError(t, err)
+	must.NotNil(t, job2)
+	must.Eq(t, job2.LookupTaskGroup(rec2.Group).LookupTask(rec2.Task).Resources.MemoryMB, rec2.Value)
 
 	// all recommendations were deleted during update
 	recs, err := s1.State().Recommendations(nil)
-	require.NoError(err)
-	require.Nil(recs.Next())
+	must.NoError(t, err)
+	must.Nil(t, recs.Next())
 }
 
 func TestRecommendationEndpoint_Apply_WithRegisterErrors(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 		c.NumSchedulers = 0 // Prevent automatic dequeue
@@ -1858,25 +1842,25 @@ func TestRecommendationEndpoint_Apply_WithRegisterErrors(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC)
 
 	job1 := mock.Job()
-	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job1))
+	must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 900, nil, job1))
 	rec1 := mock.Recommendation(job1)
-	require.NoError(s1.State().UpsertRecommendation(910, rec1))
+	must.NoError(t, s1.State().UpsertRecommendation(910, rec1))
 
 	job2 := mock.Job()
-	require.NoError(s1.State().UpsertJob(structs.MsgTypeTestSetup, 901, nil, job2))
+	must.NoError(t, s1.State().UpsertJob(structs.MsgTypeTestSetup, 901, nil, job2))
 	rec2 := mock.Recommendation(job2)
 	rec2.Target("web", "web", "MemoryMB")
 	rec2.Value = 0 // invalid value for MemoryDB, will trigger error on Job.Register
-	require.NoError(s1.State().UpsertRecommendation(920, rec2))
+	must.NoError(t, s1.State().UpsertRecommendation(920, rec2))
 	origMem2 := job2.LookupTaskGroup(rec2.Group).LookupTask(rec2.Task).Resources.MemoryMB
 
 	// set up watch set for job updates on rec apply
 	job1Watch := memdb.NewWatchSet()
 	_, err := s1.State().JobByID(job1Watch, job1.Namespace, job1.ID)
-	require.NoError(err)
+	must.NoError(t, err)
 	job2Watch := memdb.NewWatchSet()
 	_, err = s1.State().JobByID(job2Watch, job2.Namespace, job2.ID)
-	require.NoError(err)
+	must.NoError(t, err)
 
 	var applyResp structs.RecommendationApplyResponse
 	applyReq := &structs.RecommendationApplyRequest{
@@ -1886,33 +1870,33 @@ func TestRecommendationEndpoint_Apply_WithRegisterErrors(t *testing.T) {
 		},
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
-	require.NoError(err)
-	require.Len(applyResp.Errors, 1)
-	require.Len(applyResp.UpdatedJobs, 1)
+	must.NoError(t, err)
+	must.Len(t, 1, applyResp.Errors)
+	must.Len(t, 1, applyResp.UpdatedJobs)
 
-	require.Equal(job1.Namespace, applyResp.UpdatedJobs[0].Namespace)
-	require.Equal(job1.ID, applyResp.UpdatedJobs[0].JobID)
-	require.Equal(job2.Namespace, applyResp.Errors[0].Namespace)
-	require.Equal(job2.ID, applyResp.Errors[0].JobID)
-	require.Contains(applyResp.Errors[0].Error, "minimum MemoryMB value is 10")
+	must.Eq(t, job1.Namespace, applyResp.UpdatedJobs[0].Namespace)
+	must.Eq(t, job1.ID, applyResp.UpdatedJobs[0].JobID)
+	must.Eq(t, job2.Namespace, applyResp.Errors[0].Namespace)
+	must.Eq(t, job2.ID, applyResp.Errors[0].JobID)
+	must.StrContains(t, applyResp.Errors[0].Error, "minimum MemoryMB value is 10")
 
-	require.False(job1Watch.Watch(time.After(100 * time.Millisecond)))
-	require.True(job2Watch.Watch(time.After(100 * time.Millisecond)))
+	must.False(t, job1Watch.Watch(time.After(100*time.Millisecond)))
+	must.True(t, job2Watch.Watch(time.After(100*time.Millisecond)))
 
 	job1, err = s1.State().JobByID(nil, job1.Namespace, job1.ID)
-	require.NoError(err)
-	require.NotNil(job1)
-	require.Equal(job1.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.CPU, rec1.Value)
+	must.NoError(t, err)
+	must.NotNil(t, job1)
+	must.Eq(t, job1.LookupTaskGroup(rec1.Group).LookupTask(rec1.Task).Resources.CPU, rec1.Value)
 
 	job2, err = s1.State().JobByID(nil, job2.Namespace, job2.ID)
-	require.NoError(err)
-	require.NotNil(job2)
-	require.Equal(origMem2, job2.LookupTaskGroup(rec2.Group).LookupTask(rec2.Task).Resources.MemoryMB)
+	must.NoError(t, err)
+	must.NotNil(t, job2)
+	must.Eq(t, origMem2, job2.LookupTaskGroup(rec2.Group).LookupTask(rec2.Task).Resources.MemoryMB)
 
 	// all recommendations were deleted during update
 	recs, err := s1.State().Recommendations(nil)
-	require.NoError(err)
-	require.Nil(recs.Next())
+	must.NoError(t, err)
+	must.Nil(t, recs.Next())
 }
 
 func TestRecommendationEndpoint_Apply_License(t *testing.T) {
@@ -1957,9 +1941,9 @@ func TestRecommendationEndpoint_Apply_License(t *testing.T) {
 			state := s.fsm.State()
 
 			job := mock.Job()
-			require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
+			must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 			rec := mock.Recommendation(job)
-			require.NoError(t, state.UpsertRecommendation(910, rec))
+			must.NoError(t, state.UpsertRecommendation(910, rec))
 			var applyResp structs.RecommendationApplyResponse
 			applyReq := &structs.RecommendationApplyRequest{
 				Recommendations: []string{rec.ID},
@@ -1970,10 +1954,10 @@ func TestRecommendationEndpoint_Apply_License(t *testing.T) {
 			err := msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
 
 			if tc.Error {
-				require.Error(t, err)
-				require.Equal(t, `Feature "Dynamic Application Sizing" is unlicensed`, err.Error())
+				must.Error(t, err)
+				must.Eq(t, `Feature "Dynamic Application Sizing" is unlicensed`, err.Error())
 			} else {
-				require.NoError(t, err)
+				must.NoError(t, err)
 			}
 		})
 	}
@@ -1981,7 +1965,6 @@ func TestRecommendationEndpoint_Apply_License(t *testing.T) {
 
 func TestRecommendationEndpoint_Apply_Errors(t *testing.T) {
 	ci.Parallel(t)
-	require := require.New(t)
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
 		c.NumSchedulers = 0 // Prevent automatic dequeue
@@ -1992,9 +1975,9 @@ func TestRecommendationEndpoint_Apply_Errors(t *testing.T) {
 	state := s1.State()
 
 	job := mock.Job()
-	require.NoError(state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
+	must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 900, nil, job))
 	rec := mock.Recommendation(job)
-	require.NoError(state.UpsertRecommendation(900, rec))
+	must.NoError(t, state.UpsertRecommendation(900, rec))
 
 	var applyResp structs.RecommendationApplyResponse
 	applyReq := &structs.RecommendationApplyRequest{
@@ -2004,45 +1987,45 @@ func TestRecommendationEndpoint_Apply_Errors(t *testing.T) {
 		},
 	}
 	err := msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
-	require.Error(err)
-	require.Contains(err.Error(), "at least one recommendation")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "at least one recommendation")
 
 	applyReq.Recommendations = []string{rec.ID}
 	{
 		// mutate rec in memory
 		r, err := state.RecommendationByID(nil, rec.ID)
-		require.NoError(err)
+		must.NoError(t, err)
 		r.JobID = "nonexistent job"
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
-	require.Error(err)
-	require.Contains(err.Error(), `job "nonexistent job" in namespace "default" does not exist`)
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), `job "nonexistent job" in namespace "default" does not exist`)
 	// fix it
 	rec.JobID = job.ID
-	require.NoError(state.UpsertRecommendation(900, rec))
+	must.NoError(t, state.UpsertRecommendation(900, rec))
 
 	applyReq.Recommendations = []string{uuid.Generate()}
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
-	require.Error(err)
-	require.Contains(err.Error(), "recommendation does not exist")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "recommendation does not exist")
 
 	applyReq.Recommendations = []string{rec.ID}
 	rec.Target("bad group", job.TaskGroups[0].Tasks[0].Name, "CPU")
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
-	require.Error(err)
-	require.Contains(err.Error(), "task group does not exist in job")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "task group does not exist in job")
 
 	applyReq.Recommendations = []string{rec.ID}
 	rec.Target(job.TaskGroups[0].Name, "bad task", "CPU")
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
-	require.Error(err)
-	require.Contains(err.Error(), "task does not exist in group")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "task does not exist in group")
 
 	applyReq.Recommendations = []string{rec.ID}
 	rec.Target(job.TaskGroups[0].Name, job.TaskGroups[0].Tasks[0].Name, "Bad Resource")
 	err = msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
-	require.Error(err)
-	require.Contains(err.Error(), "resource not valid")
+	must.Error(t, err)
+	must.StrContains(t, err.Error(), "resource not valid")
 
 }
 
@@ -2060,7 +2043,7 @@ func TestRecommendationEndpoint_Apply_ACL(t *testing.T) {
 
 	ns1 := mock.Namespace()
 	ns2 := mock.Namespace()
-	require.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
+	must.NoError(t, state.UpsertNamespaces(900, []*structs.Namespace{ns1, ns2}))
 
 	ns1token_readJob := mock.CreatePolicyAndToken(t, state, 900, "ns1-read",
 		mock.NamespacePolicy(ns1.Name, "", []string{acl.NamespaceCapabilityReadJob}))
@@ -2134,17 +2117,17 @@ func TestRecommendationEndpoint_Apply_ACL(t *testing.T) {
 			// cleanup  and recreate
 			job1 := mock.Job()
 			job1.Namespace = ns1.Name
-			require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 904, nil, job1))
+			must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 904, nil, job1))
 			job2 := mock.Job()
 			job2.Namespace = ns2.Name
-			require.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, nil, job2))
+			must.NoError(t, state.UpsertJob(structs.MsgTypeTestSetup, 905, nil, job2))
 			rec1 := mock.Recommendation(job1)
 			rec1.ID = rec1ID
 			rec2 := mock.Recommendation(job2)
 			rec2.ID = rec2ID
 			_ = state.DeleteRecommendations(1000, []string{rec1.ID, rec2.ID})
-			require.NoError(t, state.UpsertRecommendation(906, rec1))
-			require.NoError(t, state.UpsertRecommendation(907, rec2))
+			must.NoError(t, state.UpsertRecommendation(906, rec1))
+			must.NoError(t, state.UpsertRecommendation(907, rec2))
 
 			var applyResp structs.RecommendationApplyResponse
 			applyReq := &structs.RecommendationApplyRequest{
@@ -2156,14 +2139,14 @@ func TestRecommendationEndpoint_Apply_ACL(t *testing.T) {
 			}
 			err := msgpackrpc.CallWithCodec(codec, "Recommendation.ApplyRecommendations", applyReq, &applyResp)
 			if tc.Error {
-				require.Error(t, err)
+				must.Error(t, err)
 				if tc.Message != "" {
-					require.Contains(t, err.Error(), tc.Message)
+					must.StrContains(t, err.Error(), tc.Message)
 				} else {
-					require.Contains(t, err.Error(), structs.ErrPermissionDenied.Error())
+					must.StrContains(t, err.Error(), structs.ErrPermissionDenied.Error())
 				}
 			} else {
-				require.NoError(t, err)
+				must.NoError(t, err)
 			}
 		})
 	}

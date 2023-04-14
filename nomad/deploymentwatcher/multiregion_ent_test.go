@@ -11,10 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shoenig/test/must"
+
 	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
-	"github.com/stretchr/testify/require"
 )
 
 // TestDeploymentwatch_NextRegion tests scenarios for multi-region deployments.
@@ -228,7 +229,6 @@ func TestDeploymentwatch_NextRegion(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			require := require.New(t)
 			var wg sync.WaitGroup
 			watchers, cancel := tc.setup(t, tc.TestRegions)
 			defer cancel()
@@ -248,24 +248,24 @@ func TestDeploymentwatch_NextRegion(t *testing.T) {
 			for region, watcher := range watchers {
 				srv := watcher.DeploymentRPC.(*MockRPCServer)
 
-				require.Equal(tc.ExpectedStates[region], srv.w.getStatus(),
-					"expected region %q to have state %q",
-					region, tc.ExpectedStates[region])
+				must.Eq(t, tc.ExpectedStates[region], srv.w.getStatus(),
+					must.Sprintf("expected region %q to have state %q",
+						region, tc.ExpectedStates[region]))
 
 				// because the test runs the deployments concurrently, we can't assert
 				// the exact number of RPCs except in the case of MaxParallel = 1
-				require.LessOrEqual(int(srv.countResumeCalls), tc.MaxResumes[region],
-					"expected region %q to have at most %d resume calls",
-					region, tc.MaxResumes[region])
-				require.LessOrEqual(int(srv.countFailCalls), tc.MaxFails[region],
-					"expected region %q to have at most %d fail calls",
-					region, tc.MaxFails[region])
-				require.LessOrEqual(int(srv.countUnblockCalls), tc.MaxUnblocks[region],
-					"expected region %q to have at most %d unblock calls",
-					region, tc.MaxUnblocks[region])
-				require.LessOrEqual(int(srv.countCancelCalls), tc.MaxCancels[region],
-					"expected region %q to have at most %d cancel calls",
-					region, tc.MaxCancels[region])
+				must.LessEq(t, tc.MaxResumes[region], int(srv.countResumeCalls),
+					must.Sprintf("expected region %q to have at most %d resume calls",
+						region, tc.MaxResumes[region]))
+				must.LessEq(t, tc.MaxFails[region], int(srv.countFailCalls),
+					must.Sprintf("expected region %q to have at most %d fail calls",
+						region, tc.MaxFails[region]))
+				must.LessEq(t, tc.MaxUnblocks[region], int(srv.countUnblockCalls),
+					must.Sprintf("expected region %q to have at most %d unblock calls",
+						region, tc.MaxUnblocks[region]))
+				must.LessEq(t, tc.MaxCancels[region], int(srv.countCancelCalls),
+					must.Sprintf("expected region %q to have at most %d cancel calls",
+						region, tc.MaxCancels[region]))
 
 				// we only check for specific error counts because concurrent
 				// deployments might cause errors to land on different regions.
@@ -273,9 +273,9 @@ func TestDeploymentwatch_NextRegion(t *testing.T) {
 				// them exactly.
 				expectedErrs, ok := tc.ExpectedErrors[region]
 				if ok {
-					require.Equal(expectedErrs, len(srv.nextRegionErrors),
-						"expected region %q to have %d errors, got: %v",
-						region, expectedErrs, srv.nextRegionErrors)
+					must.Eq(t, expectedErrs, len(srv.nextRegionErrors),
+						must.Sprintf("expected region %q to have %d errors, got: %v",
+							region, expectedErrs, srv.nextRegionErrors))
 				}
 
 			}

@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestLicenseEndpoint_GetLicense(t *testing.T) {
@@ -27,16 +27,16 @@ func TestLicenseEndpoint_GetLicense(t *testing.T) {
 	}
 
 	var resp structs.LicenseGetResponse
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "License.GetLicense", get, &resp))
-	require.NotNil(t, resp.NomadLicense)
+	must.NoError(t, msgpackrpc.CallWithCodec(codec, "License.GetLicense", get, &resp))
+	must.NotNil(t, resp.NomadLicense)
 
 	got := resp.NomadLicense.License
-	require.NotNil(t, got)
-	require.Equal(t, "test-license", got.LicenseID)
-	require.Equal(t, "test customer id", got.CustomerID)
-	require.True(t, got.IssueTime.After(now.Add(-1*time.Minute)))
-	require.True(t, got.StartTime.After(now.Add(-1*time.Minute)))
-	require.True(t, got.ExpirationTime.After(now.Add(15*time.Minute)))
-	require.True(t, got.TerminationTime.After(now.Add(15*time.Minute)))
-	require.Empty(t, got.Flags)
+	must.NotNil(t, got)
+	must.Eq(t, "test-license", got.LicenseID)
+	must.Eq(t, "test customer id", got.CustomerID)
+	must.True(t, got.IssueTime.After(now.Add(-1*time.Minute)))
+	must.True(t, got.StartTime.After(now.Add(-1*time.Minute)))
+	must.True(t, got.ExpirationTime.After(now.Add(15*time.Minute)))
+	must.True(t, got.TerminationTime.After(now.Add(15*time.Minute)))
+	must.MapEmpty(t, got.Flags)
 }
