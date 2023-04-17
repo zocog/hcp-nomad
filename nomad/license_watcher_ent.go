@@ -17,10 +17,6 @@ import (
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 )
 
-var (
-	ErrOlderLicense = fmt.Errorf("requested license is older than current one, use force to override")
-)
-
 const (
 	// permanentLicenseID is the license ID used for permanent (s3) enterprise builds
 	permanentLicenseID = "permanent"
@@ -73,6 +69,10 @@ func NewLicenseWatcher(logger hclog.Logger, cfg *LicenseConfig) (*LicenseWatcher
 		logTimes:    make(map[nomadLicense.Features]time.Time),
 	}
 
+	// Internally this calls licensing.ValidateLicense, so if the license is
+	// terminated, this will return an error (and Nomad should exit), but in
+	// practice we've already validated the license when we called
+	// LicenseConfig.Validate near the top of the NewServer setup.
 	validator, err := cfg.validator()
 	if err != nil {
 		return nil, err
@@ -83,13 +83,20 @@ func NewLicenseWatcher(logger hclog.Logger, cfg *LicenseConfig) (*LicenseWatcher
 		Validator:   validator,
 	}
 
-	// Create the new watcher with options
+	// Create the new watcher with options. Internally this calls
+	// licensing.SetLicense, so if the license is terminated, this will return
+	// an error (and Nomad should exit), but in practice we've already validated
+	// the license above.
 	watcher, _, err := licensing.NewWatcher(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize nomad license: %w", err)
 	}
 	lw.watcher = watcher
 
+	// TODO: NewWatcher calls licensing.SetLicense which itself calls
+	// licensing.ValidateLicense already. Refactor so that we're only calling
+	// the Nomad-specific storage methods here and not redoing the work the
+	// library is already doing.
 	err = lw.SetLicense(blob)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set nomad license: %w", err)
@@ -247,9 +254,12 @@ func (lw *LicenseWatcher) monitorWatcher(ctx context.Context) {
 			}
 			lw.logger.Debug("received update from license manager")
 
-		// Handle licensing watcher errors, primarily expirations.
+		// Handle licensing watcher errors, primarily expirations or
+		// terminations. Note that we don't exit on error or send the error
+		// elsewhere, so even a terminated license won't stop the server. But a
+		// terminated (not expired!) license will stop the server if it's
+		// restarted.
 		case err := <-lw.watcher.ErrorCh():
-			//TODO: more info
 			lw.logger.Error("license expired, please update license", "error", err)
 
 		case warnLicense := <-lw.watcher.WarningCh():
