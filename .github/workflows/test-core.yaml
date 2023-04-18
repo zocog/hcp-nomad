@@ -54,7 +54,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Configure Git
-        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com'.insteadOf 'https://github.com'
+        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com'.insteadOf 'https://github.com'
       - uses: actions/checkout@v3
       - uses: hashicorp/setup-golang@v1
       - name: Get Go modules
@@ -67,7 +67,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Configure Git
-        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com'.insteadOf 'https://github.com'
+        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com'.insteadOf 'https://github.com'
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0 # needs tags for checkproto
@@ -87,7 +87,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Configure Git
-        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com'.insteadOf 'https://github.com'
+        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com'.insteadOf 'https://github.com'
       - uses: actions/checkout@v3
       - uses: hashicorp/setup-golang@v1
       - name: Run make dev
@@ -100,7 +100,7 @@ jobs:
     timeout-minutes: 8
     steps:
       - name: Configure Git
-        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com'.insteadOf 'https://github.com'
+        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com'.insteadOf 'https://github.com'
       - uses: actions/checkout@v3
       - uses: hashicorp/setup-golang@v1
       - name: Run API tests
@@ -126,7 +126,7 @@ jobs:
           - quick
     steps:
       - name: Configure Git
-        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com'.insteadOf 'https://github.com'
+        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com'.insteadOf 'https://github.com'
       - uses: actions/checkout@v3
       - uses: hashicorp/setup-golang@v1
       - name: Run Matrix Tests
