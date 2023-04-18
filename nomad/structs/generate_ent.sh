@@ -3,7 +3,7 @@
 set -e
 
 codecgen \
-    -c github.com/hashicorp/go-msgpack/codec \
+    -c github.com/hashicorp/go-msgpack/v2/codec \
     -st codec \
     -d 102 \
     -t ent \
