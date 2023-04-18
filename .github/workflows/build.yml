@@ -97,7 +97,7 @@ jobs:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: Setup Git
-        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com".insteadOf "https://github.com"
 
       - name: Build dependencies
         run: make deps
@@ -154,7 +154,7 @@ jobs:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: Setup Git
-        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com".insteadOf "https://github.com"
 
       - name: Build dependencies
         run: make deps
@@ -271,7 +271,7 @@ jobs:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: Setup Git
-        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com".insteadOf "https://github.com"
 
       - name: Build dependencies
         run: make deps

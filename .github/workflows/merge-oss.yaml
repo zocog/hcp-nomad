@@ -44,7 +44,7 @@ jobs:
           cache-key-suffix: -${{ inputs.origin_branch }}-${{ inputs.dest_branch }}-merge-oss
       - name: Configure Git
         run: |
-          git config --global url.'https://${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}:@github.com'.insteadOf 'https://github.com'
+          git config --global url.'https://${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}@github.com'.insteadOf 'https://github.com'
           git config --global user.email "github-team-nomad-core@hashicorp.com"
           git config --global user.name "@${{ env.GITHUB_USER }}"
       - name: Run Script
