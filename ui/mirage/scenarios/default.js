@@ -158,6 +158,12 @@ function smallCluster(server) {
     .forEach((a) =>
       a.update({ deploymentStatus: { Healthy: true, Canary: true } })
     );
+  activelyDeployingJobAllocs.models
+    .filter((a) => a.clientStatus === 'failed')
+    .slice(0, 5)
+    .forEach((a) =>
+      a.update({ deploymentStatus: { Healthy: true, Canary: false } })
+    );
 
   //#endregion Active Deployment
 
@@ -664,11 +670,12 @@ Secret: ${token.secretId}
 Accessor: ${token.accessorId}
 
 `);
-
-    console.log(
-      'Alternatively, log in with a JWT. If it ends with `management`, you have full access. If it ends with `bad`, you`ll get an error. Otherwise, you`ll get a token with limited access.'
-    );
   });
+
+  console.log(
+    'Alternatively, log in with a JWT. If it ends with `management`, you have full access. If it ends with `bad`, you`ll get an error. Otherwise, you`ll get a token with limited access.'
+  );
+  console.log('=====================================');
 }
 
 function getConfigValue(variableName, defaultValue) {
