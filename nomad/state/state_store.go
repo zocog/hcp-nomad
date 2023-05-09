@@ -1681,6 +1681,11 @@ func (s *StateStore) upsertJobImpl(index uint64, sub *structs.JobSubmission, job
 		if !keepVersion {
 			job.JobModifyIndex = index
 			if job.Version <= existingJob.Version {
+				if sub == nil {
+					// in the reversion case we must set the submission to be
+					// that of the job version we are reverting to
+					sub, _ = s.jobSubmission(nil, job.Namespace, job.ID, job.Version, txn)
+				}
 				job.Version = existingJob.Version + 1
 			}
 		}
@@ -3160,11 +3165,12 @@ func (s *StateStore) nestedUpsertEval(txn *txn, index uint64, eval *structs.Eval
 		}
 
 		// Go through and update the evals
-		for _, eval := range blocked {
-			newEval := eval.Copy()
+		for _, blockedEval := range blocked {
+			newEval := blockedEval.Copy()
 			newEval.Status = structs.EvalStatusCancelled
-			newEval.StatusDescription = fmt.Sprintf("evaluation %q successful", newEval.ID)
+			newEval.StatusDescription = fmt.Sprintf("evaluation %q successful", eval.ID)
 			newEval.ModifyIndex = index
+			newEval.ModifyTime = eval.ModifyTime
 
 			if err := txn.Insert("evals", newEval); err != nil {
 				return fmt.Errorf("eval insert failed: %v", err)
