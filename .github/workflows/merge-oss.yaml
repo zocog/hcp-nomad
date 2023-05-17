@@ -28,7 +28,7 @@ jobs:
     outputs:
       reason: ${{ steps.merge.outputs.reason }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
         with:
           ref: ${{ inputs.dest_branch }}
           fetch-depth: 0
@@ -37,8 +37,8 @@ jobs:
         id: get-go-version
         run: |
           echo "Building with Go $(cat .go-version)"
-          echo "::set-output name=go-version::$(cat .go-version)"
-      - uses: magnetikonline/action-golang-cache@v2
+          echo "go-version=$(cat .go-version)" >> $GITHUB_OUTPUT
+      - uses: magnetikonline/action-golang-cache@v2 # TSCCR: no entry for repository "magnetikonline/action-golang-cache"
         with:
           go-version: ${{ steps.get-go-version.outputs.go-version }}
           cache-key-suffix: -${{ inputs.origin_branch }}-${{ inputs.dest_branch }}-merge-oss
@@ -83,7 +83,8 @@ jobs:
           echo "::group::Run merge script"
           if ! ./scripts/enterprise/merge-oss.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}" ; then
             echo "::error::git was unable to auto-merge"
-            echo "::set-output name=reason::git was unable to auto-merge"
+            echo "reason=git was unable to auto-merge" >> $GITHUB_OUTPUT
+
             exit 1
           fi
           echo "::endgroup::"
@@ -96,14 +97,14 @@ jobs:
           # Spot check by doing make check
           if ! make check ; then
             echo "::error::make check failed after auto-merge"
-            echo "::set-output name=reason::'make check' failed after auto-merge"
+            echo "reason='make check' failed after auto-merge" >> $GITHUB_OUTPUT
             exit 1
           fi
 
           # Spot check by doing compile
           if ! make pkg/linux_amd64/nomad ; then
             echo "::error::compilation failed after auto-merge"
-            echo "::set-output name=reason::compilation failed after auto-merge"
+            echo "reason=compilation failed after auto-merge" >> $GITHUB_OUTPUT
             exit 1
           fi
           echo "::endgroup::"
@@ -116,7 +117,7 @@ jobs:
           # And then push
           if ! git push origin "${dest_branch}" ; then
             echo "::error::push to origin failed"
-            echo "::set-output name=reason::push to origin failed"
+            echo "reason=push to origin failed" >> $GITHUB_OUTPUT
             exit 1
           fi
           echo "::endgroup::"
@@ -159,7 +160,7 @@ jobs:
             Then open the a PR at https://github.com/hashicorp/nomad-enterprise/compare/${dest_branch}...${tmp_branch}?expand=1
           EOF
       - name: Send slack notification on failure
-        uses: slackapi/slack-github-action@v1.18.0
+        uses: slackapi/slack-github-action@007b2c3c751a190b6f0f040e47ed024deaa72844 # v1.23.0
         with:
           payload: |
             {
