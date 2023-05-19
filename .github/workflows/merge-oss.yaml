@@ -38,10 +38,7 @@ jobs:
         run: |
           echo "Building with Go $(cat .go-version)"
           echo "go-version=$(cat .go-version)" >> $GITHUB_OUTPUT
-      - uses: magnetikonline/action-golang-cache@v2 # TSCCR: no entry for repository "magnetikonline/action-golang-cache"
-        with:
-          go-version: ${{ steps.get-go-version.outputs.go-version }}
-          cache-key-suffix: -${{ inputs.origin_branch }}-${{ inputs.dest_branch }}-merge-oss
+      - uses: hashicorp/setup-golang@v1
       - name: Configure Git
         run: |
           git config --global url.'https://${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}@github.com'.insteadOf 'https://github.com'
