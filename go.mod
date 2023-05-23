@@ -30,7 +30,7 @@ require (
 	github.com/coreos/go-iptables v0.6.0
 	github.com/creack/pty v1.1.18
 	github.com/docker/cli v23.0.1+incompatible
-	github.com/docker/distribution v2.8.1+incompatible
+	github.com/docker/distribution v2.8.2+incompatible
 	github.com/docker/docker v23.0.3+incompatible
 	github.com/docker/go-units v0.5.0
 	github.com/dustin/go-humanize v1.0.0
@@ -43,7 +43,7 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/websocket v1.5.0
 	github.com/gosuri/uilive v0.0.4
-	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/hashicorp/cap v0.2.0
 	github.com/hashicorp/consul-template v0.31.0
 	github.com/hashicorp/consul/api v1.18.0
@@ -59,7 +59,7 @@ require (
 	github.com/hashicorp/go-getter v1.7.0
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-immutable-radix/v2 v2.0.0
-	github.com/hashicorp/go-kms-wrapping/v2 v2.0.5
+	github.com/hashicorp/go-kms-wrapping/v2 v2.0.8
 	github.com/hashicorp/go-memdb v1.3.4
 	github.com/hashicorp/go-msgpack v1.1.5
 	github.com/hashicorp/go-multierror v1.1.1
@@ -84,7 +84,7 @@ require (
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2
 	github.com/hashicorp/serf v0.10.1
 	github.com/hashicorp/vault/api v1.9.1
-	github.com/hashicorp/vault/sdk v0.7.0
+	github.com/hashicorp/vault/sdk v0.9.0
 	github.com/hashicorp/yamux v0.1.1
 	github.com/hpcloud/tail v1.0.1-0.20170814160653-37f427138745
 	github.com/kr/pretty v0.3.1
