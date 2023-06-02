@@ -4385,6 +4385,9 @@ type Job struct {
 	// Datacenters contains all the datacenters this job is allowed to span
 	Datacenters []string
 
+	// NodePool specifies the node pool this job is allowed to run on
+	NodePool string
+
 	// Constraints can be specified at a job level and apply to
 	// all the task groups and tasks.
 	Constraints []*Constraint
@@ -4535,6 +4538,10 @@ func (j *Job) Canonicalize() {
 		j.Datacenters = []string{"*"}
 	}
 
+	if j.NodePool == "" {
+		j.NodePool = NodePoolDefault
+	}
+
 	for _, tg := range j.TaskGroups {
 		tg.Canonicalize(j)
 	}
@@ -4617,6 +4624,10 @@ func (j *Job) Validate() error {
 			}
 		}
 	}
+	if j.NodePool == "" {
+		mErr.Errors = append(mErr.Errors, errors.New("Job must be in a node_pool"))
+	}
+
 	if len(j.TaskGroups) == 0 {
 		mErr.Errors = append(mErr.Errors, errors.New("Missing job task groups"))
 	}
@@ -4827,6 +4838,7 @@ func (j *Job) Stub(summary *JobSummary, fields *JobStubFields) *JobListStub {
 		ParentID:          j.ParentID,
 		Name:              j.Name,
 		Datacenters:       j.Datacenters,
+		NodePool:          j.NodePool,
 		Multiregion:       j.Multiregion,
 		Type:              j.Type,
 		Priority:          j.Priority,
@@ -5019,6 +5031,7 @@ type JobListStub struct {
 	Name              string
 	Namespace         string `json:",omitempty"`
 	Datacenters       []string
+	NodePool          string
 	Multiregion       *Multiregion
 	Type              string
 	Priority          int
@@ -5279,6 +5292,7 @@ func (m *Multiregion) Copy() *Multiregion {
 			Name:        region.Name,
 			Count:       region.Count,
 			Datacenters: []string{},
+			NodePool:    region.NodePool,
 			Meta:        map[string]string{},
 		}
 		copyRegion.Datacenters = append(copyRegion.Datacenters, region.Datacenters...)
@@ -5299,6 +5313,7 @@ type MultiregionRegion struct {
 	Name        string
 	Count       int
 	Datacenters []string
+	NodePool    string
 	Meta        map[string]string
 }
 
@@ -6807,36 +6822,12 @@ func (tg *TaskGroup) Validate(j *Job) error {
 		mErr.Errors = append(mErr.Errors, outer)
 	}
 
-	isTypeService := j.Type == JobTypeService
-
 	// Validate the tasks
 	for _, task := range tg.Tasks {
-		// Validate the task does not reference undefined volume mounts
-		for i, mnt := range task.VolumeMounts {
-			if mnt.Volume == "" {
-				mErr.Errors = append(mErr.Errors, fmt.Errorf("Task %s has a volume mount (%d) referencing an empty volume", task.Name, i))
-				continue
-			}
-
-			if _, ok := tg.Volumes[mnt.Volume]; !ok {
-				mErr.Errors = append(mErr.Errors, fmt.Errorf("Task %s has a volume mount (%d) referencing undefined volume %s", task.Name, i, mnt.Volume))
-				continue
-			}
-		}
-
-		if err := task.Validate(tg.EphemeralDisk, j.Type, tg.Services, tg.Networks); err != nil {
+		if err := task.Validate(j.Type, tg); err != nil {
 			outer := fmt.Errorf("Task %s validation failed: %v", task.Name, err)
 			mErr.Errors = append(mErr.Errors, outer)
 		}
-
-		// Validate the group's Update Strategy does not conflict with the Task's kill_timeout for service type jobs
-		if isTypeService && tg.Update != nil {
-			if task.KillTimeout > tg.Update.ProgressDeadline {
-				mErr.Errors = append(mErr.Errors, fmt.Errorf("Task %s has a kill timout (%s) longer than the group's progress deadline (%s)",
-					task.Name, task.KillTimeout.String(), tg.Update.ProgressDeadline.String()))
-			}
-		}
-
 	}
 
 	return mErr.ErrorOrNil()
@@ -7303,13 +7294,21 @@ func DefaultLogConfig() *LogConfig {
 // Validate returns an error if the log config specified are less than the
 // minimum allowed. Note that because we have a non-zero default MaxFiles and
 // MaxFileSizeMB, we can't validate that they're unset if Disabled=true
-func (l *LogConfig) Validate() error {
+func (l *LogConfig) Validate(disk *EphemeralDisk) error {
 	var mErr multierror.Error
 	if l.MaxFiles < 1 {
 		mErr.Errors = append(mErr.Errors, fmt.Errorf("minimum number of files is 1; got %d", l.MaxFiles))
 	}
 	if l.MaxFileSizeMB < 1 {
 		mErr.Errors = append(mErr.Errors, fmt.Errorf("minimum file size is 1MB; got %d", l.MaxFileSizeMB))
+	}
+	if disk != nil {
+		logUsage := (l.MaxFiles * l.MaxFileSizeMB)
+		if disk.SizeMB <= logUsage {
+			mErr.Errors = append(mErr.Errors,
+				fmt.Errorf("log storage (%d MB) must be less than requested disk capacity (%d MB)",
+					logUsage, disk.SizeMB))
+		}
 	}
 	return mErr.ErrorOrNil()
 }
@@ -7540,7 +7539,7 @@ func (t *Task) GoString() string {
 }
 
 // Validate is used to check a task for reasonable configuration
-func (t *Task) Validate(ephemeralDisk *EphemeralDisk, jobType string, tgServices []*Service, tgNetworks Networks) error {
+func (t *Task) Validate(jobType string, tg *TaskGroup) error {
 	var mErr multierror.Error
 	if t.Name == "" {
 		mErr.Errors = append(mErr.Errors, errors.New("Missing task name"))
@@ -7557,6 +7556,20 @@ func (t *Task) Validate(ephemeralDisk *EphemeralDisk, jobType string, tgServices
 	}
 	if t.KillTimeout < 0 {
 		mErr.Errors = append(mErr.Errors, errors.New("KillTimeout must be a positive value"))
+	} else {
+		// Validate the group's update strategy does not conflict with the
+		// task's kill_timeout for service jobs.
+		//
+		// progress_deadline = 0 has a special meaning so it should not be
+		// validated against the task's kill_timeout.
+		conflictsWithProgressDeadline := jobType == JobTypeService &&
+			tg.Update != nil &&
+			tg.Update.ProgressDeadline > 0 &&
+			t.KillTimeout > tg.Update.ProgressDeadline
+		if conflictsWithProgressDeadline {
+			mErr.Errors = append(mErr.Errors, fmt.Errorf("KillTimout (%s) longer than the group's ProgressDeadline (%s)",
+				t.KillTimeout, tg.Update.ProgressDeadline))
+		}
 	}
 	if t.ShutdownDelay < 0 {
 		mErr.Errors = append(mErr.Errors, errors.New("ShutdownDelay must be a positive value"))
@@ -7572,10 +7585,11 @@ func (t *Task) Validate(ephemeralDisk *EphemeralDisk, jobType string, tgServices
 	// Validate the log config
 	if t.LogConfig == nil {
 		mErr.Errors = append(mErr.Errors, errors.New("Missing Log Config"))
-	} else if err := t.LogConfig.Validate(); err != nil {
+	} else if err := t.LogConfig.Validate(tg.EphemeralDisk); err != nil {
 		mErr.Errors = append(mErr.Errors, err)
 	}
 
+	// Validate constraints and affinities.
 	for idx, constr := range t.Constraints {
 		if err := constr.Validate(); err != nil {
 			outer := fmt.Errorf("Constraint %d validation failed: %s", idx+1, err)
@@ -7603,19 +7617,11 @@ func (t *Task) Validate(ephemeralDisk *EphemeralDisk, jobType string, tgServices
 	}
 
 	// Validate Services
-	if err := validateServices(t, tgNetworks); err != nil {
+	if err := validateServices(t, tg.Networks); err != nil {
 		mErr.Errors = append(mErr.Errors, err)
 	}
 
-	if t.LogConfig != nil && ephemeralDisk != nil {
-		logUsage := (t.LogConfig.MaxFiles * t.LogConfig.MaxFileSizeMB)
-		if ephemeralDisk.SizeMB <= logUsage {
-			mErr.Errors = append(mErr.Errors,
-				fmt.Errorf("log storage (%d MB) must be less than requested disk capacity (%d MB)",
-					logUsage, ephemeralDisk.SizeMB))
-		}
-	}
-
+	// Validate artifacts.
 	for idx, artifact := range t.Artifacts {
 		if err := artifact.Validate(); err != nil {
 			outer := fmt.Errorf("Artifact %d validation failed: %v", idx+1, err)
@@ -7623,12 +7629,14 @@ func (t *Task) Validate(ephemeralDisk *EphemeralDisk, jobType string, tgServices
 		}
 	}
 
+	// Validate Vault.
 	if t.Vault != nil {
 		if err := t.Vault.Validate(); err != nil {
 			mErr.Errors = append(mErr.Errors, fmt.Errorf("Vault validation failed: %v", err))
 		}
 	}
 
+	// Validate templates.
 	destinations := make(map[string]int, len(t.Templates))
 	for idx, tmpl := range t.Templates {
 		if err := tmpl.Validate(); err != nil {
@@ -7670,7 +7678,7 @@ func (t *Task) Validate(ephemeralDisk *EphemeralDisk, jobType string, tgServices
 		}
 
 		// Ensure the proxy task has a corresponding service entry
-		serviceErr := ValidateConnectProxyService(t.Kind.Value(), tgServices)
+		serviceErr := ValidateConnectProxyService(t.Kind.Value(), tg.Services)
 		if serviceErr != nil {
 			mErr.Errors = append(mErr.Errors, serviceErr)
 		}
@@ -7680,6 +7688,13 @@ func (t *Task) Validate(ephemeralDisk *EphemeralDisk, jobType string, tgServices
 	for idx, vm := range t.VolumeMounts {
 		if !MountPropagationModeIsValid(vm.PropagationMode) {
 			mErr.Errors = append(mErr.Errors, fmt.Errorf("Volume Mount (%d) has an invalid propagation mode: \"%s\"", idx, vm.PropagationMode))
+		}
+
+		// Validate the task does not reference undefined volume mounts
+		if vm.Volume == "" {
+			mErr.Errors = append(mErr.Errors, fmt.Errorf("Volume Mount (%d) references an empty volume", idx))
+		} else if _, ok := tg.Volumes[vm.Volume]; !ok {
+			mErr.Errors = append(mErr.Errors, fmt.Errorf("Volume Mount (%d) references undefined volume %s", idx, vm.Volume))
 		}
 	}
 
