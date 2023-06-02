@@ -37,7 +37,7 @@ jobs:
         id: get-go-version
         run: |
           echo "Building with Go $(cat .go-version)"
-          echo "go-version=$(cat .go-version)" >> $GITHUB_OUTPUT
+          echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
       - uses: hashicorp/setup-golang@v1
       - name: Configure Git
         run: |
@@ -63,7 +63,7 @@ jobs:
 
           # Print job summary
           echo "Merging OSS branch '${origin_branch}' into ENT branch '${dest_branch}'"
-          cat << EOF >> $GITHUB_STEP_SUMMARY
+          cat << EOF >> "$GITHUB_STEP_SUMMARY"
           Merging OSS branch \`${origin_branch}\` into ENT branch \`${dest_branch}\`
 
           | Source branch                                                                                   | Destination branch                                                                                 | Go version                                     |
@@ -80,7 +80,7 @@ jobs:
           echo "::group::Run merge script"
           if ! ./scripts/enterprise/merge-oss.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}" ; then
             echo "::error::git was unable to auto-merge"
-            echo "reason=git was unable to auto-merge" >> $GITHUB_OUTPUT
+            echo "reason=git was unable to auto-merge" >> "$GITHUB_OUTPUT"
 
             exit 1
           fi
@@ -94,14 +94,14 @@ jobs:
           # Spot check by doing make check
           if ! make check ; then
             echo "::error::make check failed after auto-merge"
-            echo "reason='make check' failed after auto-merge" >> $GITHUB_OUTPUT
+            echo "reason='make check' failed after auto-merge" >> "$GITHUB_OUTPUT"
             exit 1
           fi
 
           # Spot check by doing compile
           if ! make pkg/linux_amd64/nomad ; then
             echo "::error::compilation failed after auto-merge"
-            echo "reason=compilation failed after auto-merge" >> $GITHUB_OUTPUT
+            echo "reason=compilation failed after auto-merge" >> "$GITHUB_OUTPUT"
             exit 1
           fi
           echo "::endgroup::"
@@ -114,13 +114,13 @@ jobs:
           # And then push
           if ! git push origin "${dest_branch}" ; then
             echo "::error::push to origin failed"
-            echo "reason=push to origin failed" >> $GITHUB_OUTPUT
+            echo "reason=push to origin failed" >> "$GITHUB_OUTPUT"
             exit 1
           fi
           echo "::endgroup::"
 
           # Say goodbye
-          echo ":green_circle: Merge completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo ":green_circle: Merge completed successfully" >> "$GITHUB_STEP_SUMMARY"
           exit 0
   handle-failure:
     needs:
@@ -134,7 +134,7 @@ jobs:
           dest_branch="${{ inputs.dest_branch }}"
           tmp_branch="ci/oss-merge-${{ inputs.origin_branch }}-$(date -u +%Y%m%d%H%M%S)"
 
-          cat << EOF >> $GITHUB_STEP_SUMMARY
+          cat << EOF >> "$GITHUB_STEP_SUMMARY"
             :x: Merge of OSS branch \`${{ inputs.origin_branch }}\` into ENT \`${{ inputs.dest_branch }}\` failed
 
             Please run the following commands in the \`hashicorp/nomad-enterprise\` repo to manually fix the conflicts:
