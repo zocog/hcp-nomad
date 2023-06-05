@@ -19,3 +19,5 @@ jobs:
     secrets:
       NOMAD_MERGE_OSS_GH_PAT: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
       NOMAD_MERGE_OSS_SLACK: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
+permissions:
+  contents: read

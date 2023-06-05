@@ -211,3 +211,5 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+permissions:
+  contents: read
