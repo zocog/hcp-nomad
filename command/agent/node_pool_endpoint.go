@@ -4,6 +4,7 @@
 package agent
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -24,6 +25,12 @@ func (s *HTTPServer) NodePoolsRequest(resp http.ResponseWriter, req *http.Reques
 func (s *HTTPServer) NodePoolSpecificRequest(resp http.ResponseWriter, req *http.Request) (any, error) {
 	path := strings.TrimPrefix(req.URL.Path, "/v1/node/pool/")
 	switch {
+	case strings.HasSuffix(path, "/nodes"):
+		poolName := strings.TrimSuffix(path, "/nodes")
+		return s.nodePoolNodesList(resp, req, poolName)
+	case strings.HasSuffix(path, "/jobs"):
+		poolName := strings.TrimSuffix(path, "/jobs")
+		return s.nodePoolJobList(resp, req, poolName)
 	default:
 		return s.nodePoolCRUD(resp, req, path)
 	}
@@ -118,4 +125,83 @@ func (s *HTTPServer) nodePoolDelete(resp http.ResponseWriter, req *http.Request,
 
 	setIndex(resp, out.Index)
 	return nil, nil
+}
+
+func (s *HTTPServer) nodePoolNodesList(resp http.ResponseWriter, req *http.Request, poolName string) (interface{}, error) {
+	if req.Method != http.MethodGet {
+		return nil, CodedError(http.StatusMethodNotAllowed, ErrInvalidMethod)
+	}
+
+	args := structs.NodePoolNodesRequest{
+		Name: poolName,
+	}
+	if s.parse(resp, req, &args.Region, &args.QueryOptions) {
+		return nil, nil
+	}
+
+	// Parse node fields selection.
+	fields, err := parseNodeListStubFields(req)
+	if err != nil {
+		return nil, CodedError(http.StatusBadRequest, fmt.Sprintf("Failed to parse node list fields: %v", err))
+	}
+	args.Fields = fields
+
+	if args.Prefix != "" {
+		// the prefix argument is ambiguous for this endpoint (does it refer to
+		// the node pool name or the node IDs like /v1/nodes?) so the RPC
+		// handler ignores it
+		return nil, CodedError(http.StatusBadRequest, "prefix argument not allowed")
+	}
+
+	var out structs.NodePoolNodesResponse
+	if err := s.agent.RPC("NodePool.ListNodes", &args, &out); err != nil {
+		return nil, err
+	}
+
+	setMeta(resp, &out.QueryMeta)
+	if out.Nodes == nil {
+		out.Nodes = make([]*structs.NodeListStub, 0)
+	}
+	return out.Nodes, nil
+}
+
+func (s *HTTPServer) nodePoolJobList(resp http.ResponseWriter, req *http.Request, poolName string) (any, error) {
+	if req.Method != http.MethodGet {
+		return nil, CodedError(http.StatusMethodNotAllowed, ErrInvalidMethod)
+	}
+
+	args := structs.NodePoolJobsRequest{
+		Name: poolName,
+	}
+	if s.parse(resp, req, &args.Region, &args.QueryOptions) {
+		return nil, nil
+	}
+
+	if args.Prefix != "" {
+		// the prefix argument is ambiguous for this endpoint (does it refer to
+		// the node pool name or the job names like /v1/jobs?) so the RPC
+		// handler ignores it
+		return nil, CodedError(http.StatusBadRequest, "prefix argument not allowed")
+	}
+
+	// Parse meta query param
+	args.Fields = &structs.JobStubFields{}
+	jobMeta, err := parseBool(req, "meta")
+	if err != nil {
+		return nil, err
+	}
+	if jobMeta != nil {
+		args.Fields.Meta = *jobMeta
+	}
+
+	var out structs.NodePoolJobsResponse
+	if err := s.agent.RPC("NodePool.ListJobs", &args, &out); err != nil {
+		return nil, err
+	}
+
+	setMeta(resp, &out.QueryMeta)
+	if out.Jobs == nil {
+		out.Jobs = make([]*structs.JobListStub, 0)
+	}
+	return out.Jobs, nil
 }
