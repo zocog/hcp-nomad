@@ -63,7 +63,7 @@ require (
 	github.com/hashicorp/go-memdb v1.3.4
 	github.com/hashicorp/go-msgpack v1.1.5
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hashicorp/go-plugin v1.4.9
+	github.com/hashicorp/go-plugin v1.4.10
 	github.com/hashicorp/go-secure-stdlib/listenerutil v0.1.4
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2
 	github.com/hashicorp/go-set v0.1.9
@@ -114,7 +114,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/shirou/gopsutil/v3 v3.23.4
 	github.com/shoenig/go-landlock v0.1.5
-	github.com/shoenig/go-m1cpu v0.1.5
+	github.com/shoenig/go-m1cpu v0.1.6
 	github.com/shoenig/test v0.6.6
 	github.com/skratchdot/open-golang v0.0.0-20160302144031-75fb7ed4208c
 	github.com/stretchr/testify v1.8.2
@@ -189,7 +189,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
-	github.com/fatih/color v1.13.0
+	github.com/fatih/color v1.15.0
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
