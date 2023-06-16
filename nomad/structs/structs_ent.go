@@ -729,6 +729,17 @@ type SingleQuotaUsageResponse struct {
 	QueryMeta
 }
 
+func (n *Namespace) Canonicalize() {}
+
+func (n *NamespaceNodePoolConfiguration) Canonicalize() {}
+
+func (n *NamespaceNodePoolConfiguration) Validate() error {
+	if n != nil {
+		return errors.New("Node Pools Governance is unlicensed.")
+	}
+	return nil
+}
+
 func (m *Multiregion) Validate(jobType string, jobDatacenters []string) error {
 	var mErr multierror.Error
 	seen := map[string]struct{}{}
