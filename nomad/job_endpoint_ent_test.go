@@ -294,6 +294,163 @@ func TestJobEndpoint_Plan_Sentinel(t *testing.T) {
 	}
 }
 
+func TestJobEndpoint_Register_NodePool(t *testing.T) {
+	ci.Parallel(t)
+
+	s, cleanupS := TestServer(t, func(c *Config) {
+		c.NumSchedulers = 0
+	})
+	defer cleanupS()
+	codec := rpcClient(t, s)
+	testutil.WaitForLeader(t, s.RPC)
+
+	// Create test namespaces.
+	nsWithDefault := mock.Namespace()
+	nsWithDefault.NodePoolConfiguration.Default = "dev"
+
+	nsAllowDev := mock.Namespace()
+	nsAllowDev.NodePoolConfiguration.Allowed = []string{"dev*"}
+
+	nsDenyDev := mock.Namespace()
+	nsDenyDev.NodePoolConfiguration.Denied = []string{"dev*"}
+
+	nsDenyDevWithDefault := mock.Namespace()
+	nsDenyDevWithDefault.NodePoolConfiguration.Default = "dev"
+	nsDenyDevWithDefault.NodePoolConfiguration.Denied = []string{"dev*"}
+
+	nsReq := &structs.NamespaceUpsertRequest{
+		Namespaces: []*structs.Namespace{
+			nsWithDefault,
+			nsAllowDev,
+			nsDenyDev,
+			nsDenyDevWithDefault,
+		},
+		WriteRequest: structs.WriteRequest{Region: "global"},
+	}
+	var nsResp structs.GenericResponse
+	err := msgpackrpc.CallWithCodec(codec, "Namespace.UpsertNamespaces", nsReq, &nsResp)
+	must.NoError(t, err)
+
+	// Create test node pools.
+	dev1Pool := mock.NodePool()
+	dev1Pool.Name = "dev"
+
+	dev2Pool := mock.NodePool()
+	dev2Pool.Name = "dev2"
+
+	prodPool := mock.NodePool()
+	prodPool.Name = "prod"
+
+	poolReq := &structs.NodePoolUpsertRequest{
+		NodePools: []*structs.NodePool{
+			dev1Pool,
+			dev2Pool,
+			prodPool,
+		},
+		WriteRequest: structs.WriteRequest{Region: "global"},
+	}
+	var poolResp structs.GenericResponse
+	err = msgpackrpc.CallWithCodec(codec, "NodePool.UpsertNodePools", poolReq, &poolResp)
+	must.NoError(t, err)
+
+	testCases := []struct {
+		name         string
+		namespace    string
+		nodePool     string
+		expectedPool string
+		expectedErr  string
+	}{
+		{
+			name:         "job in default namespace uses default node pool",
+			namespace:    structs.DefaultNamespace,
+			nodePool:     "",
+			expectedPool: structs.NodePoolDefault,
+		},
+		{
+			name:         "job without node pool uses namespace default",
+			namespace:    nsWithDefault.Name,
+			nodePool:     "",
+			expectedPool: nsWithDefault.NodePoolConfiguration.Default,
+		},
+		{
+			name:         "job can override namespace default node pool",
+			namespace:    nsWithDefault.Name,
+			nodePool:     "prod",
+			expectedPool: "prod",
+		},
+		{
+			name:        "namespace can deny job from using node pool",
+			namespace:   nsDenyDev.Name,
+			nodePool:    "dev",
+			expectedErr: "does not allow jobs to use node pool",
+		},
+		{
+			name:         "namespace allows node pool unless denied",
+			namespace:    nsDenyDev.Name,
+			nodePool:     "prod",
+			expectedPool: "prod",
+		},
+		{
+			name:         "namespace can allow only specific node pools",
+			namespace:    nsAllowDev.Name,
+			nodePool:     "dev",
+			expectedPool: "dev",
+		},
+		{
+			name:        "namespace denies node pool unless allowed",
+			namespace:   nsAllowDev.Name,
+			nodePool:    "prod",
+			expectedErr: "does not allow jobs to use node pool",
+		},
+		{
+			name:        "namespace denies with glob",
+			namespace:   nsDenyDev.Name,
+			nodePool:    "dev2",
+			expectedErr: "does not allow jobs to use node pool",
+		},
+		{
+			name:         "namespace allows with glob",
+			namespace:    nsAllowDev.Name,
+			nodePool:     "dev2",
+			expectedPool: "dev2",
+		},
+		{
+			name:         "namespace allows if default pool matches deny glob",
+			namespace:    nsDenyDevWithDefault.Name,
+			nodePool:     "dev",
+			expectedPool: "dev",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			job := mock.Job()
+			job.Namespace = tc.namespace
+			job.NodePool = tc.nodePool
+
+			req := &structs.JobRegisterRequest{
+				Job: job,
+				WriteRequest: structs.WriteRequest{
+					Region:    "global",
+					Namespace: job.Namespace,
+				},
+			}
+			var resp structs.JobRegisterResponse
+			err = msgpackrpc.CallWithCodec(codec, "Job.Register", req, &resp)
+
+			if tc.expectedErr != "" {
+				must.ErrorContains(t, err, tc.expectedErr)
+			} else {
+				must.NoError(t, err)
+
+				got, err := s.State().JobByID(nil, job.Namespace, job.ID)
+				must.NoError(t, err)
+				must.Eq(t, tc.expectedPool, got.NodePool)
+			}
+		})
+	}
+}
+
 func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	ci.Parallel(t)
 
