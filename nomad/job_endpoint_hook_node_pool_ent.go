@@ -11,12 +11,12 @@ import (
 
 	"github.com/hashicorp/nomad/nomad/structs"
 
-	glob "github.com/ryanuber/go-glob"
+	"github.com/ryanuber/go-glob"
 )
 
 // enterpriseValidation implements any admission hooks for node pools for Nomad
 // Enterprise.
-func (j jobNodePoolValidatingHook) enterpriseValidation(job *structs.Job, pool *structs.NodePool) ([]error, error) {
+func (j jobNodePoolValidatingHook) enterpriseValidation(job *structs.Job, _ *structs.NodePool) ([]error, error) {
 	ns, err := j.srv.State().NamespaceByName(nil, job.Namespace)
 	if err != nil {
 		return nil, err
