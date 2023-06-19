@@ -729,15 +729,53 @@ type SingleQuotaUsageResponse struct {
 	QueryMeta
 }
 
-func (n *Namespace) Canonicalize() {}
+func (n *Namespace) Canonicalize() {
+	if n == nil {
+		return
+	}
 
-func (n *NamespaceNodePoolConfiguration) Canonicalize() {}
+	if n.NodePoolConfiguration == nil {
+		n.NodePoolConfiguration = &NamespaceNodePoolConfiguration{}
+	}
+	n.NodePoolConfiguration.Canonicalize()
+}
+
+func (n *NamespaceNodePoolConfiguration) Canonicalize() {
+	if n == nil {
+		return
+	}
+
+	if n.Default == "" {
+		n.Default = NodePoolDefault
+	}
+}
 
 func (n *NamespaceNodePoolConfiguration) Validate() error {
-	if n != nil {
-		return errors.New("Node Pools Governance is unlicensed.")
+	if n == nil {
+		return nil
 	}
-	return nil
+
+	var mErr *multierror.Error
+
+	// Validate only allowed or denied is used.
+	if len(n.Allowed) > 0 && len(n.Denied) > 0 {
+		mErr = multierror.Append(mErr, fmt.Errorf("allowed and denied cannot be used together"))
+	}
+
+	// Validate default node pool name is valid.
+	if err := ValidateNodePoolName(n.Default); err != nil {
+		mErr = multierror.Append(mErr, fmt.Errorf("invalid default node pool name: %v", err))
+	}
+
+	// Validate denied list does not deny default node pool.
+	for _, pool := range n.Denied {
+		if pool == n.Default {
+			mErr = multierror.Append(mErr, fmt.Errorf(
+				"node pool %q is the namespace default and cannot be denied", n.Default))
+		}
+	}
+
+	return mErr.ErrorOrNil()
 }
 
 func (m *Multiregion) Validate(jobType string, jobDatacenters []string) error {

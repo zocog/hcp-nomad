@@ -17,6 +17,71 @@ import (
 	"github.com/shoenig/test/must"
 )
 
+func TestNamespace_Validate_Ent(t *testing.T) {
+	ci.Parallel(t)
+
+	cases := []struct {
+		name        string
+		namespace   *Namespace
+		expectedErr string
+	}{
+		{
+			name: "must have default node pool",
+			namespace: &Namespace{
+				Name: "test",
+				NodePoolConfiguration: &NamespaceNodePoolConfiguration{
+					Default: "",
+				},
+			},
+			expectedErr: "invalid default node pool name",
+		},
+		{
+			name: "can't allow and deny node pools",
+			namespace: &Namespace{
+				Name: "test",
+				NodePoolConfiguration: &NamespaceNodePoolConfiguration{
+					Default: "default",
+					Allowed: []string{"dev"},
+					Denied:  []string{"prod"},
+				},
+			},
+			expectedErr: "allowed and denied cannot be used together",
+		},
+		{
+			name: "can't deny default node pool",
+			namespace: &Namespace{
+				Name: "test",
+				NodePoolConfiguration: &NamespaceNodePoolConfiguration{
+					Default: "default",
+					Denied:  []string{"default"},
+				},
+			},
+			expectedErr: "cannot be denied",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.namespace.Validate()
+			fmt.Println(err)
+			if tc.expectedErr != "" {
+				must.ErrorContains(t, err, tc.expectedErr)
+			} else {
+				must.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestNamespace_Canonicalize(t *testing.T) {
+	ci.Parallel(t)
+
+	ns := &Namespace{}
+	ns.Canonicalize()
+	must.NotNil(t, ns.NodePoolConfiguration)
+	must.Eq(t, NodePoolDefault, ns.NodePoolConfiguration.Default)
+}
+
 func TestSentinelPolicySetHash(t *testing.T) {
 	ci.Parallel(t)
 	sp := &SentinelPolicy{

@@ -237,6 +237,26 @@ func TestStateStore_RestoreSentinelPolicy(t *testing.T) {
 	must.Eq(t, policy, out)
 }
 
+func TestStateStore_UpsertNamespaces_Canonicalize(t *testing.T) {
+	ci.Parallel(t)
+
+	state := testStateStore(t)
+	ns := &structs.Namespace{Name: "ns"}
+	must.NoError(t, state.UpsertNamespaces(1000, []*structs.Namespace{ns}))
+
+	// Verify namespace is canonicalized on upsert.
+	got, err := state.NamespaceByName(nil, ns.Name)
+	must.NoError(t, err)
+	must.NotNil(t, got.NodePoolConfiguration)
+	must.Eq(t, structs.NodePoolDefault, got.NodePoolConfiguration.Default)
+
+	// Verify default namespace is canonicalized.
+	defaultNS, err := state.NamespaceByName(nil, structs.DefaultNamespace)
+	must.NoError(t, err)
+	must.NotNil(t, defaultNS.NodePoolConfiguration)
+	must.Eq(t, structs.NodePoolDefault, defaultNS.NodePoolConfiguration.Default)
+}
+
 func TestStateStore_NamespaceByQuota(t *testing.T) {
 	ci.Parallel(t)
 	state := testStateStore(t)
