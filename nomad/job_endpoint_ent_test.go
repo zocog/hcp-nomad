@@ -4,6 +4,8 @@
 package nomad
 
 import (
+	"context"
+	"fmt"
 	"net/rpc"
 	"strings"
 	"testing"
@@ -17,9 +19,11 @@ import (
 	"github.com/hashicorp/nomad/helper/pointer"
 	"github.com/hashicorp/nomad/helper/uuid"
 	"github.com/hashicorp/nomad/nomad/mock"
+	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/shoenig/test/must"
+	"github.com/shoenig/test/wait"
 )
 
 func TestJobEndpoint_Register_Sentinel(t *testing.T) {
@@ -603,6 +607,241 @@ func TestJobEndpoint_Register_Multiregion(t *testing.T) {
 	westJob = getResp.Job
 	must.Greater(t, oldVersion, westJob.Version)
 	must.False(t, westJob.Stopped(), must.Sprint("expected job to be running"))
+}
+
+func TestJobEndpoint_Register_Multiregion_NodePool(t *testing.T) {
+	ci.Parallel(t)
+
+	// Helper function to setup client heartbeat.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	heartbeat := func(ctx context.Context, codec rpc.ClientCodec, req *structs.NodeUpdateStatusRequest) {
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+			default:
+			}
+
+			var resp structs.NodeUpdateResponse
+			msgpackrpc.CallWithCodec(codec, "Node.UpdateStatus", req, &resp)
+		}
+	}
+
+	// Create server in the authoritative region west.
+	west, root, cleanupWest := TestACLServer(t, func(c *Config) {
+		c.Region = "west"
+		c.AuthoritativeRegion = "west"
+		c.ACLEnabled = true
+		c.NumSchedulers = 1
+		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
+	})
+	defer cleanupWest()
+	westCodec := rpcClient(t, west)
+
+	// Create server in the non-authoritative region east.
+	east, _, cleanupEast := TestACLServer(t, func(c *Config) {
+		c.Region = "east"
+		c.AuthoritativeRegion = "west"
+		c.ACLEnabled = true
+		c.ReplicationBackoff = 20 * time.Millisecond
+		c.ReplicationToken = root.SecretID
+		c.NumSchedulers = 1
+		c.LicenseConfig.LicenseEnvBytes = licenseForMulticlusterEfficiency().Signed
+	})
+	defer cleanupEast()
+	eastCodec := rpcClient(t, east)
+
+	// Federate regions.
+	TestJoin(t, west, east)
+	testutil.WaitForLeader(t, west.RPC)
+	testutil.WaitForLeader(t, east.RPC)
+
+	// Can't use Server.numPeers here b/c these are different regions.
+	must.Wait(t, wait.InitialSuccess(
+		wait.ErrorFunc(func() error {
+			if west.serf.NumNodes() != 2 {
+				return fmt.Errorf("should have 2 peers")
+			}
+			return nil
+		}),
+		wait.Timeout(3*time.Second),
+		wait.Gap(100*time.Millisecond),
+	))
+
+	// Create test node pools.
+	eastPool := &structs.NodePool{Name: "east-np"}
+	westPool := &structs.NodePool{Name: "west-np"}
+
+	nodePoolsReq := &structs.NodePoolUpsertRequest{
+		NodePools: []*structs.NodePool{eastPool, westPool},
+		WriteRequest: structs.WriteRequest{
+			Region:    "west",
+			AuthToken: root.SecretID,
+		},
+	}
+	var nodePoolsResp structs.GenericResponse
+	err := msgpackrpc.CallWithCodec(westCodec, "NodePool.UpsertNodePools", nodePoolsReq, &nodePoolsResp)
+	must.NoError(t, err)
+
+	// Create test nodes in each region. Each region has one node in the
+	// 'default' node pool and one node in a region-specific node pool.
+	nodeEast1 := mock.Node()
+	nodeEast2 := mock.Node()
+	nodeEast2.NodePool = eastPool.Name
+
+	nodeWest1 := mock.Node()
+	nodeWest2 := mock.Node()
+	nodeWest2.NodePool = westPool.Name
+
+	nodesPerRegion := map[string][]*structs.Node{
+		"east": {nodeEast1, nodeEast2},
+		"west": {nodeWest1, nodeWest2},
+	}
+	for region, nodes := range nodesPerRegion {
+		for _, node := range nodes {
+			node.Status = ""
+
+			var codec rpc.ClientCodec
+			var server *Server
+			switch region {
+			case "east":
+				codec = eastCodec
+				server = east
+			case "west":
+				codec = westCodec
+				server = west
+			}
+
+			// Register node and setup a heartbeat goroutine.
+			req := &structs.NodeRegisterRequest{
+				Node:         node,
+				WriteRequest: structs.WriteRequest{Region: region},
+			}
+			var resp structs.GenericResponse
+			err := msgpackrpc.CallWithCodec(codec, "Node.Register", req, &resp)
+			must.NoError(t, err)
+
+			go heartbeat(ctx, rpcClient(t, server), &structs.NodeUpdateStatusRequest{
+				NodeID:       node.ID,
+				Status:       structs.NodeStatusReady,
+				WriteRequest: structs.WriteRequest{Region: region},
+			})
+		}
+	}
+
+	// Create multiregion job in the 'default' node pool.
+	job := mock.MultiregionMinJob()
+	job.NodePool = structs.NodePoolDefault
+	job.Update.AutoPromote = true
+
+	req := &structs.JobRegisterRequest{
+		Job: job,
+		WriteRequest: structs.WriteRequest{
+			Region:    "west",
+			AuthToken: root.SecretID,
+		},
+	}
+	var resp structs.JobRegisterResponse
+	err = msgpackrpc.CallWithCodec(westCodec, "Job.Register", req, &resp)
+	must.NoError(t, err)
+
+	// verify is a helper function that tests if each region has one allocation
+	// in the expected node pool.
+	verify := func(job *structs.Job, expected map[string]string) {
+		must.Wait(t, wait.InitialSuccess(
+			wait.ErrorFunc(func() error {
+				for region, expectedPool := range expected {
+					var s *state.StateStore
+					switch region {
+					case "east":
+						s = east.fsm.State()
+					case "west":
+						s = west.fsm.State()
+					}
+
+					allocs, err := s.AllocsByJob(nil, job.Namespace, job.ID, false)
+					if err != nil {
+						return fmt.Errorf(
+							"failed to get allocs in region '%s': %v",
+							region, err,
+						)
+					}
+					if len(allocs) != 1 {
+						return fmt.Errorf(
+							"expected 1 allocation in region '%s', got %d",
+							region, len(allocs),
+						)
+					}
+
+					node, err := s.NodeByID(nil, allocs[0].NodeID)
+					if node.NodePool != expectedPool {
+						return fmt.Errorf(
+							"expected alloc in region '%s' to be in node pool '%s', got '%s'",
+							region, expectedPool, node.NodePool,
+						)
+					}
+				}
+				return nil
+			}),
+			wait.Timeout(10*time.Second),
+			wait.Gap(1*time.Second),
+		))
+	}
+
+	// Verify each region receives one allocation in the 'default' node pool.
+	verify(job, map[string]string{
+		"east": structs.NodePoolDefault,
+		"west": structs.NodePoolDefault,
+	})
+
+	// Create multiregion job with each region in its own node pool.
+	job = mock.MultiregionMinJob()
+	job.Update.AutoPromote = true
+	job.Multiregion.Regions[0].NodePool = westPool.Name
+	job.Multiregion.Regions[1].NodePool = eastPool.Name
+
+	req = &structs.JobRegisterRequest{
+		Job: job,
+		WriteRequest: structs.WriteRequest{
+			Region:    "west",
+			AuthToken: root.SecretID,
+		},
+	}
+	err = msgpackrpc.CallWithCodec(westCodec, "Job.Register", req, &resp)
+	must.NoError(t, err)
+
+	// Verify each region receives one allocation in their own node pool.
+	verify(job, map[string]string{
+		"east": eastPool.Name,
+		"west": westPool.Name,
+	})
+
+	// Create a multiregion job with only region defining a node pool.
+	job = mock.MultiregionMinJob()
+	job.Update.AutoPromote = true
+	job.Multiregion.Regions[1].NodePool = eastPool.Name
+
+	req = &structs.JobRegisterRequest{
+		Job: job,
+		WriteRequest: structs.WriteRequest{
+			Region:    "west",
+			AuthToken: root.SecretID,
+		},
+	}
+	err = msgpackrpc.CallWithCodec(westCodec, "Job.Register", req, &resp)
+	must.NoError(t, err)
+
+	// Verify east region has an allocation in its node pool and the west
+	// region has an allocation in the 'default' node pool.
+	verify(job, map[string]string{
+		"east": eastPool.Name,
+		"west": structs.NodePoolDefault,
+	})
 }
 
 func TestJobEndpoint_Register_Multiregion_MaxVersion(t *testing.T) {

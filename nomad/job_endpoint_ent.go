@@ -178,6 +178,9 @@ func regionalJob(j *structs.Job, region *structs.MultiregionRegion) *structs.Job
 	if len(region.Datacenters) != 0 {
 		j.Datacenters = region.Datacenters
 	}
+	if region.NodePool != "" {
+		j.NodePool = region.NodePool
+	}
 
 	for _, tg := range j.TaskGroups {
 		if tg.Count == 0 {
