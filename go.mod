@@ -301,7 +301,7 @@ require (
 require (
 	github.com/hashicorp/eventlogger v0.1.1-0.20210917172429-90711333b9d0
 	github.com/hashicorp/go-licensing/v3 v3.0.3
-	github.com/hashicorp/nomad-licensing v0.1.0
+	github.com/hashicorp/nomad-licensing v0.2.0
 	github.com/hashicorp/raft-autopilot-enterprise v0.1.2
 	github.com/hashicorp/raft-snapshotagent v0.0.0-20221101163738-6dd36ea18685
 	github.com/hashicorp/sentinel v0.15.5
