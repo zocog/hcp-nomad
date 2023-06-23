@@ -28,6 +28,7 @@ module('Acceptance | allocation detail', function (hooks) {
   hooks.beforeEach(async function () {
     server.create('agent');
 
+    server.create('node-pool');
     node = server.create('node');
     job = server.create('job', {
       groupsCount: 1,
@@ -479,6 +480,7 @@ module('Acceptance | allocation detail (rescheduled)', function (hooks) {
   hooks.beforeEach(async function () {
     server.create('agent');
 
+    server.create('node-pool');
     node = server.create('node');
     job = server.create('job', { createAllocations: false });
     allocation = server.create('allocation', 'rescheduled');
@@ -501,6 +503,7 @@ module('Acceptance | allocation detail (not running)', function (hooks) {
   hooks.beforeEach(async function () {
     server.create('agent');
 
+    server.create('node-pool');
     node = server.create('node');
     job = server.create('job', { createAllocations: false });
     allocation = server.create('allocation', { clientStatus: 'pending' });
@@ -531,6 +534,7 @@ module('Acceptance | allocation detail (preemptions)', function (hooks) {
 
   hooks.beforeEach(async function () {
     server.create('agent');
+    server.create('node-pool');
     node = server.create('node');
     job = server.create('job', { createAllocations: false });
   });
@@ -669,6 +673,7 @@ module('Acceptance | allocation detail (services)', function (hooks) {
   hooks.beforeEach(async function () {
     server.create('feature', { name: 'Dynamic Application Sizing' });
     server.createList('agent', 3, 'withConsulLink', 'withVaultLink');
+    server.createList('node-pool', 3);
     server.createList('node', 5);
     server.createList('job', 1, { createRecommendations: true });
     const job = server.create('job', {
@@ -677,12 +682,12 @@ module('Acceptance | allocation detail (services)', function (hooks) {
       name: 'Service-haver',
       id: 'service-haver',
       namespaceId: 'default',
-      allocStatusDistribution: {
-        running: 1,
-      },
     });
 
-    const currentAlloc = server.db.allocations.findBy({ jobId: job.id });
+    const runningAlloc = server.create('allocation', {
+      jobId: job.id,
+      forceRunningClientStatus: true,
+    });
     const otherAlloc = server.db.allocations.reject((j) => j.jobId !== job.id);
 
     server.db.serviceFragments.update({
@@ -691,7 +696,7 @@ module('Acceptance | allocation detail (services)', function (hooks) {
           Status: 'success',
           Check: 'check1',
           Timestamp: 99,
-          Alloc: currentAlloc.id,
+          Alloc: runningAlloc.id,
         },
         {
           Status: 'failure',
@@ -700,21 +705,21 @@ module('Acceptance | allocation detail (services)', function (hooks) {
           propThatDoesntMatter:
             'this object will be ignored, since it shared a Check name with a later one.',
           Timestamp: 98,
-          Alloc: currentAlloc.id,
+          Alloc: runningAlloc.id,
         },
         {
           Status: 'success',
           Check: 'check2',
           Output: 'Two',
           Timestamp: 99,
-          Alloc: currentAlloc.id,
+          Alloc: runningAlloc.id,
         },
         {
           Status: 'failure',
           Check: 'check3',
           Output: 'Oh no!',
           Timestamp: 99,
-          Alloc: currentAlloc.id,
+          Alloc: runningAlloc.id,
         },
         {
           Status: 'success',
