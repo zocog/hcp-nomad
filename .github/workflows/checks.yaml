@@ -23,7 +23,7 @@ env:
 
 jobs:
   checks:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ endsWith(github.repository, '-enterprise') && fromJSON('["self-hosted", "ondemand", "linux"]') || 'ubuntu-22.04' }}
     timeout-minutes: 10
     steps:
       - name: Configure Git

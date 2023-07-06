@@ -48,9 +48,11 @@ env:
   GOPRIVATE: 'github.com/hashicorp/*'
   TOKEN: ${{secrets.ELEVATED_GITHUB_TOKEN}}
   NOMAD_LICENSE: ${{secrets.NOMAD_LICENSE}}
+
 jobs:
+  # this caches dependencies for subsequent jobs, including private deps in enterprise
   mods:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ endsWith(github.repository, '-enterprise') && fromJSON('["self-hosted", "ondemand", "linux"]') || 'ubuntu-22.04' }}
     timeout-minutes: 10
     steps:
       - name: Configure Git
