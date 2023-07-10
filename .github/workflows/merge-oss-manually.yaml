@@ -1,3 +1,8 @@
+# NOTE FOR FUTURE EDITORS!
+# Changes to this file do not need to be backported,
+# because we humans run it from `main` to pull any 
+# source (OSS) branch into any dest (ENT).
+
 name: Merge OSS to ENT Manually
 on:
   workflow_dispatch:

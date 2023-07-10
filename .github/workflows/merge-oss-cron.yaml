@@ -1,3 +1,8 @@
+# NOTE FOR FUTURE EDITORS!
+# Changes to this file do not need to be backported,
+# because on `main` it always pulls over all the previous
+# release branches from OSS that we support (current-2).
+
 name: Merge OSS to ENT Nightly
 on:
   schedule:

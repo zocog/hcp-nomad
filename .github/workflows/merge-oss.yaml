@@ -1,3 +1,8 @@
+# NOTE FOR FUTURE EDITORS!
+# Changes to this file do not need to be backported,
+# because it can pull any source (OSS) branch
+# into any dest (ENT)
+
 name: Merge OSS to ENT
 on:
   # Allow this Action to be triggered by other Actions.
