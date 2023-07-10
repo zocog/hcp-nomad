@@ -79,6 +79,8 @@ jobs:
     runs-on: ${{matrix.os}}
     timeout-minutes: 20
     steps:
+      - name: Configure Git
+        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com'.insteadOf 'https://github.com'
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - uses: hashicorp/setup-golang@v1
       - name: Run make dev
@@ -90,6 +92,8 @@ jobs:
     runs-on: [custom, xl, 22.04]
     timeout-minutes: 8
     steps:
+      - name: Configure Git
+        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com'.insteadOf 'https://github.com'
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - uses: hashicorp/setup-golang@v1
       - name: Run API tests
@@ -114,6 +118,8 @@ jobs:
           - drivers
           - quick
     steps:
+      - name: Configure Git
+        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com'.insteadOf 'https://github.com'
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - uses: hashicorp/setup-golang@v1
       - name: Run Matrix Tests
