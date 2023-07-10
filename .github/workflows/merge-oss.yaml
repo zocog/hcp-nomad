@@ -11,19 +11,17 @@ on:
         description: 'The destination ENT branch'
         type: string
         required: true
-    secrets:
-      NOMAD_MERGE_OSS_GH_PAT:
-        description: 'The GitHub Personal Access Token to use for the merge commit'
-        required: true
-      NOMAD_MERGE_OSS_SLACK:
-        description: 'The Slack app incoming webhook URL to use for notification'
-        required: true
+
 env:
   GOPRIVATE: github.com/hashicorp
   GITHUB_USER: hc-github-team-nomad-core
 jobs:
   merge-oss:
-    runs-on: ubuntu-20.04
+    # big disk for better iops for linting in `make check`
+    runs-on: ${{ fromJSON('["self-hosted", "ondemand", "linux", "size_gb=255"]') }}
+    permissions:
+      contents: write
+      id-token: write
     timeout-minutes: 20
     outputs:
       reason: ${{ steps.merge.outputs.reason }}
@@ -32,16 +30,22 @@ jobs:
         with:
           ref: ${{ inputs.dest_branch }}
           fetch-depth: 0
-          token: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
       - name: Determine Go version
         id: get-go-version
         run: |
           echo "Building with Go $(cat .go-version)"
           echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
       - uses: hashicorp/setup-golang@v1
+      - uses: ./.github/actions/vault-secrets
+        with:
+          paths: |-
+            kv/data/github/hashicorp/nomad-enterprise/gha ELEVATED_GITHUB_TOKEN ;
+      # env.ELEVATED_GITHUB_TOKEN to pull private dependencies
+      # secrets.GITHUB_TOKEN to write commits to this repo
       - name: Configure Git
         run: |
-          git config --global url.'https://${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}@github.com'.insteadOf 'https://github.com'
+          git config --global url.'https://${{ env.ELEVATED_GITHUB_TOKEN }}@github.com'.insteadOf 'https://github.com'
+          git config --global url.'https://${{ secrets.GITHUB_TOKEN }}@github.com/hashicorp/nomad-enterprise'.insteadOf 'https://github.com/hashicorp/nomad-enterprise'
           git config --global user.email "github-team-nomad-core@hashicorp.com"
           git config --global user.name "@${{ env.GITHUB_USER }}"
       - name: Run Script
@@ -126,8 +130,16 @@ jobs:
     needs:
       - merge-oss
     if: always() && needs.merge-oss.result == 'failure'
-    runs-on: ubuntu-20.04
+    runs-on: ['self-hosted', 'linux']
+    permissions:
+      contents: read
+      id-token: write
     steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: ./.github/actions/vault-secrets
+        with:
+          paths: |-
+            kv/data/teams/nomad/slack-webhooks proj-nomad-releases | SLACK_WEBHOOK ;
       - name: Generate failure summary
         run: |
           origin_branch="${{ inputs.origin_branch }}"
@@ -206,7 +218,5 @@ jobs:
               ]
             }
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
+          SLACK_WEBHOOK_URL: ${{ env.SLACK_WEBHOOK }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-permissions:
-  contents: read

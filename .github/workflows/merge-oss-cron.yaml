@@ -9,9 +9,6 @@ jobs:
     with:
       origin_branch: main
       dest_branch: main
-    secrets:
-      NOMAD_MERGE_OSS_GH_PAT: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
-      NOMAD_MERGE_OSS_SLACK: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
 
   merge-release-branch:
     strategy:
@@ -26,16 +23,21 @@ jobs:
     with:
       origin_branch: ${{ matrix.branch }}
       dest_branch: ${{ matrix.branch }}+ent
-    secrets:
-      NOMAD_MERGE_OSS_GH_PAT: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
-      NOMAD_MERGE_OSS_SLACK: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
 
   slack-notify-success:
     needs:
       - merge-main
       - merge-release-branch
-    runs-on: ubuntu-20.04
+    runs-on: ['self-hosted', 'linux']
+    permissions:
+      contents: read
+      id-token: write
     steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: ./.github/actions/vault-secrets
+        with:
+          paths: |-
+            kv/data/teams/nomad/slack-webhooks proj-nomad-releases | SLACK_WEBHOOK ;
       - name: Send slack notification on success
         uses: slackapi/slack-github-action@007b2c3c751a190b6f0f040e47ed024deaa72844 # v1.23.0
         with:
@@ -64,7 +66,8 @@ jobs:
               ]
             }
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
+          SLACK_WEBHOOK_URL: ${{ env.SLACK_WEBHOOK }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 permissions:
-  contents: read
+  contents: write
+  id-token: write

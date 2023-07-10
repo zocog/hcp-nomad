@@ -86,7 +86,6 @@ jobs:
     name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     env:
       GOPRIVATE: "github.com/hashicorp/*"
-      TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
         with:
@@ -143,7 +142,6 @@ jobs:
     name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     env:
       GOPRIVATE: "github.com/hashicorp/*"
-      TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -255,7 +253,6 @@ jobs:
     name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     env:
       GOPRIVATE: "github.com/hashicorp/*"
-      TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -274,9 +271,6 @@ jobs:
         uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
-
-      - name: Setup Git
-        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com".insteadOf "https://github.com"
 
       - name: Build dependencies
         run: make deps

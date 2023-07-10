@@ -16,8 +16,7 @@ jobs:
     with:
       origin_branch: ${{ github.event.inputs.origin_branch }}
       dest_branch: ${{ github.event.inputs.dest_branch }}
-    secrets:
-      NOMAD_MERGE_OSS_GH_PAT: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
-      NOMAD_MERGE_OSS_SLACK: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
+
 permissions:
-  contents: read
+  contents: write
+  id-token: write
