@@ -35,8 +35,9 @@ func (j jobNodePoolValidatingHook) enterpriseValidation(job *structs.Job, _ *str
 		// can't deny their default node pool.
 		allowed = true
 
-	case len(ns.NodePoolConfiguration.Allowed) > 0:
+	case ns.NodePoolConfiguration.Allowed != nil:
 		// Deny by default if namespace only allow certain node pools.
+		// An empty allow list denies all node pools.
 		allowed = false
 		for _, allows := range ns.NodePoolConfiguration.Allowed {
 			if glob.Glob(allows, job.NodePool) {

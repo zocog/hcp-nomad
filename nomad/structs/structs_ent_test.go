@@ -48,6 +48,18 @@ func TestNamespace_Validate_Ent(t *testing.T) {
 			expectedErr: "allowed and denied cannot be used together",
 		},
 		{
+			name: "can't allow and deny node pools - empty lists",
+			namespace: &Namespace{
+				Name: "test",
+				NodePoolConfiguration: &NamespaceNodePoolConfiguration{
+					Default: "default",
+					Allowed: []string{},
+					Denied:  []string{},
+				},
+			},
+			expectedErr: "allowed and denied cannot be used together",
+		},
+		{
 			name: "can't deny default node pool",
 			namespace: &Namespace{
 				Name: "test",

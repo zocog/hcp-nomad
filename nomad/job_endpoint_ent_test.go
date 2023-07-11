@@ -315,6 +315,9 @@ func TestJobEndpoint_Register_NodePool(t *testing.T) {
 	nsAllowDev := mock.Namespace()
 	nsAllowDev.NodePoolConfiguration.Allowed = []string{"dev*"}
 
+	nsAllowNone := mock.Namespace()
+	nsAllowNone.NodePoolConfiguration.Allowed = []string{}
+
 	nsDenyDev := mock.Namespace()
 	nsDenyDev.NodePoolConfiguration.Denied = []string{"dev*"}
 
@@ -326,6 +329,7 @@ func TestJobEndpoint_Register_NodePool(t *testing.T) {
 		Namespaces: []*structs.Namespace{
 			nsWithDefault,
 			nsAllowDev,
+			nsAllowNone,
 			nsDenyDev,
 			nsDenyDevWithDefault,
 		},
@@ -407,6 +411,12 @@ func TestJobEndpoint_Register_NodePool(t *testing.T) {
 			expectedErr: "does not allow jobs to use node pool",
 		},
 		{
+			name:        "namespace can deny all node pools",
+			namespace:   nsAllowNone.Name,
+			nodePool:    "dev2",
+			expectedErr: "does not allow jobs to use node pool",
+		},
+		{
 			name:        "namespace denies with glob",
 			namespace:   nsDenyDev.Name,
 			nodePool:    "dev2",
@@ -423,6 +433,18 @@ func TestJobEndpoint_Register_NodePool(t *testing.T) {
 			namespace:    nsDenyDevWithDefault.Name,
 			nodePool:     "dev",
 			expectedPool: "dev",
+		},
+		{
+			name:         "namespace allows default pool even if not explicitly allowed",
+			namespace:    nsAllowDev.Name,
+			nodePool:     "default",
+			expectedPool: "default",
+		},
+		{
+			name:         "namespace allows default pool even if none are allowed",
+			namespace:    nsAllowNone.Name,
+			nodePool:     "default",
+			expectedPool: "default",
 		},
 	}
 
