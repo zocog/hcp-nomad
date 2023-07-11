@@ -758,7 +758,7 @@ func (n *NamespaceNodePoolConfiguration) Validate() error {
 	var mErr *multierror.Error
 
 	// Validate only allowed or denied is used.
-	if len(n.Allowed) > 0 && len(n.Denied) > 0 {
+	if n.Allowed != nil && n.Denied != nil {
 		mErr = multierror.Append(mErr, fmt.Errorf("allowed and denied cannot be used together"))
 	}
 
