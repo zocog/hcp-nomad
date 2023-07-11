@@ -34,9 +34,6 @@ jobs:
       - merge-main
       - merge-release-branch
     runs-on: ['self-hosted', 'linux']
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - uses: ./.github/actions/vault-secrets
@@ -74,5 +71,5 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ env.SLACK_WEBHOOK }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 permissions:
-  contents: write
+  contents: read
   id-token: write

@@ -23,5 +23,5 @@ jobs:
       dest_branch: ${{ github.event.inputs.dest_branch }}
 
 permissions:
-  contents: write
+  contents: read
   id-token: write

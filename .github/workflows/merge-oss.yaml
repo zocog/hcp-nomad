@@ -17,6 +17,10 @@ on:
         type: string
         required: true
 
+permissions:
+  contents: read
+  id-token: write
+
 env:
   GOPRIVATE: github.com/hashicorp
   GITHUB_USER: hc-github-team-nomad-core
@@ -24,9 +28,6 @@ jobs:
   merge-oss:
     # big disk for better iops for linting in `make check`
     runs-on: ${{ fromJSON('["self-hosted", "ondemand", "linux", "size_gb=255"]') }}
-    permissions:
-      contents: write
-      id-token: write
     timeout-minutes: 20
     outputs:
       reason: ${{ steps.merge.outputs.reason }}
@@ -35,6 +36,7 @@ jobs:
         with:
           ref: ${{ inputs.dest_branch }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Determine Go version
         id: get-go-version
         run: |
@@ -45,12 +47,13 @@ jobs:
         with:
           paths: |-
             kv/data/github/hashicorp/nomad-enterprise/gha ELEVATED_GITHUB_TOKEN ;
+            kv/data/github/hashicorp/nomad-enterprise/gha GIT_PUSH_TOKEN ;
       # env.ELEVATED_GITHUB_TOKEN to pull private dependencies
-      # secrets.GITHUB_TOKEN to write commits to this repo
+      # env.GIT_PUSH_TOKEN to write commits to this repo
       - name: Configure Git
         run: |
           git config --global url.'https://${{ env.ELEVATED_GITHUB_TOKEN }}@github.com'.insteadOf 'https://github.com'
-          git config --global url.'https://${{ secrets.GITHUB_TOKEN }}@github.com/hashicorp/nomad-enterprise'.insteadOf 'https://github.com/hashicorp/nomad-enterprise'
+          git config --global url.'https://${{ env.GIT_PUSH_TOKEN }}@github.com/hashicorp/nomad-enterprise'.insteadOf 'https://github.com/hashicorp/nomad-enterprise'
           git config --global user.email "github-team-nomad-core@hashicorp.com"
           git config --global user.name "@${{ env.GITHUB_USER }}"
       - name: Run Script
@@ -136,9 +139,6 @@ jobs:
       - merge-oss
     if: always() && needs.merge-oss.result == 'failure'
     runs-on: ['self-hosted', 'linux']
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - uses: ./.github/actions/vault-secrets
