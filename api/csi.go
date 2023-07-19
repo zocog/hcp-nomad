@@ -135,7 +135,7 @@ func (v *CSIVolumes) Detach(volID, nodeID string, w *WriteOptions) error {
 // Resize attempts to resize a CSI volume.
 func (v *CSIVolumes) Resize(req *CSIVolumeResizeRequest, w *WriteOptions) (*CSIVolumeResizeResponse, *WriteMeta, error) {
 	resp := &CSIVolumeResizeResponse{}
-	meta, err := v.client.write(fmt.Sprintf("/v1/volume/csi/%v/resize",
+	meta, err := v.client.put(fmt.Sprintf("/v1/volume/csi/%v/resize",
 		url.PathEscape(req.VolumeID)), req, resp, w)
 	return resp, meta, err
 }
