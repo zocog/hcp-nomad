@@ -132,6 +132,14 @@ func (v *CSIVolumes) Detach(volID, nodeID string, w *WriteOptions) error {
 	return err
 }
 
+// Resize attempts to resize a CSI volume.
+func (v *CSIVolumes) Resize(req *CSIVolumeResizeRequest, w *WriteOptions) (*CSIVolumeResizeResponse, *WriteMeta, error) {
+	resp := &CSIVolumeResizeResponse{}
+	meta, err := v.client.write(fmt.Sprintf("/v1/volume/csi/%v/resize",
+		url.PathEscape(req.VolumeID)), req, resp, w)
+	return resp, meta, err
+}
+
 // CreateSnapshot snapshots an external storage volume.
 func (v *CSIVolumes) CreateSnapshot(snap *CSISnapshot, w *WriteOptions) (*CSISnapshotCreateResponse, *WriteMeta, error) {
 	req := &CSISnapshotCreateRequest{
@@ -462,6 +470,17 @@ type CSIVolumeDeleteRequest struct {
 	ExternalVolumeID string
 	Secrets          CSISecrets
 	WriteRequest
+}
+
+type CSIVolumeResizeRequest struct {
+	VolumeID             string
+	RequestedCapacityMin int64
+	RequestedCapacityMax int64
+}
+
+type CSIVolumeResizeResponse struct {
+	CapacityBytes int64
+	QueryMeta
 }
 
 // CSISnapshot is the storage provider's view of a volume snapshot
