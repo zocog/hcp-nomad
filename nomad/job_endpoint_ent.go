@@ -16,10 +16,17 @@ import (
 
 // enforceSubmitJob is used to check any Sentinel policies for the submit-job scope
 func (j *Job) enforceSubmitJob(override bool, job *structs.Job, nomadACLToken *structs.ACLToken, ns *structs.Namespace) (error, error) {
+
+	var cpyToken *structs.ACLToken
+	if nomadACLToken != nil {
+		cpyToken = nomadACLToken.Copy()
+		cpyToken.SecretID = "<redacted>"
+	}
+
 	dataCB := func() map[string]interface{} {
 		return map[string]interface{}{
 			"job":             job,
-			"nomad_acl_token": nomadACLToken,
+			"nomad_acl_token": cpyToken,
 			"namespace":       ns,
 		}
 	}
