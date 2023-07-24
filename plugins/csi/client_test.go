@@ -13,14 +13,16 @@ import (
 
 	csipbv1 "github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/hashicorp/nomad/ci"
-	"github.com/hashicorp/nomad/nomad/structs"
-	fake "github.com/hashicorp/nomad/plugins/csi/testing"
+	"github.com/shoenig/test/must"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/hashicorp/nomad/ci"
+	"github.com/hashicorp/nomad/nomad/structs"
+	fake "github.com/hashicorp/nomad/plugins/csi/testing"
 )
 
 func newTestClient(t *testing.T) (*fake.IdentityClient, *fake.ControllerClient, *fake.NodeClient, CSIPlugin) {
@@ -42,6 +44,9 @@ func newTestClient(t *testing.T) (*fake.IdentityClient, *fake.ControllerClient, 
 		controllerClient: cc,
 		nodeClient:       nc,
 	}
+	t.Cleanup(func() {
+		_ = client.Close()
+	})
 
 	return ic, cc, nc, client
 }
@@ -1166,6 +1171,73 @@ func TestClient_RPC_ControllerListSnapshots(t *testing.T) {
 			require.NotZero(t, resp.Entries[0].Snapshot.CreateTime)
 			require.Equal(t, now.Second(),
 				time.Unix(resp.Entries[0].Snapshot.CreateTime, 0).Second())
+		})
+	}
+}
+
+func TestClient_RPC_ControllerExpandVolume(t *testing.T) {
+
+	cases := []struct {
+		Name        string
+		Request     *ControllerExpandVolumeRequest
+		ResponseErr error
+		ExpectedErr error
+	}{
+		{
+			Name: "handles underlying grpc errors",
+			Request: &ControllerExpandVolumeRequest{
+				ExternalVolumeID: "vol-1", LimitBytes: 1000},
+			ResponseErr: status.Errorf(codes.Internal, "some grpc error"),
+			ExpectedErr: fmt.Errorf("controller plugin returned an internal error, check the plugin allocation logs for more information: rpc error: code = Internal desc = some grpc error"),
+		},
+
+		{
+			Name:        "handles error missing volume ID",
+			Request:     &ControllerExpandVolumeRequest{},
+			ExpectedErr: errors.New("missing ExternalVolumeID"),
+		},
+
+		{
+			Name: "handles missing max/min size",
+			Request: &ControllerExpandVolumeRequest{
+				ExternalVolumeID: "vol-1",
+			},
+			ExpectedErr: errors.New("one of LimitBytes or RequiredBytes must be set"),
+		},
+
+		{
+			Name: "handles success",
+			Request: &ControllerExpandVolumeRequest{
+				ExternalVolumeID: "vol-1",
+				RequiredBytes:    1000,
+				LimitBytes:       2000,
+				Capability:       &VolumeCapability{},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			_, cc, _, client := newTestClient(t)
+
+			cc.NextErr = tc.ResponseErr
+			if tc.ResponseErr != nil {
+				// note: there's nothing interesting to assert here other than
+				// that we don't throw a NPE during transformation from
+				// protobuf to our struct
+				cc.NextExpandVolumeResponse = &csipbv1.ControllerExpandVolumeResponse{
+					CapacityBytes:         1500,
+					NodeExpansionRequired: true,
+				}
+			}
+			resp, err := client.ControllerExpandVolume(context.TODO(), tc.Request)
+			if tc.ExpectedErr != nil {
+				must.EqError(t, err, tc.ExpectedErr.Error())
+				return
+			}
+			must.NoError(t, err)
+			must.NotNil(t, resp)
+
 		})
 	}
 }
