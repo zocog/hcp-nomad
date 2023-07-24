@@ -14,14 +14,15 @@ import (
 	csipbv1 "github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/hashicorp/go-hclog"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/nomad/helper/grpc-middleware/logging"
-	"github.com/hashicorp/nomad/nomad/structs"
-	"github.com/hashicorp/nomad/plugins/base"
-	"github.com/hashicorp/nomad/plugins/shared/hclspec"
 	"golang.org/x/exp/maps"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/nomad/helper/grpc-middleware/logging"
+	"github.com/hashicorp/nomad/nomad/structs"
+	"github.com/hashicorp/nomad/plugins/base"
+	"github.com/hashicorp/nomad/plugins/shared/hclspec"
 )
 
 // PluginTypeCSI implements the CSI plugin interface
@@ -518,6 +519,13 @@ func (c *client) ControllerExpandVolume(ctx context.Context, req *ControllerExpa
 		return nil, err
 	}
 
+	// need c.controllerClient
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := c.ensureConnected(ctx); err != nil {
+		return nil, err
+	}
+
 	exReq := req.ToCSIRepresentation()
 	resp, err := c.controllerClient.ControllerExpandVolume(ctx, exReq, opts...)
 	if err != nil {
@@ -541,7 +549,7 @@ func (c *client) ControllerExpandVolume(ctx context.Context, req *ControllerExpa
 	}
 
 	return &ControllerExpandVolumeResponse{
-		Capacity:              resp.GetCapacityBytes(),
+		CapacityBytes:         resp.GetCapacityBytes(),
 		NodeExpansionRequired: resp.GetNodeExpansionRequired(),
 	}, nil
 }

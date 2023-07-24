@@ -4,6 +4,7 @@
 package nomad
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/state/paginator"
 	"github.com/hashicorp/nomad/nomad/structs"
+	"github.com/hashicorp/nomad/plugins/csi"
 )
 
 // CSIVolume wraps the structs.CSIVolume with request data and server context
@@ -1059,6 +1061,75 @@ func (v *CSIVolume) createVolume(vol *structs.CSIVolume, plugin *structs.CSIPlug
 	vol.Context = cResp.VolumeContext
 	vol.Topologies = cResp.Topologies
 	return nil
+}
+
+func (v *CSIVolume) Resize(args *structs.CSIVolumeResizeRequest, reply *structs.CSIVolumeResizeResponse) error {
+	authErr := v.srv.Authenticate(v.ctx, args)
+	if done, err := v.srv.forward("CSIPlugin.Resize", args, args, reply); done {
+		return err
+	}
+	v.srv.MeasureRPCRate("csi_plugin", structs.RateMetricWrite, args)
+	if authErr != nil {
+		return structs.ErrPermissionDenied
+	}
+	defer metrics.MeasureSince([]string{"nomad", "volume", "resize"}, time.Now())
+
+	allowVolume := acl.NamespaceValidator(acl.NamespaceCapabilityCSIWriteVolume)
+	aclObj, err := v.srv.ResolveACL(args)
+	if err != nil {
+		return err
+	}
+
+	// NOTE: this is the plugin's namespace, not the snapshot(s) because we
+	// don't track snapshots in the state store at all and their source
+	// volume(s) because they might not even be registered
+	if !allowVolume(aclObj, args.RequestNamespace()) || !aclObj.AllowPluginRead() {
+		return structs.ErrPermissionDenied
+	}
+
+	if args.VolumeID == "" { // do i need this?
+		return errors.New("missing volume ID")
+	}
+
+	plugin, vol, err := v.volAndPluginLookup(args.Namespace, args.VolumeID)
+	if err != nil {
+		return err
+	}
+
+	// Combine volume and query secrets into one map.
+	// Query secrets override any secrets stored with the volume.
+	//combinedSecrets := vol.Secrets
+	//for k, v := range args.Secrets {
+	//	combinedSecrets[k] = v
+	//}
+
+	method := "ClientCSI.ControllerExpandVolume"
+	cReq := &cstructs.ClientCSIControllerExpandVolumeRequest{
+		ExternalVolumeID: vol.ExternalID,
+		Secrets:          vol.Secrets,
+		//Secrets:          combinedSecrets, // TODO?
+		CapacityRange: &csi.CapacityRange{
+			RequiredBytes: args.RequestedCapacityMin,
+			LimitBytes:    args.RequestedCapacityMax,
+		},
+		VolumeCapability: &csi.VolumeCapability{}, // TODO?
+	}
+	cReq.PluginID = plugin.ID
+	cResp := &cstructs.ClientCSIControllerExpandVolumeResponse{}
+
+	err = v.srv.RPC(method, cReq, cResp)
+	if err != nil {
+		return err
+	}
+
+	v.logger.Debug("CSIVolume.Resize", "cResp", fmt.Sprintf("%+v", cResp))
+	reply.CapacityBytes = cResp.CapacityBytes
+	v.srv.setQueryMeta(&reply.QueryMeta)
+
+	if cResp.NodeExpansionRequired {
+		v.logger.Warn("TODO: also do node volume expansion if needed") // TODO
+	}
+	return err
 }
 
 func (v *CSIVolume) Delete(args *structs.CSIVolumeDeleteRequest, reply *structs.CSIVolumeDeleteResponse) error {

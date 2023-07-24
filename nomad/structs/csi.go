@@ -10,9 +10,10 @@ import (
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/nomad/helper"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
+
+	"github.com/hashicorp/nomad/helper"
 )
 
 // CSISocketName is the filename that Nomad expects plugins to create inside the
@@ -928,7 +929,7 @@ type CSIVolumeResizeRequest struct {
 }
 
 type CSIVolumeResizeResponse struct {
-	Capacity int64 // bytes
+	CapacityBytes int64
 	QueryMeta
 }
 

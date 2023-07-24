@@ -301,7 +301,7 @@ func (s *HTTPServer) csiVolumeResize(id string, resp http.ResponseWriter, req *h
 
 	setMeta(resp, &out.QueryMeta)
 
-	return nil, nil
+	return out, nil
 }
 
 func (s *HTTPServer) CSISnapshotsRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

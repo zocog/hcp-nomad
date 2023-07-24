@@ -9,9 +9,10 @@ import (
 	"fmt"
 
 	csipbv1 "github.com/container-storage-interface/spec/lib/go/csi"
+	"google.golang.org/grpc"
+
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/plugins/base"
-	"google.golang.org/grpc"
 )
 
 // CSIPlugin implements a lightweight abstraction layer around a CSI Plugin.
@@ -670,7 +671,7 @@ func (r *ControllerExpandVolumeRequest) ToCSIRepresentation() *csipbv1.Controlle
 }
 
 type ControllerExpandVolumeResponse struct {
-	Capacity              int64
+	CapacityBytes         int64
 	NodeExpansionRequired bool
 }
 
@@ -1052,5 +1053,5 @@ func (r *NodeExpandVolumeRequest) ToCSIRepresentation() *csipbv1.NodeExpandVolum
 }
 
 type NodeExpandVolumeResponse struct {
-	Capacity int64
+	CapacityBytes int64
 }

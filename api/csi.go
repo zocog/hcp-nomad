@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -135,8 +136,13 @@ func (v *CSIVolumes) Detach(volID, nodeID string, w *WriteOptions) error {
 // Resize attempts to resize a CSI volume.
 func (v *CSIVolumes) Resize(req *CSIVolumeResizeRequest, w *WriteOptions) (*CSIVolumeResizeResponse, *WriteMeta, error) {
 	resp := &CSIVolumeResizeResponse{}
-	meta, err := v.client.put(fmt.Sprintf("/v1/volume/csi/%v/resize",
-		url.PathEscape(req.VolumeID)), req, resp, w)
+	qp := url.Values{}
+	qp.Set("min_size", strconv.Itoa(int(req.RequestedCapacityMin)))
+	qp.Set("max_size", strconv.Itoa(int(req.RequestedCapacityMax)))
+	meta, err := v.client.put(
+		fmt.Sprintf("/v1/volume/csi/%v/resize?%v",
+			url.PathEscape(req.VolumeID), qp.Encode()),
+		req, resp, w)
 	return resp, meta, err
 }
 

@@ -5,9 +5,10 @@ import (
 	"strings"
 
 	humanize "github.com/dustin/go-humanize"
+	"github.com/posener/complete"
+
 	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/api/contexts"
-	"github.com/posener/complete"
 )
 
 type VolumeResizeCommand struct {
