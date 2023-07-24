@@ -649,7 +649,9 @@ func (r *ControllerExpandVolumeRequest) Validate() error {
 	if r.LimitBytes == 0 && r.RequiredBytes == 0 {
 		return errors.New("one of LimitBytes or RequiredBytes must be set")
 	}
-	if r.LimitBytes < r.RequiredBytes {
+	// per the spec: "A value of 0 is equal to an unspecified field value."
+	// so in this case, only error if both are set.
+	if r.LimitBytes > 0 && (r.LimitBytes < r.RequiredBytes) {
 		return errors.New("LimitBytes cannot be less than RequiredBytes")
 	}
 	return nil
