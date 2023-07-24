@@ -538,7 +538,7 @@ func (c *client) ControllerExpandVolume(ctx context.Context, req *ControllerExpa
 		case codes.NotFound:
 			err = fmt.Errorf("volume %q could not be found: %v", req.ExternalVolumeID, err)
 		case codes.FailedPrecondition:
-			err = fmt.Errorf("volume %q cannot be resized online", req.ExternalVolumeID)
+			err = fmt.Errorf("volume %q cannot be expanded online", req.ExternalVolumeID)
 		case codes.OutOfRange:
 			return nil, fmt.Errorf(
 				"unsupported capacity_range for volume %q: %v", req.ExternalVolumeID, err)

@@ -101,8 +101,8 @@ func (s *HTTPServer) CSIVolumeSpecificRequest(resp http.ResponseWriter, req *htt
 			if tokens[1] == "create" {
 				return s.csiVolumeCreate(resp, req)
 			}
-			if tokens[1] == "resize" {
-				return s.csiVolumeResize(id, resp, req)
+			if tokens[1] == "expand" {
+				return s.csiVolumeExpand(id, resp, req)
 			}
 		case http.MethodDelete:
 			if tokens[1] == "detach" {
@@ -267,7 +267,7 @@ func (s *HTTPServer) csiVolumeDetach(id string, resp http.ResponseWriter, req *h
 	return nil, nil
 }
 
-func (s *HTTPServer) csiVolumeResize(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) csiVolumeExpand(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	raw := req.URL.Query().Get("min_size")
 	var minSize int64
 	if raw != "" {
@@ -287,15 +287,15 @@ func (s *HTTPServer) csiVolumeResize(id string, resp http.ResponseWriter, req *h
 		maxSize = int64(b)
 	}
 
-	args := structs.CSIVolumeResizeRequest{
+	args := structs.CSIVolumeExpandRequest{
 		VolumeID:             id,
 		RequestedCapacityMin: minSize,
 		RequestedCapacityMax: maxSize,
 	}
 	s.parseWriteRequest(req, &args.WriteRequest)
 
-	var out structs.CSIVolumeResizeResponse
-	if err := s.agent.RPC("CSIVolume.Resize", &args, &out); err != nil {
+	var out structs.CSIVolumeExpandResponse
+	if err := s.agent.RPC("CSIVolume.Expand", &args, &out); err != nil {
 		return nil, err
 	}
 

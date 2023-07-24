@@ -1063,16 +1063,16 @@ func (v *CSIVolume) createVolume(vol *structs.CSIVolume, plugin *structs.CSIPlug
 	return nil
 }
 
-func (v *CSIVolume) Resize(args *structs.CSIVolumeResizeRequest, reply *structs.CSIVolumeResizeResponse) error {
+func (v *CSIVolume) Expand(args *structs.CSIVolumeExpandRequest, reply *structs.CSIVolumeExpandResponse) error {
 	authErr := v.srv.Authenticate(v.ctx, args)
-	if done, err := v.srv.forward("CSIPlugin.Resize", args, args, reply); done {
+	if done, err := v.srv.forward("CSIPlugin.Expand", args, args, reply); done {
 		return err
 	}
 	v.srv.MeasureRPCRate("csi_plugin", structs.RateMetricWrite, args)
 	if authErr != nil {
 		return structs.ErrPermissionDenied
 	}
-	defer metrics.MeasureSince([]string{"nomad", "volume", "resize"}, time.Now())
+	defer metrics.MeasureSince([]string{"nomad", "volume", "expand"}, time.Now())
 
 	allowVolume := acl.NamespaceValidator(acl.NamespaceCapabilityCSIWriteVolume)
 	aclObj, err := v.srv.ResolveACL(args)
@@ -1122,7 +1122,7 @@ func (v *CSIVolume) Resize(args *structs.CSIVolumeResizeRequest, reply *structs.
 		return err
 	}
 
-	v.logger.Debug("CSIVolume.Resize", "cResp", fmt.Sprintf("%+v", cResp))
+	v.logger.Debug("CSIVolume.Expand", "cResp", fmt.Sprintf("%+v", cResp))
 	reply.CapacityBytes = cResp.CapacityBytes
 	v.srv.setQueryMeta(&reply.QueryMeta)
 

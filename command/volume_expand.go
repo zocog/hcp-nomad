@@ -11,19 +11,19 @@ import (
 	"github.com/hashicorp/nomad/api/contexts"
 )
 
-type VolumeResizeCommand struct {
+type VolumeExpandCommand struct {
 	Meta
 }
 
-func (c *VolumeResizeCommand) Help() string {
+func (c *VolumeExpandCommand) Help() string {
 	helpText := `
-Usage: nomad volume resize [options] <volume id> [-min size] [-max size]
+Usage: nomad volume expand [options] <volume id> [-min size] [-max size]
 
-  Resize a CSI volume. The size arguments accept human-friendly suffixes such
-  as "100GiB". The volume must be registered with Nomad in order to be
-  resized. Resizing will fail if the volume is still in use by an allocation
-  or in the process of being unpublished, if the plugin does not support
-  online resize.
+  Expand the size of a CSI volume. The size arguments accept human-friendly
+  suffixes such as "100GiB". The volume must be registered with Nomad in order
+  to be expanded. Expansion will fail if the volume is still in use by an
+  allocation or in the process of being unpublished, if the plugin does not
+  support online expansion.
 
   When ACLs are enabled, this command requires a token with the
   'csi-write-volume' capability for the volume's namespace.
@@ -32,7 +32,7 @@ General Options:
 
   ` + generalOptionsUsage(usageOptsDefault) + `
 
-Resize Options:
+Expand Options:
 
   -min: Option for setting the capacity. The new volume size must be at least
    this large, in bytes. The storage provider may return a volume that is
@@ -46,12 +46,12 @@ Resize Options:
 	return strings.TrimSpace(helpText)
 }
 
-func (c *VolumeResizeCommand) AutocompleteFlags() complete.Flags {
+func (c *VolumeExpandCommand) AutocompleteFlags() complete.Flags {
 	return mergeAutocompleteFlags(c.Meta.AutocompleteFlags(FlagSetClient),
 		complete.Flags{})
 }
 
-func (c *VolumeResizeCommand) AutocompleteArgs() complete.Predictor {
+func (c *VolumeExpandCommand) AutocompleteArgs() complete.Predictor {
 	return complete.PredictFunc(func(a complete.Args) []string {
 		client, err := c.Meta.Client()
 		if err != nil {
@@ -66,13 +66,13 @@ func (c *VolumeResizeCommand) AutocompleteArgs() complete.Predictor {
 	})
 }
 
-func (c *VolumeResizeCommand) Synopsis() string {
-	return "Resize a volume"
+func (c *VolumeExpandCommand) Synopsis() string {
+	return "Expand a volume"
 }
 
-func (c *VolumeResizeCommand) Name() string { return "volume resize" }
+func (c *VolumeExpandCommand) Name() string { return "volume expand" }
 
-func (c *VolumeResizeCommand) Run(args []string) int {
+func (c *VolumeExpandCommand) Run(args []string) int {
 	var minFlag string
 	var maxFlag string
 	flags := c.Meta.FlagSet(c.Name(), FlagSetClient)
@@ -120,13 +120,13 @@ func (c *VolumeResizeCommand) Run(args []string) int {
 		return 1
 	}
 
-	resp, _, err := client.CSIVolumes().Resize(&api.CSIVolumeResizeRequest{
+	resp, _, err := client.CSIVolumes().Expand(&api.CSIVolumeExpandRequest{
 		VolumeID:             volID,
 		RequestedCapacityMin: minSize,
 		RequestedCapacityMax: maxSize,
 	}, nil)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error resizing volume: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error expanding volume: %s", err))
 		return 1
 	}
 	if resp.CapacityBytes < 0 {
@@ -134,7 +134,7 @@ func (c *VolumeResizeCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(fmt.Sprintf("Resized volume %s to %s", volID,
+	c.Ui.Output(fmt.Sprintf("Expanded volume %s to %s", volID,
 		humanize.IBytes(uint64(resp.CapacityBytes))))
 	return 0
 }

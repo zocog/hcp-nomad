@@ -61,7 +61,7 @@ type CSIPlugin interface {
 	// external storage provider
 	ControllerListVolumes(ctx context.Context, req *ControllerListVolumesRequest, opts ...grpc.CallOption) (*ControllerListVolumesResponse, error)
 
-	// ControllerExpandVolume is used to resize a volume
+	// ControllerExpandVolume is used to expand a volume's size
 	ControllerExpandVolume(ctx context.Context, req *ControllerExpandVolumeRequest, opts ...grpc.CallOption) (*ControllerExpandVolumeResponse, error)
 
 	// ControllerCreateSnapshot is used to create a volume snapshot in the
@@ -105,7 +105,7 @@ type CSIPlugin interface {
 	// for the given volume.
 	NodeUnpublishVolume(ctx context.Context, volumeID, targetPath string, opts ...grpc.CallOption) error
 
-	// NodeExpandVolume is used to resize a volume. This MUST be called after
+	// NodeExpandVolume is used to expand a volume. This MUST be called after
 	// any ControllerExpandVolume is called, but only if that RPC indicates
 	// that node expansion is required
 	NodeExpandVolume(ctx context.Context, req *NodeExpandVolumeRequest, opts ...grpc.CallOption) (*NodeExpandVolumeResponse, error)

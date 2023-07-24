@@ -921,14 +921,14 @@ type CSIVolumeDeleteResponse struct {
 	QueryMeta
 }
 
-type CSIVolumeResizeRequest struct {
+type CSIVolumeExpandRequest struct {
 	VolumeID             string
 	RequestedCapacityMin int64
 	RequestedCapacityMax int64
 	WriteRequest
 }
 
-type CSIVolumeResizeResponse struct {
+type CSIVolumeExpandResponse struct {
 	CapacityBytes int64
 	QueryMeta
 }
