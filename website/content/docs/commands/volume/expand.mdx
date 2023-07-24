@@ -1,0 +1,67 @@
+---
+layout: docs
+page_title: 'Commands: volume expand'
+description: |
+  Expands volume size with CSI plugins.
+---
+
+# Command: volume expand
+
+The `volume expand` command increases the size of external storage volumes with
+Nomad's [Container Storage Interface (CSI)][csi] support. Not all CSI plugins
+support this command. Some plugins only support offline expansion. If a volume
+that does not support online resize is currently claimed, the `volume expand`
+command will return an error.
+
+## Usage
+
+```plaintext
+nomad volume expand [options] [volume] [-min size] [-max size]
+```
+
+The `volume expand` command requires one argument specifying the ID of the
+volume, and at least one option specifying the new size. The volume must be
+[registered] with Nomad in order to be expanded. Resizing will fail if the
+volume is still in use by an allocation or in the process of being
+unpublished, if the plugin does not support online expansion. CSI does not
+currently support reducing the size of volumes.
+
+When ACLs are enabled, this command requires a token with the
+`csi-write-volume` capability for the volume's namespace.
+
+## General Options
+
+@include 'general_options.mdx'
+
+## Expand Options
+
+- `-min` `(string: <optional>)` - Option for setting the capacity. The new
+  volume size must be at least this large, in bytes. The storage provider may
+  return a volume that is larger than this value. Accepts human-friendly
+  suffixes such as `"100GiB"`.
+
+- `-max` `(string: <optional>)` - Option for setting the capacity. The volume
+  must be no more than this large, in bytes. The storage provider may return a
+  volume that is smaller than this value. Accepts human-friendly suffixes such
+  as `"100GiB"`.
+
+## Examples
+
+```shell-session
+$ nomad volume expand -min 5GiB my-csi-volume
+Expanded volume my-csi-volume to 5.1 GiB
+```
+
+```shell-session
+$ nomad volume expand -max 5GiB my-csi-volume
+Expanded volume my-csi-volume to 4.8 GiB
+```
+
+```shell-session
+$ nomad volume expand -min 4GiB -max 5GiB my-csi-volume
+Expanded volume my-csi-volume to 4.8 GiB
+```
+
+[csi]: https://github.com/container-storage-interface/spec
+[csi_plugins_internals]: /docs/internals/plugins/csi#csi-plugins
+[registered]: /docs/commands/volume/register
