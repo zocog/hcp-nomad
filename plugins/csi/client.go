@@ -514,14 +514,9 @@ func (c *client) ControllerDeleteVolume(ctx context.Context, req *ControllerDele
 }
 
 func (c *client) ControllerExpandVolume(ctx context.Context, req *ControllerExpandVolumeRequest, opts ...grpc.CallOption) (*ControllerExpandVolumeResponse, error) {
-	err := req.Validate()
-	if err != nil {
+	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-
-	// need c.controllerClient
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
 	if err := c.ensureConnected(ctx); err != nil {
 		return nil, err
 	}
@@ -538,12 +533,14 @@ func (c *client) ControllerExpandVolume(ctx context.Context, req *ControllerExpa
 		case codes.NotFound:
 			err = fmt.Errorf("volume %q could not be found: %v", req.ExternalVolumeID, err)
 		case codes.FailedPrecondition:
-			err = fmt.Errorf("volume %q cannot be expanded online", req.ExternalVolumeID)
+			err = fmt.Errorf("volume %q cannot be expanded online: %v", req.ExternalVolumeID, err)
 		case codes.OutOfRange:
 			return nil, fmt.Errorf(
 				"unsupported capacity_range for volume %q: %v", req.ExternalVolumeID, err)
 		case codes.Internal:
 			err = fmt.Errorf("controller plugin returned an internal error, check the plugin allocation logs for more information: %v", err)
+		default:
+			err = fmt.Errorf("controller plugin returned an error: %v", err)
 		}
 		return nil, err
 	}
