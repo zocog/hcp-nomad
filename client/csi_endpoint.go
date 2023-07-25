@@ -240,7 +240,7 @@ func (c *CSI) ControllerExpandVolume(req *structs.ClientCSIControllerExpandVolum
 	if err != nil {
 		// the server's view of the plugin health is stale, so let it know it
 		// should retry with another controller instance
-		return fmt.Errorf("CSI.ControllerExpandVolume: %w: %v",
+		return fmt.Errorf("CSI.ControllerExpandVolume could not find plugin: %w: %v",
 			nstructs.ErrCSIClientRPCRetryable, err)
 	}
 	defer plugin.Close()

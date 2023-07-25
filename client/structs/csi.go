@@ -300,13 +300,16 @@ type ClientCSIControllerExpandVolumeRequest struct {
 }
 
 func (req *ClientCSIControllerExpandVolumeRequest) ToCSIRequest() *csi.ControllerExpandVolumeRequest {
-	return &csi.ControllerExpandVolumeRequest{
+	csiReq := &csi.ControllerExpandVolumeRequest{
 		ExternalVolumeID: req.ExternalVolumeID,
-		RequiredBytes:    req.CapacityRange.RequiredBytes,
-		LimitBytes:       req.CapacityRange.LimitBytes,
 		Capability:       req.VolumeCapability,
 		Secrets:          req.Secrets,
 	}
+	if req.CapacityRange != nil {
+		csiReq.RequiredBytes = req.CapacityRange.RequiredBytes
+		csiReq.LimitBytes = req.CapacityRange.LimitBytes
+	}
+	return csiReq
 }
 
 type ClientCSIControllerExpandVolumeResponse struct {
