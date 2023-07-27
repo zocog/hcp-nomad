@@ -1180,6 +1180,7 @@ func TestClient_RPC_ControllerExpandVolume(t *testing.T) {
 	cases := []struct {
 		Name        string
 		Request     *ControllerExpandVolumeRequest
+		ExpectCall  *csipbv1.ControllerExpandVolumeRequest
 		ResponseErr error
 		ExpectedErr error
 	}{
@@ -1189,10 +1190,40 @@ func TestClient_RPC_ControllerExpandVolume(t *testing.T) {
 				ExternalVolumeID: "vol-1",
 				RequiredBytes:    1,
 				LimitBytes:       2,
-				Capability:       &VolumeCapability{}, // TODO: ...?
+				Capability: &VolumeCapability{
+					AccessMode: VolumeAccessModeMultiNodeSingleWriter,
+				},
+				Secrets: map[string]string{"super": "secret"},
+			},
+			ExpectCall: &csipbv1.ControllerExpandVolumeRequest{
+				VolumeId: "vol-1",
+				CapacityRange: &csipbv1.CapacityRange{
+					RequiredBytes: 1,
+					LimitBytes:    2,
+				},
+				VolumeCapability: &csipbv1.VolumeCapability{
+					AccessMode: &csipbv1.VolumeCapability_AccessMode{
+						Mode: csipbv1.VolumeCapability_AccessMode_Mode(csipbv1.VolumeCapability_AccessMode_MULTI_NODE_SINGLE_WRITER),
+					},
+					AccessType: &csipbv1.VolumeCapability_Block{Block: &csipbv1.VolumeCapability_BlockVolume{}},
+				},
+				Secrets: map[string]string{"super": "secret"},
 			},
 		},
 
+		{
+			Name: "validate only min set",
+			Request: &ControllerExpandVolumeRequest{
+				ExternalVolumeID: "vol-1",
+				RequiredBytes:    4,
+			},
+			ExpectCall: &csipbv1.ControllerExpandVolumeRequest{
+				VolumeId: "vol-1",
+				CapacityRange: &csipbv1.CapacityRange{
+					RequiredBytes: 4,
+				},
+			},
+		},
 		{
 			Name:        "validate missing volume ID",
 			Request:     &ControllerExpandVolumeRequest{},
@@ -1213,13 +1244,6 @@ func TestClient_RPC_ControllerExpandVolume(t *testing.T) {
 				LimitBytes:       2,
 			},
 			ExpectedErr: errors.New("LimitBytes cannot be less than RequiredBytes"),
-		},
-		{
-			Name: "validate only min set",
-			Request: &ControllerExpandVolumeRequest{
-				ExternalVolumeID: "vol-1",
-				RequiredBytes:    4,
-			},
 		},
 
 		{
@@ -1282,6 +1306,7 @@ func TestClient_RPC_ControllerExpandVolume(t *testing.T) {
 			}
 			must.NoError(t, err)
 			must.NotNil(t, resp)
+			must.Eq(t, tc.ExpectCall, cc.LastExpandVolumeRequest)
 
 		})
 	}

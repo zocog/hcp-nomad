@@ -55,6 +55,7 @@ type ControllerClient struct {
 	NextValidateVolumeCapabilitiesResponse *csipbv1.ValidateVolumeCapabilitiesResponse
 	NextCreateVolumeResponse               *csipbv1.CreateVolumeResponse
 	NextExpandVolumeResponse               *csipbv1.ControllerExpandVolumeResponse
+	LastExpandVolumeRequest                *csipbv1.ControllerExpandVolumeRequest
 	NextDeleteVolumeResponse               *csipbv1.DeleteVolumeResponse
 	NextListVolumesResponse                *csipbv1.ListVolumesResponse
 	NextCreateSnapshotResponse             *csipbv1.CreateSnapshotResponse
@@ -75,6 +76,7 @@ func (c *ControllerClient) Reset() {
 	c.NextValidateVolumeCapabilitiesResponse = nil
 	c.NextCreateVolumeResponse = nil
 	c.NextExpandVolumeResponse = nil
+	c.LastExpandVolumeRequest = nil
 	c.NextDeleteVolumeResponse = nil
 	c.NextListVolumesResponse = nil
 	c.NextCreateSnapshotResponse = nil
@@ -114,6 +116,7 @@ func (c *ControllerClient) CreateVolume(ctx context.Context, in *csipbv1.CreateV
 }
 
 func (c *ControllerClient) ControllerExpandVolume(ctx context.Context, in *csipbv1.ControllerExpandVolumeRequest, opts ...grpc.CallOption) (*csipbv1.ControllerExpandVolumeResponse, error) {
+	c.LastExpandVolumeRequest = in
 	return c.NextExpandVolumeResponse, c.NextErr
 }
 
