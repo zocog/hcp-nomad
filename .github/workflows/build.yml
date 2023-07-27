@@ -369,11 +369,25 @@ jobs:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
         with:
           ref: ${{ github.event.inputs.build-ref }}
+
       - name: Install dependencies
         run: |
-          apk add --no-cache bash build-base cni-plugins curl git go-bindata-assetfs linux-headers make musl-dev npm openssh zip
+          apk add --no-cache bash build-base curl git linux-headers make musl-dev npm openssh zip
+
       - name: Setup Git
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com".insteadOf "https://github.com"
+
+      - name: Build dependencies
+        run: make deps
+
+      - uses: ./.github/actions/setup-js
+        with:
+          node-version: '18'
+
+      - name: Build prerelease
+        run: make prerelease
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.make-prerelease == 'true' }}
+
       - name: Build
         env:
           GOOS: ${{ matrix.goos }}
