@@ -136,7 +136,12 @@ jobs:
     strategy:
       matrix:
         goos: [linux]
-        goarch: ["arm", "arm64", "amd64"]
+        goarch: 
+          - "arm"
+          - "arm64"
+          - "amd64"
+          # Additional Enterprise platforms.
+          - "s390x"
       fail-fast: true
 
     name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -182,7 +187,8 @@ jobs:
             binutils-arm-linux-gnueabihf \
             gcc-aarch64-linux-gnu \
             gcc-arm-linux-gnueabihf \
-            gcc-multilib-arm-linux-gnueabihf
+            gcc-multilib-arm-linux-gnueabihf \
+            gcc-multilib-s390x-linux-gnu
 
       - name: Set gcc
         run: |
@@ -190,6 +196,8 @@ jobs:
             echo "CC=arm-linux-gnueabihf-gcc" >> "$GITHUB_ENV"
           elif [ "${{ matrix.goarch }}" == "arm64" ]; then
             echo "CC=aarch64-linux-gnu-gcc" >> "$GITHUB_ENV"
+          elif [ "${{ matrix.goarch }}" == "s390x" ]; then
+            echo "CC=s390x-linux-gnu-gcc" >> "$GITHUB_ENV"
           fi
 
       - name: Build
