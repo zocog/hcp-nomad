@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/api/contexts"
+	flaghelper "github.com/hashicorp/nomad/helper/flags"
 )
 
 type VolumeExpandCommand struct {
@@ -75,10 +76,12 @@ func (c *VolumeExpandCommand) Name() string { return "volume expand" }
 func (c *VolumeExpandCommand) Run(args []string) int {
 	var minFlag string
 	var maxFlag string
+	var secretsArgs flaghelper.StringFlag
 	flags := c.Meta.FlagSet(c.Name(), FlagSetClient)
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
 	flags.StringVar(&minFlag, "min", "", "")
 	flags.StringVar(&maxFlag, "max", "", "")
+	flags.Var(&secretsArgs, "secret", "secrets for expansion, ex. -secret key=value")
 
 	if err := flags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing arguments %s", err))
@@ -113,6 +116,16 @@ func (c *VolumeExpandCommand) Run(args []string) int {
 		maxSize = int64(b)
 	}
 
+	secrets := api.CSISecrets{}
+	for _, kv := range secretsArgs {
+		if key, value, found := strings.Cut(kv, "="); found {
+			secrets[key] = value
+		} else {
+			c.Ui.Error("Secret must be in the format: -secret key=value")
+			return 1
+		}
+	}
+
 	// Get the HTTP client
 	client, err := c.Meta.Client()
 	if err != nil {
@@ -124,6 +137,7 @@ func (c *VolumeExpandCommand) Run(args []string) int {
 		VolumeID:             volID,
 		RequestedCapacityMin: minSize,
 		RequestedCapacityMax: maxSize,
+		Secrets:              secrets,
 	}, nil)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error expanding volume: %s", err))

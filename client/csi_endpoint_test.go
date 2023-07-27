@@ -534,7 +534,8 @@ func TestCSIController_ExpandVolume(t *testing.T) {
 				CapacityRange: &csi.CapacityRange{
 					RequiredBytes: 99,
 				},
-				// Secrets: TODO: and other fields?
+				Secrets: map[string]string{"super": "secret"},
+				// TODO: VolumeCapability
 			}
 			if tc.ModRequest != nil {
 				tc.ModRequest(req)

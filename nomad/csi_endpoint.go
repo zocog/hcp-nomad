@@ -1098,23 +1098,22 @@ func (v *CSIVolume) Expand(args *structs.CSIVolumeExpandRequest, reply *structs.
 
 	// TODO: check here whether volume is being reduced?
 
+	// TODO: this can happen when the controller just hasn't been fully recovered yet...
 	if !plugin.HasControllerCapability(structs.CSIControllerSupportsExpand) {
 		return errors.New("expand is not implemented by this controller plugin")
 	}
 
-	// TODO: secrets
 	// Combine volume and query secrets into one map.
 	// Query secrets override any secrets stored with the volume.
-	//combinedSecrets := vol.Secrets
-	//for k, v := range args.Secrets {
-	//	combinedSecrets[k] = v
-	//}
+	combinedSecrets := vol.Secrets
+	for k, v := range args.Secrets {
+		combinedSecrets[k] = v
+	}
 
 	method := "ClientCSI.ControllerExpandVolume"
 	cReq := &cstructs.ClientCSIControllerExpandVolumeRequest{
 		ExternalVolumeID: vol.ExternalID,
-		Secrets:          vol.Secrets,
-		//Secrets:          combinedSecrets, // TODO: secrets
+		Secrets:          combinedSecrets,
 		CapacityRange: &csi.CapacityRange{
 			RequiredBytes: args.RequestedCapacityMin,
 			LimitBytes:    args.RequestedCapacityMax,

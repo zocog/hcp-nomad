@@ -135,10 +135,14 @@ func (v *CSIVolumes) Detach(volID, nodeID string, w *WriteOptions) error {
 
 // Expand increases the capacity of a CSI volume.
 func (v *CSIVolumes) Expand(req *CSIVolumeExpandRequest, w *WriteOptions) (*CSIVolumeExpandResponse, *WriteMeta, error) {
-	resp := &CSIVolumeExpandResponse{}
 	qp := url.Values{}
 	qp.Set("min_size", strconv.Itoa(int(req.RequestedCapacityMin)))
 	qp.Set("max_size", strconv.Itoa(int(req.RequestedCapacityMax)))
+	if w == nil {
+		w = &WriteOptions{}
+	}
+	w.SetHeadersFromCSISecrets(req.Secrets)
+	resp := &CSIVolumeExpandResponse{}
 	meta, err := v.client.put(
 		fmt.Sprintf("/v1/volume/csi/%v/expand?%v",
 			url.PathEscape(req.VolumeID), qp.Encode()),
@@ -482,6 +486,7 @@ type CSIVolumeExpandRequest struct {
 	VolumeID             string
 	RequestedCapacityMin int64
 	RequestedCapacityMax int64
+	Secrets              CSISecrets
 }
 
 type CSIVolumeExpandResponse struct {

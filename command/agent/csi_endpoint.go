@@ -286,11 +286,13 @@ func (s *HTTPServer) csiVolumeExpand(id string, resp http.ResponseWriter, req *h
 		}
 		maxSize = int64(b)
 	}
+	secrets := parseCSISecrets(req)
 
 	args := structs.CSIVolumeExpandRequest{
 		VolumeID:             id,
 		RequestedCapacityMin: minSize,
 		RequestedCapacityMax: maxSize,
+		Secrets:              secrets,
 	}
 	s.parseWriteRequest(req, &args.WriteRequest)
 

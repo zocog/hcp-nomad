@@ -925,6 +925,7 @@ type CSIVolumeExpandRequest struct {
 	VolumeID             string
 	RequestedCapacityMin int64
 	RequestedCapacityMax int64
+	Secrets              CSISecrets
 	WriteRequest
 }
 
