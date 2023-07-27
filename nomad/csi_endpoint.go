@@ -1091,11 +1091,18 @@ func (v *CSIVolume) Expand(args *structs.CSIVolumeExpandRequest, reply *structs.
 		return errors.New("missing volume ID")
 	}
 
-	plugin, vol, err := v.volAndPluginLookup(args.Namespace, args.VolumeID)
+	plugin, vol, err := v.volAndPluginLookup(args.RequestNamespace(), args.VolumeID)
 	if err != nil {
 		return err
 	}
 
+	// TODO: check here whether volume is being reduced?
+
+	if !plugin.HasControllerCapability(structs.CSIControllerSupportsExpand) {
+		return errors.New("expand is not implemented by this controller plugin")
+	}
+
+	// TODO: secrets
 	// Combine volume and query secrets into one map.
 	// Query secrets override any secrets stored with the volume.
 	//combinedSecrets := vol.Secrets
@@ -1107,12 +1114,13 @@ func (v *CSIVolume) Expand(args *structs.CSIVolumeExpandRequest, reply *structs.
 	cReq := &cstructs.ClientCSIControllerExpandVolumeRequest{
 		ExternalVolumeID: vol.ExternalID,
 		Secrets:          vol.Secrets,
-		//Secrets:          combinedSecrets, // TODO?
+		//Secrets:          combinedSecrets, // TODO: secrets
 		CapacityRange: &csi.CapacityRange{
 			RequiredBytes: args.RequestedCapacityMin,
 			LimitBytes:    args.RequestedCapacityMax,
 		},
-		VolumeCapability: &csi.VolumeCapability{}, // TODO?
+		//VolumeCapability: vol.RequestedCapabilities
+		//VolumeCapability: &csi.VolumeCapability{}, // TODO: set to fs if *all* claims are fs, ditto for block, otherwise don't set.
 	}
 	cReq.PluginID = plugin.ID
 	cResp := &cstructs.ClientCSIControllerExpandVolumeResponse{}
@@ -1129,6 +1137,9 @@ func (v *CSIVolume) Expand(args *structs.CSIVolumeExpandRequest, reply *structs.
 	if cResp.NodeExpansionRequired {
 		v.logger.Warn("TODO: also do node volume expansion if needed") // TODO
 	}
+
+	// TODO: update the volume state (and test)
+
 	return err
 }
 

@@ -1675,6 +1675,129 @@ func TestCSIVolumeEndpoint_ListSnapshots(t *testing.T) {
 	require.Equal(t, "page2", resp.NextToken)
 }
 
+func TestCSIVolumeEndpoint_Expand(t *testing.T) {
+	ci.Parallel(t)
+
+	srv, cleanupSrv := TestServer(t, nil)
+	t.Cleanup(cleanupSrv)
+	testutil.WaitForLeader(t, srv.RPC)
+	t.Log("server started 👍")
+
+	_, fake, _, fakeVolID := testClientWithCSI(t, srv)
+	expectCapacity := int64(1111)
+	fake.NextControllerExpandVolumeResponse = &cstructs.ClientCSIControllerExpandVolumeResponse{
+		CapacityBytes:         expectCapacity,
+		NodeExpansionRequired: true,
+	}
+
+	// "Expand" the volume -- actual method under test.
+	cases := []struct {
+		Name      string
+		VolumeID  string
+		ExpectErr string
+	}{
+		{
+			Name:     "success",
+			VolumeID: fakeVolID,
+		},
+		{
+			Name:      "missing id",
+			VolumeID:  "",
+			ExpectErr: "missing volume ID",
+		},
+		{
+			Name:      "volume not found",
+			VolumeID:  "not-exists",
+			ExpectErr: "volume not found: not-exists",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+
+			var resp structs.CSIVolumeExpandResponse
+			err := srv.RPC("CSIVolume.Expand", &structs.CSIVolumeExpandRequest{
+				VolumeID:             tc.VolumeID,
+				RequestedCapacityMin: 555,
+				WriteRequest:         structs.WriteRequest{Region: srv.Region()},
+			}, &resp)
+
+			if tc.ExpectErr != "" {
+				must.EqError(t, err, tc.ExpectErr)
+				return
+			}
+			must.NoError(t, err)
+			test.Eq(t, expectCapacity, resp.CapacityBytes)
+		})
+	}
+
+	// test ACLs
+	srv.config.ACLEnabled = true
+	ns := structs.DefaultNamespace
+	mgmtToken := mock.ACLManagementToken()
+	err := srv.State().BootstrapACLTokens(structs.MsgTypeTestSetup, 1, 0, mgmtToken)
+	must.NoError(t, err)
+
+	ACLcases := []struct {
+		Name      string
+		ExpectErr error
+		Policy    string
+	}{
+		{
+			Name: "good policy",
+			Policy: fmt.Sprintf("%s\n%s",
+				mock.NamespacePolicy(ns, "",
+					[]string{acl.NamespaceCapabilityCSIWriteVolume},
+				),
+				mock.PluginPolicy("read"),
+			),
+		},
+		{
+			Name:      "no csi-write-volume",
+			ExpectErr: structs.ErrPermissionDenied,
+			Policy: fmt.Sprintf("%s\n%s",
+				mock.NamespacePolicy(ns, "",
+					[]string{acl.NamespaceCapabilityCSIReadVolume},
+				),
+				mock.PluginPolicy("read"),
+			),
+		},
+		{
+			Name:      "no plugin read",
+			ExpectErr: structs.ErrPermissionDenied,
+			Policy: mock.NamespacePolicy(ns, "",
+				[]string{acl.NamespaceCapabilityCSIWriteVolume},
+			),
+		},
+	}
+
+	for _, tc := range ACLcases {
+		t.Run("ACL "+tc.Name, func(t *testing.T) {
+			idx, err := srv.State().LatestIndex() // bit racy, but ok
+			must.NoError(t, err)
+			t.Logf("%s policy:\n%s", t.Name(), tc.Policy)
+			token := mock.CreatePolicyAndToken(t, srv.State(), idx+1, t.Name(), tc.Policy).SecretID
+
+			var resp structs.CSIVolumeExpandResponse
+			err = srv.RPC("CSIVolume.Expand", &structs.CSIVolumeExpandRequest{
+				VolumeID: fakeVolID,
+				WriteRequest: structs.WriteRequest{
+					Region:    srv.Region(),
+					AuthToken: token,
+				},
+			}, &resp)
+
+			if tc.ExpectErr != nil {
+				must.EqError(t, err, tc.ExpectErr.Error())
+				return
+			}
+			must.NoError(t, err)
+			test.Eq(t, expectCapacity, resp.CapacityBytes)
+		})
+	}
+
+}
+
 func TestCSIPluginEndpoint_RegisterViaFingerprint(t *testing.T) {
 	ci.Parallel(t)
 	srv, shutdown := TestServer(t, func(c *Config) {
@@ -1970,4 +2093,79 @@ func TestCSI_RPCVolumeAndPluginLookup(t *testing.T) {
 	require.Nil(t, plugin)
 	require.Nil(t, vol)
 	require.EqualError(t, err, fmt.Sprintf("volume not found: %s", id2))
+}
+
+// testClientWithCSI sets up a client with a fake CSI plugin.
+// Much of the plugin/volume configuration is only to pass validation;
+// callers should modify MockClientCSI's Next* fields.
+func testClientWithCSI(t *testing.T, srv *Server) (c *client.Client, m *MockClientCSI, plugID, volID string) {
+	t.Helper()
+
+	m = newMockClientCSI()
+	plugID = "fake-plugin"
+	volID = "fake-volume"
+
+	c, cleanup := client.TestClientWithRPCs(t,
+		func(c *cconfig.Config) {
+			c.Servers = []string{srv.config.RPCAddr.String()}
+			c.Node.CSIControllerPlugins = map[string]*structs.CSIInfo{
+				plugID: {
+					PluginID: plugID,
+					Healthy:  true,
+					ControllerInfo: &structs.CSIControllerInfo{
+						// Supports.* everything, but Next* values must be set on the mock.
+						SupportsAttachDetach:             true,
+						SupportsClone:                    true,
+						SupportsCondition:                true,
+						SupportsCreateDelete:             true,
+						SupportsCreateDeleteSnapshot:     true,
+						SupportsExpand:                   true,
+						SupportsGet:                      true,
+						SupportsGetCapacity:              true,
+						SupportsListSnapshots:            true,
+						SupportsListVolumes:              true,
+						SupportsListVolumesAttachedNodes: true,
+						SupportsReadOnlyAttach:           true,
+					},
+					RequiresControllerPlugin: true,
+				},
+			}
+			c.Node.CSINodePlugins = map[string]*structs.CSIInfo{
+				plugID: {
+					PluginID: plugID,
+					Healthy:  true,
+					NodeInfo: &structs.CSINodeInfo{
+						ID:                c.Node.GetID(),
+						SupportsCondition: true,
+						SupportsExpand:    true,
+						SupportsStats:     true,
+					},
+				},
+			}
+		},
+		map[string]interface{}{"CSI": m}, // MockClientCSI
+	)
+	t.Cleanup(func() { test.NoError(t, cleanup()) })
+	testutil.WaitForClient(t, srv.RPC, c.NodeID(), c.Region())
+	t.Log("client started with fake CSI plugin 👍")
+
+	// Register a minimum-viable fake volume
+	req := &structs.CSIVolumeRegisterRequest{
+		Volumes: []*structs.CSIVolume{{
+			PluginID:  plugID,
+			ID:        volID,
+			Namespace: structs.DefaultNamespace,
+			RequestedCapabilities: []*structs.CSIVolumeCapability{
+				{
+					AccessMode:     structs.CSIVolumeAccessModeMultiNodeMultiWriter,
+					AttachmentMode: structs.CSIVolumeAttachmentModeFilesystem,
+				},
+			},
+		}},
+		WriteRequest: structs.WriteRequest{Region: srv.Region()},
+	}
+	must.NoError(t, srv.RPC("CSIVolume.Register", req, &structs.CSIVolumeRegisterResponse{}))
+	t.Logf("CSI volume %s registered 👍", volID)
+
+	return c, m, plugID, volID
 }
