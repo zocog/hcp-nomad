@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/dustin/go-humanize"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
@@ -1080,14 +1081,13 @@ func (v *CSIVolume) Expand(args *structs.CSIVolumeExpandRequest, reply *structs.
 		return err
 	}
 
-	// NOTE: this is the plugin's namespace, not the snapshot(s) because we
-	// don't track snapshots in the state store at all and their source
-	// volume(s) because they might not even be registered
 	if !allowVolume(aclObj, args.RequestNamespace()) || !aclObj.AllowPluginRead() {
 		return structs.ErrPermissionDenied
 	}
 
-	if args.VolumeID == "" { // do i need this?
+	// Now the actual operation logic.
+
+	if args.VolumeID == "" {
 		return errors.New("missing volume ID")
 	}
 
@@ -1096,7 +1096,16 @@ func (v *CSIVolume) Expand(args *structs.CSIVolumeExpandRequest, reply *structs.
 		return err
 	}
 
-	// TODO: check here whether volume is being reduced?
+	// Volumes can not be reduced in size, only expanded.
+	if args.RequestedCapacityMax > 0 {
+		if vol.Capacity > args.RequestedCapacityMax {
+			return fmt.Errorf("max requested capacity (%s) smaller than current (%s)",
+				humanize.Bytes(uint64(args.RequestedCapacityMax)),
+				humanize.Bytes(uint64(vol.Capacity)))
+		}
+		// if the min size is smaller than the current capacity, that might be okay.
+		// let the controller plugin decide what to do in that case.
+	}
 
 	// TODO: this can happen when the controller just hasn't been fully recovered yet...
 	if !plugin.HasControllerCapability(structs.CSIControllerSupportsExpand) {
@@ -1130,14 +1139,30 @@ func (v *CSIVolume) Expand(args *structs.CSIVolumeExpandRequest, reply *structs.
 	}
 
 	v.logger.Debug("CSIVolume.Expand", "cResp", fmt.Sprintf("%+v", cResp))
+
+	// Update volume in raft.
+	// NOTE: updating the volume's RequestedCapacity(Min|Max)
+	// would cause a destructive diff in terraform nomad_csi_volume resource.
+	//vol.RequestedCapacityMin = args.RequestedCapacityMin
+	//vol.RequestedCapacityMax = args.RequestedCapacityMax
+	vol.Capacity = cResp.CapacityBytes
+	reg := structs.CSIVolumeRegisterRequest{ // "register" will overwrite the volume
+		Volumes: []*structs.CSIVolume{vol},
+	}
+	_, idx, err := v.srv.raftApply(structs.CSIVolumeRegisterRequestType, reg)
+	if err != nil {
+		// this is not fatal for the operation, as the controller is the
+		// ultimate arbiter of success, but log if state doesn't get updated.
+		v.logger.Error("error updating volume raft state", "error", err)
+	}
+
+	reply.Index = idx
 	reply.CapacityBytes = cResp.CapacityBytes
 	v.srv.setQueryMeta(&reply.QueryMeta)
 
 	if cResp.NodeExpansionRequired {
 		v.logger.Warn("TODO: also do node volume expansion if needed") // TODO
 	}
-
-	// TODO: update the volume state (and test)
 
 	return err
 }
