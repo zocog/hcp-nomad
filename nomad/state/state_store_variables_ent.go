@@ -8,7 +8,6 @@ import (
 	"math"
 
 	memdb "github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/nomad/helper"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
 
@@ -113,5 +112,5 @@ func bytesToMegaBytes(total int64) int {
 	}
 	totalInMB := total>>20 + roundUp
 
-	return int(helper.Min(totalInMB, math.MaxInt))
+	return int(min(totalInMB, math.MaxInt))
 }
