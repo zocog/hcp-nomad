@@ -13,8 +13,6 @@ replace (
 replace github.com/hashicorp/nomad/api => ./api
 
 require (
-	github.com/Azure/go-autorest/autorest v0.11.20 // indirect
-	github.com/Azure/go-autorest/autorest/azure/auth v0.5.1 // indirect
 	github.com/LK4D4/joincontext v0.0.0-20171026170139-1724345da6d5
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/Microsoft/go-winio v0.6.0
@@ -50,6 +48,7 @@ require (
 	github.com/hashicorp/consul/api v1.23.0
 	github.com/hashicorp/consul/sdk v0.14.0
 	github.com/hashicorp/cronexpr v1.1.2
+	github.com/hashicorp/eventlogger v0.1.1-0.20210917172429-90711333b9d0
 	github.com/hashicorp/go-bexpr v0.1.12
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -61,6 +60,7 @@ require (
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-immutable-radix/v2 v2.0.0
 	github.com/hashicorp/go-kms-wrapping/v2 v2.0.12
+	github.com/hashicorp/go-licensing/v3 v3.0.3
 	github.com/hashicorp/go-memdb v1.3.4
 	github.com/hashicorp/go-msgpack v1.1.5
 	github.com/hashicorp/go-multierror v1.1.1
@@ -79,10 +79,14 @@ require (
 	github.com/hashicorp/logutils v1.0.0
 	github.com/hashicorp/memberlist v0.5.0
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
+	github.com/hashicorp/nomad-licensing v0.2.0
 	github.com/hashicorp/nomad/api v0.0.0-20230103221135-ce00d683f9be
 	github.com/hashicorp/raft v1.5.0
 	github.com/hashicorp/raft-autopilot v0.1.6
+	github.com/hashicorp/raft-autopilot-enterprise v0.1.2
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2
+	github.com/hashicorp/raft-snapshotagent v0.0.0-20221101163738-6dd36ea18685
+	github.com/hashicorp/sentinel v0.15.5
 	github.com/hashicorp/serf v0.10.1
 	github.com/hashicorp/vault/api v1.9.1
 	github.com/hashicorp/vault/sdk v0.9.0
@@ -145,11 +149,14 @@ require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/iam v0.8.0 // indirect
 	cloud.google.com/go/storage v1.27.0 // indirect
+	github.com/Azure/azure-pipeline-go v0.2.2 // indirect
 	github.com/Azure/azure-sdk-for-go v56.3.0+incompatible // indirect
 	github.com/Azure/azure-storage-blob-go v0.10.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
+	github.com/Azure/go-autorest/autorest v0.11.20 // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.9.15 // indirect
+	github.com/Azure/go-autorest/autorest/azure/auth v0.5.1 // indirect
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.0 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
@@ -294,16 +301,3 @@ require (
 	gotest.tools/gotestsum v0.3.5 // indirect
 	kernel.org/pub/linux/libs/security/libcap/psx v1.2.66 // indirect
 )
-
-/// Enterprise specific module requirements
-
-require (
-	github.com/hashicorp/eventlogger v0.1.1-0.20210917172429-90711333b9d0
-	github.com/hashicorp/go-licensing/v3 v3.0.3
-	github.com/hashicorp/nomad-licensing v0.2.0
-	github.com/hashicorp/raft-autopilot-enterprise v0.1.2
-	github.com/hashicorp/raft-snapshotagent v0.0.0-20221101163738-6dd36ea18685
-	github.com/hashicorp/sentinel v0.15.5
-)
-
-require github.com/Azure/azure-pipeline-go v0.2.2 // indirect
