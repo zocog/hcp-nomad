@@ -2,27 +2,24 @@ module github.com/hashicorp/nomad
 
 go 1.21
 
-// Pinned dependencies are noted in github.com/hashicorp/nomad/issues/11826
+// Pinned dependencies are noted in github.com/hashicorp/nomad/issues/11826.
 replace (
 	github.com/Microsoft/go-winio => github.com/endocrimes/go-winio v0.4.13-0.20190628114223-fb47a8b41948
+	github.com/armon/go-metrics => github.com/armon/go-metrics v0.0.0-20230509193637-d9ca9af9f1f9
 	github.com/hashicorp/hcl => github.com/hashicorp/hcl v1.0.1-0.20201016140508-a07e7d50bbee
 )
 
-// Pin dependency with additional logs and defensive code to workaround panic
-// described in https://github.com/hashicorp/nomad/issues/15861.
-replace github.com/armon/go-metrics => github.com/armon/go-metrics v0.0.0-20230509193637-d9ca9af9f1f9
-
-// Nomad is built using the current source of the API module
+// Nomad is built using the current source of the API module.
 replace github.com/hashicorp/nomad/api => ./api
 
 require (
-	github.com/Azure/go-autorest/autorest v0.11.20 // indirect
-	github.com/Azure/go-autorest/autorest/azure/auth v0.5.1 // indirect
 	github.com/LK4D4/joincontext v0.0.0-20171026170139-1724345da6d5
+	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/Microsoft/go-winio v0.6.0
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.4.1
 	github.com/aws/aws-sdk-go v1.44.184
+	github.com/brianvoe/gofakeit/v6 v6.20.1
 	github.com/container-storage-interface/spec v1.7.0
 	github.com/containerd/go-cni v1.1.9
 	github.com/containernetworking/cni v1.1.2
@@ -35,7 +32,9 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/elazarl/go-bindata-assetfs v1.0.1
+	github.com/fatih/color v1.15.0
 	github.com/fsouza/go-dockerclient v1.7.9
+	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.4
@@ -49,6 +48,7 @@ require (
 	github.com/hashicorp/consul/api v1.23.0
 	github.com/hashicorp/consul/sdk v0.14.0
 	github.com/hashicorp/cronexpr v1.1.2
+	github.com/hashicorp/eventlogger v0.1.1-0.20210917172429-90711333b9d0
 	github.com/hashicorp/go-bexpr v0.1.12
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -60,6 +60,7 @@ require (
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-immutable-radix/v2 v2.0.0
 	github.com/hashicorp/go-kms-wrapping/v2 v2.0.12
+	github.com/hashicorp/go-licensing/v3 v3.0.3
 	github.com/hashicorp/go-memdb v1.3.4
 	github.com/hashicorp/go-msgpack v1.1.5
 	github.com/hashicorp/go-multierror v1.1.1
@@ -78,10 +79,14 @@ require (
 	github.com/hashicorp/logutils v1.0.0
 	github.com/hashicorp/memberlist v0.5.0
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
+	github.com/hashicorp/nomad-licensing v0.2.0
 	github.com/hashicorp/nomad/api v0.0.0-20230103221135-ce00d683f9be
 	github.com/hashicorp/raft v1.5.0
 	github.com/hashicorp/raft-autopilot v0.1.6
+	github.com/hashicorp/raft-autopilot-enterprise v0.1.2
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2
+	github.com/hashicorp/raft-snapshotagent v0.0.0-20221101163738-6dd36ea18685
+	github.com/hashicorp/sentinel v0.15.5
 	github.com/hashicorp/serf v0.10.1
 	github.com/hashicorp/vault/api v1.9.1
 	github.com/hashicorp/vault/sdk v0.9.0
@@ -101,10 +106,12 @@ require (
 	github.com/mitchellh/go-testing-interface v1.14.2-0.20210821155943-2d9075ca8770
 	github.com/mitchellh/hashstructure v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/mitchellh/pointerstructure v1.2.1
 	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/moby/sys/mount v0.3.3
 	github.com/moby/sys/mountinfo v0.6.2
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
+	github.com/muesli/reflow v0.3.0
 	github.com/opencontainers/runc v1.1.8
 	github.com/opencontainers/runtime-spec v1.1.0-rc.3
 	github.com/posener/complete v1.2.3
@@ -142,11 +149,14 @@ require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/iam v0.8.0 // indirect
 	cloud.google.com/go/storage v1.27.0 // indirect
+	github.com/Azure/azure-pipeline-go v0.2.2 // indirect
 	github.com/Azure/azure-sdk-for-go v56.3.0+incompatible // indirect
 	github.com/Azure/azure-storage-blob-go v0.10.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
+	github.com/Azure/go-autorest/autorest v0.11.20 // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.9.15 // indirect
+	github.com/Azure/go-autorest/autorest/azure/auth v0.5.1 // indirect
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.0 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
@@ -157,7 +167,6 @@ require (
 	github.com/DataDog/datadog-go v3.2.0+incompatible // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
-	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/VividCortex/ewma v1.1.1 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-cidr v1.0.1 // indirect
@@ -168,7 +177,6 @@ require (
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/bmatcuk/doublestar v1.1.5 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
-	github.com/brianvoe/gofakeit/v6 v6.20.1
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/checkpoint-restore/go-criu/v5 v5.3.0 // indirect
@@ -190,9 +198,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
-	github.com/fatih/color v1.15.0
 	github.com/felixge/httpsnoop v1.0.3 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -236,12 +242,10 @@ require (
 	github.com/mattn/go-runewidth v0.0.12 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/mitchellh/pointerstructure v1.2.1
 	github.com/moby/patternmatcher v0.5.0 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mrunalp/fileutils v0.5.0 // indirect
-	github.com/muesli/reflow v0.3.0
 	github.com/nicolai86/scaleway-sdk v1.10.2-0.20180628010248-798f60e20bb2 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
@@ -297,16 +301,3 @@ require (
 	gotest.tools/gotestsum v0.3.5 // indirect
 	kernel.org/pub/linux/libs/security/libcap/psx v1.2.66 // indirect
 )
-
-/// Enterprise specific module requirements
-
-require (
-	github.com/hashicorp/eventlogger v0.1.1-0.20210917172429-90711333b9d0
-	github.com/hashicorp/go-licensing/v3 v3.0.3
-	github.com/hashicorp/nomad-licensing v0.2.0
-	github.com/hashicorp/raft-autopilot-enterprise v0.1.2
-	github.com/hashicorp/raft-snapshotagent v0.0.0-20221101163738-6dd36ea18685
-	github.com/hashicorp/sentinel v0.15.5
-)
-
-require github.com/Azure/azure-pipeline-go v0.2.2 // indirect

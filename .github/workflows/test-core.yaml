@@ -65,8 +65,8 @@ jobs:
       - uses: hashicorp/setup-golang@v1
       - name: Get Go modules
         run: |
-          make tidy
           make bootstrap
+          make tidy
   checks:
     uses: ./.github/workflows/checks.yaml
     needs: [mods]
@@ -107,7 +107,7 @@ jobs:
   tests-groups:
     needs: [mods]
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:

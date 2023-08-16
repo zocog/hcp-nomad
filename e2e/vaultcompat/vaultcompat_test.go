@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/go-set"
 	"github.com/hashicorp/go-version"
 	nomadapi "github.com/hashicorp/nomad/api"
+	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/testutil"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/shoenig/test/must"
@@ -133,9 +134,10 @@ func startNomad(t *testing.T, vc *vaultapi.Client) (func(), *nomadapi.Client) {
 		}
 		c.DevMode = true
 		c.Client = &testutil.ClientConfig{
-			Enabled: true,
+			Enabled:      true,
+			TotalCompute: 1000,
 		}
-		c.LogLevel = "off"
+		c.LogLevel = testlog.HCLoggerTestLevel().String()
 	})
 	nc, err := nomadapi.NewClient(&nomadapi.Config{
 		Address: "http://" + ts.HTTPAddr,
