@@ -37,7 +37,8 @@ jobs:
         id: get-go-version
         run: |
           echo "Building with Go $(cat .go-version)"
-          echo "go-version=$(cat .go-version)" >> $GITHUB_OUTPUT
+          echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
+      - uses: magnetikonline/action-golang-cache@v2 # TSCCR: no entry for repository "magnetikonline/action-golang-cache"
         with:
           go-version: ${{ steps.get-go-version.outputs.go-version }}
           cache-key-suffix: -${{ inputs.origin_branch }}-${{ inputs.dest_branch }}-merge-oss
@@ -51,12 +52,28 @@ jobs:
         run: |
           set -xeuo pipefail
 
-          # Get branch names
+          # Add OSS repo and fetch origin branch
+          git remote add oss https://github.com/hashicorp/nomad.git
+          git fetch oss ${{ inputs.origin_branch }}
+
+          # Get branch names and commit SHAs
           origin_branch="${{ inputs.origin_branch }}"
+          origin_sha="$(git rev-parse --short oss/${origin_branch})"
           dest_branch="${{ inputs.dest_branch }}"
+          dest_sha="$(git rev-parse --short ${dest_branch})"
           tmp_branch="ci/oss-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
 
-          echo "::notice::Merging OSS branch ${origin_branch} into ENT branch ${dest_branch}"
+
+          # Print job summary
+          echo "Merging OSS branch '${origin_branch}' into ENT branch '${dest_branch}'"
+          cat << EOF >> "$GITHUB_STEP_SUMMARY"
+          Merging OSS branch \`${origin_branch}\` into ENT branch \`${dest_branch}\`
+
+          | Source branch                                                                                   | Destination branch                                                                                 | Go version                                     |
+          | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+          | ${origin_branch} ([\`${origin_sha}\`](https://github.com/hashicorp/nomad/commit/${origin_sha})) | ${dest_branch} ([\`$dest_sha\`](https://github.com/hashicorp/nomad-enterprise/commit/${dest_sha})) | ${{ steps.get-go-version.outputs.go-version }} |
+
+          EOF
 
           # Protect against dest_branch being different from current branch
           git checkout "${dest_branch}"
@@ -66,7 +83,7 @@ jobs:
           echo "::group::Run merge script"
           if ! ./scripts/enterprise/merge-oss.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}" ; then
             echo "::error::git was unable to auto-merge"
-            echo "reason=git was unable to auto-merge" >> $GITHUB_OUTPUT
+            echo "reason=git was unable to auto-merge" >> "$GITHUB_OUTPUT"
 
             exit 1
           fi
@@ -80,14 +97,14 @@ jobs:
           # Spot check by doing make check
           if ! make check ; then
             echo "::error::make check failed after auto-merge"
-            echo "reason='make check' failed after auto-merge" >> $GITHUB_OUTPUT
+            echo "reason='make check' failed after auto-merge" >> "$GITHUB_OUTPUT"
             exit 1
           fi
 
           # Spot check by doing compile
           if ! make pkg/linux_amd64/nomad ; then
             echo "::error::compilation failed after auto-merge"
-            echo "reason=compilation failed after auto-merge" >> $GITHUB_OUTPUT
+            echo "reason=compilation failed after auto-merge" >> "$GITHUB_OUTPUT"
             exit 1
           fi
           echo "::endgroup::"
@@ -100,26 +117,54 @@ jobs:
           # And then push
           if ! git push origin "${dest_branch}" ; then
             echo "::error::push to origin failed"
-            echo "reason=push to origin failed" >> $GITHUB_OUTPUT
+            echo "reason=push to origin failed" >> "$GITHUB_OUTPUT"
             exit 1
           fi
           echo "::endgroup::"
 
           # Say goodbye
-          echo "::notice::Complete merge of OSS branch ${origin_branch} into ENT branch ${dest_branch}!!"
+          echo ":green_circle: Merge completed successfully" >> "$GITHUB_STEP_SUMMARY"
           exit 0
-  slack-notify-failure:
+  handle-failure:
     needs:
       - merge-oss
     if: always() && needs.merge-oss.result == 'failure'
     runs-on: ubuntu-20.04
     steps:
+      - name: Generate failure summary
+        run: |
+          origin_branch="${{ inputs.origin_branch }}"
+          dest_branch="${{ inputs.dest_branch }}"
+          tmp_branch="ci/oss-merge-${{ inputs.origin_branch }}-$(date -u +%Y%m%d%H%M%S)"
+
+          cat << EOF >> "$GITHUB_STEP_SUMMARY"
+            :x: Merge of OSS branch \`${{ inputs.origin_branch }}\` into ENT \`${{ inputs.dest_branch }}\` failed
+
+            Please run the following commands in the \`hashicorp/nomad-enterprise\` repo to manually fix the conflicts:
+
+            \`\`\`bash
+            git checkout "${dest_branch}"
+            git pull
+            ./scripts/enterprise/merge-oss.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}"
+
+            # Fix merge conflicts
+
+            git add -A
+            git commit
+
+            # Save commit message file
+
+            git push origin "${tmp_branch}"
+            \`\`\`
+
+            Then open the a PR at https://github.com/hashicorp/nomad-enterprise/compare/${dest_branch}...${tmp_branch}?expand=1
+          EOF
       - name: Send slack notification on failure
         uses: slackapi/slack-github-action@007b2c3c751a190b6f0f040e47ed024deaa72844 # v1.23.0
         with:
           payload: |
             {
-              "text": ":merge-on-fire::nomad-sob: Nomad OSS->ENT merge *FAILED*",
+              "text": ":x::merge-on-fire::nomad-sob: Nomad OSS->ENT merge *FAILED*",
               "attachments": [
                 {
                   "color": "#C41E3A",
@@ -158,15 +203,6 @@ jobs:
                           "text": "*Run:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|${{ github.run_id }}>"
                         }
                       ]
-                    },
-                    {
-                      "type": "section",
-                      "fields": [
-                        {
-                          "type": "mrkdwn",
-                          "text": "*Triggered By:*\n<https://github.com/${{ github.actor }}|@${{ github.actor }}>"
-                        }
-                      ]
                     }
                   ]
                 }
@@ -175,3 +211,5 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+permissions:
+  contents: read

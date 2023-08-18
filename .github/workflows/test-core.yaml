@@ -10,6 +10,7 @@ on:
       - 'demo/**'
       - 'dev/**'
       - 'e2e/terraform/**'
+      - 'e2e/ui/**'
       - 'integrations/**'
       - 'pkg/**'
       - 'scripts/**'
@@ -40,21 +41,30 @@ on:
 env:
   VERBOSE: 1
   GOTESTARCH: amd64
-  CONSUL_VERSION: 1.12.6
-  VAULT_VERSION: 1.12.0
+  CONSUL_VERSION: 1.14.4
+  VAULT_VERSION: 1.12.2
   NOMAD_SLOW_TEST: 0
   NOMAD_TEST_LOG_LEVEL: OFF
   GOPRIVATE: 'github.com/hashicorp/*'
   TOKEN: ${{secrets.ELEVATED_GITHUB_TOKEN}}
   NOMAD_LICENSE: ${{secrets.NOMAD_LICENSE}}
+
 jobs:
+  # this caches dependencies for subsequent jobs, including private deps in enterprise
   mods:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ endsWith(github.repository, '-enterprise') && fromJSON('["self-hosted", "ondemand", "linux"]') || 'ubuntu-22.04' }}
     timeout-minutes: 10
     steps:
       - name: Configure Git
         run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com'.insteadOf 'https://github.com'
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: ./.github/actions/vault-secrets
+        with:
+          paths: |-
+            kv/data/github/hashicorp/nomad-enterprise/gha ELEVATED_GITHUB_TOKEN ;
+      - name: Git config token
+        if: endsWith(github.repository, '-enterprise')
+        run: git config --global url.'https://${{ env.ELEVATED_GITHUB_TOKEN }}@github.com'.insteadOf 'https://github.com'
       - uses: hashicorp/setup-golang@v1
         with:
           go-version: ${{env.GO_VERSION}}
@@ -64,21 +74,8 @@ jobs:
           make tidy
           make bootstrap
   checks:
+    uses: ./.github/workflows/checks.yaml
     needs: [mods]
-    runs-on: ubuntu-22.04
-    timeout-minutes: 10
-    steps:
-      - name: Configure Git
-        run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com'.insteadOf 'https://github.com'
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-        with:
-          fetch-depth: 0 # needs tags for checkproto
-      - uses: hashicorp/setup-golang@v1
-      - name: Run make check
-        run: |
-          make missing
-          make bootstrap
-          make check
   compile:
     needs: [mods, checks]
     strategy:
@@ -99,7 +96,7 @@ jobs:
   tests-api:
     needs: [mods]
     runs-on: [custom, xl, 22.04]
-    timeout-minutes: 30
+    timeout-minutes: 8
     steps:
       - name: Configure Git
         run: git config --global url.'https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com'.insteadOf 'https://github.com'
@@ -142,3 +139,6 @@ jobs:
           hc-install install -version ${{env.CONSUL_VERSION}} -path ${{env.GOBIN}} consul
           sudo sed -i 's!Defaults!#Defaults!g' /etc/sudoers
           sudo -E env "PATH=$PATH" make test-nomad
+permissions:
+  contents: read
+  id-token: write

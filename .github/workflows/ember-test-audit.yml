@@ -2,6 +2,7 @@ name: Ember test audit comparison
 on:
   pull_request:
     paths:
+    - '.github/workflows/ember*'
     - 'ui/**'
 
 defaults:
@@ -21,10 +22,10 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
         with:
-          node-version: '14'
+          node-version: '18'
       - run: yarn --frozen-lockfile
       - run: mkdir -p /tmp/test-reports
-      - run: npx ember-test-audit 3 --json --output ../base-audit.json
+      - run: npx ember-test-audit 1 --json --output ../base-audit.json
       - name: Upload result
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
@@ -38,10 +39,10 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
         with:
-          node-version: '14'
+          node-version: '18'
       - run: yarn --frozen-lockfile
       - run: mkdir -p /tmp/test-reports
-      - run: npx ember-test-audit 3 --json --output ../pr-audit.json
+      - run: npx ember-test-audit 1 --json --output ../pr-audit.json
       - name: Upload result
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
@@ -71,7 +72,7 @@ jobs:
           path: audit-diff.md
       - name: Check for existence of flakiness report
         id: check_file
-        uses: andstor/file-existence-action@f02338908d150e00a4b8bebc2dad18bd9e5229b0 # v1.1.0
+        uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b # v2.0.0
         with:
           files: "flakiness-report.md"
       - name: comment PR
@@ -81,3 +82,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           message_path: flakiness-report.md
+permissions:
+  contents: read
+  pull-requests: write
+
