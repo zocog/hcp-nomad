@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/nomad/client/config"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/structs"
+	sconfig "github.com/hashicorp/nomad/nomad/structs/config"
 	"github.com/hashicorp/nomad/testutil"
 )
 
@@ -35,6 +36,7 @@ func TestVaultFingerprint(t *testing.T) {
 
 	conf := config.DefaultConfig()
 	conf.VaultConfig = tv.Config
+	conf.VaultConfigs = map[string]*sconfig.VaultConfig{"default": tv.Config}
 
 	request := &FingerprintRequest{Config: conf, Node: node}
 	var response FingerprintResponse
@@ -63,6 +65,11 @@ func TestVaultFingerprint(t *testing.T) {
 
 	// Stop Vault to simulate it being unavailable
 	tv.Stop()
+
+	// Reset the nextCheck time for testing purposes, or we won't pick up the
+	// change until the next period, up to 2min from now
+	vfp := fp.(*VaultFingerprint)
+	vfp.states["default"].nextCheck = time.Now()
 
 	err = fp.Fingerprint(request, &response)
 	if err != nil {
