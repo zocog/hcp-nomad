@@ -1292,6 +1292,7 @@ func ApiTaskToStructsTask(job *structs.Job, group *structs.TaskGroup,
 			Role:         apiTask.Vault.Role,
 			Policies:     apiTask.Vault.Policies,
 			Namespace:    *apiTask.Vault.Namespace,
+			Cluster:      apiTask.Vault.Cluster,
 			Env:          *apiTask.Vault.Env,
 			DisableFile:  *apiTask.Vault.DisableFile,
 			ChangeMode:   *apiTask.Vault.ChangeMode,
@@ -1491,6 +1492,7 @@ func ApiServicesToStructs(in []*api.Service, group bool) []*structs.Service {
 			TaggedAddresses:   maps.Clone(s.TaggedAddresses),
 			OnUpdate:          s.OnUpdate,
 			Provider:          s.Provider,
+			Cluster:           s.Cluster,
 		}
 
 		if l := len(s.Checks); l != 0 {
@@ -1847,6 +1849,7 @@ func apiConsulToStructs(in *api.Consul) *structs.Consul {
 	}
 	return &structs.Consul{
 		Namespace: in.Namespace,
+		Cluster:   in.Cluster,
 	}
 }
 
