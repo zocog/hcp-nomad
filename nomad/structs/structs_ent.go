@@ -738,6 +738,16 @@ func (n *Namespace) Canonicalize() {
 		n.NodePoolConfiguration = &NamespaceNodePoolConfiguration{}
 	}
 	n.NodePoolConfiguration.Canonicalize()
+
+	if n.VaultConfiguration == nil {
+		n.VaultConfiguration = &NamespaceVaultConfiguration{}
+	}
+	n.VaultConfiguration.Canonicalize()
+
+	if n.ConsulConfiguration == nil {
+		n.ConsulConfiguration = &NamespaceConsulConfiguration{}
+	}
+	n.ConsulConfiguration.Canonicalize()
 }
 
 func (n *NamespaceNodePoolConfiguration) Canonicalize() {
@@ -772,6 +782,82 @@ func (n *NamespaceNodePoolConfiguration) Validate() error {
 		if pool == n.Default {
 			mErr = multierror.Append(mErr, fmt.Errorf(
 				"node pool %q is the namespace default and cannot be denied", n.Default))
+		}
+	}
+
+	return mErr.ErrorOrNil()
+}
+
+func (n *NamespaceVaultConfiguration) Canonicalize() {
+	if n == nil {
+		return
+	}
+
+	if n.Default == "" {
+		n.Default = "default"
+	}
+}
+
+func (n *NamespaceVaultConfiguration) Validate() error {
+	if n == nil {
+		return nil
+	}
+
+	var mErr *multierror.Error
+
+	// Validate only allowed or denied is used
+	if n.Allowed != nil && n.Denied != nil {
+		mErr = multierror.Append(mErr, fmt.Errorf("allowed and denied cannot be used together"))
+	}
+
+	// Validate default cluster for namespace is valid
+	if err := ValidateVaultClusterName(n.Default); err != nil {
+		mErr = multierror.Append(mErr, fmt.Errorf("invalid default Vault cluster name for namespace: %v", err))
+	}
+
+	// Validate denied list does not deny default cluster
+	for _, pool := range n.Denied {
+		if pool == n.Default {
+			mErr = multierror.Append(mErr, fmt.Errorf(
+				"Vault cluster %q is the namespace default and cannot be denied", n.Default))
+		}
+	}
+
+	return mErr.ErrorOrNil()
+}
+
+func (n *NamespaceConsulConfiguration) Canonicalize() {
+	if n == nil {
+		return
+	}
+
+	if n.Default == "" {
+		n.Default = "default"
+	}
+}
+
+func (n *NamespaceConsulConfiguration) Validate() error {
+	if n == nil {
+		return nil
+	}
+
+	var mErr *multierror.Error
+
+	// Validate only allowed or denied is used
+	if n.Allowed != nil && n.Denied != nil {
+		mErr = multierror.Append(mErr, fmt.Errorf("allowed and denied cannot be used together"))
+	}
+
+	// Validate default cluster for namespace is valid
+	if err := ValidateConsulClusterName(n.Default); err != nil {
+		mErr = multierror.Append(mErr, fmt.Errorf("invalid default Consul cluster name for namespace: %v", err))
+	}
+
+	// Validate denied list does not deny default cluster
+	for _, pool := range n.Denied {
+		if pool == n.Default {
+			mErr = multierror.Append(mErr, fmt.Errorf(
+				"Consul cluster %q is the namespace default and cannot be denied", n.Default))
 		}
 	}
 
