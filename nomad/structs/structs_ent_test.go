@@ -70,6 +70,97 @@ func TestNamespace_Validate_Ent(t *testing.T) {
 			},
 			expectedErr: "cannot be denied",
 		},
+		{
+			name: "must have default vault cluster",
+			namespace: &Namespace{
+				Name: "test",
+				VaultConfiguration: &NamespaceVaultConfiguration{
+					Default: "",
+				},
+			},
+			expectedErr: "invalid default Vault cluster name",
+		},
+		{
+			name: "can't allow and deny vault clusters",
+			namespace: &Namespace{
+				Name: "test",
+				VaultConfiguration: &NamespaceVaultConfiguration{
+					Default: "default",
+					Allowed: []string{"dev"},
+					Denied:  []string{"prod"},
+				},
+			},
+			expectedErr: "allowed and denied cannot be used together",
+		},
+		{
+			name: "can't allow and deny vault clusters - empty lists",
+			namespace: &Namespace{
+				Name: "test",
+				VaultConfiguration: &NamespaceVaultConfiguration{
+					Default: "default",
+					Allowed: []string{},
+					Denied:  []string{},
+				},
+			},
+			expectedErr: "allowed and denied cannot be used together",
+		},
+		{
+			name: "can't deny default vault cluster",
+			namespace: &Namespace{
+				Name: "test",
+				VaultConfiguration: &NamespaceVaultConfiguration{
+					Default: "default",
+					Denied:  []string{"default"},
+				},
+			},
+			expectedErr: "cannot be denied",
+		},
+
+		{
+			name: "must have default consul cluster",
+			namespace: &Namespace{
+				Name: "test",
+				ConsulConfiguration: &NamespaceConsulConfiguration{
+					Default: "",
+				},
+			},
+			expectedErr: "invalid default Consul cluster name",
+		},
+		{
+			name: "can't allow and deny consul clusters",
+			namespace: &Namespace{
+				Name: "test",
+				ConsulConfiguration: &NamespaceConsulConfiguration{
+					Default: "default",
+					Allowed: []string{"dev"},
+					Denied:  []string{"prod"},
+				},
+			},
+			expectedErr: "allowed and denied cannot be used together",
+		},
+		{
+			name: "can't allow and deny consul clusters - empty lists",
+			namespace: &Namespace{
+				Name: "test",
+				ConsulConfiguration: &NamespaceConsulConfiguration{
+					Default: "default",
+					Allowed: []string{},
+					Denied:  []string{},
+				},
+			},
+			expectedErr: "allowed and denied cannot be used together",
+		},
+		{
+			name: "can't deny default consul cluster",
+			namespace: &Namespace{
+				Name: "test",
+				ConsulConfiguration: &NamespaceConsulConfiguration{
+					Default: "default",
+					Denied:  []string{"default"},
+				},
+			},
+			expectedErr: "cannot be denied",
+		},
 	}
 
 	for _, tc := range cases {
@@ -92,6 +183,12 @@ func TestNamespace_Canonicalize(t *testing.T) {
 	ns.Canonicalize()
 	must.NotNil(t, ns.NodePoolConfiguration)
 	must.Eq(t, NodePoolDefault, ns.NodePoolConfiguration.Default)
+
+	must.NotNil(t, ns.VaultConfiguration)
+	must.Eq(t, "default", ns.VaultConfiguration.Default)
+
+	must.NotNil(t, ns.ConsulConfiguration)
+	must.Eq(t, "default", ns.ConsulConfiguration.Default)
 }
 
 func TestSentinelPolicySetHash(t *testing.T) {
