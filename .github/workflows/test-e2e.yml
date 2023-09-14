@@ -34,6 +34,10 @@ on:
       - 'ui/**'
       - 'website/**'
 
+env:
+  NOMAD_LICENSE: ${{secrets.NOMAD_LICENSE}}
+  NOMAD_TEST_LOG_LEVEL: WARN
+
 jobs:
   test-e2e:
     runs-on: ${{ endsWith(github.repository, '-enterprise') && fromJSON('["self-hosted", "ondemand", "linux"]') || 'ubuntu-latest' }}
