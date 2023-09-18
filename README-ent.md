@@ -115,15 +115,16 @@ visiting the
 Nightly`](https://github.com/hashicorp/nomad-enterprise/actions/workflows/merge-oss-cron.yaml)
 Actions page and clicking the `Run workflow` button. Select the `main` branch
 to run the latest merge logic, or pick your own branch if you are testing
-changes to the workflow itself.
+changes to the workflow itself. **If you are looking to quickly merge OSS to ENT
+without waiting for nightly, use this!**
 
 You can also merge two arbitrary branches using the
-[`merge-oss-manualy.yaml`](https://github.com/hashicorp/nomad-enterprise/blob/main/.github/workflows/merge-oss-manualy.yaml)
+[`merge-oss-manually.yaml`](https://github.com/hashicorp/nomad-enterprise/blob/main/.github/workflows/merge-oss-manually.yaml)
 workflow.
 To trigger this workflow, visit the [`Merge OSS to ENT
-Manually`](https://github.com/hashicorp/nomad-enterprise/actions/workflows/merge-oss-manualy.yaml)
+Manually`](https://github.com/hashicorp/nomad-enterprise/actions/workflows/merge-oss-manually.yaml)
 Actions page, click `Run workflow`, and select the source (OSS) branch and the
-destination (ENT) branch.
+destination (ENT) branch. This workflow is used during the release process.
 
 Manual merging is necessary sometimes, due to merge conflicts. When this
 happens, the workflow fails and it outputs a series of commands that can be
