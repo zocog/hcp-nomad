@@ -34,14 +34,14 @@ func (h jobConsulHook) Validate(job *structs.Job) ([]error, error) {
 		}
 
 		for _, service := range group.Services {
-			if service.Provider == structs.ServiceProviderConsul {
+			if service.IsConsul() {
 				clusters.Insert(service.Cluster)
 			}
 		}
 
 		for _, task := range group.Tasks {
 			for _, service := range task.Services {
-				if service.Provider == structs.ServiceProviderConsul {
+				if service.IsConsul() {
 					clusters.Insert(service.Cluster)
 				}
 			}
@@ -140,7 +140,7 @@ func (j jobConsulHook) Mutate(job *structs.Job) (*structs.Job, []error, error) {
 		}
 
 		for _, service := range group.Services {
-			if service.Provider == structs.ServiceProviderConsul {
+			if service.IsConsul() {
 				if service.Cluster == "" {
 					service.Cluster = defaultCluster
 				}
@@ -149,7 +149,7 @@ func (j jobConsulHook) Mutate(job *structs.Job) (*structs.Job, []error, error) {
 
 		for _, task := range group.Tasks {
 			for _, service := range task.Services {
-				if service.Provider == structs.ServiceProviderConsul {
+				if service.IsConsul() {
 					if service.Cluster == "" {
 						service.Cluster = defaultCluster
 					}
