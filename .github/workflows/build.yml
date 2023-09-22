@@ -366,16 +366,20 @@ jobs:
     env:
       GOPRIVATE: "github.com/hashicorp/*"
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-        with:
-          ref: ${{ github.event.inputs.build-ref }}
-
+      # note: git needs to be installed before checkout
       - name: Install dependencies
         run: |
           apk add --no-cache bash build-base curl git linux-headers make musl-dev npm openssh zip
 
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+        with:
+          ref: ${{ github.event.inputs.build-ref }}
+
       - name: Setup Git
-        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com".insteadOf "https://github.com"
+        run: |
+          git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com".insteadOf "https://github.com"
+          # actions/checkout supposedly already does this, but it doesn't stick for whatever reason
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
 
       - name: Build dependencies
         run: make deps
@@ -403,6 +407,9 @@ jobs:
         with:
           name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}.musl_${{ matrix.goos }}_${{ matrix.goarch }}.zip
           path: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}.musl_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+
+      - name: check BuildDate
+        run: ./pkg/${{ matrix.goos }}_${{ matrix.goarch}}/nomad version | grep BuildDate
 
   minimum-os:
     name: OS Compatibility
