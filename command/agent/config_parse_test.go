@@ -292,7 +292,7 @@ var basicConfig = &Config{
 		},
 	},
 	Vault: &config.VaultConfig{
-		Name:                 "default",
+		Name:                 structs.VaultDefaultCluster,
 		Addr:                 "127.0.0.1:9500",
 		AllowUnauthenticated: &trueValue,
 		ConnectionRetryIntv:  config.DefaultVaultConnectRetryIntv,
@@ -306,7 +306,6 @@ var basicConfig = &Config{
 		TLSSkipVerify:        &trueValue,
 		TaskTokenTTL:         "1s",
 		Token:                "12345",
-		UseIdentity:          pointer.Of(true),
 		DefaultIdentity: &config.WorkloadIdentityConfig{
 			Audience: []string{"vault.io", "nomad.io"},
 			Env:      pointer.Of(false),
@@ -316,8 +315,8 @@ var basicConfig = &Config{
 		},
 	},
 	Vaults: map[string]*config.VaultConfig{
-		"default": {
-			Name:                 "default",
+		structs.VaultDefaultCluster: {
+			Name:                 structs.VaultDefaultCluster,
 			Addr:                 "127.0.0.1:9500",
 			AllowUnauthenticated: &trueValue,
 			ConnectionRetryIntv:  config.DefaultVaultConnectRetryIntv,
@@ -331,7 +330,6 @@ var basicConfig = &Config{
 			TLSSkipVerify:        &trueValue,
 			TaskTokenTTL:         "1s",
 			Token:                "12345",
-			UseIdentity:          pointer.Of(true),
 			DefaultIdentity: &config.WorkloadIdentityConfig{
 				Audience: []string{"vault.io", "nomad.io"},
 				Env:      pointer.Of(false),
@@ -612,7 +610,7 @@ func TestConfig_Parse(t *testing.T) {
 				Consul:    config.DefaultConsulConfig(),
 				Consuls:   map[string]*config.ConsulConfig{"default": config.DefaultConsulConfig()},
 				Vault:     config.DefaultVaultConfig(),
-				Vaults:    map[string]*config.VaultConfig{"default": config.DefaultVaultConfig()},
+				Vaults:    map[string]*config.VaultConfig{structs.VaultDefaultCluster: config.DefaultVaultConfig()},
 				Autopilot: config.DefaultAutopilotConfig(),
 				Reporting: config.DefaultReporting(),
 			}
@@ -655,7 +653,7 @@ func (c *Config) addDefaults() {
 	}
 	if c.Vault == nil {
 		c.Vault = config.DefaultVaultConfig()
-		c.Vaults = map[string]*config.VaultConfig{"default": c.Vault}
+		c.Vaults = map[string]*config.VaultConfig{structs.VaultDefaultCluster: c.Vault}
 	}
 	if c.Telemetry == nil {
 		c.Telemetry = &Telemetry{}
@@ -814,14 +812,14 @@ var sample0 = &Config{
 		},
 	},
 	Vault: &config.VaultConfig{
-		Name:    "default",
+		Name:    structs.VaultDefaultCluster,
 		Enabled: pointer.Of(true),
 		Role:    "nomad-cluster",
 		Addr:    "http://host.example.com:8200",
 	},
 	Vaults: map[string]*config.VaultConfig{
-		"default": {
-			Name:    "default",
+		structs.VaultDefaultCluster: {
+			Name:    structs.VaultDefaultCluster,
 			Enabled: pointer.Of(true),
 			Role:    "nomad-cluster",
 			Addr:    "http://host.example.com:8200",
@@ -930,14 +928,14 @@ var sample1 = &Config{
 		},
 	},
 	Vault: &config.VaultConfig{
-		Name:    "default",
+		Name:    structs.VaultDefaultCluster,
 		Enabled: pointer.Of(true),
 		Role:    "nomad-cluster",
 		Addr:    "http://host.example.com:8200",
 	},
 	Vaults: map[string]*config.VaultConfig{
-		"default": {
-			Name:    "default",
+		structs.VaultDefaultCluster: {
+			Name:    structs.VaultDefaultCluster,
 			Enabled: pointer.Of(true),
 			Role:    "nomad-cluster",
 			Addr:    "http://host.example.com:8200",
@@ -1061,29 +1059,29 @@ func TestConfig_MultipleVault(t *testing.T) {
 
 	// verify the default Vault config is set from the list
 	cfg := DefaultConfig()
-	must.Eq(t, "default", cfg.Vault.Name)
+	must.Eq(t, structs.VaultDefaultCluster, cfg.Vault.Name)
 	must.Equal(t, config.DefaultVaultConfig(), cfg.Vault)
 	must.Nil(t, cfg.Vault.Enabled) // unset
 	must.Eq(t, "https://vault.service.consul:8200", cfg.Vault.Addr)
 	must.Eq(t, "", cfg.Vault.Token)
 
 	must.MapLen(t, 1, cfg.Vaults)
-	must.Equal(t, cfg.Vault, cfg.Vaults["default"])
-	must.True(t, cfg.Vault == cfg.Vaults["default"]) // must be same pointer
+	must.Equal(t, cfg.Vault, cfg.Vaults[structs.VaultDefaultCluster])
+	must.True(t, cfg.Vault == cfg.Vaults[structs.VaultDefaultCluster]) // must be same pointer
 
 	// merge in the user's configuration
 	fc, err := LoadConfig("testdata/basic.hcl")
 	must.NoError(t, err)
 	cfg = cfg.Merge(fc)
 
-	must.Eq(t, "default", cfg.Vault.Name)
+	must.Eq(t, structs.VaultDefaultCluster, cfg.Vault.Name)
 	must.NotNil(t, cfg.Vault.Enabled, must.Sprint("override should set to non-nil"))
 	must.False(t, *cfg.Vault.Enabled)
 	must.Eq(t, "127.0.0.1:9500", cfg.Vault.Addr)
 	must.Eq(t, "12345", cfg.Vault.Token)
 
 	must.MapLen(t, 1, cfg.Vaults)
-	must.Equal(t, cfg.Vault, cfg.Vaults["default"])
+	must.Equal(t, cfg.Vault, cfg.Vaults[structs.VaultDefaultCluster])
 
 	// add an extra Vault config and override fields in the default
 	fc, err = LoadConfig("testdata/extra-vault.hcl")
@@ -1091,18 +1089,23 @@ func TestConfig_MultipleVault(t *testing.T) {
 
 	cfg = cfg.Merge(fc)
 
-	must.Eq(t, "default", cfg.Vault.Name)
+	must.Eq(t, structs.VaultDefaultCluster, cfg.Vault.Name)
 	must.True(t, *cfg.Vault.Enabled)
 	must.Eq(t, "127.0.0.1:9500", cfg.Vault.Addr)
 	must.Eq(t, "abracadabra", cfg.Vault.Token)
 
-	must.MapLen(t, 2, cfg.Vaults)
-	must.Equal(t, cfg.Vault, cfg.Vaults["default"])
+	must.MapLen(t, 3, cfg.Vaults)
+	must.Equal(t, cfg.Vault, cfg.Vaults[structs.VaultDefaultCluster])
 
 	must.Eq(t, "alternate", cfg.Vaults["alternate"].Name)
 	must.True(t, *cfg.Vaults["alternate"].Enabled)
 	must.Eq(t, "127.0.0.1:9501", cfg.Vaults["alternate"].Addr)
 	must.Eq(t, "xyzzy", cfg.Vaults["alternate"].Token)
+
+	must.Eq(t, "other", cfg.Vaults["other"].Name)
+	must.Nil(t, cfg.Vaults["other"].Enabled)
+	must.Eq(t, "127.0.0.1:9502", cfg.Vaults["other"].Addr)
+	must.Eq(t, pointer.Of(4*time.Hour), cfg.Vaults["other"].DefaultIdentity.TTL)
 }
 
 func TestConfig_MultipleConsul(t *testing.T) {
@@ -1143,11 +1146,15 @@ func TestConfig_MultipleConsul(t *testing.T) {
 	must.Eq(t, "127.0.0.1:9501", cfg.Consul.Addr)
 	must.Eq(t, "abracadabra", cfg.Consul.Token)
 
-	must.MapLen(t, 2, cfg.Consuls)
+	must.MapLen(t, 3, cfg.Consuls)
 	must.Eq(t, cfg.Consul, cfg.Consuls["default"])
 
 	must.Eq(t, "alternate", cfg.Consuls["alternate"].Name)
 	must.True(t, *cfg.Consuls["alternate"].AllowUnauthenticated)
 	must.Eq(t, "127.0.0.2:8501", cfg.Consuls["alternate"].Addr)
 	must.Eq(t, "xyzzy", cfg.Consuls["alternate"].Token)
+
+	must.Eq(t, "other", cfg.Consuls["other"].Name)
+	must.Eq(t, pointer.Of(3*time.Hour), cfg.Consuls["other"].ServiceIdentity.TTL)
+	must.Eq(t, pointer.Of(5*time.Hour), cfg.Consuls["other"].TaskIdentity.TTL)
 }

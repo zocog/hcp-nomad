@@ -500,13 +500,6 @@ func (c *Config) UseConsulIdentity() bool {
 		*c.ConsulConfig.UseIdentity
 }
 
-// UseVaultIdentity returns true when Vault workload identity is enabled.
-func (c *Config) UseVaultIdentity() bool {
-	return c.VaultConfig != nil &&
-		c.VaultConfig.UseIdentity != nil &&
-		*c.VaultConfig.UseIdentity
-}
-
 // workloadIdentityFromConfig returns a structs.WorkloadIdentity to be used in
 // a job from a config.WorkloadIdentityConfig parsed from an agent config file.
 func workloadIdentityFromConfig(widConfig *config.WorkloadIdentityConfig) *structs.WorkloadIdentity {
@@ -623,7 +616,7 @@ func DefaultConfig() *Config {
 	}
 
 	c.ConsulConfigs = map[string]*config.ConsulConfig{"default": c.ConsulConfig}
-	c.VaultConfigs = map[string]*config.VaultConfig{"default": c.VaultConfig}
+	c.VaultConfigs = map[string]*config.VaultConfig{structs.VaultDefaultCluster: c.VaultConfig}
 
 	// Enable all known schedulers by default
 	c.EnabledSchedulers = make([]string, 0, len(scheduler.BuiltinSchedulers))

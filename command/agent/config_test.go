@@ -188,7 +188,7 @@ func TestConfig_Merge(t *testing.T) {
 			"Access-Control-Allow-Origin": "*",
 		},
 		Vault: &config.VaultConfig{
-			Name:                 "default",
+			Name:                 structs.VaultDefaultCluster,
 			Token:                "1",
 			AllowUnauthenticated: &falseValue,
 			TaskTokenTTL:         "1",
@@ -201,8 +201,8 @@ func TestConfig_Merge(t *testing.T) {
 			TLSServerName:        "1",
 		},
 		Vaults: map[string]*config.VaultConfig{
-			"default": {
-				Name:                 "default",
+			structs.VaultDefaultCluster: {
+				Name:                 structs.VaultDefaultCluster,
 				Token:                "1",
 				AllowUnauthenticated: &falseValue,
 				TaskTokenTTL:         "1",
@@ -437,7 +437,7 @@ func TestConfig_Merge(t *testing.T) {
 			"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 		},
 		Vault: &config.VaultConfig{
-			Name:                 "default",
+			Name:                 structs.VaultDefaultCluster,
 			Token:                "2",
 			AllowUnauthenticated: &trueValue,
 			TaskTokenTTL:         "2",
@@ -450,8 +450,8 @@ func TestConfig_Merge(t *testing.T) {
 			TLSServerName:        "2",
 		},
 		Vaults: map[string]*config.VaultConfig{
-			"default": {
-				Name:                 "default",
+			structs.VaultDefaultCluster: {
+				Name:                 structs.VaultDefaultCluster,
 				Token:                "2",
 				AllowUnauthenticated: &trueValue,
 				TaskTokenTTL:         "2",
