@@ -234,7 +234,7 @@ func TestConfig_Merge(t *testing.T) {
 			ChecksUseAdvertise:   &falseValue,
 		},
 		Consuls: map[string]*config.ConsulConfig{
-			"default": {
+			structs.ConsulDefaultCluster: {
 				ServerServiceName:    "1",
 				ClientServiceName:    "1",
 				AutoAdvertise:        &falseValue,
@@ -483,7 +483,7 @@ func TestConfig_Merge(t *testing.T) {
 			ChecksUseAdvertise:   &trueValue,
 		},
 		Consuls: map[string]*config.ConsulConfig{
-			"default": {
+			structs.ConsulDefaultCluster: {
 				ServerServiceName:    "2",
 				ClientServiceName:    "2",
 				AutoAdvertise:        &trueValue,
@@ -547,7 +547,19 @@ func TestConfig_Merge(t *testing.T) {
 	result := c0.Merge(c1)
 	result = result.Merge(c2)
 	result = result.Merge(c3)
-	require.Equal(t, c3, result)
+
+	// Apply expected Consuls and Vaults defaults.
+	//
+	// Update pointers so the "default" key also updates expected.Consul and
+	// expected.Vault.
+	expected := c3.Copy()
+	for name, consul := range expected.Consuls {
+		*expected.Consuls[name] = *config.DefaultConsulConfig().Merge(consul)
+	}
+	for name, vault := range expected.Vaults {
+		*expected.Vaults[name] = *config.DefaultVaultConfig().Merge(vault)
+	}
+	require.Equal(t, expected, result)
 }
 
 func TestConfig_ParseConfigFile(t *testing.T) {

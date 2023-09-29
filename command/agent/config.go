@@ -1376,7 +1376,7 @@ func DefaultConfig() *Config {
 		Reporting:          config.DefaultReporting(),
 	}
 
-	cfg.Consuls = map[string]*config.ConsulConfig{"default": cfg.Consul}
+	cfg.Consuls = map[string]*config.ConsulConfig{structs.ConsulDefaultCluster: cfg.Consul}
 	cfg.Vaults = map[string]*config.VaultConfig{structs.VaultDefaultCluster: cfg.Vault}
 	return cfg
 }
@@ -1548,7 +1548,7 @@ func (c *Config) Merge(b *Config) *Config {
 
 	// Apply the Consul Configurations and overwrite the default Consul config
 	result.Consuls = mergeConsulConfigs(result.Consuls, b.Consuls)
-	result.Consul = result.Consuls["default"]
+	result.Consul = result.Consuls[structs.ConsulDefaultCluster]
 
 	// Apply the Vault Configurations and overwrite the default Vault config
 	result.Vaults = mergeVaultConfigs(result.Vaults, b.Vaults)
@@ -1612,7 +1612,8 @@ func mergeVaultConfigs(left, right map[string]*config.VaultConfig) map[string]*c
 		if lConfig, ok := left[name]; ok {
 			merged[name] = lConfig.Merge(rConfig)
 		} else {
-			merged[name] = rConfig.Copy()
+			merged[name] = config.DefaultVaultConfig().Merge(rConfig)
+			merged[name].Name = name
 		}
 	}
 	return merged
@@ -1627,7 +1628,8 @@ func mergeConsulConfigs(left, right map[string]*config.ConsulConfig) map[string]
 		if lConfig, ok := left[name]; ok {
 			merged[name] = lConfig.Merge(rConfig)
 		} else {
-			merged[name] = rConfig.Copy()
+			merged[name] = config.DefaultConsulConfig().Merge(rConfig)
+			merged[name].Name = name
 		}
 	}
 	return merged
@@ -1649,10 +1651,10 @@ func (c *Config) Copy() *Config {
 	nc.ACL = c.ACL.Copy()
 	nc.Telemetry = c.Telemetry.Copy()
 	nc.DisableUpdateCheck = pointer.Copy(c.DisableUpdateCheck)
-	nc.Consul = c.Consul.Copy()
 	nc.Consuls = helper.DeepCopyMap(c.Consuls)
-	nc.Vault = c.Vault.Copy()
+	nc.Consul = nc.Consuls[structs.ConsulDefaultCluster]
 	nc.Vaults = helper.DeepCopyMap(c.Vaults)
+	nc.Vault = nc.Vaults[structs.VaultDefaultCluster]
 	nc.UI = c.UI.Copy()
 
 	nc.NomadConfig = c.NomadConfig.Copy()

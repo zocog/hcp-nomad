@@ -429,6 +429,8 @@ type Config struct {
 
 	// JobTrackedVersions is the number of historic Job versions that are kept.
 	JobTrackedVersions int
+
+	Reporting *config.ReportingConfig
 }
 
 func (c *Config) Copy() *Config {
@@ -615,7 +617,7 @@ func DefaultConfig() *Config {
 		JobTrackedVersions:       structs.JobDefaultTrackedVersions,
 	}
 
-	c.ConsulConfigs = map[string]*config.ConsulConfig{"default": c.ConsulConfig}
+	c.ConsulConfigs = map[string]*config.ConsulConfig{structs.ConsulDefaultCluster: c.ConsulConfig}
 	c.VaultConfigs = map[string]*config.VaultConfig{structs.VaultDefaultCluster: c.VaultConfig}
 
 	// Enable all known schedulers by default
