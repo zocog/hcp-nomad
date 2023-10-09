@@ -46,6 +46,7 @@ jobs:
     runs-on: 'windows-2019-16core'
     env:
       GOTESTSUM_PATH: c:\tmp\test-reports
+      GITHUB_USER: hc-github-team-nomad-core
     steps:
       - name: Docker Info
         run: docker version
@@ -58,7 +59,7 @@ jobs:
             git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com"
           fi
           git config --global user.email "github-team-nomad-core@hashicorp.com"
-          git config --global user.name "hc-github-team-nomad-core"
+          git config --global user.name "@${{ env.GITHUB_USER }}"
       - name: Setup go
         uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:

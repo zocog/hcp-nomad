@@ -6,6 +6,7 @@ package nomad
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -17,7 +18,7 @@ import (
 
 // establishEnterpriseLeadership is used to instantiate Nomad Pro and Premium
 // systems upon acquiring leadership.
-func (s *Server) establishEnterpriseLeadership(stopCh chan struct{}) error {
+func (s *Server) establishEnterpriseLeadership(stopCh chan struct{}, clusterMD structs.ClusterMetadata) error {
 	// If we are not the authoritative region, start replicating.
 	if s.config.Region != s.config.AuthoritativeRegion {
 		// Start replication of Sentinel Policies if ACLs are enabled,
@@ -33,6 +34,10 @@ func (s *Server) establishEnterpriseLeadership(stopCh chan struct{}) error {
 	// Periodically publish recommendation metrics
 	go s.publishRecommendationMetrics(stopCh)
 
+	err := s.reportingManager.Start(stopCh, clusterMD)
+	if err != nil {
+		return fmt.Errorf("unable to start reporting manager: %w", err)
+	}
 	return nil
 }
 

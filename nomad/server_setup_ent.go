@@ -5,6 +5,7 @@ package nomad
 import (
 	"fmt"
 
+	"github.com/hashicorp/nomad/nomad/reporting"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/sentinel/sentinel"
 )
@@ -56,6 +57,16 @@ func (s *Server) setupEnterprise(config *Config) error {
 		return fmt.Errorf("failed to initialize enterprise licensing: %w", err)
 	}
 	s.EnterpriseState.licenseWatcher = licenseWatcher
+
+	// Setup  reporting
+	if s.config.Reporting != nil {
+		lic := s.EnterpriseState.licenseWatcher.License()
+
+		s.reportingManager, err = reporting.NewManager(s.logger, s.config.Reporting, lic, s)
+		if err != nil {
+			return fmt.Errorf("failed to initialize license reporting: %w", err)
+		}
+	}
 	return nil
 }
 

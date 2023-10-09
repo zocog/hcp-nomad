@@ -41,6 +41,7 @@
     "nomad/drainer/...",
     "nomad/reporting/...",
     "nomad/lock/...",
+    "nomad/license/...",
     "nomad/state/...",
     "nomad/stream/...",
     "nomad/structs/...",

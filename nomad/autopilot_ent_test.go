@@ -148,7 +148,7 @@ func TestAutopilotEnterprise_UpgradeMigration(t *testing.T) {
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 2
 		c.RaftConfig.ProtocolVersion = 3
-		c.Build = "0.8.0"
+		c.Build = "1.3.0"
 		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS1()
@@ -156,7 +156,7 @@ func TestAutopilotEnterprise_UpgradeMigration(t *testing.T) {
 	s2, cleanupS2 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 2
 		c.RaftConfig.ProtocolVersion = 3
-		c.Build = "0.8.1"
+		c.Build = "1.3.1"
 		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS2()
@@ -250,7 +250,7 @@ func TestAutopilotEnterprise_DisableUpgradeMigration(t *testing.T) {
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.DisableUpgradeMigration = true
-		c.Build = "0.8.0"
+		c.Build = "1.4.0"
 		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS1()
@@ -260,7 +260,7 @@ func TestAutopilotEnterprise_DisableUpgradeMigration(t *testing.T) {
 	s2, cleanupS2 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 0
 		c.RaftConfig.ProtocolVersion = 3
-		c.Build = "0.8.0"
+		c.Build = "1.4.0"
 		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS2()
@@ -268,7 +268,7 @@ func TestAutopilotEnterprise_DisableUpgradeMigration(t *testing.T) {
 	s3, cleanupS3 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 0
 		c.RaftConfig.ProtocolVersion = 3
-		c.Build = "0.8.1"
+		c.Build = "1.3.1"
 		c.NumSchedulers = 0 // reduce log noise
 	})
 	defer cleanupS3()
