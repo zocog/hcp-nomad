@@ -368,10 +368,11 @@ func (s *Server) establishLeadership(stopCh chan struct{}) error {
 	schedulerConfig := s.getOrCreateSchedulerConfig()
 
 	// Initialize the Cluster metadata
-	clusterMetadata, err := s.ClusterMetadata()
+	clusterMetadata, err := s.ClusterMetaData()
 	if err != nil {
 		return err
 	}
+	// todo: use cluster ID for stuff, later!
 
 	// Enable the plan queue, since we are now the leader
 	s.planQueue.SetEnabled(true)

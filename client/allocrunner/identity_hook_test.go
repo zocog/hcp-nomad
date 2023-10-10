@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/client/allocrunner/interfaces"
+	cstate "github.com/hashicorp/nomad/client/state"
 	"github.com/hashicorp/nomad/client/widmgr"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/mock"
@@ -44,19 +45,22 @@ func TestIdentityHook_Prerun(t *testing.T) {
 	defer stopAR()
 
 	logger := testlog.HCLogger(t)
+	db := cstate.NewMemDB(logger)
 
 	// setup mock signer and WIDMgr
 	mockSigner := widmgr.NewMockWIDSigner(task.Identities)
-	mockWIDMgr := widmgr.NewWIDMgr(mockSigner, alloc, logger)
+	mockWIDMgr := widmgr.NewWIDMgr(mockSigner, alloc, db, logger)
 	allocrunner.widmgr = mockWIDMgr
 	allocrunner.widsigner = mockSigner
 
 	// do the initial signing
 	_, err := mockSigner.SignIdentities(1, []*structs.WorkloadIdentityRequest{
 		{
-			AllocID:      alloc.ID,
-			TaskName:     task.Name,
-			IdentityName: task.Identities[0].Name,
+			AllocID: alloc.ID,
+			WIHandle: structs.WIHandle{
+				WorkloadIdentifier: task.Name,
+				IdentityName:       task.Identities[0].Name,
+			},
 		},
 	})
 	must.NoError(t, err)
@@ -67,9 +71,9 @@ func TestIdentityHook_Prerun(t *testing.T) {
 	must.NoError(t, hook.Prerun())
 
 	time.Sleep(time.Second) // give goroutines a moment to run
-	sid, err := hook.widmgr.Get(widmgr.TaskIdentity{
-		TaskName:     task.Name,
-		IdentityName: task.Identities[0].Name},
+	sid, err := hook.widmgr.Get(structs.WIHandle{
+		WorkloadIdentifier: task.Name,
+		IdentityName:       task.Identities[0].Name},
 	)
 	must.Nil(t, err)
 	must.Eq(t, sid.IdentityName, task.Identity.Name)

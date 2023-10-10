@@ -21,9 +21,10 @@ type MockWIDSigner struct {
 	// wids maps identity names to workload identities. If wids is non-nil then
 	// SignIdentities will use it to find expirations or reject invalid identity
 	// names
-	wids  map[string]*structs.WorkloadIdentity
-	key   ed25519.PrivateKey
-	keyID string
+	wids    map[string]*structs.WorkloadIdentity
+	key     ed25519.PrivateKey
+	keyID   string
+	mockNow time.Time // allows moving the clock
 }
 
 func NewMockWIDSigner(wids []*structs.WorkloadIdentity) *MockWIDSigner {
@@ -49,6 +50,15 @@ func (m *MockWIDSigner) setWIDs(wids []*structs.WorkloadIdentity) {
 		m.wids[wid.Name] = wid
 	}
 }
+
+// now returns the mocked time or falls back to the clock
+func (m *MockWIDSigner) now() time.Time {
+	if m.mockNow.IsZero() {
+		return time.Now()
+	}
+	return m.mockNow
+}
+
 func (m *MockWIDSigner) SignIdentities(minIndex uint64, req []*structs.WorkloadIdentityRequest) ([]*structs.SignedWorkloadIdentity, error) {
 	swids := make([]*structs.SignedWorkloadIdentity, 0, len(req))
 	for _, idReq := range req {
@@ -57,7 +67,7 @@ func (m *MockWIDSigner) SignIdentities(minIndex uint64, req []*structs.WorkloadI
 			Namespace:    "default",
 			JobID:        "test",
 			AllocationID: idReq.AllocID,
-			TaskName:     idReq.TaskName,
+			TaskName:     idReq.WorkloadIdentifier,
 		}
 		claims.ID = uuid.Generate()
 		// If test has set workload identities. Lookup claims or reject unknown
@@ -69,7 +79,7 @@ func (m *MockWIDSigner) SignIdentities(minIndex uint64, req []*structs.WorkloadI
 			}
 			claims.Audience = slices.Clone(wid.Audience)
 			if wid.TTL > 0 {
-				claims.Expiry = jwt.NewNumericDate(time.Now().Add(wid.TTL))
+				claims.Expiry = jwt.NewNumericDate(m.now().Add(wid.TTL))
 			}
 		}
 		opts := (&jose.SignerOptions{}).WithHeader("kid", m.keyID).WithType("JWT")
@@ -94,17 +104,17 @@ func (m *MockWIDSigner) SignIdentities(minIndex uint64, req []*structs.WorkloadI
 // MockWIDMgr mocks IdentityManager interface allowing to only get identities
 // signed by the mock signer.
 type MockWIDMgr struct {
-	swids map[TaskIdentity]*structs.SignedWorkloadIdentity
+	swids map[structs.WIHandle]*structs.SignedWorkloadIdentity
 }
 
-func NewMockWIDMgr(swids map[TaskIdentity]*structs.SignedWorkloadIdentity) *MockWIDMgr {
+func NewMockWIDMgr(swids map[structs.WIHandle]*structs.SignedWorkloadIdentity) *MockWIDMgr {
 	return &MockWIDMgr{swids: swids}
 }
 
 // Run does not run a renewal loop in this mock
 func (m MockWIDMgr) Run() error { return nil }
 
-func (m MockWIDMgr) Get(identity TaskIdentity) (*structs.SignedWorkloadIdentity, error) {
+func (m MockWIDMgr) Get(identity structs.WIHandle) (*structs.SignedWorkloadIdentity, error) {
 	sid, ok := m.swids[identity]
 	if !ok {
 		return nil, fmt.Errorf("identity not found")
@@ -113,7 +123,7 @@ func (m MockWIDMgr) Get(identity TaskIdentity) (*structs.SignedWorkloadIdentity,
 }
 
 // Watch does not do anything, this mock doesn't support watching.
-func (m MockWIDMgr) Watch(identity TaskIdentity) (<-chan *structs.SignedWorkloadIdentity, func()) {
+func (m MockWIDMgr) Watch(identity structs.WIHandle) (<-chan *structs.SignedWorkloadIdentity, func()) {
 	return nil, nil
 }
 

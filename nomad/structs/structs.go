@@ -33,7 +33,7 @@ import (
 	"github.com/hashicorp/cronexpr"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-set"
+	"github.com/hashicorp/go-set/v2"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/nomad/acl"
 	"github.com/hashicorp/nomad/client/lib/idset"
@@ -7670,6 +7670,15 @@ func (t *Task) GetIdentity(name string) *WorkloadIdentity {
 // group name and task name.
 func (t *Task) MakeUniqueIdentityName(taskGroup string) string {
 	return fmt.Sprintf("%v-%v", taskGroup, t.Name)
+}
+
+// IdentityHandle returns a WorkloadIdentityHandle which is a pair of unique WI
+// name and task name.
+func (t *Task) IdentityHandle(identity *WorkloadIdentity) *WIHandle {
+	return &WIHandle{
+		IdentityName:       identity.Name,
+		WorkloadIdentifier: t.Name,
+	}
 }
 
 func (t *Task) Copy() *Task {
