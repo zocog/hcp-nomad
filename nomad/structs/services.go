@@ -22,7 +22,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-set"
+	"github.com/hashicorp/go-set/v2"
 	"github.com/hashicorp/nomad/helper"
 	"github.com/hashicorp/nomad/helper/args"
 	"github.com/hashicorp/nomad/helper/pointer"
@@ -779,6 +779,18 @@ func (s *Service) MakeUniqueIdentityName() string {
 		return fmt.Sprintf("%v-%v-%v", s.TaskName, s.Name, s.PortLabel)
 	}
 	return fmt.Sprintf("%v-%v", s.Name, s.PortLabel)
+}
+
+// IdentityHandle returns a WorkloadIdentityHandle which is a pair of service
+// identity name and service name.
+func (s *Service) IdentityHandle() *WIHandle {
+	if s.Identity != nil {
+		return &WIHandle{
+			IdentityName:       s.Identity.Name,
+			WorkloadIdentifier: s.Name,
+		}
+	}
+	return nil
 }
 
 func (s *Service) validateCheckPort(c *ServiceCheck) error {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/client/allocrunner/interfaces"
+	cstate "github.com/hashicorp/nomad/client/state"
 	"github.com/hashicorp/nomad/client/taskenv"
 	"github.com/hashicorp/nomad/client/widmgr"
 	"github.com/hashicorp/nomad/helper/testlog"
@@ -73,17 +74,21 @@ func TestIdentityHook_RenewAll(t *testing.T) {
 	t.Cleanup(stop)
 
 	// setup mock signer and WIDMgr
+	logger := testlog.HCLogger(t)
+	db := cstate.NewMemDB(logger)
 	mockSigner := widmgr.NewMockWIDSigner(task.Identities)
-	mockWIDMgr := widmgr.NewWIDMgr(mockSigner, alloc, testlog.HCLogger(t))
+	mockWIDMgr := widmgr.NewWIDMgr(mockSigner, alloc, db, logger)
 	mockWIDMgr.SetMinWait(time.Second) // fast renewals, because the default is 10s
 
 	// do the initial signing
 	for _, i := range task.Identities {
 		_, err := mockSigner.SignIdentities(1, []*structs.WorkloadIdentityRequest{
 			{
-				AllocID:      alloc.ID,
-				TaskName:     task.Name,
-				IdentityName: i.Name,
+				AllocID: alloc.ID,
+				WIHandle: structs.WIHandle{
+					WorkloadIdentifier: task.Name,
+					IdentityName:       i.Name,
+				},
 			},
 		})
 		must.NoError(t, err)
@@ -175,17 +180,21 @@ func TestIdentityHook_RenewOne(t *testing.T) {
 	t.Cleanup(stop)
 
 	// setup mock signer and WIDMgr
+	logger := testlog.HCLogger(t)
+	db := cstate.NewMemDB(logger)
 	mockSigner := widmgr.NewMockWIDSigner(task.Identities)
-	mockWIDMgr := widmgr.NewWIDMgr(mockSigner, alloc, testlog.HCLogger(t))
+	mockWIDMgr := widmgr.NewWIDMgr(mockSigner, alloc, db, logger)
 	mockWIDMgr.SetMinWait(time.Second) // fast renewals, because the default is 10s
 
 	// do the initial signing
 	for _, i := range task.Identities {
 		_, err := mockSigner.SignIdentities(1, []*structs.WorkloadIdentityRequest{
 			{
-				AllocID:      alloc.ID,
-				TaskName:     task.Name,
-				IdentityName: i.Name,
+				AllocID: alloc.ID,
+				WIHandle: structs.WIHandle{
+					WorkloadIdentifier: task.Name,
+					IdentityName:       i.Name,
+				},
 			},
 		})
 		must.NoError(t, err)
