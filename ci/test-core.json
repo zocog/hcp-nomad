@@ -37,6 +37,7 @@
     "internal/...",
     "jobspec/...",
     "lib/...",
+    "nomad/auth/...",
     "nomad/deploymentwatcher/...",
     "nomad/drainer/...",
     "nomad/reporting/...",
