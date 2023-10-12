@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/structs/config"
-	vaultconsts "github.com/hashicorp/vault/sdk/helper/consts"
 	"github.com/shoenig/test/must"
 )
 
@@ -40,7 +39,7 @@ func TestTokenAuthForTask(t *testing.T) {
 	nsClient, err := c.entHandler.clientForTask(c, "new-namespace")
 
 	must.NoError(t, err)
-	must.Eq(t, "new-namespace", nsClient.Headers().Get(vaultconsts.NamespaceHeaderName))
+	must.Eq(t, "new-namespace", nsClient.Headers().Get(vaultNamespaceHeaderName))
 }
 
 func TestTokenAuthForTask_Unlicensed_Requested_Different_NS(t *testing.T) {
