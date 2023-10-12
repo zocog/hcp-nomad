@@ -231,8 +231,11 @@ func TestAuthenticateDefault(t *testing.T) {
 				alloc := mock.Alloc()
 				alloc.ClientStatus = structs.AllocClientStatusRunning
 
+				identity := alloc.LookupTask("web").Identity
+				wih := alloc.LookupTask("web").IdentityHandle(identity)
+
 				claims := structs.NewIdentityClaims(
-					alloc.Job, alloc, "web", alloc.LookupTask("web").Identity, time.Now())
+					alloc.Job, alloc, wih, identity, time.Now())
 
 				auth := testAuthenticator(t, store, true, true)
 				token, err := auth.encrypter.(*testEncrypter).signClaim(claims)
@@ -282,9 +285,10 @@ func TestAuthenticateDefault(t *testing.T) {
 			name: "mTLS and ACLs with invalid WI token",
 			testFn: func(t *testing.T, store *state.StateStore) {
 				alloc := mock.Alloc()
+				identity := alloc.LookupTask("web").Identity
+				wih := alloc.LookupTask("web").IdentityHandle(identity)
 				alloc.ClientStatus = structs.AllocClientStatusRunning
-				claims := structs.NewIdentityClaims(
-					alloc.Job, alloc, "web", alloc.LookupTask("web").Identity, time.Now())
+				claims := structs.NewIdentityClaims(alloc.Job, alloc, wih, identity, time.Now())
 
 				auth := testAuthenticator(t, store, true, true)
 				token, err := auth.encrypter.(*testEncrypter).signClaim(claims)
@@ -326,6 +330,85 @@ func TestAuthenticateDefault(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			store := testStateStore(t)
 			tc.testFn(t, store)
+		})
+	}
+
+}
+
+func TestAuthenticateServerOnly(t *testing.T) {
+	ci.Parallel(t)
+
+	testAuthenticator := func(t *testing.T, store *state.StateStore,
+		hasACLs, hasTLS bool) *Authenticator {
+		leaderACL := uuid.Generate()
+		return NewAuthenticator(&AuthenticatorConfig{
+			StateFn:        func() *state.StateStore { return store },
+			Logger:         testlog.HCLogger(t),
+			GetLeaderACLFn: func() string { return leaderACL },
+			AclsEnabled:    hasACLs,
+			TLSEnabled:     hasTLS,
+			Region:         "global",
+			Encrypter:      nil,
+		})
+	}
+
+	testCases := []struct {
+		name   string
+		testFn func(t *testing.T)
+	}{
+		{
+			name: "no mTLS",
+			testFn: func(t *testing.T) {
+				ctx := newTestContext(t, noTLSCtx, "192.168.1.1")
+				args := &structs.GenericRequest{}
+
+				store := testStateStore(t)
+				auth := testAuthenticator(t, store, true, false)
+
+				aclObj, err := auth.AuthenticateServerOnly(ctx, args)
+				must.NoError(t, err)
+				must.NotNil(t, aclObj)
+				must.Eq(t, ":192.168.1.1", args.GetIdentity().String())
+				must.True(t, aclObj.AllowServerOp())
+			},
+		},
+		{
+			name: "with mTLS but client cert",
+			testFn: func(t *testing.T) {
+				ctx := newTestContext(t, "client.global.nomad", "192.168.1.1")
+				args := &structs.GenericRequest{}
+
+				store := testStateStore(t)
+				auth := testAuthenticator(t, store, true, true)
+
+				aclObj, err := auth.AuthenticateServerOnly(ctx, args)
+				must.EqError(t, err,
+					"invalid certificate, server.global.nomad not in client.global.nomad")
+				must.Eq(t, "client.global.nomad:192.168.1.1", args.GetIdentity().String())
+				must.Nil(t, aclObj)
+			},
+		},
+		{
+			name: "with mTLS and server cert",
+			testFn: func(t *testing.T) {
+				ctx := newTestContext(t, "server.global.nomad", "192.168.1.1")
+				args := &structs.GenericRequest{}
+
+				store := testStateStore(t)
+				auth := testAuthenticator(t, store, true, true)
+
+				aclObj, err := auth.AuthenticateServerOnly(ctx, args)
+				must.NoError(t, err)
+				must.Eq(t, "server.global.nomad:192.168.1.1", args.GetIdentity().String())
+				must.NotNil(t, aclObj)
+				must.True(t, aclObj.AllowServerOp())
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.testFn(t)
 		})
 	}
 

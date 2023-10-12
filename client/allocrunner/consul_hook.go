@@ -74,17 +74,20 @@ func (h *consulHook) Prerun() error {
 	// ACL token
 	tokens := map[string]map[string]string{}
 
-	for _, tg := range job.TaskGroups {
-		if err := h.prepareConsulTokensForServices(tg.Services, tokens); err != nil {
+	tg := job.LookupTaskGroup(h.alloc.TaskGroup)
+	if tg == nil { // this is always a programming error
+		return fmt.Errorf("alloc %v does not have a valid task group", h.alloc.Name)
+	}
+
+	if err := h.prepareConsulTokensForServices(tg.Services, tokens); err != nil {
+		mErr.Errors = append(mErr.Errors, err)
+	}
+	for _, task := range tg.Tasks {
+		if err := h.prepareConsulTokensForServices(task.Services, tokens); err != nil {
 			mErr.Errors = append(mErr.Errors, err)
 		}
-		for _, task := range tg.Tasks {
-			if err := h.prepareConsulTokensForServices(task.Services, tokens); err != nil {
-				mErr.Errors = append(mErr.Errors, err)
-			}
-			if err := h.prepareConsulTokensForTask(job, task, tg.Name, tokens); err != nil {
-				mErr.Errors = append(mErr.Errors, err)
-			}
+		if err := h.prepareConsulTokensForTask(job, task, tg.Name, tokens); err != nil {
+			mErr.Errors = append(mErr.Errors, err)
 		}
 	}
 
@@ -110,10 +113,8 @@ func (h *consulHook) prepareConsulTokensForTask(job *structs.Job, task *structs.
 		if i.Name != expectedIdentity {
 			continue
 		}
-		ti := structs.WIHandle{
-			WorkloadIdentifier: task.Name,
-			IdentityName:       i.Name,
-		}
+
+		ti := *task.IdentityHandle(i)
 
 		req, err := h.prepareConsulClientReq(ti, consulTasksAuthMethodName)
 		if err != nil {
@@ -157,12 +158,7 @@ func (h *consulHook) prepareConsulTokensForServices(services []*structs.Service,
 			continue
 		}
 
-		ti := structs.WIHandle{
-			WorkloadIdentifier: service.TaskName,
-			IdentityName:       service.Identity.Name,
-		}
-
-		req, err := h.prepareConsulClientReq(ti, consulServicesAuthMethodName)
+		req, err := h.prepareConsulClientReq(*service.IdentityHandle(), consulServicesAuthMethodName)
 		if err != nil {
 			mErr.Errors = append(mErr.Errors, err)
 			continue

@@ -24,6 +24,13 @@ import (
 	"github.com/hashicorp/nomad/testutil"
 )
 
+var (
+	wiHandle = &structs.WIHandle{
+		WorkloadIdentifier: "web",
+		WorkloadType:       structs.WorkloadTypeTask,
+	}
+)
+
 // TestEncrypter_LoadSave exercises round-tripping keys to disk
 func TestEncrypter_LoadSave(t *testing.T) {
 	ci.Parallel(t)
@@ -74,7 +81,8 @@ func TestEncrypter_Restore(t *testing.T) {
 
 	listReq := &structs.KeyringListRootKeyMetaRequest{
 		QueryOptions: structs.QueryOptions{
-			Region: "global",
+			Region:    "global",
+			AuthToken: rootToken.SecretID,
 		},
 	}
 	var listResp structs.KeyringListRootKeyMetaResponse
@@ -112,6 +120,7 @@ func TestEncrypter_Restore(t *testing.T) {
 	codec = rpcClient(t, srv2)
 
 	// Verify we've restored all the keys from the old keystore
+	listReq.AuthToken = rootToken.SecretID
 
 	require.Eventually(t, func() bool {
 		msgpackrpc.CallWithCodec(codec, "Keyring.List", listReq, &listResp)
@@ -123,7 +132,8 @@ func TestEncrypter_Restore(t *testing.T) {
 		getReq := &structs.KeyringGetRootKeyRequest{
 			KeyID: keyMeta.KeyID,
 			QueryOptions: structs.QueryOptions{
-				Region: "global",
+				Region:    "global",
+				AuthToken: rootToken.SecretID,
 			},
 		}
 		var getResp structs.KeyringGetRootKeyResponse
@@ -365,7 +375,7 @@ func TestEncrypter_SignVerify(t *testing.T) {
 	testutil.WaitForLeader(t, srv.RPC)
 
 	alloc := mock.Alloc()
-	claims := structs.NewIdentityClaims(alloc.Job, alloc, "web", alloc.LookupTask("web").Identity, time.Now())
+	claims := structs.NewIdentityClaims(alloc.Job, alloc, wiHandle, alloc.LookupTask("web").Identity, time.Now())
 	e := srv.encrypter
 
 	out, _, err := e.SignClaims(claims)
@@ -389,7 +399,7 @@ func TestEncrypter_SignVerify_AlgNone(t *testing.T) {
 	testutil.WaitForLeader(t, srv.RPC)
 
 	alloc := mock.Alloc()
-	claims := structs.NewIdentityClaims(alloc.Job, alloc, "web", alloc.LookupTask("web").Identity, time.Now())
+	claims := structs.NewIdentityClaims(alloc.Job, alloc, wiHandle, alloc.LookupTask("web").Identity, time.Now())
 	e := srv.encrypter
 
 	keyset, err := e.activeKeySet()
