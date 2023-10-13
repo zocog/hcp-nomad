@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/nomad-licensing/license"
 	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/testlog"
+	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/nomad/structs/config"
 	"github.com/stretchr/testify/require"
 )
@@ -39,7 +40,7 @@ func TestTokenAuthForTask(t *testing.T) {
 	nsClient, err := c.entHandler.clientForTask(c, "new-namespace")
 
 	require.NoError(t, err)
-	require.Equal(t, "new-namespace", nsClient.Headers().Get(vaultNamespaceHeaderName))
+	require.Equal(t, "new-namespace", nsClient.Headers().Get(structs.VaultNamespaceHeaderName))
 }
 
 func TestTokenAuthForTask_Unlicensed_Requested_Different_NS(t *testing.T) {
