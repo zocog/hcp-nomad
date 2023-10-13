@@ -22,7 +22,7 @@ import (
 // namespace of the allocations
 func TestCSIPluginEndpoint_ACLNamespaceAlloc(t *testing.T) {
 	ci.Parallel(t)
-	srv, shutdown := TestServer(t, func(c *Config) {
+	srv, _, shutdown := TestACLServer(t, func(c *Config) {
 		c.NumSchedulers = 0 // Prevent automatic dequeue
 	})
 	defer shutdown()
@@ -33,8 +33,6 @@ func TestCSIPluginEndpoint_ACLNamespaceAlloc(t *testing.T) {
 	must.NoError(t, s.UpsertNamespaces(1000, []*structs.Namespace{ns1}))
 
 	// Setup ACLs
-	s.BootstrapACLTokens(structs.MsgTypeTestSetup, 1, 0, mock.ACLManagementToken())
-	srv.config.ACLEnabled = true
 	codec := rpcClient(t, srv)
 	listJob := mock.NamespacePolicy(structs.DefaultNamespace, "", []string{acl.NamespaceCapabilityReadJob})
 	policy := mock.PluginPolicy("read") + listJob
