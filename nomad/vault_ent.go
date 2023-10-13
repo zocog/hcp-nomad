@@ -6,14 +6,9 @@ package nomad
 import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad-licensing/license"
+	"github.com/hashicorp/nomad/nomad/structs"
 	vapi "github.com/hashicorp/vault/api"
 )
-
-// vaultNamespaceHeaderName is the Vault header set to specify which namespace
-// the request is indented for. This is copied from
-// "github.com/hashicorp/vault/sdk/helper/consts" to avoid pulling in the
-// entire SDK.
-const vaultNamespaceHeaderName = "X-Vault-Namespace"
 
 type VaultEntDelegate struct {
 	l              hclog.Logger
@@ -22,7 +17,7 @@ type VaultEntDelegate struct {
 
 func (e *VaultEntDelegate) clientForTask(v *vaultClient, namespace string) (*vapi.Client, error) {
 	// If the requsted namespace equals the default namespace short-circuit
-	currNs := v.client.Headers().Get(vaultNamespaceHeaderName)
+	currNs := v.client.Headers().Get(structs.VaultNamespaceHeaderName)
 	if currNs == namespace {
 		return v.client, nil
 	}
