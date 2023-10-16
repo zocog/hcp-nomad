@@ -47,7 +47,7 @@ func (r *Recommendation) GetRecommendation(args *structs.RecommendationSpecificR
 	aclObj, err := r.srv.ResolveToken(args.AuthToken)
 	if err != nil {
 		return err
-	} else if aclObj != nil && !allowNsOp(aclObj, args.RequestNamespace()) {
+	} else if !allowNsOp(aclObj, args.RequestNamespace()) {
 		return structs.ErrPermissionDenied
 	}
 
@@ -122,7 +122,7 @@ func (r *Recommendation) ListRecommendations(args *structs.RecommendationListReq
 	aclObj, err := r.srv.ResolveToken(args.AuthToken)
 	if err != nil {
 		return err
-	} else if aclObj != nil && !allowNsOp(aclObj, args.RequestNamespace()) {
+	} else if !allowNsOp(aclObj, args.RequestNamespace()) {
 		return structs.ErrPermissionDenied
 	}
 
@@ -190,7 +190,7 @@ func (r *Recommendation) UpsertRecommendation(args *structs.RecommendationUpsert
 	aclObj, err := r.srv.ResolveToken(args.AuthToken)
 	if err != nil {
 		return err
-	} else if aclObj != nil && !allowNsOp(aclObj, args.RequestNamespace()) {
+	} else if !allowNsOp(aclObj, args.RequestNamespace()) {
 		return structs.ErrPermissionDenied
 	}
 
@@ -331,7 +331,7 @@ func (r *Recommendation) DeleteRecommendations(args *structs.RecommendationDelet
 		if rec == nil {
 			return structs.NewErrRPCCoded(404, fmt.Sprintf("recommendation %q does not exist", id))
 		}
-		if aclObj != nil && !allowNsOp(aclObj, rec.Namespace) {
+		if !allowNsOp(aclObj, rec.Namespace) {
 			return structs.ErrPermissionDenied
 		}
 	}
@@ -464,10 +464,10 @@ func (r *Recommendation) ApplyRecommendations(args *structs.RecommendationApplyR
 		if err != nil {
 			return err
 		}
-		if rec == nil || (aclObj != nil && !readRecOp(aclObj, rec.Namespace)) {
+		if rec == nil || !readRecOp(aclObj, rec.Namespace) {
 			// doesn't exist (absolutely or relative to our token)
 			mErr.Errors = append(mErr.Errors, fmt.Errorf("recommendation does not exist: %v", id))
-		} else if aclObj != nil && !submitJobOp(aclObj, rec.Namespace) {
+		} else if !submitJobOp(aclObj, rec.Namespace) {
 			// catch this early: don't have permission to apply this recommendation
 			return structs.ErrPermissionDenied
 		} else {

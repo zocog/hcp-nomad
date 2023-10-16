@@ -40,7 +40,7 @@ func (l *License) GetLicense(args *structs.LicenseGetRequest, reply *structs.Lic
 	// Check OperatorRead permissions
 	if aclObj, err := l.srv.ResolveToken(args.AuthToken); err != nil {
 		return err
-	} else if aclObj != nil && !aclObj.AllowOperatorRead() {
+	} else if !aclObj.AllowOperatorRead() {
 		return structs.ErrPermissionDenied
 	}
 
