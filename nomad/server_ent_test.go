@@ -31,7 +31,11 @@ func TestServer_Bad_License(t *testing.T) {
 	config.DevMode = false // raft should actually happen if our expected error doesn't occur
 	config.LicenseConfig.BuildDate = time.Now().Add(time.Hour * 24 * 365)
 
-	s, err := NewServer(config, &consul.MockCatalog{}, &consul.MockConfigsAPI{}, &consul.MockACLsAPI{})
+	s, err := NewServer(
+		config, &consul.MockCatalog{},
+		func(_ string) consul.ConfigAPI { return &consul.MockConfigsAPI{} },
+		&consul.MockACLsAPI{},
+	)
 	t.Cleanup(func() { // in case somehow it manages to start
 		if s == nil {
 			return
