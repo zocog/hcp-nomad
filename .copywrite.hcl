@@ -24,6 +24,6 @@ project {
     "nomad/sentinel*",
     "nomad/structs/generate_ent.sh",
     "scheduler/scheduler_ent_shared.go",
-    "scripts/enterprise/merge-oss.sh",
+    "scripts/enterprise/merge-ce.sh",
   ]
 }
