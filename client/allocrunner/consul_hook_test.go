@@ -220,3 +220,93 @@ func Test_consulHook_prepareConsulTokensForServices(t *testing.T) {
 		})
 	}
 }
+
+func consulHookEntTestHarness(t *testing.T) *consulHook {
+	logger := testlog.HCLogger(t)
+
+	alloc := mock.Alloc()
+	task := alloc.LookupTask("web")
+	task.Consul = &structs.Consul{
+		Cluster: "foo",
+	}
+	task.Identities = []*structs.WorkloadIdentity{
+		{Name: fmt.Sprintf("%s_foo", structs.ConsulTaskIdentityNamePrefix)},
+	}
+	task.Services = []*structs.Service{
+		{
+			Provider: structs.ServiceProviderConsul,
+			Identity: &structs.WorkloadIdentity{Name: "consul-service_webservice", Audience: []string{"consul.io"}},
+			Cluster:  "foo",
+			Name:     "webservice",
+			TaskName: "web",
+		},
+	}
+
+	identitiesToSign := []*structs.WorkloadIdentity{}
+	identitiesToSign = append(identitiesToSign, task.Identities...)
+	for _, service := range task.Services {
+		identitiesToSign = append(identitiesToSign, service.Identity)
+	}
+
+	// setup mock signer and sign the identities
+	mockSigner := widmgr.NewMockWIDSigner(identitiesToSign)
+	signedIDs, err := mockSigner.SignIdentities(1, []*structs.WorkloadIdentityRequest{
+		{
+			AllocID: alloc.ID,
+			WIHandle: structs.WIHandle{
+				WorkloadIdentifier: task.Name,
+				IdentityName:       task.Identities[0].Name,
+			},
+		},
+		{
+			AllocID: alloc.ID,
+			WIHandle: structs.WIHandle{
+				WorkloadIdentifier: task.Services[0].Name,
+				IdentityName:       task.Services[0].Identity.Name,
+				WorkloadType:       structs.WorkloadTypeService,
+			},
+		},
+	})
+	must.NoError(t, err)
+
+	mockWIDMgr := widmgr.NewMockWIDMgr(signedIDs)
+
+	consulConfigs := map[string]*structsc.ConsulConfig{
+		"foo": {Name: "foo"},
+	}
+
+	hookResources := cstructs.NewAllocHookResources()
+
+	consulHookCfg := consulHookConfig{
+		alloc:                   alloc,
+		allocdir:                nil,
+		widmgr:                  mockWIDMgr,
+		consulConfigs:           consulConfigs,
+		consulClientConstructor: consul.NewMockConsulClient,
+		hookResources:           hookResources,
+		logger:                  logger,
+	}
+	return newConsulHook(consulHookCfg)
+}
+
+func Test_consulHook_nonDefaultCluster(t *testing.T) {
+	ci.Parallel(t)
+
+	tokens := map[string]map[string]string{}
+
+	hook := consulHookEntTestHarness(t)
+	task := hook.alloc.LookupTask("web")
+	hashForFooCluster := md5.Sum([]byte("consul_foo"))
+
+	must.NoError(t, hook.prepareConsulTokensForTask(task, nil, tokens))
+
+	services := task.Services
+	hashForService := md5.Sum([]byte("consul-service_webservice"))
+
+	must.NoError(t, hook.prepareConsulTokensForServices(services, nil, tokens))
+	must.Eq(t, map[string]map[string]string{
+		"foo": {
+			"consul-service_webservice": hex.EncodeToString(hashForService[:]),
+			"consul_foo":                hex.EncodeToString(hashForFooCluster[:]),
+		}}, tokens)
+}
