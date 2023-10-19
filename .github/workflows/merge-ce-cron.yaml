@@ -1,17 +1,17 @@
-name: Merge OSS to ENT Nightly
+name: Merge CE to ENT Nightly
 on:
   schedule:
     - cron: '0 4 * * 1-5'
   workflow_dispatch:
 jobs:
   merge-main:
-    uses: ./.github/workflows/merge-oss.yaml
+    uses: ./.github/workflows/merge-ce.yaml
     with:
       origin_branch: main
       dest_branch: main
     secrets:
-      NOMAD_MERGE_OSS_GH_PAT: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
-      NOMAD_MERGE_OSS_SLACK: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
+      NOMAD_MERGE_CE_GH_PAT: ${{ secrets.NOMAD_MERGE_CE_GH_PAT }}
+      NOMAD_MERGE_CE_SLACK: ${{ secrets.NOMAD_MERGE_CE_SLACK }}
 
   merge-release-branch:
     strategy:
@@ -22,13 +22,13 @@ jobs:
           - release/1.3.x
           - release/1.2.x
           - release/1.1.x
-    uses: ./.github/workflows/merge-oss.yaml
+    uses: ./.github/workflows/merge-ce.yaml
     with:
       origin_branch: ${{ matrix.branch }}
       dest_branch: ${{ matrix.branch }}+ent
     secrets:
-      NOMAD_MERGE_OSS_GH_PAT: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
-      NOMAD_MERGE_OSS_SLACK: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
+      NOMAD_MERGE_CE_GH_PAT: ${{ secrets.NOMAD_MERGE_CE_GH_PAT }}
+      NOMAD_MERGE_CE_SLACK: ${{ secrets.NOMAD_MERGE_CE_SLACK }}
 
   slack-notify-success:
     needs:
@@ -41,7 +41,7 @@ jobs:
         with:
           payload: |
             {
-              "text": ":green::merge::nomad-happy: Nightly Nomad OSS->ENT merge completed *successfully*",
+              "text": ":green::merge::nomad-happy: Nightly Nomad CE->ENT merge completed *successfully*",
               "attachments": [
                 {
                   "color": "#5ABB54",
@@ -64,7 +64,7 @@ jobs:
               ]
             }
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
+          SLACK_WEBHOOK_URL: ${{ secrets.NOMAD_MERGE_CE_SLACK }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 permissions:
   contents: read

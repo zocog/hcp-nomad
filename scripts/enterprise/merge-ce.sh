@@ -4,13 +4,13 @@ set -euo pipefail
 
 usage() {
     cat <<'EOF'
-  usage: merge-oss.sh [OSS_BRANCH] [ENT_BRANCH] [TMP_BRANCH]
+  usage: merge-ce.sh [CE_BRANCH] [ENT_BRANCH] [TMP_BRANCH]
 
-merge-oss automates propagating OSS changes into Enterprise, and resolves common
+merge-ce automates propagating CE changes into Enterprise, and resolves common
 conflict resources. On success, it creates a temporary branch that can be used
 to open a PR for merger
 
-Defaults to merging oss/main to oss/
+Defaults to merging ce/main to ce/
 EOF
 }
 
@@ -25,25 +25,25 @@ dest_branch="${2:-main}"
 tmp_branch="${3:-}"
 
 if [ -z "${tmp_branch}" ]; then
-    tmp_branch="oss-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
+    tmp_branch="ce-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
 fi
 
 git pull origin "${dest_branch}"
 
-# Merge OSS main branch to Enterprise merge branch
-if ! git remote get-url oss 1>/dev/null 2>/dev/null; then
-    git remote add oss https://github.com/hashicorp/nomad.git
+# Merge CE main branch to Enterprise merge branch
+if ! git remote get-url ce 1>/dev/null 2>/dev/null; then
+    git remote add ce https://github.com/hashicorp/nomad.git
 fi
 
-git fetch oss "${origin_branch}"
+git fetch ce "${origin_branch}"
 
 git checkout -b "${tmp_branch}"
 git reset --hard "origin/${dest_branch}"
 
-latest_oss_commit="$(git rev-parse "oss/${origin_branch}")"
-message="Merge Nomad OSS branch '${origin_branch}' at commit ${latest_oss_commit}"
+latest_ce_commit="$(git rev-parse "ce/${origin_branch}")"
+message="Merge Nomad CE branch '${origin_branch}' at commit ${latest_ce_commit}"
 
-if ! git merge -m "$message" "oss/${origin_branch}"; then
+if ! git merge -m "$message" "ce/${origin_branch}"; then
     # try to merge common conflicting files
     git status
     git checkout --theirs .go-version
