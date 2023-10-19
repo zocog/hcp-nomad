@@ -100,30 +100,31 @@ our current licensing.
 
 ## Housekeeping Items
 
-### Updating Enterprise with OSS Code
+### Updating Enterprise with CE Code
 
-The Enterprise codebase should be in sync with the [OSS
-repository](https://github.com/hashicorp/nomad), by merging the OSS codebase
+The Enterprise codebase should be in sync with the [CE
+repository](https://github.com/hashicorp/nomad), by merging the CE codebase
 periodically. The branches that are kept in sync automatically are `main` and
 the last three `release/<MAJOR>.<MINOR>.x` release branches.
 
 This process is automated via the
-[`merge-oss-cron.yaml`](https://github.com/hashicorp/nomad-enterprise/blob/main/.github/workflows/merge-oss-cron.yaml)
+[`merge-ce-cron.yaml`](https://github.com/hashicorp/nomad-enterprise/blob/main/.github/workflows/merge-ce-cron.yaml)
 GitHub Action workflow. This workflow can be manually triggered from the UI by
 visiting the
-[`Merge OSS to ENT
-Nightly`](https://github.com/hashicorp/nomad-enterprise/actions/workflows/merge-oss-cron.yaml)
+[`Merge CE to ENT
+Nightly`](https://github.com/hashicorp/nomad-enterprise/actions/workflows/merge-ce-cron.yaml)
 Actions page and clicking the `Run workflow` button. Select the `main` branch
 to run the latest merge logic, or pick your own branch if you are testing
-changes to the workflow itself.
+changes to the workflow itself. **If you are looking to quickly merge CE to ENT
+without waiting for nightly, use this!**
 
 You can also merge two arbitrary branches using the
-[`merge-oss-manualy.yaml`](https://github.com/hashicorp/nomad-enterprise/blob/main/.github/workflows/merge-oss-manualy.yaml)
+[`merge-ce-manually.yaml`](https://github.com/hashicorp/nomad-enterprise/blob/main/.github/workflows/merge-ce-manually.yaml)
 workflow.
-To trigger this workflow, visit the [`Merge OSS to ENT
-Manually`](https://github.com/hashicorp/nomad-enterprise/actions/workflows/merge-oss-manualy.yaml)
-Actions page, click `Run workflow`, and select the source (OSS) branch and the
-destination (ENT) branch.
+To trigger this workflow, visit the [`Merge CE to ENT
+Manually`](https://github.com/hashicorp/nomad-enterprise/actions/workflows/merge-ce-manually.yaml)
+Actions page, click `Run workflow`, and select the source (CE) branch and the
+destination (ENT) branch. This workflow is used during the release process.
 
 Manual merging is necessary sometimes, due to merge conflicts. When this
 happens, the workflow fails and it outputs a series of commands that can be

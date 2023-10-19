@@ -1,10 +1,10 @@
-name: Merge OSS to ENT
+name: Merge CE to ENT
 on:
   # Allow this Action to be triggered by other Actions.
   workflow_call:
     inputs:
       origin_branch:
-        description: 'The source OSS branch'
+        description: 'The source CE branch'
         type: string
         required: true
       dest_branch:
@@ -12,17 +12,17 @@ on:
         type: string
         required: true
     secrets:
-      NOMAD_MERGE_OSS_GH_PAT:
+      NOMAD_MERGE_CE_GH_PAT:
         description: 'The GitHub Personal Access Token to use for the merge commit'
         required: true
-      NOMAD_MERGE_OSS_SLACK:
+      NOMAD_MERGE_CE_SLACK:
         description: 'The Slack app incoming webhook URL to use for notification'
         required: true
 env:
   GOPRIVATE: github.com/hashicorp
   GITHUB_USER: hc-github-team-nomad-core
 jobs:
-  merge-oss:
+  merge-ce:
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     outputs:
@@ -32,7 +32,7 @@ jobs:
         with:
           ref: ${{ inputs.dest_branch }}
           fetch-depth: 0
-          token: ${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}
+          token: ${{ secrets.NOMAD_MERGE_CE_GH_PAT }}
       - name: Determine Go version
         id: get-go-version
         run: |
@@ -41,10 +41,10 @@ jobs:
       - uses: magnetikonline/action-golang-cache@v2 # TSCCR: no entry for repository "magnetikonline/action-golang-cache"
         with:
           go-version: ${{ steps.get-go-version.outputs.go-version }}
-          cache-key-suffix: -${{ inputs.origin_branch }}-${{ inputs.dest_branch }}-merge-oss
+          cache-key-suffix: -${{ inputs.origin_branch }}-${{ inputs.dest_branch }}-merge-ce
       - name: Configure Git
         run: |
-          git config --global url.'https://${{ secrets.NOMAD_MERGE_OSS_GH_PAT }}@github.com'.insteadOf 'https://github.com'
+          git config --global url.'https://${{ secrets.NOMAD_MERGE_CE_GH_PAT }}@github.com'.insteadOf 'https://github.com'
           git config --global user.email "github-team-nomad-core@hashicorp.com"
           git config --global user.name "@${{ env.GITHUB_USER }}"
       - name: Run Script
@@ -52,22 +52,22 @@ jobs:
         run: |
           set -xeuo pipefail
 
-          # Add OSS repo and fetch origin branch
-          git remote add oss https://github.com/hashicorp/nomad.git
-          git fetch oss ${{ inputs.origin_branch }}
+          # Add CE repo and fetch origin branch
+          git remote add ce https://github.com/hashicorp/nomad.git
+          git fetch ce ${{ inputs.origin_branch }}
 
           # Get branch names and commit SHAs
           origin_branch="${{ inputs.origin_branch }}"
-          origin_sha="$(git rev-parse --short oss/${origin_branch})"
+          origin_sha="$(git rev-parse --short ce/${origin_branch})"
           dest_branch="${{ inputs.dest_branch }}"
           dest_sha="$(git rev-parse --short ${dest_branch})"
-          tmp_branch="ci/oss-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
+          tmp_branch="ci/ce-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
 
 
           # Print job summary
-          echo "Merging OSS branch '${origin_branch}' into ENT branch '${dest_branch}'"
+          echo "Merging CE branch '${origin_branch}' into ENT branch '${dest_branch}'"
           cat << EOF >> "$GITHUB_STEP_SUMMARY"
-          Merging OSS branch \`${origin_branch}\` into ENT branch \`${dest_branch}\`
+          Merging CE branch \`${origin_branch}\` into ENT branch \`${dest_branch}\`
 
           | Source branch                                                                                   | Destination branch                                                                                 | Go version                                     |
           | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
@@ -81,7 +81,7 @@ jobs:
 
           # Run the merge script
           echo "::group::Run merge script"
-          if ! ./scripts/enterprise/merge-oss.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}" ; then
+          if ! ./scripts/enterprise/merge-ce.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}" ; then
             echo "::error::git was unable to auto-merge"
             echo "reason=git was unable to auto-merge" >> "$GITHUB_OUTPUT"
 
@@ -127,25 +127,25 @@ jobs:
           exit 0
   handle-failure:
     needs:
-      - merge-oss
-    if: always() && needs.merge-oss.result == 'failure'
+    - merge-ce
+    if: always() && needs.merge-ce.result == 'failure'
     runs-on: ubuntu-20.04
     steps:
       - name: Generate failure summary
         run: |
           origin_branch="${{ inputs.origin_branch }}"
           dest_branch="${{ inputs.dest_branch }}"
-          tmp_branch="ci/oss-merge-${{ inputs.origin_branch }}-$(date -u +%Y%m%d%H%M%S)"
+          tmp_branch="ci/ce-merge-${{ inputs.origin_branch }}-$(date -u +%Y%m%d%H%M%S)"
 
           cat << EOF >> "$GITHUB_STEP_SUMMARY"
-            :x: Merge of OSS branch \`${{ inputs.origin_branch }}\` into ENT \`${{ inputs.dest_branch }}\` failed
+            :x: Merge of CE branch \`${{ inputs.origin_branch }}\` into ENT \`${{ inputs.dest_branch }}\` failed
 
             Please run the following commands in the \`hashicorp/nomad-enterprise\` repo to manually fix the conflicts:
 
             \`\`\`bash
             git checkout "${dest_branch}"
             git pull
-            ./scripts/enterprise/merge-oss.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}"
+            ./scripts/enterprise/merge-ce.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}"
 
             # Fix merge conflicts
 
@@ -164,7 +164,7 @@ jobs:
         with:
           payload: |
             {
-              "text": ":x::merge-on-fire::nomad-sob: Nomad OSS->ENT merge *FAILED*",
+              "text": ":x::merge-on-fire::nomad-sob: Nomad CE->ENT merge *FAILED*",
               "attachments": [
                 {
                   "color": "#C41E3A",
@@ -174,7 +174,7 @@ jobs:
                       "fields": [
                         {
                           "type": "mrkdwn",
-                          "text": "*Reason:*\n${{ needs.merge-oss.outputs.reason }}"
+                          "text": "*Reason:*\n${{ needs.merge-ce.outputs.reason }}"
                         }
                       ]
                     },
@@ -209,7 +209,7 @@ jobs:
               ]
             }
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.NOMAD_MERGE_OSS_SLACK }}
+          SLACK_WEBHOOK_URL: ${{ secrets.NOMAD_MERGE_CE_SLACK }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 permissions:
   contents: read
