@@ -1,15 +1,15 @@
 # NOTE FOR FUTURE EDITORS!
 # Changes to this file do not need to be backported,
-# because it can pull any source (OSS) branch
+# because it can pull any source (CE) branch
 # into any dest (ENT)
 
-name: Merge OSS to ENT
+name: Merge CE to ENT
 on:
   # Allow this Action to be triggered by other Actions.
   workflow_call:
     inputs:
       origin_branch:
-        description: 'The source OSS branch'
+        description: 'The source CE branch'
         type: string
         required: true
       dest_branch:
@@ -21,7 +21,7 @@ env:
   GOPRIVATE: github.com/hashicorp
   GITHUB_USER: hc-github-team-nomad-core
 jobs:
-  merge-oss:
+  merge-ce:
     # big disk for better iops for linting in `make check`
     runs-on: ${{ fromJSON('["self-hosted", "ondemand", "linux", "size_gb=255"]') }}
     permissions:
@@ -58,22 +58,22 @@ jobs:
         run: |
           set -xeuo pipefail
 
-          # Add OSS repo and fetch origin branch
-          git remote add oss https://github.com/hashicorp/nomad.git
-          git fetch oss ${{ inputs.origin_branch }}
+          # Add CE repo and fetch origin branch
+          git remote add ce https://github.com/hashicorp/nomad.git
+          git fetch ce ${{ inputs.origin_branch }}
 
           # Get branch names and commit SHAs
           origin_branch="${{ inputs.origin_branch }}"
-          origin_sha="$(git rev-parse --short oss/${origin_branch})"
+          origin_sha="$(git rev-parse --short ce/${origin_branch})"
           dest_branch="${{ inputs.dest_branch }}"
           dest_sha="$(git rev-parse --short ${dest_branch})"
-          tmp_branch="ci/oss-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
+          tmp_branch="ci/ce-merge-${origin_branch}-$(date -u +%Y%m%d%H%M%S)"
 
 
           # Print job summary
-          echo "Merging OSS branch '${origin_branch}' into ENT branch '${dest_branch}'"
+          echo "Merging CE branch '${origin_branch}' into ENT branch '${dest_branch}'"
           cat << EOF >> "$GITHUB_STEP_SUMMARY"
-          Merging OSS branch \`${origin_branch}\` into ENT branch \`${dest_branch}\`
+          Merging CE branch \`${origin_branch}\` into ENT branch \`${dest_branch}\`
 
           | Source branch                                                                                   | Destination branch                                                                                 | Go version                                     |
           | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
@@ -87,7 +87,7 @@ jobs:
 
           # Run the merge script
           echo "::group::Run merge script"
-          if ! ./scripts/enterprise/merge-oss.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}" ; then
+          if ! ./scripts/enterprise/merge-ce.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}" ; then
             echo "::error::git was unable to auto-merge"
             echo "reason=git was unable to auto-merge" >> "$GITHUB_OUTPUT"
 
@@ -133,8 +133,8 @@ jobs:
           exit 0
   handle-failure:
     needs:
-      - merge-oss
-    if: always() && needs.merge-oss.result == 'failure'
+      - merge-ce
+    if: always() && needs.merge-ce.result == 'failure'
     runs-on: ['self-hosted', 'linux']
     permissions:
       contents: read
@@ -149,17 +149,17 @@ jobs:
         run: |
           origin_branch="${{ inputs.origin_branch }}"
           dest_branch="${{ inputs.dest_branch }}"
-          tmp_branch="ci/oss-merge-${{ inputs.origin_branch }}-$(date -u +%Y%m%d%H%M%S)"
+          tmp_branch="ci/ce-merge-${{ inputs.origin_branch }}-$(date -u +%Y%m%d%H%M%S)"
 
           cat << EOF >> "$GITHUB_STEP_SUMMARY"
-            :x: Merge of OSS branch \`${{ inputs.origin_branch }}\` into ENT \`${{ inputs.dest_branch }}\` failed
+            :x: Merge of CE branch \`${{ inputs.origin_branch }}\` into ENT \`${{ inputs.dest_branch }}\` failed
 
             Please run the following commands in the \`hashicorp/nomad-enterprise\` repo to manually fix the conflicts:
 
             \`\`\`bash
             git checkout "${dest_branch}"
             git pull
-            ./scripts/enterprise/merge-oss.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}"
+            ./scripts/enterprise/merge-ce.sh "${origin_branch}" "${dest_branch}" "${tmp_branch}"
 
             # Fix merge conflicts
 
@@ -178,7 +178,7 @@ jobs:
         with:
           payload: |
             {
-              "text": ":x::merge-on-fire::nomad-sob: Nomad OSS->ENT merge *FAILED*",
+              "text": ":x::merge-on-fire::nomad-sob: Nomad CE->ENT merge *FAILED*",
               "attachments": [
                 {
                   "color": "#C41E3A",
@@ -188,7 +188,7 @@ jobs:
                       "fields": [
                         {
                           "type": "mrkdwn",
-                          "text": "*Reason:*\n${{ needs.merge-oss.outputs.reason }}"
+                          "text": "*Reason:*\n${{ needs.merge-ce.outputs.reason }}"
                         }
                       ]
                     },

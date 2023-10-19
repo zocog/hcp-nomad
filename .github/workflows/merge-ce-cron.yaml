@@ -1,16 +1,16 @@
 # NOTE FOR FUTURE EDITORS!
 # Changes to this file do not need to be backported,
 # because on `main` it always pulls over all the previous
-# release branches from OSS that we support (current-2).
+# release branches from CE that we support (current-2).
 
-name: Merge OSS to ENT Nightly
+name: Merge CE to ENT Nightly
 on:
   schedule:
     - cron: '0 4 * * 1-5'
   workflow_dispatch:
 jobs:
   merge-main:
-    uses: ./.github/workflows/merge-oss.yaml
+    uses: ./.github/workflows/merge-ce.yaml
     with:
       origin_branch: main
       dest_branch: main
@@ -24,7 +24,7 @@ jobs:
           - release/1.5.x
           - release/1.4.x
           - release/1.3.x
-    uses: ./.github/workflows/merge-oss.yaml
+    uses: ./.github/workflows/merge-ce.yaml
     with:
       origin_branch: ${{ matrix.branch }}
       dest_branch: ${{ matrix.branch }}+ent
@@ -48,7 +48,7 @@ jobs:
         with:
           payload: |
             {
-              "text": ":green::merge::nomad-happy: Nightly Nomad OSS->ENT merge completed *successfully*",
+              "text": ":green::merge::nomad-happy: Nightly Nomad CE->ENT merge completed *successfully*",
               "attachments": [
                 {
                   "color": "#5ABB54",
