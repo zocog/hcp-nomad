@@ -161,6 +161,7 @@ func TestConfig_Merge(t *testing.T) {
 				NodeThreshold: 100,
 				NodeWindow:    11 * time.Minute,
 			},
+			OIDCIssuer: "https://oidc.test.nomadproject.io",
 		},
 		ACL: &ACLConfig{
 			Enabled:               true,
@@ -410,6 +411,7 @@ func TestConfig_Merge(t *testing.T) {
 			},
 			JobMaxPriority:     pointer.Of(200),
 			JobDefaultPriority: pointer.Of(100),
+			OIDCIssuer:         "https://oidc.test.nomadproject.io",
 		},
 		ACL: &ACLConfig{
 			Enabled:               true,

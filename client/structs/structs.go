@@ -45,6 +45,11 @@ type MonitorRequest struct {
 	// LogJSON specifies if log format should be unstructured or json
 	LogJSON bool
 
+	// LogIncludeLocation dictates whether the logger includes file and line
+	// information on each log line. This is useful for Nomad development and
+	// debugging.
+	LogIncludeLocation bool
+
 	// NodeID is the node we want to track the logs of
 	NodeID string
 
@@ -181,6 +186,9 @@ type AllocExecRequest struct {
 
 	// Cmd is the command to be executed
 	Cmd []string
+
+	// The name of a predefined command to be executed (optional)
+	Action string
 
 	structs.QueryOptions
 }
