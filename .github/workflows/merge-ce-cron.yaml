@@ -45,7 +45,7 @@ jobs:
         with:
           payload: |
             {
-              "text": ":green::merge::nomad-happy: Nightly Nomad CE->ENT merge completed *successfully*",
+              "text": ":green::merge::nomad-happy: Nightly `${{ github.repository }}` CE->ENT merge completed *successfully*",
               "attachments": [
                 {
                   "color": "#5ABB54",

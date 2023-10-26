@@ -178,7 +178,7 @@ jobs:
         with:
           payload: |
             {
-              "text": ":x::merge-on-fire::nomad-sob: Nomad CE->ENT merge *FAILED*",
+              "text": ":x::merge-on-fire::nomad-sob: `${{ github.repository }}` CE->ENT merge *FAILED*",
               "attachments": [
                 {
                   "color": "#C41E3A",
