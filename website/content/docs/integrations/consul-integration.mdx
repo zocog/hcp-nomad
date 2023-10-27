@@ -60,8 +60,9 @@ a Consul token to submit a job.
 ### Configuring Consul Authentication
 
 Create a configuration file for a Consul [JWT Auth Method][]. The `JWKSURL`
-field should point to the Nomad servers. The remaining fields are required to
-match those shown here.
+field should point to all the Nomad servers; you should use a proxy or DNS A
+Record to ensure that requests can go to any server in the cluster. The
+remaining fields are required to match those shown here.
 
 ```json
 {
@@ -79,7 +80,7 @@ match those shown here.
 
 Using that configuration file, you'll create two different Consul Auth Methods:
 
-* The first, named `nomad-workloads`, controls authentication for Service
+* The first, named `nomad-services`, controls authentication for Service
   Identity tokens used to register services and configure Consul Connect. You'll
   create a binding rule for this method that maps Nomad `service` blocks to
   Consul services.
@@ -101,7 +102,7 @@ In Consul Community Edition, you'll always bind to the default Consul namespace.
 
 ```shell-session
 $ consul acl auth-method create \
-         -name 'nomad-workloads' \
+         -name 'nomad-services' \
          -type jwt \
          -description 'login method for Nomad services' \
          -format json \
@@ -117,7 +118,7 @@ In Consul Enterprise, you'll map a Nomad namespace to a Consul namespace.
 
 ```shell-session
 $ consul acl auth-method create \
-         -name 'nomad-workloads' \
+         -name 'nomad-services' \
          -type jwt \
          -description 'login method for Nomad services' \
          -format json \
@@ -134,7 +135,7 @@ Consul Service Identity.
 
 ```shell-session
 $ consul acl binding-rule create \
-         -method 'nomad-workloads' \
+         -method 'nomad-services' \
          -description 'binding rule for Nomad workload identities (WI)' \
          -bind-type service \
          -bind-name '${value.nomad_namespace}-${value.nomad_service}'
@@ -234,9 +235,13 @@ service_prefix "" {
 }
 ```
 
+<Note>
+
 This legacy workflow will be removed in Nomad 1.9. Before upgrading to Nomad 1.9
 you will need to have configured authentication with Consul as described in
 [Configuring Consul Authentication](#configuring-consul-authentication).
+
+</Note>
 
 ## Migrating to Using Workload Identity with Consul
 
