@@ -124,7 +124,7 @@ require (
 	github.com/rs/cors v1.8.3
 	github.com/ryanuber/columnize v2.1.2+incompatible
 	github.com/ryanuber/go-glob v1.0.0
-	github.com/shirou/gopsutil/v3 v3.23.4
+	github.com/shirou/gopsutil/v3 v3.23.9
 	github.com/shoenig/go-landlock v0.1.5
 	github.com/shoenig/go-m1cpu v0.1.6
 	github.com/shoenig/test v0.6.7
@@ -276,8 +276,8 @@ require (
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v1.0.162 // indirect
 	github.com/tj/go-spin v1.1.0 // indirect
-	github.com/tklauser/go-sysconf v0.3.11 // indirect
-	github.com/tklauser/numcpus v0.6.0 // indirect
+	github.com/tklauser/go-sysconf v0.3.12 // indirect
+	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/vektra/mockery v0.0.0-20181123154057-e78b021dcbb5 // indirect
@@ -286,7 +286,7 @@ require (
 	github.com/vmihailenco/msgpack/v4 v4.3.12 // indirect
 	github.com/vmihailenco/tagparser v0.1.1 // indirect
 	github.com/vmware/govmomi v0.18.0 // indirect
-	github.com/yusufpapurcu/wmi v1.2.2 // indirect
+	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
