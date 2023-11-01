@@ -57,8 +57,8 @@ $ vault auth enable jwt
 ```
 
 Create a configuration file for the default Vault [Role][]. This configuration
-maps each Nomad job to its own Vault user claim. You can set the `token_ttl` and
-`token_policies` to whatever value is suitable for your environment. A
+maps each Nomad job to its own Vault user claim. You can set the `token_period`
+and `token_policies` to whatever value is suitable for your environment. A
 recommended policy is shown later.
 
 ```json
@@ -71,7 +71,7 @@ recommended policy is shown later.
     "nomad_namespace": "nomad_namespace",
     "nomad_job_id": "nomad_job_id"
   },
-  "token_ttl": "30m",
+  "token_period": "30m",
   "token_type": "service",
   "token_policies": ["nomad-workloads"]
 }
@@ -122,7 +122,7 @@ Next, write a Vault policy file using that accessor. Note that `auth_jwt_3a9350f
  is the accessor shown above and you should replace it with
 the results from your own Vault cluster.
 
-```json
+```hcl
 path "secret/data/{{identity.entity.aliases.auth_jwt_3a9350fe.metadata.nomad_namespace}}/{{identity.entity.aliases.auth_jwt_3a9350fe.metadata.nomad_job_id}}/*" {
   capabilities = ["read"]
 }
@@ -143,7 +143,7 @@ path "secret/metadata/*" {
 Using that policy configuration file, create the Vault policy.
 
 ```shell-session
-$ vault policy write nomad-workloads @vault-policy.json
+$ vault policy write nomad-workloads vault-policy.hcl
 ```
 
 You can write additional Vault policies that give Nomad workloads using the
