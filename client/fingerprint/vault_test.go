@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/nomad/client/config"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/nomad/structs"
-	sconfig "github.com/hashicorp/nomad/nomad/structs/config"
 	"github.com/hashicorp/nomad/testutil"
 )
 
@@ -35,8 +34,7 @@ func TestVaultFingerprint(t *testing.T) {
 	}
 
 	conf := config.DefaultConfig()
-	conf.VaultConfig = tv.Config
-	conf.VaultConfigs = map[string]*sconfig.VaultConfig{"default": tv.Config}
+	conf.VaultConfigs[structs.VaultDefaultCluster] = tv.Config
 
 	request := &FingerprintRequest{Config: conf, Node: node}
 	var response FingerprintResponse
