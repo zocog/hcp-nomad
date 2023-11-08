@@ -78,7 +78,6 @@ func Test_templateHook_Prestart_MultiVault(t *testing.T) {
 			Enabled: pointer.Of(false),
 		},
 	}
-	clientConfig.VaultConfig = clientConfig.VaultConfigs[structs.VaultDefaultCluster]
 
 	testCases := []struct {
 		name        string
@@ -117,6 +116,7 @@ func Test_templateHook_Prestart_MultiVault(t *testing.T) {
 			// Setup template hook.
 			taskDir := t.TempDir()
 			hookConfig := &templateHookConfig{
+				alloc:        alloc,
 				logger:       testlog.HCLogger(t),
 				lifecycle:    trtesting.NewMockTaskHooks(),
 				events:       &trtesting.MockEmitter{},

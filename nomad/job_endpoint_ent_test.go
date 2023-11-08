@@ -1314,7 +1314,7 @@ func TestJobEndpoint_Register_Connect_AllowUnauthenticatedFalse_ent(t *testing.T
 
 	s1, cleanupS1 := TestServer(t, func(c *Config) {
 		c.NumSchedulers = 0 // Prevent automatic dequeue
-		c.ConsulConfig.AllowUnauthenticated = pointer.Of(false)
+		c.ConsulConfigs[structs.ConsulDefaultCluster].AllowUnauthenticated = pointer.Of(false)
 	})
 	defer cleanupS1()
 	codec := rpcClient(t, s1)

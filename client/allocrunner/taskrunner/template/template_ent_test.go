@@ -93,7 +93,6 @@ func TestTaskTemplateManager_Config_MultiVault(t *testing.T) {
 			c := config.DefaultConfig()
 			c.Node = mock.Node()
 			c.VaultConfigs = vaultConfigs
-			c.VaultConfig = vaultConfigs[structs.VaultDefaultCluster]
 
 			// Use consul-template default so we don't need to update every
 			// test case.
