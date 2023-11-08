@@ -23,9 +23,5 @@ func (c *Config) GetVaultConfigs(logger hclog.Logger) map[string]*structsc.Vault
 // GetConsulConfigs returns the set of Consul configurations available for this
 // client. In Nomad CE we only use the default Consul.
 func (c *Config) GetConsulConfigs(logger hclog.Logger) map[string]*structsc.ConsulConfig {
-	if c.ConsulConfigs == nil {
-		return nil
-	}
-
 	return c.ConsulConfigs
 }
