@@ -36,6 +36,7 @@
     "helper/...",
     "internal/...",
     "jobspec/...",
+    "jobspec2/...",
     "lib/...",
     "nomad/auth/...",
     "nomad/deploymentwatcher/...",
