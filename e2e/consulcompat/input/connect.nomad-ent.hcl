@@ -3,9 +3,15 @@
 
 job "countdash" {
 
+  namespace = "prod"
+
   group "api" {
     network {
       mode = "bridge"
+    }
+
+    consul {
+      namespace = "prod"
     }
 
     service {
@@ -36,6 +42,10 @@ job "countdash" {
       }
     }
 
+    consul {
+      namespace = "prod"
+    }
+
     service {
       name = "count-dashboard"
       port = "9002"
@@ -63,7 +73,6 @@ job "countdash" {
         image          = "hashicorpdev/counter-dashboard:v3"
         auth_soft_fail = true
       }
-
 
       # this template can't be used for the COUNTING_SERVICE_URL because it
       # needs the Nomad-assigned upstream address here and not the Consul

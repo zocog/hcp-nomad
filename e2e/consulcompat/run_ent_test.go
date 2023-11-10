@@ -1,24 +1,24 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
-//go:build !ent
+//go:build ent
 
 package consulcompat
 
 import (
 	"testing"
 
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/testutil"
+	"github.com/shoenig/test/must"
 )
 
 // usable is used by the downloader to verify that we're getting the right
-// versions of Consul CE
+// versions of Consul ENT
 func usable(v, minimum *version.Version) bool {
 	switch {
 	case v.Prerelease() != "":
 		return false
-	case v.Metadata() != "":
+	case v.Metadata() != "ent":
 		return false
 	case v.LessThan(minimum):
 		return false
@@ -33,6 +33,8 @@ func testConsulBuildLegacy(t *testing.T, b build, baseDir string) {
 
 		// smoke test before we continue
 		verifyConsulVersion(t, consulAPI, b.Version)
+
+		setupConsulNamespace(t, consulAPI)
 
 		// we need an ACL policy that allows the Nomad agent to fingerprint
 		// Consul, register services, render templates, and mint new SI tokens
@@ -53,9 +55,18 @@ func testConsulBuildLegacy(t *testing.T, b build, baseDir string) {
 		}
 
 		nc := startNomad(t, consulCfg)
-
 		verifyConsulFingerprint(t, nc, b.Version, "default")
-		runConnectJob(t, nc, "default", "./input/connect.nomad.hcl")
+
+		nc.Namespaces().Register(&api.Namespace{
+			Name:        "prod",
+			Description: "namespace for production workloads",
+			ConsulConfiguration: &api.NamespaceConsulConfiguration{
+				Default: "default",
+				Allowed: []string{"default"},
+			},
+		}, nil)
+
+		runConnectJob(t, nc, "prod", "./input/connect.nomad-ent.hcl")
 	})
 }
 
@@ -65,6 +76,8 @@ func testConsulBuild(t *testing.T, b build, baseDir string) {
 
 		// smoke test before we continue
 		verifyConsulVersion(t, consulAPI, b.Version)
+
+		setupConsulNamespace(t, consulAPI)
 
 		// we need an ACL policy that only allows the Nomad agent to fingerprint
 		// Consul and register itself, and set up service intentions
@@ -80,7 +93,7 @@ func testConsulBuild(t *testing.T, b build, baseDir string) {
 		// templates
 		setupConsulServiceIntentions(t, consulAPI)
 		setupConsulACLsForTasks(t, consulAPI,
-			"nomad-default", "./input/consul-policy-for-tasks.hcl")
+			"nomad-prod", "./input/consul-policy-for-tasks.hcl")
 
 		// note: Nomad needs to be live before we can setup Consul auth methods
 		// because we need it up to serve the JWKS endpoint
@@ -105,10 +118,34 @@ func testConsulBuild(t *testing.T, b build, baseDir string) {
 		nc := startNomad(t, consulCfg)
 
 		// configure authentication for WI to Consul
-		setupConsulJWTAuthForServices(t, consulAPI, nc.Address(), nil)
+		setupConsulJWTAuthForServices(t, consulAPI, nc.Address(),
+			[]*consulapi.ACLAuthMethodNamespaceRule{{
+				Selector:      "",
+				BindNamespace: "${value.nomad_namespace}",
+			}},
+		)
 		setupConsulJWTAuthForTasks(t, consulAPI, nc.Address())
 
 		verifyConsulFingerprint(t, nc, b.Version, "default")
-		runConnectJob(t, nc, "default", "./input/connect.nomad.hcl")
+
+		nc.Namespaces().Register(&api.Namespace{
+			Name:        "prod",
+			Description: "namespace for production workloads",
+			ConsulConfiguration: &api.NamespaceConsulConfiguration{
+				Default: "default",
+				Allowed: []string{"default"},
+			},
+		}, nil)
+
+		runConnectJob(t, nc, "prod", "./input/connect.nomad-ent.hcl")
 	})
+}
+
+// setupConsulNamespace installs a "prod" namespace in Consul
+func setupConsulNamespace(t *testing.T, consulAPI *consulapi.Client) {
+	_, _, err := consulAPI.Namespaces().Create(&consulapi.Namespace{
+		Name:        "prod",
+		Description: "Consul namespace for Nomad prod workloads",
+	}, nil)
+	must.NoError(t, err, must.Sprint("could not set up Consul namespace"))
 }
