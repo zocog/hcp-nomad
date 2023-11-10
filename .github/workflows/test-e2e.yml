@@ -35,7 +35,19 @@ on:
       - 'website/**'
 
 env:
+  # Nomad, Consul, and Vault ENT licenses are in the GH repo secrets because we
+  # can't use the CRT Vault for self-hosted runners, which we need for tests
+  # that deploy real workloads with Nomad running as root
+
+  # Nomad license expires on 2024-04-19
   NOMAD_LICENSE: ${{secrets.NOMAD_LICENSE}}
+
+  # Consul license expires on 2024-07-18
+  CONSUL_LICENSE: ${{secrets.CONSUL_LICENSE}}
+
+  # Vault license expires on 2024-07-21
+  VAULT_LICENSE: ${{secrets.VAULT_LICENSE}}
+
   NOMAD_TEST_LOG_LEVEL: WARN
 
 jobs:
