@@ -46,9 +46,9 @@ require (
 	github.com/gosuri/uilive v0.0.4
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/hashicorp/cap v0.2.0
-	github.com/hashicorp/consul-template v0.31.0
-	github.com/hashicorp/consul/api v1.23.0
-	github.com/hashicorp/consul/sdk v0.14.1
+	github.com/hashicorp/consul-template v0.35.0
+	github.com/hashicorp/consul/api v1.26.1
+	github.com/hashicorp/consul/sdk v0.15.0
 	github.com/hashicorp/cronexpr v1.1.2
 	github.com/hashicorp/eventlogger v0.1.1-0.20210917172429-90711333b9d0
 	github.com/hashicorp/go-bexpr v0.1.12
@@ -92,7 +92,7 @@ require (
 	github.com/hashicorp/raft-snapshotagent v0.0.0-20221101163738-6dd36ea18685
 	github.com/hashicorp/sentinel v0.15.5
 	github.com/hashicorp/serf v0.10.1
-	github.com/hashicorp/vault/api v1.9.1
+	github.com/hashicorp/vault/api v1.10.0
 	github.com/hashicorp/yamux v0.1.1
 	github.com/hpcloud/tail v1.0.1-0.20170814160653-37f427138745
 	github.com/klauspost/cpuid/v2 v2.2.5
@@ -119,8 +119,8 @@ require (
 	github.com/opencontainers/runc v1.1.8
 	github.com/opencontainers/runtime-spec v1.1.0-rc.3
 	github.com/posener/complete v1.2.3
-	github.com/prometheus/client_golang v1.14.0
-	github.com/prometheus/common v0.39.0
+	github.com/prometheus/client_golang v1.16.0
+	github.com/prometheus/common v0.42.0
 	github.com/rs/cors v1.8.3
 	github.com/ryanuber/columnize v2.1.2+incompatible
 	github.com/ryanuber/go-glob v1.0.0
@@ -166,7 +166,7 @@ require (
 	github.com/Azure/go-autorest/autorest/validation v0.3.0 // indirect
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
-	github.com/BurntSushi/toml v1.2.1 // indirect
+	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/DataDog/datadog-go v3.2.0+incompatible // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
@@ -228,7 +228,7 @@ require (
 	github.com/hashicorp/mdns v1.0.4 // indirect
 	github.com/hashicorp/raft-snapshot v1.0.2 // indirect
 	github.com/hashicorp/sentinel-sdk v0.3.8 // indirect
-	github.com/hashicorp/vault/api/auth/kubernetes v0.3.0 // indirect
+	github.com/hashicorp/vault/api/auth/kubernetes v0.5.0 // indirect
 	github.com/hashicorp/vic v1.5.1-0.20190403131502-bbfe86ec9443 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.15 // indirect
@@ -236,7 +236,8 @@ require (
 	github.com/jefferai/isbadcipher v0.0.0-20190226160619-51d2077c035f // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
-	github.com/joyent/triton-go v1.7.1-0.20200416154420-6801d15b779f // indirect
+	github.com/joyent/triton-go v0.0.0-20190112182421-51ffac552869 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.15.11 // indirect
 	github.com/linode/linodego v0.7.1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
@@ -247,6 +248,8 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/moby/patternmatcher v0.5.0 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mrunalp/fileutils v0.5.0 // indirect
 	github.com/nicolai86/scaleway-sdk v1.10.2-0.20180628010248-798f60e20bb2 // indirect
@@ -260,7 +263,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
-	github.com/prometheus/procfs v0.8.0 // indirect
+	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/rboyer/safeio v0.2.1 // indirect
 	github.com/renier/xmlrpc v0.0.0-20170708154548-ce4a1a486c03 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
@@ -291,7 +294,7 @@ require (
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/oauth2 v0.6.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.114.0 // indirect
