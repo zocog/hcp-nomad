@@ -172,7 +172,10 @@ func (s *StateStore) updateQuotaWithAlloc(index uint64, new, existing *structs.A
 	if err != nil {
 		return err
 	} else if ns == nil {
-		return fmt.Errorf("allocation %q is in non-existent namespace %q", new.ID, new.Namespace)
+		// The namespace may have just been deleted faster than alloc cleanup,
+		// so log but do not return error.
+		s.logger.Warn("allocation is in non-existent namespace", "alloc_id", new.ID, "namespace", new.Namespace)
+		return nil
 	} else if ns.Quota == "" {
 		// Nothing to do
 		return nil
