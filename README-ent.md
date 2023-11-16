@@ -1,5 +1,11 @@
 # Nomad Enterprise
 
+## Editing 
+
+See [contributing/enterprise.md](contributing/enterprise.md)
+to read about writing and modifying code between
+`nomad-enterprise` and open-source `nomad`.
+
 ## Building
 
 In order to download dependencies from private GitHub repositories set:
