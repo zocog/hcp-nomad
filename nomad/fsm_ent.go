@@ -148,8 +148,9 @@ func (n *nomadFSM) allocQuota(allocID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// Can't have a quota on a non-existent namespace.
 	if ns == nil {
-		return "", fmt.Errorf("unknown namespace %q attached to alloc %q", alloc.Namespace, alloc.ID)
+		return "", nil
 	}
 
 	return ns.Quota, nil
