@@ -900,6 +900,7 @@ func (j *Job) Deregister(args *structs.JobDeregisterRequest, reply *structs.JobD
 		reply.EvalID = eval.ID
 	}
 
+	args.SubmitTime = now
 	args.Eval = eval
 
 	// Commit the job update via Raft
@@ -1000,6 +1001,8 @@ func (j *Job) BatchDeregister(args *structs.JobBatchDeregisterRequest, reply *st
 		}
 		args.Evals = append(args.Evals, eval)
 	}
+
+	args.SubmitTime = time.Now().UnixNano()
 
 	// Commit this update via Raft
 	_, index, err := j.srv.raftApply(structs.JobBatchDeregisterRequestType, args)
@@ -1127,6 +1130,7 @@ func (j *Job) Scale(args *structs.JobScaleRequest, reply *structs.JobRegisterRes
 
 		// Update group count
 		group.Count = int(*args.Count)
+		job.SubmitTime = now
 
 		// Block scaling event if there's an active deployment
 		deployment, err := snap.LatestDeploymentByJobID(ws, namespace, args.JobID)
