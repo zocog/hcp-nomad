@@ -133,3 +133,69 @@ func TestTask_GetConsulCluster(t *testing.T) {
 
 	must.Eq(t, "default", tg2.Tasks[0].GetConsulClusterName(tg2))
 }
+
+func TestConsul_Usages(t *testing.T) {
+	ci.Parallel(t)
+
+	job := &Job{
+		ConsulNamespace: "default",
+		TaskGroups: []*TaskGroup{
+			{
+				Consul: &Consul{Namespace: "nondefault1"},
+				Services: []*Service{
+					{Name: "service1"},
+					{Name: "nomad1", Provider: "nomad"},
+				},
+				Tasks: []*Task{
+					{
+						Consul: &Consul{Namespace: "nondefault2"},
+						Services: []*Service{
+							{Name: "service2"},
+							{Name: "nomad2", Provider: "nomad"},
+						},
+					},
+					{
+						Services: []*Service{
+							{Name: "service3"},
+							{Name: "nomad3", Provider: "nomad"},
+						},
+					},
+				},
+			},
+			{
+				Services: []*Service{
+					{Name: "service4"},
+					{Name: "nomad4", Provider: "nomad"},
+				},
+				Tasks: []*Task{
+					{
+						Services: []*Service{
+							{Name: "service5"},
+							{Name: "nomad5", Provider: "nomad"},
+						},
+						Templates: []*Template{{}},
+					},
+				},
+			},
+		},
+	}
+
+	usages := job.ConsulUsages()
+	must.Eq(t,
+		map[string]*ConsulUsage{
+			"default": {
+				Services: []string{"service4", "service5"},
+				KV:       true,
+			},
+			"nondefault1": {
+				Services: []string{"service1", "service3"},
+				KV:       false,
+			},
+			"nondefault2": {
+				Services: []string{"service2"},
+				KV:       false,
+			},
+		},
+		usages)
+
+}
