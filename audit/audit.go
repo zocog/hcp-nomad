@@ -267,11 +267,11 @@ func (a *Auditor) Event(ctx context.Context, eventType string, payload interface
 			return err
 		}
 		// If run mode isn't inforced, log that we encountered an error
-		a.log.Error("Failed to complete audit log. RunMode not enforced", "err", err.Error())
+		a.log.Error("failed to complete audit log, RunMode not enforced", "error", err.Error())
 	}
 
 	if len(status.Warnings) > 0 {
-		a.log.Warn("encountered warnings writing events", "warnings:", status.Warnings)
+		a.log.Warn("encountered warnings writing events", "warnings", status.Warnings)
 	}
 
 	return nil

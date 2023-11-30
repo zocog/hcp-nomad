@@ -75,7 +75,7 @@ func (s *HTTPServer) eventFromReq(ctx context.Context, req *http.Request, auth *
 	reqIDRaw := ctx.Value(ContextKeyReqID)
 	reqID, ok := reqIDRaw.(string)
 	if !ok || reqID == "" {
-		s.logger.Error("Failed to convert context value for request ID")
+		s.logger.Error("failed to convert context value for request ID")
 		reqID = MissingRequestID
 	}
 
@@ -141,7 +141,7 @@ func (s *HTTPServer) auditRequest(ctx context.Context, req *http.Request) (*audi
 	}
 	if err != nil {
 		// Continue auditing request if token could not be found
-		s.logger.Debug("error retrieving acl token from request", "err", err)
+		s.logger.Debug("error retrieving acl token from request", "error", err)
 	}
 
 	auth := &audit.Auth{
@@ -188,7 +188,7 @@ func (s *HTTPServer) auditHTTPHandler(h http.Handler) http.Handler {
 
 		event, err := s.auditRequest(ctx, req)
 		if err != nil {
-			s.logger.Error("error creating audit entry from request", "err", err, "request_id", reqID)
+			s.logger.Error("error creating audit entry from request", "error", err, "request_id", reqID)
 			// Error sending event, circumvent handler
 			return
 		}
@@ -198,7 +198,7 @@ func (s *HTTPServer) auditHTTPHandler(h http.Handler) http.Handler {
 
 		err = s.auditResp(ctx, rw, event, nil)
 		if err != nil {
-			s.logger.Error("auditing response from HTTPHandler", "err", err, "request_id", reqID)
+			s.logger.Error("auditing response from HTTPHandler", "error", err, "request_id", reqID)
 			// handle this error case (write new response body?)
 			return
 		}
@@ -247,7 +247,8 @@ func (s *HTTPServer) auditHandler(handler handlerFn) handlerFn {
 		event, err := s.auditRequest(ctx, req)
 		if err != nil {
 			// Error sending event, circumvent handler
-			s.logger.Error("failed to audit log request, blocking response", "err", err, "request_id", reqID)
+			s.logger.Error("failed to audit log request, blocking response",
+				"error", err, "request_id", reqID)
 			return nil, err
 		}
 
@@ -256,7 +257,8 @@ func (s *HTTPServer) auditHandler(handler handlerFn) handlerFn {
 
 		err = s.auditResp(ctx, rw, event, rspErr)
 		if err != nil {
-			s.logger.Error("failed to audit log response, blocking response", "err", err, "request_id", reqID)
+			s.logger.Error("failed to audit log response, blocking response",
+				"error", err, "request_id", reqID)
 			return nil, err
 		}
 
@@ -286,7 +288,8 @@ func (s *HTTPServer) auditNonJSONHandler(handler handlerByteFn) handlerByteFn {
 		event, err := s.auditRequest(ctx, req)
 		if err != nil {
 			// Error sending event, circumvent handler
-			s.logger.Error("failed to audit log request, blocking response", "err", err, "request_id", reqID)
+			s.logger.Error("failed to audit log request, blocking response",
+				"error", err, "request_id", reqID)
 			return nil, err
 		}
 
@@ -295,7 +298,8 @@ func (s *HTTPServer) auditNonJSONHandler(handler handlerByteFn) handlerByteFn {
 
 		err = s.auditResp(ctx, rw, event, rspErr)
 		if err != nil {
-			s.logger.Error("failed to audit log response, blocking response", "err", err, "request_id", reqID)
+			s.logger.Error("failed to audit log response, blocking response",
+				"error", err, "request_id", reqID)
 			return nil, err
 		}
 

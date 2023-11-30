@@ -20,7 +20,7 @@ var _ eventlogger.Node = &Validator{}
 
 func NewValidator(cfg *Config) *Validator {
 	return &Validator{
-		log: cfg.Logger.NamedIntercept("AuditValidator"),
+		log: cfg.Logger.NamedIntercept("audit_validator"),
 	}
 }
 
@@ -30,8 +30,8 @@ func (v *Validator) Process(ctx context.Context, e *eventlogger.Event) (*eventlo
 	_, ok := e.Payload.(*Event)
 	if !ok {
 		t := reflect.TypeOf(e.Payload)
-		v.log.Error("Auditor: event payload is not an Audit Event", "event type",
-			t.Name, "creation time", e.CreatedAt)
+		v.log.Error("event payload is not an Audit Event", "event_type",
+			t.Name, "creation_time", e.CreatedAt)
 		return nil, errors.New("unallowed Event payload")
 	}
 	return e, nil

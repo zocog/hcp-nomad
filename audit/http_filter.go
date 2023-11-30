@@ -68,7 +68,7 @@ func (s *HTTPEventFilter) Type() eventlogger.NodeType {
 func (s *HTTPEventFilter) Process(ctx context.Context, e *eventlogger.Event) (*eventlogger.Event, error) {
 	event, ok := e.Payload.(*Event)
 	if !ok {
-		s.log.Error("Payload is not an event after validation step")
+		s.log.Error("payload is not an event after validation step")
 		return nil, fmt.Errorf("Unprocessable event")
 	}
 
@@ -99,7 +99,7 @@ func (s *HTTPEventFilter) Process(ctx context.Context, e *eventlogger.Event) (*e
 
 			if shouldFilter {
 				s.log.Trace(
-					"Filtering audit event matched",
+					"filtering audit event matched",
 					"pattern", pattern,
 					"operation", opMatch,
 					"stage", stageMatch,
