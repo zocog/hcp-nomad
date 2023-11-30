@@ -118,10 +118,11 @@ func setupConsulJWTAuth(t *testing.T, consulAPI *consulapi.Client, address strin
 		"JWTSupportedAlgs": []string{"RS256"},
 		"BoundAudiences":   "consul.io",
 		"ClaimMappings": map[string]string{
-			"nomad_namespace": "nomad_namespace",
-			"nomad_job_id":    "nomad_job_id",
-			"nomad_task":      "nomad_task",
-			"nomad_service":   "nomad_service",
+			"consul_namespace": "consul_namespace",
+			"nomad_namespace":  "nomad_namespace",
+			"nomad_job_id":     "nomad_job_id",
+			"nomad_task":       "nomad_task",
+			"nomad_service":    "nomad_service",
 		},
 	}
 

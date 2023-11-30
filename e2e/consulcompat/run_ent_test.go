@@ -118,7 +118,10 @@ func testConsulBuild(t *testing.T, b build, baseDir string) {
 		nc := startNomad(t, consulCfg)
 
 		// configure authentication for WI to Consul
-		setupConsulJWTAuth(t, consulAPI, nc.Address())
+		setupConsulJWTAuth(t, consulAPI, nc.Address(), []*consulapi.ACLAuthMethodNamespaceRule{{
+			Selector:      `"nomad_service" in value`,
+			BindNamespace: "${value.consul_namespace}",
+		}})
 
 		verifyConsulFingerprint(t, nc, b.Version, "default")
 
