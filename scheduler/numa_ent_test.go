@@ -804,3 +804,22 @@ func TestNUMA_Select_prefer(t *testing.T) {
 		})
 	}
 }
+
+func TestNUMA_Select_nil_numa(t *testing.T) {
+	ci.Parallel(t)
+
+	cs := &coreSelector{
+		topology:       structs.MockBasicTopology(),
+		availableCores: idset.From[hw.CoreID]([]hw.CoreID{0, 1}),
+		shuffle:        orderCores,
+	}
+
+	ask := &structs.Resources{
+		Cores: 1,
+		NUMA:  nil, // absent numa block
+	}
+
+	ids, mhz := cs.Select(ask)
+	must.SliceContainsAll(t, []uint16{0}, ids)
+	must.Eq(t, 3500, mhz)
+}

@@ -28,6 +28,12 @@ type coreSelector struct {
 //
 // NUMA preference is available in ent only.
 func (cs *coreSelector) Select(ask *structs.Resources) ([]uint16, hw.MHz) {
+	ask = ask.Copy() // TODO(shoenig) consider doing this in canonicalize
+	if ask.NUMA == nil {
+		// if the numa block was not set, assume affinity = none
+		ask.NUMA = &structs.NUMA{Affinity: "none"}
+	}
+
 	switch ask.NUMA.Affinity {
 	case structs.PreferNUMA:
 		// choose the best cores available
