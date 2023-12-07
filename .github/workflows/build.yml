@@ -352,6 +352,46 @@ jobs:
           dev_tags: |
             docker.io/hashicorppreview/${{ env.PKG_NAME }}:${{ env.version }}-dev
             docker.io/hashicorppreview/${{ env.PKG_NAME }}:${{ env.version }}-${{env.revision}}
+           
+  build-musl:
+    name: Go ${{ needs.get-go-version.outputs.go-version }} Alpine ${{ matrix.goos }} ${{ matrix.goarch }} build
+    needs:
+      - get-go-version
+      - get-product-version
+    runs-on: ubuntu-22.04
+    container: 
+      image: golang:${{ needs.get-go-version.outputs.go-version }}-alpine
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux]
+        goarch: [amd64]
+    env:
+      GOPRIVATE: "github.com/hashicorp/*"
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+        with:
+          ref: ${{ github.event.inputs.build-ref }}
+      - name: Install dependencies
+        run: |
+          apk add --no-cache bash build-base cni-plugins curl git go-bindata-assetfs linux-headers make musl-dev npm openssh zip
+      - name: Setup Git
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}@github.com".insteadOf "https://github.com"
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GO_TAGS: ${{ env.GO_TAGS }}
+          CGO_ENABLED: 1
+          GOFLAGS: ${{ env.GOFLAGS }} -trimpath -mod=readonly -modcacherw
+        run: |
+          go clean -cache
+          make pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          mv pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}_musl.zip
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        with:
+          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}_musl.zip
+          path: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}_musl.zip
 
   minimum-os:
     name: OS Compatibility
