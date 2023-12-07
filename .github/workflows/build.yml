@@ -401,11 +401,11 @@ jobs:
         run: |
           go clean -cache
           make pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip
-          mv pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}_musl.zip
+          mv pkg/${{ matrix.goos }}_${{ matrix.goarch }}.zip ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}.musl_${{ matrix.goos }}_${{ matrix.goarch }}.zip
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
-          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}_musl.zip
-          path: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}_musl.zip
+          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}.musl_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          path: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}.musl_${{ matrix.goos }}_${{ matrix.goarch }}.zip
 
   minimum-os:
     name: OS Compatibility
