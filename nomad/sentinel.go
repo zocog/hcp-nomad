@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	metrics "github.com/hashicorp/go-metrics"
+	metrics "github.com/armon/go-metrics"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/nomad/nomad/state"
 	"github.com/hashicorp/nomad/nomad/structs"
