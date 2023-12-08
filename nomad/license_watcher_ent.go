@@ -13,9 +13,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-licensing"
-	"github.com/hashicorp/go-metrics"
 	nomadLicense "github.com/hashicorp/nomad-licensing/license"
 )
 
