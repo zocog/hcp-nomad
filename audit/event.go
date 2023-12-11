@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/eventlogger"
+	"github.com/hashicorp/nomad/nomad/structs"
 )
 
 // Stage is the stage of the audit request.
@@ -38,12 +39,13 @@ type Event struct {
 }
 
 type Auth struct {
-	AccessorID string    `json:"accessor_id,omitempty"`
-	Name       string    `json:"name,omitempty"`
-	Type       string    `json:"type,omitempty"`
-	Policies   []string  `json:"policies,omitempty"`
-	Global     bool      `json:"global,omitempty"`
-	CreateTime time.Time `json:"create_time,omitempty"`
+	AccessorID string                      `json:"accessor_id,omitempty"`
+	Name       string                      `json:"name,omitempty"`
+	Type       string                      `json:"type,omitempty"`
+	Policies   []string                    `json:"policies,omitempty"`
+	Roles      []*structs.ACLTokenRoleLink `json:"roles,omitempty"`
+	Global     bool                        `json:"global,omitempty"`
+	CreateTime time.Time                   `json:"create_time,omitempty"`
 }
 
 type Request struct {

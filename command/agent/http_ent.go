@@ -156,6 +156,7 @@ func (s *HTTPServer) auditRequest(ctx context.Context, req *http.Request) (*audi
 			auth.Global = aclToken.Global
 			auth.Name = aclToken.Name
 			auth.Policies = aclToken.Policies
+			auth.Roles = aclToken.Roles
 		}
 	}
 

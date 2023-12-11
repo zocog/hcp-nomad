@@ -6,7 +6,6 @@ package agent
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -19,6 +18,7 @@ import (
 	"github.com/hashicorp/nomad/command/agent/event"
 	"github.com/hashicorp/nomad/helper/testlog"
 	"github.com/hashicorp/nomad/helper/uuid"
+	"github.com/hashicorp/nomad/nomad/mock"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/shoenig/test/must"
 )
@@ -73,7 +73,7 @@ func TestAuditWrapHTTPHandler(t *testing.T) {
 				return &structs.Job{Name: "foo"}, nil
 			}
 
-			tmpDir, err := ioutil.TempDir("", parentTestName+"-"+tc.desc)
+			tmpDir, err := os.MkdirTemp("", parentTestName+"-"+tc.desc)
 			must.NoError(t, err)
 			defer os.RemoveAll(tmpDir)
 
@@ -113,7 +113,7 @@ func TestAuditWrapHTTPHandler(t *testing.T) {
 
 			if tc.auditErr == nil {
 				// Read from audit log
-				dat, err := ioutil.ReadFile(filepath.Join(tmpDir, "audit.log"))
+				dat, err := os.ReadFile(filepath.Join(tmpDir, "audit.log"))
 				must.NoError(t, err)
 				must.SliceNotEmpty(t, dat)
 			}
@@ -142,12 +142,12 @@ func TestEventFromReq(t *testing.T) {
 	}
 
 	srv := s.Server
-	event := srv.eventFromReq(ctx, req, auth)
+	eventReq := srv.eventFromReq(ctx, req, auth)
 
-	must.Eq(t, srv.agent.GetConfig().AdvertiseAddrs.HTTP, event.Request.NodeMeta["ip"])
-	must.Eq(t, audit.OperationReceived, event.Stage)
-	must.Eq(t, reqID, event.Request.ID)
-	must.Eq(t, auth, event.Auth)
+	must.Eq(t, srv.agent.GetConfig().AdvertiseAddrs.HTTP, eventReq.Request.NodeMeta["ip"])
+	must.Eq(t, audit.OperationReceived, eventReq.Stage)
+	must.Eq(t, reqID, eventReq.Request.ID)
+	must.Eq(t, auth, eventReq.Auth)
 }
 
 func TestAuditNonJSONHandler(t *testing.T) {
@@ -232,12 +232,59 @@ func TestAuditNonJSONHandler(t *testing.T) {
 
 			if tc.auditErr == nil {
 				// Read from audit log
-				dat, err := ioutil.ReadFile(filepath.Join(tmpDir, "audit.log"))
+				dat, err := os.ReadFile(filepath.Join(tmpDir, "audit.log"))
 				must.NoError(t, err)
 				must.SliceNotEmpty(t, dat)
 			}
 		})
 	}
+}
+
+func TestHTTPServer_auditRequest(t *testing.T) {
+	ci.Parallel(t)
+
+	// Set up the test HTTP server and ensure ACLs are enabled.
+	httpServer := makeHTTPServer(t, func(c *Config) {
+		c.ACL.Enabled = true
+	})
+	defer httpServer.Shutdown()
+
+	// Write an ACL Policy, ACL Role, and ACL Token with the
+	// correct links, so they are available in state for lookup.
+	mockACLPolicy := mock.ACLPolicy()
+	must.NoError(t, httpServer.server.State().UpsertACLPolicies(
+		structs.MsgTypeTestSetup, 10, []*structs.ACLPolicy{mockACLPolicy}))
+
+	mockACLRole := mock.ACLRole()
+	mockACLRole.Policies = []*structs.ACLRolePolicyLink{{Name: mockACLPolicy.Name}}
+	must.NoError(t, httpServer.server.State().UpsertACLRoles(
+		structs.MsgTypeTestSetup, 20, []*structs.ACLRole{mockACLRole}, false))
+
+	mockACLToken := mock.ACLToken()
+	mockACLToken.Policies = []string{mockACLPolicy.Name}
+	mockACLToken.Roles = []*structs.ACLTokenRoleLink{{ID: mockACLRole.ID, Name: mockACLRole.Name}}
+	must.NoError(t, httpServer.server.State().UpsertACLTokens(
+		structs.MsgTypeTestSetup, 30, []*structs.ACLToken{mockACLToken}))
+
+	// Build and test the expected audit auth object. This ensures
+	// the fields are populated as expected.
+	expectedAuditEventAuth := audit.Auth{
+		AccessorID: mockACLToken.AccessorID,
+		Name:       mockACLToken.Name,
+		Type:       "",
+		Policies:   mockACLToken.Policies,
+		Roles:      mockACLToken.Roles,
+		Global:     mockACLToken.Global,
+		CreateTime: mockACLToken.CreateTime,
+	}
+
+	httpReq, err := http.NewRequest(http.MethodGet, "/v1/nodes", nil)
+	must.NoError(t, err)
+	setToken(httpReq, mockACLToken)
+
+	auditEvent, err := httpServer.Server.auditRequest(context.Background(), httpReq)
+	must.NoError(t, err)
+	must.Eq(t, &expectedAuditEventAuth, auditEvent.Auth)
 }
 
 type testAuditor struct {
