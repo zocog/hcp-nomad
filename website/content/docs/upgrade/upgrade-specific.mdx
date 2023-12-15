@@ -13,7 +13,29 @@ upgrade. However, specific versions of Nomad may have more details provided for
 their upgrades as a result of new features or changed behavior. This page is
 used to document those details separately from the standard upgrade flow.
 
+## Nomad 1.7.2
+
+Nomad 1.7.2 fixes a critical bug in CPU fingerprinting in Nomad 1.7.0 and
+1.7.1. You should not install Nomad 1.7.0 or 1.7.1 and instead install the
+latest Nomad 1.7.x version.
+
 ## Nomad 1.7.0
+
+<Warning>
+
+Nomad 1.7.0 contains a critical bug in keyring replication. You should not
+install Nomad 1.7.0 and instead install the latest Nomad 1.7.x version.
+
+</Warning>
+
+#### Keyring Replication Failure After Leader Election
+
+Nomad 1.7.0 introduced new RSA keys to the keyring for use in signing workload
+identities. These keys were not correctly replicated from leader to
+followers. This results in all workload identity verification failing after a
+leader election.
+
+This bug was fixed in Nomad 1.7.1.
 
 #### Vault Integration Changes
 
@@ -87,6 +109,14 @@ is that the calculated total CPU bandwidth available on a node may change when
 upgrading to Nomad 1.7. Operators are encouraged to ensure planned capacity
 meets expectations before upgrading. The [cpu concepts][cpu] documentation
 contains guidance in understanding how Nomad detects CPU metrics.
+
+#### CPU EC2 Detection Changes
+
+Prior to Nomad 1.7, Nomad clients embedded a large lookup table of CPU
+performance data for every EC2 instance type. In 1.7 and later Nomad instead
+gathers this data by executing the `dmidecode` command. The `dmidecode` package
+must be installed manually on some Linux distributions before the Nomad agent
+is started.
 
 #### CPU Core Isolation
 
