@@ -18,7 +18,6 @@ project {
     "**/*_ent_test.go",
     "audit/*.go",
     ".github/codeql/codeql-config.yml",
-    "api/recommendations_test.go",
     "command/agent/quota_endpoint.go",
     "command/agent/sentinel_endpoint.go",
     "command/agent/quota_endpoint_test.go",
