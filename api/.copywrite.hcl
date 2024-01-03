@@ -8,5 +8,6 @@ project {
     // Enterprise files do not fall under the open source licensing. CE-ENT
     // merge conflicts might happen here, please be sure to put new CE
     // exceptions above this comment.
+    "recommendations_test.go",
   ]
 }
