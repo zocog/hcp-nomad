@@ -4,6 +4,7 @@
 package raftutil
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -79,7 +80,7 @@ func dummyFSM(logger hclog.Logger) (nomadFSM, error) {
 	// use dummy non-enabled FSM dependencies
 	periodicDispatch := nomad.NewPeriodicDispatch(logger, nil)
 	blockedEvals := nomad.NewBlockedEvals(nil, logger)
-	evalBroker, err := nomad.NewEvalBroker(1, 1, 1, 1)
+	evalBroker, err := nomad.NewEvalBroker(context.Background(), 1, 1, 1, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +91,10 @@ func dummyFSM(logger hclog.Logger) (nomadFSM, error) {
 		Blocked:    blockedEvals,
 		Logger:     logger,
 		Region:     "default",
+		// This is the copied default value, and while this is configurable on
+		// running agents, it does not impact the creation of the FSM for this
+		// dummy implementation.
+		JobTrackedVersions: 6,
 	}
 
 	return nomad.NewFSM(fsmConfig)
