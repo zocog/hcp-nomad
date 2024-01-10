@@ -36,6 +36,14 @@ func TestJobEndpointHook_ConsulEnt(t *testing.T) {
 	job.TaskGroups[0].Services[0].Cluster = ""
 	job.TaskGroups[0].Services[1].Cluster = "infra"
 
+	// assign to a specific partition
+	job.TaskGroups[0].Consul = &structs.Consul{Partition: "foo"}
+
+	// add a second group with the same tasks/services but different partition
+	otherGroup := job.TaskGroups[0].Copy()
+	otherGroup.Consul = &structs.Consul{Cluster: "infra", Partition: "bar"}
+	job.TaskGroups = append(job.TaskGroups, otherGroup)
+
 	cases := []struct {
 		name         string
 		cfg          *structs.NamespaceConsulConfiguration
@@ -125,6 +133,20 @@ func TestJobEndpointHook_ConsulEnt(t *testing.T) {
 			test.Eq(t, tc.expectGroup0, job.TaskGroups[0].Services[0].Cluster)
 			test.Eq(t, tc.expectGroup1, job.TaskGroups[0].Services[1].Cluster)
 			test.Eq(t, tc.expectTask0, job.TaskGroups[0].Tasks[0].Services[0].Cluster)
+
+			test.SliceContains(t, job.TaskGroups[0].Constraints,
+				&structs.Constraint{
+					LTarget: "${attr.consul.partition}",
+					RTarget: "foo",
+					Operand: "=",
+				})
+
+			test.SliceContains(t, job.TaskGroups[1].Constraints,
+				&structs.Constraint{
+					LTarget: "${attr.consul.infra.partition}",
+					RTarget: "bar",
+					Operand: "=",
+				})
 
 			_, err = hook.Validate(job)
 			if tc.expectError != "" {

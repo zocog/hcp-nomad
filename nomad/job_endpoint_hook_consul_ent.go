@@ -29,7 +29,11 @@ func (h jobConsulHook) Validate(job *structs.Job) ([]error, error) {
 
 	clusters := set.New[string](0)
 	for _, group := range job.TaskGroups {
+
+		groupPartition := ""
+
 		if group.Consul != nil {
+			groupPartition = group.Consul.Partition
 			clusters.Insert(group.Consul.Cluster)
 		}
 
@@ -43,6 +47,13 @@ func (h jobConsulHook) Validate(job *structs.Job) ([]error, error) {
 			for _, service := range task.Services {
 				if service.IsConsul() {
 					clusters.Insert(service.Cluster)
+				}
+			}
+
+			if task.Consul != nil {
+				err := h.validateTaskPartitionMatchesGroup(groupPartition, task.Consul)
+				if err != nil {
+					return nil, err
 				}
 			}
 		}
@@ -114,6 +125,21 @@ func (h jobConsulHook) validateClusterForNamespace(ns *structs.Namespace, cluste
 	return nil
 }
 
+func consulPartitionConstraint(cluster, partition string) *structs.Constraint {
+	if cluster == structs.ConsulDefaultCluster || cluster == "" {
+		return &structs.Constraint{
+			LTarget: "${attr.consul.partition}",
+			RTarget: partition,
+			Operand: "=",
+		}
+	}
+	return &structs.Constraint{
+		LTarget: "${attr.consul." + cluster + ".partition}",
+		RTarget: partition,
+		Operand: "=",
+	}
+}
+
 // Mutate ensures that the job's Consul cluster has been configured to be the
 // default Consul cluster
 func (j jobConsulHook) Mutate(job *structs.Job) (*structs.Job, []error, error) {
@@ -135,8 +161,14 @@ func (j jobConsulHook) Mutate(job *structs.Job) (*structs.Job, []error, error) {
 	}
 
 	for _, group := range job.TaskGroups {
-		if group.Consul != nil && group.Consul.Cluster == "" {
-			group.Consul.Cluster = defaultCluster
+		if group.Consul != nil {
+			if group.Consul.Cluster == "" {
+				group.Consul.Cluster = structs.ConsulDefaultCluster
+			}
+			if group.Consul.Partition != "" {
+				group.Constraints = append(group.Constraints,
+					consulPartitionConstraint(group.Consul.Cluster, group.Consul.Partition))
+			}
 		}
 
 		for _, service := range group.Services {
@@ -148,6 +180,16 @@ func (j jobConsulHook) Mutate(job *structs.Job) (*structs.Job, []error, error) {
 		}
 
 		for _, task := range group.Tasks {
+			if task.Consul != nil {
+				if task.Consul.Cluster == "" {
+					task.Consul.Cluster = structs.ConsulDefaultCluster
+				}
+				if task.Consul.Partition != "" {
+					task.Constraints = append(task.Constraints,
+						consulPartitionConstraint(task.Consul.Cluster, task.Consul.Partition))
+				}
+			}
+
 			for _, service := range task.Services {
 				if service.IsConsul() {
 					if service.Cluster == "" {
