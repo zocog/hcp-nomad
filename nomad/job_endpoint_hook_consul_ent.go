@@ -160,45 +160,5 @@ func (j jobConsulHook) Mutate(job *structs.Job) (*structs.Job, []error, error) {
 		defaultCluster = "default" // shouldn't happen because of canonicalization
 	}
 
-	for _, group := range job.TaskGroups {
-		if group.Consul != nil {
-			if group.Consul.Cluster == "" {
-				group.Consul.Cluster = structs.ConsulDefaultCluster
-			}
-			if group.Consul.Partition != "" {
-				group.Constraints = append(group.Constraints,
-					consulPartitionConstraint(group.Consul.Cluster, group.Consul.Partition))
-			}
-		}
-
-		for _, service := range group.Services {
-			if service.IsConsul() {
-				if service.Cluster == "" {
-					service.Cluster = defaultCluster
-				}
-			}
-		}
-
-		for _, task := range group.Tasks {
-			if task.Consul != nil {
-				if task.Consul.Cluster == "" {
-					task.Consul.Cluster = structs.ConsulDefaultCluster
-				}
-				if task.Consul.Partition != "" {
-					task.Constraints = append(task.Constraints,
-						consulPartitionConstraint(task.Consul.Cluster, task.Consul.Partition))
-				}
-			}
-
-			for _, service := range task.Services {
-				if service.IsConsul() {
-					if service.Cluster == "" {
-						service.Cluster = defaultCluster
-					}
-				}
-			}
-		}
-	}
-
-	return job, nil, nil
+	return j.mutateImpl(job, defaultCluster), nil, nil
 }

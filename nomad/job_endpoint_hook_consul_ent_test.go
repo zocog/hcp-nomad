@@ -45,19 +45,20 @@ func TestJobEndpointHook_ConsulEnt(t *testing.T) {
 	job.TaskGroups = append(job.TaskGroups, otherGroup)
 
 	cases := []struct {
-		name         string
-		cfg          *structs.NamespaceConsulConfiguration
-		expectGroup0 string
-		expectGroup1 string
-		expectTask0  string
-
-		expectError string
+		name             string
+		cfg              *structs.NamespaceConsulConfiguration
+		expectGroup0     string
+		expectGroup1     string
+		expectTask0      string
+		expectConstraint string
+		expectError      string
 	}{
 		{
-			name:         "no consul config",
-			expectGroup0: "default",
-			expectGroup1: "infra",
-			expectTask0:  "nondefault",
+			name:             "no consul config",
+			expectGroup0:     "default",
+			expectGroup1:     "infra",
+			expectTask0:      "nondefault",
+			expectConstraint: "${attr.consul.partition}",
 		},
 		{
 			name: "has allowed set",
@@ -66,9 +67,10 @@ func TestJobEndpointHook_ConsulEnt(t *testing.T) {
 				Allowed: []string{"nondefault", "default", "infra"},
 				Denied:  []string{},
 			},
-			expectGroup0: "nondefault",
-			expectGroup1: "infra",
-			expectTask0:  "nondefault",
+			expectGroup0:     "nondefault",
+			expectGroup1:     "infra",
+			expectTask0:      "nondefault",
+			expectConstraint: "${attr.consul.nondefault.partition}",
 		},
 		{
 			name: "not in allowed set",
@@ -77,10 +79,11 @@ func TestJobEndpointHook_ConsulEnt(t *testing.T) {
 				Allowed: []string{"nondefault"},
 				Denied:  []string{},
 			},
-			expectGroup0: "default",
-			expectGroup1: "infra",
-			expectTask0:  "nondefault",
-			expectError:  `namespace "default" does not allow jobs to use consul cluster "infra"`,
+			expectGroup0:     "default",
+			expectGroup1:     "infra",
+			expectTask0:      "nondefault",
+			expectConstraint: "${attr.consul.partition}",
+			expectError:      `namespace "default" does not allow jobs to use consul cluster "infra"`,
 		},
 		{
 			name: "has denied set",
@@ -88,9 +91,10 @@ func TestJobEndpointHook_ConsulEnt(t *testing.T) {
 				Default: "default",
 				Denied:  []string{"infra", "nondefault"},
 			},
-			expectGroup0: "default",
-			expectGroup1: "infra",
-			expectTask0:  "nondefault",
+			expectGroup0:     "default",
+			expectGroup1:     "infra",
+			expectTask0:      "nondefault",
+			expectConstraint: "${attr.consul.partition}",
 			expectError: `2 errors occurred:
 	* namespace "default" does not allow jobs to use consul cluster "infra"
 	* namespace "default" does not allow jobs to use consul cluster "nondefault"
@@ -103,9 +107,10 @@ func TestJobEndpointHook_ConsulEnt(t *testing.T) {
 				Default: "default",
 				Allowed: []string{},
 			},
-			expectGroup0: "default",
-			expectGroup1: "infra",
-			expectTask0:  "nondefault",
+			expectGroup0:     "default",
+			expectGroup1:     "infra",
+			expectTask0:      "nondefault",
+			expectConstraint: "${attr.consul.partition}",
 			expectError: `2 errors occurred:
 	* namespace "default" does not allow jobs to use consul cluster "infra"
 	* namespace "default" does not allow jobs to use consul cluster "nondefault"
@@ -136,7 +141,7 @@ func TestJobEndpointHook_ConsulEnt(t *testing.T) {
 
 			test.SliceContains(t, job.TaskGroups[0].Constraints,
 				&structs.Constraint{
-					LTarget: "${attr.consul.partition}",
+					LTarget: tc.expectConstraint,
 					RTarget: "foo",
 					Operand: "=",
 				})
