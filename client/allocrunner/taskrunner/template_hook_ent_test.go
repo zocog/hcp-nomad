@@ -134,6 +134,7 @@ func Test_templateHook_Prestart_MultiVault(t *testing.T) {
 
 			// Start template hook with a timeout context to ensure it exists.
 			req := &interfaces.TaskPrestartRequest{
+				Alloc:   alloc,
 				Task:    task,
 				TaskDir: &allocdir.TaskDir{Dir: taskDir},
 			}
