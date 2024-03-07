@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/nomad/plugins/drivers"
 	dtestutil "github.com/hashicorp/nomad/plugins/drivers/testutils"
 	"github.com/hashicorp/nomad/testutil"
+	"github.com/shoenig/test/must"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 )
@@ -417,9 +418,9 @@ func TestRawExec_Validate(t *testing.T) {
 	ci.Parallel(t)
 
 	current, err := users.Current()
-	require.NoError(t, err)
+	must.NoError(t, err)
 	currentUid, err := strconv.ParseUint(current.Uid, 10, 32)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	currentUserErrStr := fmt.Sprintf("running as uid %d is disallowed", currentUid)
 
@@ -439,6 +440,6 @@ func TestRawExec_Validate(t *testing.T) {
 		{config: configDenyCurrent, driverConfig: driverConfigNoUserSpecified, exp: errors.New(currentUserErrStr)},
 		{config: configDenyCurrent, driverConfig: driverConfigSpecifyCurrent, exp: errors.New(currentUserErrStr)},
 	} {
-		require.Equal(t, tc.exp, (&TaskConfig{}).Validate(tc.config, tc.driverConfig))
+		must.Eq(t, tc.exp, (&TaskConfig{}).Validate(tc.config, tc.driverConfig))
 	}
 }
