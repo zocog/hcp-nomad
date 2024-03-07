@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/nomad/helper/testtask"
 	"github.com/hashicorp/nomad/helper/users"
 	"github.com/hashicorp/nomad/helper/uuid"
+	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/plugins/base"
 	"github.com/hashicorp/nomad/plugins/drivers"
 	dtestutil "github.com/hashicorp/nomad/plugins/drivers/testutils"
@@ -424,8 +425,8 @@ func TestRawExec_Validate(t *testing.T) {
 
 	currentUserErrStr := fmt.Sprintf("running as uid %d is disallowed", currentUid)
 
-	allowAll := ""
-	denyCurrent := fmt.Sprintf("%d", currentUid)
+	allowAll := []structs.IDRange{}
+	denyCurrent := []structs.IDRange{{Lower: currentUid, Upper: currentUid}}
 	configAllowCurrent := Config{DeniedHostUids: allowAll}
 	configDenyCurrent := Config{DeniedHostUids: denyCurrent}
 	driverConfigNoUserSpecified := drivers.TaskConfig{}
