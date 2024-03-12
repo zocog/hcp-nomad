@@ -13470,9 +13470,3 @@ func NewRpcError(err error, code *int64) *RpcError {
 func (r *RpcError) Error() string {
 	return r.Message
 }
-
-// IDRange defines a range of uids or gids (to eventually restrict)
-type IDRange struct {
-	Lower uint64 `codec:"from"`
-	Upper uint64 `codec:"to"`
-}
