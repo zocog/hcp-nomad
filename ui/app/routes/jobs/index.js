@@ -26,6 +26,7 @@ export default class IndexRoute extends Route.extend(
   @service store;
   @service watchList;
   @service notifications;
+  @service system;
 
   queryParams = {
     cursorAt: {
@@ -40,19 +41,6 @@ export default class IndexRoute extends Route.extend(
   };
 
   hasBeenInitialized = false;
-
-  @localStorageProperty('nomadDefaultNamespace') defaultNamespace;
-
-  establishDefaults(filter) {
-    if (this.defaultNamespace) {
-      if (!filter.includes('Namespace')) {
-        filter = filter
-          ? `${filter} and (Namespace == "${this.defaultNamespace}")`
-          : `(Namespace == "${this.defaultNamespace}")`;
-      }
-    }
-    return filter;
-  }
 
   getCurrentParams() {
     let queryParams = this.paramsFor(this.routeName); // Get current query params
@@ -73,13 +61,15 @@ export default class IndexRoute extends Route.extend(
     return { ...queryParams };
   }
 
-  beforeModel(transition) {
+  async beforeModel(transition) {
     // Handle defaults from localStorage properties
     if (!this.hasBeenInitialized) {
       // Get current filter from query params
+      // let filter = transition.to.queryParams.filter || '';
+      // let updatedFilter = this.establishDefaults(filter);
       let filter = transition.to.queryParams.filter || '';
-      let updatedFilter = this.establishDefaults(filter);
-
+      let globalDefaults = await this.getGlobalDefaults();
+      let updatedFilter = this.establishDefaults(filter, globalDefaults);
       if (updatedFilter !== filter) {
         transition.abort();
         this.replaceWith('jobs.index', {
@@ -89,6 +79,57 @@ export default class IndexRoute extends Route.extend(
         });
       }
     }
+  }
+
+  // TODO: import this typedef
+  /**
+   * @typedef {Object} RenderedDefaults
+   * @property {string} [region]
+   * @property {string[]} [namespace]
+   * @property {string[]} [nodePool]
+   */
+
+  async getGlobalDefaults() {
+    try {
+      let config = await this.system.defaults;
+      console.log('-0--config THROUGH', config);
+      return config; // Adjust based on actual response structure
+    } catch (error) {
+      console.error('Error fetching global defaults:', error);
+      return null; // Handle error and return a sensible default or null
+    }
+  }
+
+  /**
+   * @param {string} filter
+   * @param {RenderedDefaults} globalDefaults
+   * @returns string
+   */
+  establishDefaults(filter, globalDefaults = {}) {
+    let namespaceDefaults = globalDefaults.namespace || [];
+    console.log('aye ns', namespaceDefaults, filter);
+
+    // if (!filter.includes('Namespace')) {
+    //   filter = filter
+    //     ? `${filter} and (Namespace == "${namespaceDefaults}")`
+    //     : `(Namespace == "${namespaceDefaults}")`;
+    // }
+
+    // Note: let's rewrite this because there might be multiple namespaceDefaults in an array.
+    // We want to separate each one with an ` or ` operator.
+
+    if (namespaceDefaults.length > 0) {
+      if (!filter.includes('Namespace')) {
+        let namespaceFilter = namespaceDefaults
+          .map((ns) => `Namespace == "${ns}"`)
+          .join(' or ');
+        filter = filter
+          ? `${filter} and (${namespaceFilter})`
+          : `(${namespaceFilter})`;
+      }
+    }
+    console.log('=++ ret', filter);
+    return filter;
   }
 
   async model(/*params*/) {
