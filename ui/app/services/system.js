@@ -14,6 +14,14 @@ import jsonWithDefault from '../utils/json-with-default';
 import classic from 'ember-classic-decorator';
 import { task } from 'ember-concurrency';
 import localStorageProperty from 'nomad-ui/utils/properties/local-storage';
+import { tracked } from '@glimmer/tracking';
+
+/**
+ * @typedef {Object} RenderedDefaults
+ * @property {string} [region]
+ * @property {string[]} [namespace]
+ * @property {string[]} [nodePool]
+ */
 
 @classic
 export default class SystemService extends Service {
@@ -132,33 +140,34 @@ export default class SystemService extends Service {
   @localStorageProperty('nomadDefaultNodePool') userDefaultNodePool;
   @localStorageProperty('nomadDefaultRegion') userDefaultRegion;
 
-  /**
-   * @typedef {Object} RenderedDefaults
-   * @property {string} [region]
-   * @property {string[]} [namespace]
-   * @property {string[]} [nodePool]
-   */
+  @tracked agentDefaults = {};
 
   /**
    * First read agent config for cluster-level defaults,
    * then check localStorageProperties for user-level overrides.
    * @type {Promise<RenderedDefaults>}
    */
+  @computed(
+    'agent',
+    'agentDefaults.{Namespace,NodePool,Region}',
+    'userDefaultNamespace',
+    'userDefaultNodePool',
+    'userDefaultRegion'
+  )
   get defaults() {
     return this.agent.then((agent) => {
       /**
        * @type {Defaults}
        */
-      const agentDefaults = agent.config.UI.Defaults;
-      console.log('agent configs?', agentDefaults);
-      console.log('usdef', this.userDefaultNamespace);
-      if (!agentDefaults) return {};
+      // eslint-disable-next-line ember/no-side-effects
+      this.agentDefaults = agent.config.UI.Defaults;
+      if (!this.agentDefaults) return {};
       return {
-        region: this.userDefaultRegion || agentDefaults.Region,
-        namespace: (this.userDefaultNamespace || agentDefaults.Namespace)
+        region: this.userDefaultRegion || this.agentDefaults.Region,
+        namespace: (this.userDefaultNamespace || this.agentDefaults.Namespace)
           .split(',')
           .map((ns) => ns.trim()),
-        nodePool: (this.userDefaultNodePool || agentDefaults.NodePool)
+        nodePool: (this.userDefaultNodePool || this.agentDefaults.NodePool)
           .split(',')
           .map((np) => np.trim()),
       };

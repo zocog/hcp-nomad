@@ -15,7 +15,6 @@ import notifyForbidden from 'nomad-ui/utils/notify-forbidden';
 import WithForbiddenState from 'nomad-ui/mixins/with-forbidden-state';
 import { action } from '@ember/object';
 import Ember from 'ember';
-import localStorageProperty from 'nomad-ui/utils/properties/local-storage';
 
 const DEFAULT_THROTTLE = 2000;
 
