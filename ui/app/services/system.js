@@ -138,7 +138,7 @@ export default class SystemService extends Service {
 
   @localStorageProperty('nomadDefaultNamespace') userDefaultNamespace;
   @localStorageProperty('nomadDefaultNodePool') userDefaultNodePool;
-  @localStorageProperty('nomadDefaultRegion') userDefaultRegion;
+  @localStorageProperty('nomadActiveRegion') userDefaultRegion;
 
   @tracked agentDefaults = {};
 
@@ -160,8 +160,8 @@ export default class SystemService extends Service {
        * @type {Defaults}
        */
       // eslint-disable-next-line ember/no-side-effects
-      this.agentDefaults = agent.config.UI.Defaults;
-      if (!this.agentDefaults) return {};
+      this.agentDefaults = agent.config?.UI?.Defaults;
+      // if (!this.agentDefaults) return {}; // TODO: I dont think this is right; I dont want to return empty when no agentDefaults, I may want to consider localStorageProperties
       return {
         region: this.userDefaultRegion || this.agentDefaults.Region,
         namespace: (this.userDefaultNamespace || this.agentDefaults.Namespace)
@@ -174,10 +174,12 @@ export default class SystemService extends Service {
     });
   }
 
-  @computed('regions.[]')
+  @computed('regions.[]', 'userDefaultRegion')
   get activeRegion() {
+    console.log('activeRegion compute', this.userDefaultRegion);
     const regions = this.regions;
-    const region = window.localStorage.nomadActiveRegion;
+    // const region = window.localStorage.nomadActiveRegion;
+    const region = this.userDefaultRegion;
 
     if (regions.includes(region)) {
       return region;
@@ -187,14 +189,17 @@ export default class SystemService extends Service {
   }
 
   set activeRegion(value) {
+    console.log('activeregion set', value);
     if (value == null) {
-      window.localStorage.removeItem('nomadActiveRegion');
+      // window.localStorage.removeItem('nomadActiveRegion');
+      this.userDefaultRegion = null;
       return;
     } else {
-      // All localStorage values are strings. Stringify first so
-      // the return value is consistent with what is persisted.
-      const strValue = value + '';
-      window.localStorage.nomadActiveRegion = strValue;
+      // // All localStorage values are strings. Stringify first so
+      // // the return value is consistent with what is persisted.
+      // const strValue = value + '';
+      // window.localStorage.nomadActiveRegion = strValue;
+      this.userDefaultRegion = value;
     }
   }
 
