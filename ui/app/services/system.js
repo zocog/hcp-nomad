@@ -98,7 +98,6 @@ export default class SystemService extends Service {
         .authorizedRawRequest(`/${namespace}/agent/self`)
         .then(jsonWithDefault({}))
         .then((agent) => {
-          console.log('agent', agent);
           if (agent?.config?.Version) {
             const { Version, VersionPrerelease, VersionMetadata } =
               agent.config.Version;
@@ -161,22 +160,14 @@ export default class SystemService extends Service {
        * @type {Defaults}
        */
       // eslint-disable-next-line ember/no-side-effects
-      this.agentDefaults = agent.config?.UI?.Defaults || {};
+      this.agentDefaults = agent?.config?.UI?.Defaults || {};
       return {
-        region: this.userDefaultRegion || this.agentDefaults.Region || '',
-        namespace: (
-          this.userDefaultNamespace ||
-          this.agentDefaults.Namespace ||
-          ''
-        )
-          .split(',')
+        region: this.userDefaultRegion || this.agentDefaults.Region,
+        namespace: (this.userDefaultNamespace || this.agentDefaults.Namespace)
+          ?.split(',')
           .map((ns) => ns.trim()),
-        nodePool: (
-          this.userDefaultNodePool ||
-          this.agentDefaults.NodePool ||
-          ''
-        )
-          .split(',')
+        nodePool: (this.userDefaultNodePool || this.agentDefaults.NodePool)
+          ?.split(',')
           .map((np) => np.trim()),
       };
     });
@@ -184,9 +175,7 @@ export default class SystemService extends Service {
 
   @computed('regions.[]', 'userDefaultRegion')
   get activeRegion() {
-    console.log('activeRegion compute', this.userDefaultRegion);
     const regions = this.regions;
-    // const region = window.localStorage.nomadActiveRegion;
     const region = this.userDefaultRegion;
 
     if (regions.includes(region)) {
@@ -197,16 +186,10 @@ export default class SystemService extends Service {
   }
 
   set activeRegion(value) {
-    console.log('activeregion set', value);
     if (value == null) {
-      // window.localStorage.removeItem('nomadActiveRegion');
       set(this, 'userDefaultRegion', null);
       return;
     } else {
-      // // All localStorage values are strings. Stringify first so
-      // // the return value is consistent with what is persisted.
-      // const strValue = value + '';
-      // window.localStorage.nomadActiveRegion = strValue;
       set(this, 'userDefaultRegion', value);
     }
   }
