@@ -21,6 +21,7 @@ const (
 	TableVariables            = "variables"
 	TableVariablesQuotas      = "variables_quota"
 	TableRootKeyMeta          = "root_key_meta"
+	TableWrappedRootKeys      = "wrapped_root_keys"
 	TableACLRoles             = "acl_roles"
 	TableACLAuthMethods       = "acl_auth_methods"
 	TableACLBindingRules      = "acl_binding_rules"
@@ -94,6 +95,7 @@ func init() {
 		variablesTableSchema,
 		variablesQuotasTableSchema,
 		variablesRootKeyMetaSchema,
+		wrappedRootKeySchema,
 		aclRolesTableSchema,
 		aclAuthMethodsTableSchema,
 		bindingRulesTableSchema,
@@ -1573,6 +1575,57 @@ func variablesRootKeyMetaSchema() *memdb.TableSchema {
 			},
 		},
 	}
+}
+
+// wrappedRootKeySchema returns the MemDB schema for wrapped Nomad root keys
+func wrappedRootKeySchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: TableWrappedRootKeys,
+		Indexes: map[string]*memdb.IndexSchema{
+			indexID: {
+				Name:         indexID,
+				AllowMissing: false,
+				Unique:       true,
+				Indexer:      &wrappedRootKeysIDIndex{},
+			},
+		},
+	}
+}
+
+// wrappedRootKeysIDIndex extracts the meta field's key ID to build an index on
+// it. it implements memdb.Indexer and memdb.SimpleIndexer
+type wrappedRootKeysIDIndex struct{}
+
+// FromObject builds the index key from the WrappedRootKeys object
+func (w *wrappedRootKeysIDIndex) FromObject(obj any) (bool, []byte, error) {
+	rootKey, ok := obj.(*structs.WrappedRootKeys)
+	if !ok {
+		return false, nil, fmt.Errorf("object %#v is not an WrappedRootKey", obj)
+	}
+
+	if rootKey.Meta == nil {
+		return false, nil, nil
+	}
+	keyID := rootKey.Meta.KeyID
+	if keyID == "" {
+		return false, nil, nil
+	}
+	keyID += "\x00"
+	return true, []byte(keyID), nil
+}
+
+// FromArgs builds the index key from an exact list of arguments.
+func (w *wrappedRootKeysIDIndex) FromArgs(args ...any) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("must provide one argument")
+	}
+	arg, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("argument must be a string: %#v", args[0])
+	}
+
+	arg += "\x00"
+	return []byte(arg), nil
 }
 
 func aclRolesTableSchema() *memdb.TableSchema {

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/go-jose/go-jose/v3"
+	"github.com/golang/protobuf/proto"
 	wrapping "github.com/hashicorp/go-kms-wrapping/v2"
 	"github.com/hashicorp/nomad/helper"
 	"github.com/hashicorp/nomad/helper/crypto"
@@ -38,7 +39,8 @@ const (
 	JWKSPath = "/.well-known/jwks.json"
 )
 
-// RootKey is used to encrypt and decrypt variables. It is never stored in raft.
+// RootKey is used to encrypt and decrypt variables. This is the "unwrapped" key
+// and it is never stored in raft.
 type RootKey struct {
 	Meta *RootKeyMeta
 	Key  []byte // serialized to keystore as base64 blob
@@ -103,6 +105,55 @@ func (k *RootKey) MakeInactive() *RootKey {
 		Key:    slices.Clone(k.Key),
 		RSAKey: slices.Clone(k.RSAKey),
 	}
+}
+
+// WrappedRootKeys represents a RootKey encrypted by a set of KMS wrapping
+// plugings. It is stored in Raft.
+type WrappedRootKeys struct {
+	Meta        *RootKeyMeta
+	WrappedKeys []*WrappedRootKey
+}
+
+func (w *WrappedRootKeys) Copy() *WrappedRootKeys {
+	return &WrappedRootKeys{
+		Meta:        w.Meta.Copy(),
+		WrappedKeys: helper.CopySlice(w.WrappedKeys),
+	}
+}
+
+// WrappedRootKey represents a RootKey encrypted by a specific KMS wrapping
+// plugin. A slice of these are stored in WrappedRootKeys in Raft.
+type WrappedRootKey struct {
+	// Provider is the KMS wrapping plugin
+	Provider string
+
+	// ProviderID is the identifier of the specific instance of the KMS wrapping
+	// plugin, for Nomad Enterprise where you might have multiple KMS of the
+	// same kind for HA (ex. 2 Vaults)
+	ProviderID string
+
+	// WrappedDataEncryptionKey is the encrypted DEK used for encrypting
+	// Variables. The BlobInfo includes everything needed for the KMS to decrypt
+	// it except the KEK.
+	WrappedDataEncryptionKey *wrapping.BlobInfo
+
+	// WrappedRSAKey is the encrypted DEK used for signing Workload
+	// Identities. The BlobInfo includes everything needed for the KMS to
+	// decrypt it except the KEK.
+	WrappedRSAKey *wrapping.BlobInfo
+
+	// KeyEncryptionKey is the cleartext KEK, and is only included in the struct
+	// we write to Raft when using the AEAD plugin with store_keys_outside_raft
+	// = false.
+	KeyEncryptionKey []byte
+}
+
+func (w *WrappedRootKey) Copy() *WrappedRootKey {
+	out := *w
+	copy(out.KeyEncryptionKey, w.KeyEncryptionKey)
+	out.WrappedDataEncryptionKey = proto.Clone(w.WrappedDataEncryptionKey).(*wrapping.BlobInfo)
+	out.WrappedRSAKey = proto.Clone(w.WrappedRSAKey).(*wrapping.BlobInfo)
+	return &out
 }
 
 // RootKeyMeta is the metadata used to refer to a RootKey. It is
@@ -309,10 +360,11 @@ func (rkm *RootKeyMeta) Validate() error {
 	return nil
 }
 
-// KeyEncryptionKeyWrapper is the struct that gets serialized for the on-disk
-// KMS wrapper. When using the AEAD provider, this struct includes the
-// server-specific key-wrapping key. This struct should never be sent over RPC
-// or written to Raft.
+// KeyEncryptionKeyWrapper is a flattend version of the WrappedRootKeys struct
+// that gets serialized to disk for a keyset when using the AEAD KMS wrapper and
+// store_keys_outside_raft = true. This struct includes the server-specific
+// key-wrapping key (KEK). This struct should never be sent over RPC or written
+// to Raft.
 type KeyEncryptionKeyWrapper struct {
 	Meta *RootKeyMeta
 
