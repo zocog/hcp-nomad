@@ -127,11 +127,14 @@ const (
 	ACLBindingRulesDeleteRequestType             MessageType = 58
 	NodePoolUpsertRequestType                    MessageType = 59
 	NodePoolDeleteRequestType                    MessageType = 60
+	JobVersionTagRequestType                     MessageType = 61
+	WrappedRootKeysUpsertRequestType             MessageType = 62
+	WrappedRootKeysDeleteRequestType             MessageType = 63
+	NamespaceUpsertRequestType                   MessageType = 64
+	NamespaceDeleteRequestType                   MessageType = 65
 
-	WrappedRootKeysUpsertRequestType MessageType = 62
-	WrappedRootKeysDeleteRequestType MessageType = 63
-	NamespaceUpsertRequestType       MessageType = 64
-	NamespaceDeleteRequestType       MessageType = 65
+	// NOTE: MessageTypes are shared between CE and ENT. If you need to add a
+	// new type, check that ENT is not already using that value.
 )
 
 const (

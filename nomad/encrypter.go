@@ -56,8 +56,9 @@ type Encrypter struct {
 	// issuer is the OIDC Issuer to use for workload identities if configured
 	issuer string
 
-	keyring map[string]*keyset
-	lock    sync.RWMutex
+	keyring      map[string]*keyset
+	decryptTasks map[string]context.CancelFunc
+	lock         sync.RWMutex
 }
 
 // keyset contains the key material for variable encryption and workload
@@ -349,10 +350,133 @@ func (e *Encrypter) AddUnwrappedKey(rootKey *structs.RootKey) (*structs.WrappedR
 	if err := e.addCipher(rootKey); err != nil {
 		return nil, err
 	}
-	if err := e.saveKeyToStore(rootKey); err != nil {
-		return nil, err
+	return e.saveKeyToStore(rootKey)
+}
+
+// AddWrappedKey creates decryption tasks for keys we've previously stored in
+// Raft.
+func (e *Encrypter) AddWrappedKey(ctx context.Context, wrappedKeys *structs.WrappedRootKeys) error {
+
+	meta := wrappedKeys.Meta
+	e.lock.Lock()
+	if cancel, ok := e.decryptTasks[meta.KeyID]; ok {
+		// clear out any previous tasks for this same key ID under the
+		// assumption they're broken, but don't remove the CancelFunc from the
+		// map so that other callers don't think we can continue
+		cancel()
 	}
-	return nil, nil // TODO
+	e.lock.Unlock()
+
+	completeCtx, cancel := context.WithCancel(ctx)
+
+	for _, wrappedKey := range wrappedKeys.WrappedKeys {
+		providerID := wrappedKey.ProviderID
+		if providerID == "" {
+			providerID = string(structs.KEKProviderAEAD)
+		}
+
+		provider, ok := e.providerConfigs[providerID]
+		if !ok {
+			cancel()
+			return fmt.Errorf("no such provider %q configured", providerID)
+		}
+
+		// the errors that bubble up from this library can be a bit opaque, so make
+		// sure we wrap them with as much context as possible
+		wrapper, err := e.newKMSWrapper(provider, meta.KeyID, wrappedKey.KeyEncryptionKey)
+		if err != nil {
+			cancel()
+			return fmt.Errorf("unable to create key wrapper: %w", err)
+		}
+
+		go e.decryptWrappedKeyTask(completeCtx, cancel, wrapper, provider, meta, wrappedKey)
+	}
+
+	e.lock.Lock()
+	defer e.lock.Unlock()
+	e.decryptTasks[meta.KeyID] = cancel
+
+	return nil
+}
+
+func (e *Encrypter) decryptWrappedKeyTask(ctx context.Context, cancel context.CancelFunc, wrapper kms.Wrapper, provider *structs.KEKProviderConfig, meta *structs.RootKeyMeta, wrappedKey *structs.WrappedRootKey) {
+
+	var key []byte
+	var rsaKey []byte
+	var err error
+
+	minBackoff := time.Second
+	maxBackoff := time.Second * 30
+
+	withBackoff := func(fn func() error) {
+		var err error
+		backoff := minBackoff
+		t, stop := helper.NewSafeTimer(0)
+		defer stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+			}
+
+			err = fn()
+			if err == nil {
+				return
+			}
+
+			if backoff < maxBackoff {
+				backoff = backoff * 2
+				if backoff > maxBackoff {
+					backoff = maxBackoff
+				}
+			}
+			e.log.Error(err.Error(), "key_id", meta.KeyID)
+			t.Reset(backoff)
+		}
+	}
+
+	withBackoff(func() error {
+		wrappedDEK := wrappedKey.WrappedDataEncryptionKey
+		key, err = wrapper.Decrypt(e.srv.shutdownCtx, wrappedDEK)
+		if err != nil {
+			return fmt.Errorf("%w (root key): %w", ErrDecryptFailed, err)
+		}
+		return nil
+	})
+
+	withBackoff(func() error {
+		// Decrypt RSAKey for Workload Identity JWT signing if one exists. Prior to
+		// 1.7 an ed25519 key derived from the root key was used instead of an RSA
+		// key.
+		if wrappedKey.WrappedRSAKey != nil {
+			rsaKey, err = wrapper.Decrypt(e.srv.shutdownCtx, wrappedKey.WrappedRSAKey)
+			if err != nil {
+				return fmt.Errorf("%w (rsa key): %w", ErrDecryptFailed, err)
+			}
+		}
+		return nil
+	})
+
+	rootKey := &structs.RootKey{
+		Meta:   meta,
+		Key:    key,
+		RSAKey: rsaKey,
+	}
+
+	withBackoff(func() error {
+		err = e.addCipher(rootKey)
+		if err != nil {
+			return fmt.Errorf("could not add cipher: %w", err)
+		}
+		return nil
+	})
+
+	// notify all other tasks that we've completed the decryption
+	cancel()
+	e.lock.Lock()
+	defer e.lock.Unlock()
+	delete(e.decryptTasks, meta.KeyID)
 }
 
 // addCipher stores the key in the keyring and creates a new cipher for it.
@@ -450,7 +574,7 @@ func (e *Encrypter) RemoveKey(keyID string) error {
 	return nil
 }
 
-func (e *Encrypter) encryptDEK(rootKey *structs.RootKey, provider *structs.KEKProviderConfig) (*structs.KeyEncryptionKeyWrapper, error) {
+func (e *Encrypter) encryptDEK(rootKey *structs.RootKey, provider *structs.KEKProviderConfig) (*structs.WrappedRootKey, error) {
 	if provider == nil {
 		panic("can't encrypt DEK without a provider")
 	}
@@ -471,12 +595,15 @@ func (e *Encrypter) encryptDEK(rootKey *structs.RootKey, provider *structs.KEKPr
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt root key: %w", err)
 	}
-	kekWrapper := &structs.KeyEncryptionKeyWrapper{
-		Meta:                     rootKey.Meta,
-		KeyEncryptionKey:         kek,
+
+	kekWrapper := &structs.WrappedRootKey{
 		Provider:                 provider.Provider,
 		ProviderID:               provider.ID(),
 		WrappedDataEncryptionKey: rootBlob,
+		WrappedRSAKey:            &kms.BlobInfo{},
+	}
+	if provider.UseKeystore() {
+		kekWrapper.KeyEncryptionKey = kek
 	}
 
 	// Only keysets created after 1.7.0 will contain an RSA key.
@@ -492,32 +619,56 @@ func (e *Encrypter) encryptDEK(rootKey *structs.RootKey, provider *structs.KEKPr
 }
 
 // saveKeyToStore serializes a root key to the on-disk keystore.
-func (e *Encrypter) saveKeyToStore(rootKey *structs.RootKey) error {
+//
+// TODO: this name doesn't fit well now that we have KMS
+func (e *Encrypter) saveKeyToStore(rootKey *structs.RootKey) (*structs.WrappedRootKeys, error) {
+
+	wrappedKeys := &structs.WrappedRootKeys{
+		Meta:        rootKey.Meta,
+		WrappedKeys: []*structs.WrappedRootKey{},
+	}
 
 	for _, provider := range e.providerConfigs {
 		if !provider.Active {
 			continue
 		}
-		kekWrapper, err := e.encryptDEK(rootKey, provider)
+		wrappedKey, err := e.encryptDEK(rootKey, provider)
 		if err != nil {
-			return err
+			return nil, err
 		}
+		wrappedKeys.WrappedKeys = append(wrappedKeys.WrappedKeys, wrappedKey)
 
-		buf, err := json.Marshal(kekWrapper)
-		if err != nil {
-			return err
-		}
+		// TODO: we also need to write these keys to the on-disk keystore if the
+		// cluster hasn't been fully upgraded to 1.9.0
+		if provider.UseKeystore() {
 
-		filename := fmt.Sprintf("%s.%s%s",
-			rootKey.Meta.KeyID, provider.ID(), nomadKeystoreExtension)
-		path := filepath.Join(e.keystorePath, filename)
-		err = os.WriteFile(path, buf, 0o600)
-		if err != nil {
-			return err
+			// the on-disk keystore flattens the keys wrapped for the individual
+			// KMS providers out to their own files
+			diskWrapper := &structs.KeyEncryptionKeyWrapper{
+				Meta:                     rootKey.Meta,
+				Provider:                 provider.Name,
+				ProviderID:               provider.ID(),
+				WrappedDataEncryptionKey: wrappedKey.WrappedDataEncryptionKey,
+				WrappedRSAKey:            wrappedKey.WrappedRSAKey,
+				KeyEncryptionKey:         wrappedKey.KeyEncryptionKey,
+			}
+
+			buf, err := json.Marshal(diskWrapper)
+			if err != nil {
+				return nil, err
+			}
+
+			filename := fmt.Sprintf("%s.%s%s",
+				rootKey.Meta.KeyID, provider.ID(), nomadKeystoreExtension)
+			path := filepath.Join(e.keystorePath, filename)
+			err = os.WriteFile(path, buf, 0o600)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	return nil
+	return wrappedKeys, nil
 }
 
 // loadKeyFromStore deserializes a root key from disk.
@@ -777,6 +928,8 @@ func (krr *KeyringReplicator) replicateKey(ctx context.Context, keyMeta *structs
 		}
 	}
 
+	// In the legacy replication, we toss out the wrapped key because it's
+	// always persisted to disk
 	_, err = krr.encrypter.AddUnwrappedKey(getResp.Key)
 	if err != nil {
 		return fmt.Errorf("failed to add key to keyring: %v", err)
