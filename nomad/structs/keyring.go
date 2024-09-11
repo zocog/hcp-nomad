@@ -429,6 +429,13 @@ type KeyringUpdateRootKeyResponse struct {
 	WriteMeta
 }
 
+// KeyringUpsertWrappedRootKeyRequest... TODO
+type KeyringUpsertWrappedRootKeyRequest struct {
+	WrappedRootKeys *WrappedRootKeys
+	Rekey           bool
+	WriteRequest
+}
+
 // KeyringGetRootKeyRequest is used internally for key replication
 // only and for keyring restores.
 type KeyringGetRootKeyRequest struct {

@@ -586,7 +586,8 @@ func TestEncrypter_Upgrade17(t *testing.T) {
 	oldRootKey.RSAKey = nil
 
 	// Add to keyring
-	must.NoError(t, srv.encrypter.AddKey(oldRootKey))
+	_, err = srv.encrypter.AddUnwrappedKey(oldRootKey)
+	must.NoError(t, err)
 
 	// Write metadata to Raft
 	wr := structs.WriteRequest{

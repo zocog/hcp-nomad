@@ -128,9 +128,10 @@ const (
 	NodePoolUpsertRequestType                    MessageType = 59
 	NodePoolDeleteRequestType                    MessageType = 60
 
-	// Namespace types were moved from enterprise and therefore start at 64
-	NamespaceUpsertRequestType MessageType = 64
-	NamespaceDeleteRequestType MessageType = 65
+	WrappedRootKeysUpsertRequestType MessageType = 62
+	WrappedRootKeysDeleteRequestType MessageType = 63
+	NamespaceUpsertRequestType       MessageType = 64
+	NamespaceDeleteRequestType       MessageType = 65
 )
 
 const (

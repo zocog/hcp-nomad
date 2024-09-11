@@ -2766,7 +2766,7 @@ func (s *Server) initializeKeyring(stopCh <-chan struct{}) {
 		return
 	}
 
-	err = s.encrypter.AddKey(rootKey)
+	_, err = s.encrypter.AddUnwrappedKey(rootKey)
 	if err != nil {
 		logger.Error("could not add initial key to keyring", "error", err)
 		return

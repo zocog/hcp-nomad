@@ -340,19 +340,19 @@ func (e *Encrypter) VerifyClaim(tokenString string) (*structs.IdentityClaims, er
 	return claims, nil
 }
 
-// AddKey stores the key in the keystore and creates a new cipher for it.
-func (e *Encrypter) AddKey(rootKey *structs.RootKey) error {
+// AddUnwrappedKey stores the key in the keystore and creates a new cipher for it.
+func (e *Encrypter) AddUnwrappedKey(rootKey *structs.RootKey) (*structs.WrappedRootKeys, error) {
 
 	// note: we don't lock the keyring here but inside addCipher
 	// instead, so that we're not holding the lock while performing
 	// local disk writes
 	if err := e.addCipher(rootKey); err != nil {
-		return err
+		return nil, err
 	}
 	if err := e.saveKeyToStore(rootKey); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return nil, nil // TODO
 }
 
 // addCipher stores the key in the keyring and creates a new cipher for it.
@@ -777,7 +777,7 @@ func (krr *KeyringReplicator) replicateKey(ctx context.Context, keyMeta *structs
 		}
 	}
 
-	err = krr.encrypter.AddKey(getResp.Key)
+	_, err = krr.encrypter.AddUnwrappedKey(getResp.Key)
 	if err != nil {
 		return fmt.Errorf("failed to add key to keyring: %v", err)
 	}

@@ -68,7 +68,7 @@ func (k *Keyring) Rotate(args *structs.KeyringRotateRootKeyRequest, reply *struc
 	// make sure it's been added to the local keystore before we write
 	// it to raft, so that followers don't try to Get a key that
 	// hasn't yet been written to disk
-	err = k.encrypter.AddKey(rootKey)
+	_, err = k.encrypter.AddUnwrappedKey(rootKey)
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func (k *Keyring) Update(args *structs.KeyringUpdateRootKeyRequest, reply *struc
 	// make sure it's been added to the local keystore before we write
 	// it to raft, so that followers don't try to Get a key that
 	// hasn't yet been written to disk
-	err = k.encrypter.AddKey(args.RootKey)
+	_, err = k.encrypter.AddUnwrappedKey(args.RootKey)
 	if err != nil {
 		return err
 	}
