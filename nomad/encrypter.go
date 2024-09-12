@@ -188,6 +188,21 @@ func (e *Encrypter) loadKeystore() error {
 	})
 }
 
+func (e *Encrypter) IsReady(ctx context.Context) bool {
+	err := e.withBackoff(ctx, time.Millisecond*100, time.Second, func() error {
+		e.lock.RLock()
+		defer e.lock.RUnlock()
+		if len(e.decryptTasks) != 0 {
+			return fmt.Errorf("not ready")
+		}
+		return nil
+	})
+	if err != nil {
+		return true
+	}
+	return false
+}
+
 // Encrypt encrypts the clear data with the cipher for the current
 // root key, and returns the cipher text (including the nonce), and
 // the key ID used to encrypt it
