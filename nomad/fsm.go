@@ -1842,6 +1842,17 @@ func (n *nomadFSM) restoreImpl(old io.ReadCloser, filter *FSMFilter) error {
 			if err := restore.RootKeyMetaRestore(keyMeta); err != nil {
 				return err
 			}
+
+		case WrappedRootKeysSnapshot:
+			wrappedKeys := new(structs.WrappedRootKeys)
+			if err := dec.Decode(wrappedKeys); err != nil {
+				return err
+			}
+
+			if err := restore.WrappedRootKeysRestore(wrappedKeys); err != nil {
+				return err
+			}
+
 		case ACLRoleSnapshot:
 
 			// Create a new ACLRole object, so we can decode the message into
