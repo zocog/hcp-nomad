@@ -20,7 +20,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-jose/go-jose/v3"
 	"github.com/go-jose/go-jose/v3/jwt"
 	"github.com/hashicorp/go-hclog"
@@ -80,7 +79,7 @@ func NewEncrypter(srv *Server, keystorePath string) (*Encrypter, error) {
 
 	encrypter := &Encrypter{
 		srv:             srv,
-		log:             srv.logger.With("keyring"),
+		log:             srv.logger.Named("keyring"),
 		keystorePath:    keystorePath,
 		keyring:         make(map[string]*keyset),
 		issuer:          srv.GetConfig().OIDCIssuer,
@@ -389,7 +388,7 @@ func (e *Encrypter) AddWrappedKey(ctx context.Context, wrappedKeys *structs.Wrap
 
 	completeCtx, cancel := context.WithCancel(ctx)
 
-	spew.Dump(wrappedKeys)
+	//spew.Dump(wrappedKeys)
 
 	for _, wrappedKey := range wrappedKeys.WrappedKeys {
 		providerID := wrappedKey.ProviderID
@@ -444,10 +443,8 @@ func (e *Encrypter) AddWrappedKey(ctx context.Context, wrappedKeys *structs.Wrap
 	return nil
 }
 
-func (e *Encrypter) withBackoff(ctx context.Context, keyID string, fn func() error) {
+func (e *Encrypter) withBackoff(ctx context.Context, minBackoff, maxBackoff time.Duration, fn func() error) error {
 	var err error
-	minBackoff := time.Second
-	maxBackoff := time.Second * 30
 
 	backoff := minBackoff
 	t, stop := helper.NewSafeTimer(0)
@@ -455,13 +452,13 @@ func (e *Encrypter) withBackoff(ctx context.Context, keyID string, fn func() err
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return ctx.Err()
 		case <-t.C:
 		}
 
 		err = fn()
 		if err == nil {
-			return
+			return nil
 		}
 
 		if backoff < maxBackoff {
@@ -470,15 +467,19 @@ func (e *Encrypter) withBackoff(ctx context.Context, keyID string, fn func() err
 				backoff = maxBackoff
 			}
 		}
-		e.log.Error(err.Error(), "key_id", keyID)
+
 		t.Reset(backoff)
 	}
 }
 
 func (e *Encrypter) replicateFromPeers(ctx context.Context, cancel context.CancelFunc, meta *structs.RootKeyMeta, wrappedKey *structs.WrappedRootKey) {
 	e.log.Warn("start fetch from peers task", "key_id", meta.KeyID)
-	e.withBackoff(ctx, meta.KeyID, func() error {
-		return e.srv.replicateKey(ctx, e.log, meta)
+	e.withBackoff(ctx, time.Second, time.Second*5, func() error {
+		if err := e.srv.replicateKey(ctx, e.log, meta); err != nil {
+			e.log.Error(err.Error(), "key_id", meta.KeyID)
+			return err
+		}
+		return nil
 	})
 
 	// notify all other tasks that we've completed the decryption
@@ -496,11 +497,16 @@ func (e *Encrypter) decryptWrappedKeyTask(ctx context.Context, cancel context.Ca
 	var rsaKey []byte
 	var err error
 
-	e.withBackoff(ctx, meta.KeyID, func() error {
+	minBackoff := time.Second
+	maxBackoff := time.Second * 30
+
+	e.withBackoff(ctx, minBackoff, maxBackoff, func() error {
 		wrappedDEK := wrappedKey.WrappedDataEncryptionKey
 		key, err = wrapper.Decrypt(e.srv.shutdownCtx, wrappedDEK)
 		if err != nil {
-			return fmt.Errorf("%w (root key): %w", ErrDecryptFailed, err)
+			err := fmt.Errorf("%w (root key): %w", ErrDecryptFailed, err)
+			e.log.Error(err.Error(), "key_id", meta.KeyID)
+			return err
 		}
 		return nil
 	})
@@ -508,14 +514,15 @@ func (e *Encrypter) decryptWrappedKeyTask(ctx context.Context, cancel context.Ca
 	// DEBUG: remove this
 	e.log.Warn("decrypt task: DEK decrypted", "key_id", meta.KeyID)
 
-	e.withBackoff(ctx, meta.KeyID, func() error {
+	e.withBackoff(ctx, minBackoff, maxBackoff, func() error {
 		// Decrypt RSAKey for Workload Identity JWT signing if one exists. Prior to
 		// 1.7 an ed25519 key derived from the root key was used instead of an RSA
 		// key.
 		if wrappedKey.WrappedRSAKey != nil {
 			rsaKey, err = wrapper.Decrypt(e.srv.shutdownCtx, wrappedKey.WrappedRSAKey)
 			if err != nil {
-				return fmt.Errorf("%w (rsa key): %w", ErrDecryptFailed, err)
+				err := fmt.Errorf("%w (rsa key): %w", ErrDecryptFailed, err)
+				e.log.Error(err.Error(), "key_id", meta.KeyID)
 			}
 		}
 		return nil
@@ -530,10 +537,12 @@ func (e *Encrypter) decryptWrappedKeyTask(ctx context.Context, cancel context.Ca
 		RSAKey: rsaKey,
 	}
 
-	e.withBackoff(ctx, meta.KeyID, func() error {
+	e.withBackoff(ctx, minBackoff, maxBackoff, func() error {
 		err = e.addCipher(rootKey)
 		if err != nil {
-			return fmt.Errorf("could not add cipher: %w", err)
+			err := fmt.Errorf("could not add cipher: %w", err)
+			e.log.Error(err.Error(), "key_id", meta.KeyID)
+			return err
 		}
 		return nil
 	})
@@ -706,7 +715,7 @@ func (e *Encrypter) saveKeyToStore(rootKey *structs.RootKey, isUpgraded bool) (*
 			return nil, err
 		}
 
-		spew.Dump(provider)
+		//spew.Dump(provider)
 
 		switch {
 		case isUpgraded && provider.UseKeystore():
@@ -723,7 +732,7 @@ func (e *Encrypter) saveKeyToStore(rootKey *structs.RootKey, isUpgraded bool) (*
 			e.log.Warn("writing wrapped key to Raft w/o KEK using KMS")
 			wrappedKey.KeyEncryptionKey = nil
 
-		case provider.Provider == "aead":
+		case provider.Provider == string(structs.KEKProviderAEAD):
 			e.log.Warn("writing wrapped key to Raft w/o KEK and and on-disk keystore w/ KEK")
 			kek := wrappedKey.KeyEncryptionKey
 			wrappedKey.KeyEncryptionKey = nil
@@ -789,6 +798,8 @@ func (e *Encrypter) loadKeyFromStore(path string) (*structs.RootKey, error) {
 	if err = meta.Validate(); err != nil {
 		return nil, err
 	}
+
+	//spew.Dump(kekWrapper)
 
 	if kekWrapper.ProviderID == "" {
 		kekWrapper.ProviderID = string(structs.KEKProviderAEAD)
@@ -1028,6 +1039,9 @@ func (srv *Server) replicateKey(ctx context.Context, log hclog.Logger, keyMeta *
 			return fmt.Errorf("failed to fetch key from any peer: %v", err)
 		}
 	}
+
+	// TODO: DEBUG: remove this
+	log.Warn("replicated new key, checking if cluster upgraded", "id", keyID)
 
 	isClusterUpgraded := ServersMeetMinimumVersion(
 		srv.serf.Members(), srv.Region(), minVersionKeyringInRaft, true)

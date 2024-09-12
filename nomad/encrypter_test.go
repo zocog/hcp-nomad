@@ -73,7 +73,10 @@ func TestEncrypter_LoadSave(t *testing.T) {
 			key, err := structs.NewRootKey(algo)
 			must.Greater(t, 0, len(key.RSAKey))
 			must.NoError(t, err)
-			must.NoError(t, encrypter.saveKeyToStore(key))
+
+			// TODO: anything to assert about the key?
+			_, err = encrypter.saveKeyToStore(key, false)
+			must.NoError(t, err)
 
 			// startup code path
 			gotKey, err := encrypter.loadKeyFromStore(
@@ -81,7 +84,8 @@ func TestEncrypter_LoadSave(t *testing.T) {
 			must.NoError(t, err)
 			must.NoError(t, encrypter.addCipher(gotKey))
 			must.Greater(t, 0, len(gotKey.RSAKey))
-			must.NoError(t, encrypter.saveKeyToStore(key))
+			_, err = encrypter.saveKeyToStore(key, false)
+			must.NoError(t, err)
 
 			active, err := encrypter.keysetByIDLocked(key.Meta.KeyID)
 			must.NoError(t, err)
@@ -94,15 +98,15 @@ func TestEncrypter_LoadSave(t *testing.T) {
 		must.NoError(t, err)
 
 		// create a wrapper file identical to those before we had external KMS
-		kekWrapper, err := encrypter.encryptDEK(key, &structs.KEKProviderConfig{})
-		kekWrapper.Provider = ""
-		kekWrapper.ProviderID = ""
-		kekWrapper.EncryptedDataEncryptionKey = kekWrapper.WrappedDataEncryptionKey.Ciphertext
-		kekWrapper.EncryptedRSAKey = kekWrapper.WrappedRSAKey.Ciphertext
-		kekWrapper.WrappedDataEncryptionKey = nil
-		kekWrapper.WrappedRSAKey = nil
+		wrappedKey, err := encrypter.encryptDEK(key, &structs.KEKProviderConfig{})
+		diskWrapper := &structs.KeyEncryptionKeyWrapper{
+			Meta:                       key.Meta,
+			KeyEncryptionKey:           wrappedKey.KeyEncryptionKey,
+			EncryptedDataEncryptionKey: wrappedKey.WrappedDataEncryptionKey.Ciphertext,
+			EncryptedRSAKey:            wrappedKey.WrappedRSAKey.Ciphertext,
+		}
 
-		buf, err := json.Marshal(kekWrapper)
+		buf, err := json.Marshal(diskWrapper)
 		must.NoError(t, err)
 
 		path := filepath.Join(tmpDir, key.Meta.KeyID+".nks.json")
@@ -224,13 +228,21 @@ func TestEncrypter_Restore(t *testing.T) {
 }
 
 // TestEncrypter_KeyringReplication exercises key replication between servers
+// when store_keys_outside_raft=true
 func TestEncrypter_KeyringReplication(t *testing.T) {
 
 	ci.Parallel(t)
 
+	providers := []*structs.KEKProviderConfig{{
+		Provider: string(structs.KEKProviderAEAD),
+		Active:   true,
+		Config:   map[string]string{"store_keys_outside_raft": "true"},
+	}}
+
 	srv1, cleanupSRV1 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 3
 		c.NumSchedulers = 0
+		c.KEKProviderConfigs = providers
 	})
 	t.Cleanup(cleanupSRV1)
 
@@ -239,11 +251,13 @@ func TestEncrypter_KeyringReplication(t *testing.T) {
 	srv2, cleanupSRV2 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 3
 		c.NumSchedulers = 0
+		c.KEKProviderConfigs = providers
 	})
 	t.Cleanup(cleanupSRV2)
 	srv3, cleanupSRV3 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 3
 		c.NumSchedulers = 0
+		c.KEKProviderConfigs = providers
 	})
 	t.Cleanup(cleanupSRV3)
 
@@ -379,11 +393,13 @@ func TestEncrypter_KeyringReplication(t *testing.T) {
 	srv4, cleanupSRV4 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 0
 		c.NumSchedulers = 0
+		c.KEKProviderConfigs = providers
 	})
 	defer cleanupSRV4()
 	srv5, cleanupSRV5 := TestServer(t, func(c *Config) {
 		c.BootstrapExpect = 0
 		c.NumSchedulers = 0
+		c.KEKProviderConfigs = providers
 	})
 	defer cleanupSRV5()
 
@@ -576,6 +592,9 @@ func TestEncrypter_Upgrade17(t *testing.T) {
 	testutil.WaitForKeyring(t, srv.RPC, "global")
 	codec := rpcClient(t, srv)
 
+	initKey, err := srv.State().GetActiveRootKeyMeta(nil)
+	must.NoError(t, err)
+
 	// Fake life as a 1.6 server by writing only ed25519 keys
 	oldRootKey, err := structs.NewRootKey(structs.EncryptionAlgorithmAES256GCM)
 	must.NoError(t, err)
@@ -586,7 +605,7 @@ func TestEncrypter_Upgrade17(t *testing.T) {
 	oldRootKey.RSAKey = nil
 
 	// Add to keyring
-	_, err = srv.encrypter.AddUnwrappedKey(oldRootKey)
+	_, err = srv.encrypter.AddUnwrappedKey(oldRootKey, false)
 	must.NoError(t, err)
 
 	// Write metadata to Raft
@@ -599,6 +618,15 @@ func TestEncrypter_Upgrade17(t *testing.T) {
 		WriteRequest: wr,
 	}
 	_, _, err = srv.raftApply(structs.RootKeyMetaUpsertRequestType, req)
+	must.NoError(t, err)
+
+	// Delete the initialization key because it's a newer WrappedRootKey from
+	// 1.9, which isn't under test here.
+	_, _, err = srv.raftApply(
+		structs.WrappedRootKeysDeleteRequestType, structs.KeyringDeleteRootKeyRequest{
+			KeyID:        initKey.KeyID,
+			WriteRequest: wr,
+		})
 	must.NoError(t, err)
 
 	// Create a 1.6 style workload identity

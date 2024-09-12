@@ -292,9 +292,18 @@ func (k *Keyring) Get(args *structs.KeyringGetRootKeyRequest, reply *structs.Key
 				if keyMeta == nil {
 					return k.srv.replySetIndex(state.TableRootKeyMeta, &reply.QueryMeta)
 				}
+
 			} else {
 				keyMeta = wrappedKeys.Meta
+				// Use the last index that affected the policy table
+				err := k.srv.replySetIndex(state.TableWrappedRootKeys, &reply.QueryMeta)
+				if err != nil {
+					return err
+				}
 			}
+
+			// DEBUG: remove this
+			k.logger.Warn("Keyring.Get RPC calling GetKey", "key_id", keyMeta.KeyID)
 
 			// retrieve the key material from the keyring
 			rootKey, err := k.encrypter.GetKey(keyMeta.KeyID)
@@ -303,19 +312,15 @@ func (k *Keyring) Get(args *structs.KeyringGetRootKeyRequest, reply *structs.Key
 			}
 			reply.Key = rootKey
 
-			// Use the last index that affected the policy table
-			index, err := s.Index(state.TableRootKeyMeta)
-			if err != nil {
-				return err
-			}
-
 			// Ensure we never set the index to zero, otherwise a blocking query
 			// cannot be used.  We floor the index at one, since realistically
 			// the first write must have a higher index.
-			if index == 0 {
-				index = 1
+			if reply.Index == 0 {
+				reply.Index = 1
 			}
-			reply.Index = index
+
+			// DEBUG: remove this
+			k.logger.Warn("Keyring.Get RPC returning GetKey", "key_id", keyMeta.KeyID)
 			return nil
 		},
 	}
