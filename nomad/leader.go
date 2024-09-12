@@ -2767,12 +2767,15 @@ func (s *Server) initializeKeyring(stopCh <-chan struct{}) {
 		return
 	}
 
-	wrappedKeys, err := s.encrypter.AddUnwrappedKey(rootKey)
+	isClusterUpgraded := ServersMeetMinimumVersion(
+		s.serf.Members(), s.Region(), minVersionKeyringInRaft, true)
+
+	wrappedKeys, err := s.encrypter.AddUnwrappedKey(rootKey, isClusterUpgraded)
 	if err != nil {
 		logger.Error("could not add initial key to keyring", "error", err)
 		return
 	}
-	if ServersMeetMinimumVersion(s.serf.Members(), s.Region(), minVersionKeyringInRaft, true) {
+	if isClusterUpgraded {
 		logger.Warn("cluster is upgraded to 1.9.0: initializing keyring")
 		if _, _, err = s.raftApply(structs.WrappedRootKeysUpsertRequestType,
 			structs.KeyringUpsertWrappedRootKeyRequest{

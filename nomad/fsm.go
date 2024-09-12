@@ -2352,7 +2352,15 @@ func (n *nomadFSM) applyWrappedRootKeysUpsert(msgType structs.MessageType, buf [
 		return err
 	}
 
+	// start a task to decrypt the key material
 	n.encrypter.AddWrappedKey(n.encrypter.srv.shutdownCtx, req.WrappedRootKeys)
+
+	// COMPAT(1.12.0): remove in 1.12.0 LTS
+	if err := n.state.DeleteRootKeyMeta(index, req.WrappedRootKeys.Meta.KeyID); err != nil {
+		n.logger.Error("UpsertWrappedRootKeys failed to delete legacy key", "error", err)
+		return err
+	}
+
 	return nil
 }
 

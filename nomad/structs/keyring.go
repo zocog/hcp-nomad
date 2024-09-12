@@ -222,7 +222,15 @@ func (c *KEKProviderConfig) ID() string {
 }
 
 func (c *KEKProviderConfig) UseKeystore() bool {
-	return c.Name == "aead" && c.Config["store_keys_outside_raft"] == "true"
+	return c.Provider == "aead" && c.Config["store_keys_outside_raft"] == "true"
+}
+
+func (c *KEKProviderConfig) UseCleartextKEKinRaft() bool {
+	if c.Provider != "aead" {
+		return false
+	}
+	useKeystore, ok := c.Config["store_keys_outside_raft"]
+	return !ok || useKeystore == "false"
 }
 
 // RootKeyState enum describes the lifecycle of a root key.

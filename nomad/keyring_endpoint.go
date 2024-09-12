@@ -65,17 +65,19 @@ func (k *Keyring) Rotate(args *structs.KeyringRotateRootKeyRequest, reply *struc
 		rootKey.Meta = rootKey.Meta.MakeActive()
 	}
 
+	isClusterUpgraded := ServersMeetMinimumVersion(
+		k.srv.serf.Members(), k.srv.Region(), minVersionKeyringInRaft, true)
+
 	// wrap/encrypt the key before we write it to Raft. When
 	// store_keys_outside_raft=true, this ensures the followers don't try to Get
 	// a key that hasn't yet been written to disk
-	wrappedKeys, err := k.encrypter.AddUnwrappedKey(rootKey)
+	wrappedKeys, err := k.encrypter.AddUnwrappedKey(rootKey, isClusterUpgraded)
 	if err != nil {
 		return err
 	}
 
 	var index uint64
-	if ServersMeetMinimumVersion(
-		k.srv.serf.Members(), k.srv.Region(), minVersionKeyringInRaft, true) {
+	if isClusterUpgraded {
 		_, index, err = k.srv.raftApply(structs.WrappedRootKeysUpsertRequestType,
 			structs.KeyringUpsertWrappedRootKeyRequest{
 				WrappedRootKeys: wrappedKeys,
@@ -181,17 +183,19 @@ func (k *Keyring) Update(args *structs.KeyringUpdateRootKeyRequest, reply *struc
 		return err
 	}
 
+	isClusterUpgraded := ServersMeetMinimumVersion(
+		k.srv.serf.Members(), k.srv.Region(), minVersionKeyringInRaft, true)
+
 	// make sure it's been added to the local keystore before we write
 	// it to raft, so that followers don't try to Get a key that
 	// hasn't yet been written to disk
-	wrappedKeys, err := k.encrypter.AddUnwrappedKey(args.RootKey)
+	wrappedKeys, err := k.encrypter.AddUnwrappedKey(args.RootKey, isClusterUpgraded)
 	if err != nil {
 		return err
 	}
 
 	var index uint64
-	if ServersMeetMinimumVersion(
-		k.srv.serf.Members(), k.srv.Region(), minVersionKeyringInRaft, true) {
+	if isClusterUpgraded {
 		_, index, err = k.srv.raftApply(structs.WrappedRootKeysUpsertRequestType,
 			structs.KeyringUpsertWrappedRootKeyRequest{
 				WrappedRootKeys: wrappedKeys,

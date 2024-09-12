@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/hcl"
@@ -564,7 +565,14 @@ func parseKeyringConfigs(c *Config, keyringBlocks *ast.ObjectList) error {
 		for _, extraKey := range provider.ExtraKeysHCL {
 			val, ok := m[extraKey].(string)
 			if !ok {
-				return fmt.Errorf("failed to decode key %q to string", extraKey)
+				// upstream go-kms-wrapping configs are all strings, but we want
+				// to accept bools in Nomad-internal fields. convert a stringly
+				// typed bool so users don't have to quote the bool value
+				bVal, ok := m[extraKey].(bool)
+				if !ok {
+					return fmt.Errorf("failed to decode key %q to string", extraKey)
+				}
+				val = strconv.FormatBool(bVal)
 			}
 			provider.Config[extraKey] = val
 		}
