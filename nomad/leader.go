@@ -2721,6 +2721,7 @@ func (s *Server) getOrCreateSchedulerConfig() *structs.SchedulerConfiguration {
 }
 
 var minVersionKeyring = version.Must(version.NewVersion("1.4.0"))
+var minVersionKeyringInRaft = version.Must(version.NewVersion("1.8.4-dev"))
 
 // initializeKeyring creates the first root key if the leader doesn't
 // already have one. The metadata will be replicated via raft and then
@@ -2766,18 +2767,29 @@ func (s *Server) initializeKeyring(stopCh <-chan struct{}) {
 		return
 	}
 
-	_, err = s.encrypter.AddUnwrappedKey(rootKey)
+	wrappedKeys, err := s.encrypter.AddUnwrappedKey(rootKey)
 	if err != nil {
 		logger.Error("could not add initial key to keyring", "error", err)
 		return
 	}
-
-	if _, _, err = s.raftApply(structs.RootKeyMetaUpsertRequestType,
-		structs.KeyringUpdateRootKeyMetaRequest{
-			RootKeyMeta: rootKey.Meta,
-		}); err != nil {
-		logger.Error("could not initialize keyring", "error", err)
-		return
+	if ServersMeetMinimumVersion(s.serf.Members(), s.Region(), minVersionKeyringInRaft, true) {
+		logger.Warn("cluster is upgraded to 1.9.0: initializing keyring")
+		if _, _, err = s.raftApply(structs.WrappedRootKeysUpsertRequestType,
+			structs.KeyringUpsertWrappedRootKeyRequest{
+				WrappedRootKeys: wrappedKeys,
+			}); err != nil {
+			logger.Error("could not initialize keyring", "error", err)
+			return
+		}
+	} else {
+		logger.Warn("cluster is not upgraded to 1.9.0: initializing legacy keyring")
+		if _, _, err = s.raftApply(structs.RootKeyMetaUpsertRequestType,
+			structs.KeyringUpdateRootKeyMetaRequest{
+				RootKeyMeta: rootKey.Meta,
+			}); err != nil {
+			logger.Error("could not initialize keyring", "error", err)
+			return
+		}
 	}
 
 	logger.Info("initialized keyring", "id", rootKey.Meta.KeyID)

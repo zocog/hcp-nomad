@@ -74,6 +74,9 @@ func (c *OperatorRootKeyringRemoveCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error creating nomad cli client: %s", err))
 		return 1
 	}
+
+	// TODO: do a prefix query first so the user can pass the short UUID
+
 	_, err = client.Keyring().Delete(&api.KeyringDeleteOptions{
 		KeyID: removeKey,
 	}, nil)

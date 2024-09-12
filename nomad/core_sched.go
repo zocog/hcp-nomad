@@ -974,20 +974,20 @@ func (c *CoreScheduler) rootKeyGC(eval *structs.Evaluation, now time.Time) error
 // a rotation. It prepublishes a key first and only promotes that prepublished
 // key to active once the rotation threshold has expired
 func (c *CoreScheduler) rootKeyRotate(eval *structs.Evaluation, now time.Time) (bool, error) {
-
-	ws := memdb.NewWatchSet()
-	iter, err := c.snap.RootKeyMetas(ws)
-	if err != nil {
-		return false, err
-	}
-
 	var (
 		activeKey       *structs.RootKeyMeta
 		prepublishedKey *structs.RootKeyMeta
 	)
 
+	ws := memdb.NewWatchSet()
+	iter, err := c.snap.WrappedRootKeys(ws)
+	if err != nil {
+		return false, err
+	}
 	for raw := iter.Next(); raw != nil; raw = iter.Next() {
-		key := raw.(*structs.RootKeyMeta)
+		wrappedKeys := raw.(*structs.WrappedRootKeys)
+		key := wrappedKeys.Meta
+		c.logger.Info("WrappedRootKey found", "key_id", key.KeyID, "state", key.State)
 		switch key.State {
 		case structs.RootKeyStateActive:
 			activeKey = key
@@ -1002,8 +1002,34 @@ func (c *CoreScheduler) rootKeyRotate(eval *structs.Evaluation, now time.Time) (
 		}
 	}
 
+	// COMPAT(1.12.0): remove in 1.12.0 LTS
+	if activeKey == nil {
+		iter, err = c.snap.RootKeyMetas(ws)
+		if err != nil {
+			return false, err
+		}
+
+		for raw := iter.Next(); raw != nil; raw = iter.Next() {
+			key := raw.(*structs.RootKeyMeta)
+			c.logger.Info("RootKeyMeta found", "key_id", key.KeyID, "state", key.State)
+			switch key.State {
+			case structs.RootKeyStateActive:
+				activeKey = key
+			case structs.RootKeyStatePrepublished:
+				// multiple keys can be prepublished, so we only want to handle the
+				// very next one
+				if prepublishedKey == nil {
+					prepublishedKey = key
+				} else if prepublishedKey.PublishTime > key.PublishTime {
+					prepublishedKey = key
+				}
+			}
+		}
+	}
+
 	if prepublishedKey != nil {
-		c.logger.Trace("checking prepublished key eligibility for promotion",
+		// TODO: switch back to .Trace
+		c.logger.Info("checking prepublished key eligibility for promotion",
 			"publish_time", prepublishedKey.PublishTime, "now", now.UnixNano())
 
 		if prepublishedKey.PublishTime > now.UnixNano() {

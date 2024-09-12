@@ -127,7 +127,7 @@ func (s *StateStore) deleteRootKeyMetaTxn(txn Txn, index uint64, keyID string) e
 		return fmt.Errorf("root key metadata lookup failed: %v", err)
 	}
 	if existing == nil {
-		return fmt.Errorf("root key metadata not found")
+		return nil // this case should be validated in RPC
 	}
 	if err := txn.Delete(TableRootKeyMeta, existing); err != nil {
 		return fmt.Errorf("root key metadata delete failed: %v", err)
@@ -241,7 +241,7 @@ func (s *StateStore) IsRootKeyInUse(keyID string) (bool, error) {
 	return false, nil
 }
 
-// UpsertWrappedRootKeys saves root key meta or updates it in-place.
+// UpsertWrappedRootKeys saves a wrapped root keys or updates them in place.
 func (s *StateStore) UpsertWrappedRootKeys(index uint64, wrappedRootKeys *structs.WrappedRootKeys, rekey bool) error {
 	txn := s.db.WriteTxn(index)
 	defer txn.Abort()
@@ -259,10 +259,10 @@ func (s *StateStore) UpsertWrappedRootKeys(index uint64, wrappedRootKeys *struct
 	isRotation := false
 
 	if raw != nil {
-		existing := raw.(*structs.RootKeyMeta)
-		wrappedRootKeys.Meta.CreateIndex = existing.CreateIndex
-		wrappedRootKeys.Meta.CreateTime = existing.CreateTime
-		isRotation = !existing.IsActive() && wrappedRootKeys.Meta.IsActive()
+		existing := raw.(*structs.WrappedRootKeys)
+		wrappedRootKeys.Meta.CreateIndex = existing.Meta.CreateIndex
+		wrappedRootKeys.Meta.CreateTime = existing.Meta.CreateTime
+		isRotation = !existing.Meta.IsActive() && wrappedRootKeys.Meta.IsActive()
 	} else {
 		wrappedRootKeys.Meta.CreateIndex = index
 		isRotation = wrappedRootKeys.Meta.IsActive()
@@ -311,15 +311,58 @@ func (s *StateStore) UpsertWrappedRootKeys(index uint64, wrappedRootKeys *struct
 					return err
 				}
 			}
-
 		}
+
+		// COMPAT(1.12.0): remove this section in 1.12.0 LTS
+		var legacyTableUpdated bool
+		iter, err = txn.Get(TableRootKeyMeta, indexID)
+		if err != nil {
+			return err
+		}
+		for {
+			raw := iter.Next()
+			if raw == nil {
+				break
+			}
+			key := raw.(*structs.RootKeyMeta)
+			modified := false
+
+			switch key.State {
+			case structs.RootKeyStateInactive:
+				if rekey {
+					key = key.MakeRekeying()
+					modified = true
+				}
+			case structs.RootKeyStateActive:
+				if rekey {
+					key = key.MakeRekeying()
+				} else {
+					key = key.MakeInactive()
+				}
+				modified = true
+			case structs.RootKeyStateRekeying, structs.RootKeyStateDeprecated:
+				// nothing to do
+			}
+
+			if modified {
+				key.ModifyIndex = index
+				legacyTableUpdated = true
+				if err := txn.Insert(TableRootKeyMeta, key); err != nil {
+					return err
+				}
+			}
+		}
+		if legacyTableUpdated {
+			if err := txn.Insert("index", &IndexEntry{TableRootKeyMeta, index}); err != nil {
+				return fmt.Errorf("index update failed: %v", err)
+			}
+		}
+
 	}
 
 	if err := txn.Insert(TableWrappedRootKeys, wrappedRootKeys); err != nil {
 		return err
 	}
-
-	// update the indexes table
 	if err := txn.Insert("index", &IndexEntry{TableWrappedRootKeys, index}); err != nil {
 		return fmt.Errorf("index update failed: %v", err)
 	}

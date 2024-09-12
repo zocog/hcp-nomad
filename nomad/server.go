@@ -1378,6 +1378,7 @@ func (s *Server) setupRaft() error {
 		EvalBroker:         s.evalBroker,
 		Periodic:           s.periodicDispatcher,
 		Blocked:            s.blockedEvals,
+		Encrypter:          s.encrypter,
 		Logger:             s.logger,
 		Region:             s.Region(),
 		EnableEventBroker:  s.config.EnableEventBroker,

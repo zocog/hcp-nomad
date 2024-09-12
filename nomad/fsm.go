@@ -128,6 +128,7 @@ type nomadFSM struct {
 	evalBroker         *EvalBroker
 	blockedEvals       *BlockedEvals
 	periodicDispatcher *PeriodicDispatch
+	encrypter          *Encrypter
 	logger             hclog.Logger
 	state              *state.StateStore
 	timetable          *TimeTable
@@ -173,6 +174,9 @@ type FSMConfig struct {
 	// be added to.
 	Blocked *BlockedEvals
 
+	// Encrypter is the encrypter where new WrappedRootKeys should be added
+	Encrypter *Encrypter
+
 	// Logger is the logger used by the FSM
 	Logger hclog.Logger
 
@@ -209,6 +213,7 @@ func NewFSM(config *FSMConfig) (*nomadFSM, error) {
 		evalBroker:          config.EvalBroker,
 		periodicDispatcher:  config.Periodic,
 		blockedEvals:        config.Blocked,
+		encrypter:           config.Encrypter,
 		logger:              config.Logger.Named("fsm"),
 		config:              config,
 		state:               state,
@@ -2347,6 +2352,7 @@ func (n *nomadFSM) applyWrappedRootKeysUpsert(msgType structs.MessageType, buf [
 		return err
 	}
 
+	n.encrypter.AddWrappedKey(n.encrypter.srv.shutdownCtx, req.WrappedRootKeys)
 	return nil
 }
 
@@ -2363,6 +2369,7 @@ func (n *nomadFSM) applyWrappedRootKeysDelete(msgType structs.MessageType, buf [
 		return err
 	}
 
+	n.encrypter.RemoveKey(req.KeyID)
 	return nil
 }
 
