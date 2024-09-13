@@ -2326,6 +2326,14 @@ func (n *nomadFSM) applyRootKeyMetaUpsert(msgType structs.MessageType, buf []byt
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
+	wrappedKey, err := n.state.WrappedRootKeysByID(nil, req.RootKeyMeta.KeyID)
+	if err != nil {
+		n.logger.Error("UpsertRootKeyMeta failed to lookup new key", "error", err)
+	}
+	if wrappedKey == nil {
+		return nil // key has already been migrated
+	}
+
 	if err := n.state.UpsertRootKeyMeta(index, req.RootKeyMeta, req.Rekey); err != nil {
 		n.logger.Error("UpsertRootKeyMeta failed", "error", err)
 		return err
@@ -2363,14 +2371,14 @@ func (n *nomadFSM) applyWrappedRootKeysUpsert(msgType structs.MessageType, buf [
 		return err
 	}
 
-	// start a task to decrypt the key material
-	n.encrypter.AddWrappedKey(n.encrypter.srv.shutdownCtx, req.WrappedRootKeys)
-
 	// COMPAT(1.12.0): remove in 1.12.0 LTS
 	if err := n.state.DeleteRootKeyMeta(index, req.WrappedRootKeys.Meta.KeyID); err != nil {
 		n.logger.Error("UpsertWrappedRootKeys failed to delete legacy key", "error", err)
 		return err
 	}
+
+	// start a task to decrypt the key material
+	go n.encrypter.AddWrappedKey(n.encrypter.srv.shutdownCtx, req.WrappedRootKeys)
 
 	return nil
 }

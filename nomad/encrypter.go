@@ -188,19 +188,19 @@ func (e *Encrypter) loadKeystore() error {
 	})
 }
 
-func (e *Encrypter) IsReady(ctx context.Context) bool {
-	err := e.withBackoff(ctx, time.Millisecond*100, time.Second, func() error {
+func (e *Encrypter) IsReady(ctx context.Context) error {
+	err := helper.WithBackoffFunc(ctx, time.Millisecond*100, time.Second, func() error {
 		e.lock.RLock()
 		defer e.lock.RUnlock()
 		if len(e.decryptTasks) != 0 {
-			return fmt.Errorf("not ready")
+			return fmt.Errorf("keyring is not ready")
 		}
 		return nil
 	})
 	if err != nil {
-		return true
+		return err
 	}
-	return false
+	return nil
 }
 
 // Encrypt encrypts the clear data with the cipher for the current
@@ -372,34 +372,46 @@ func (e *Encrypter) AddUnwrappedKey(rootKey *structs.RootKey, isUpgraded bool) (
 }
 
 // AddWrappedKey creates decryption tasks for keys we've previously stored in
-// Raft.
+// Raft. It's only called as a goroutine by the FSM Apply for WrappedRootKeys,
+// but it returns an error for ease of testing.
 func (e *Encrypter) AddWrappedKey(ctx context.Context, wrappedKeys *structs.WrappedRootKeys) error {
 
-	// DEBUG: remove this
-	e.log.Warn("calling AddWrappedKey", "key_id", wrappedKeys.Meta.KeyID)
+	logger := e.log.With("key_id", wrappedKeys.Meta.KeyID)
+
+	// DEBUG: remove this log
+	logger.Warn("calling AddWrappedKey", "key_id")
 
 	meta := wrappedKeys.Meta
 	e.lock.Lock()
+	// DEBUG: remove this log
+	logger.Warn("AddWrappedKey: checking keysetByIDLocked")
+
+	_, err := e.keysetByIDLocked(meta.KeyID)
+	if err == nil {
+		// DEBUG: remove this log
+		logger.Warn("AddWrappedKey: keysetByIDLocked found key in keyring")
+
+		// key material for each key ID is immutable so nothing to do, but we
+		// can cancel and remove any running decrypt tasks
+		if cancel, ok := e.decryptTasks[meta.KeyID]; ok {
+			cancel()
+			delete(e.decryptTasks, meta.KeyID)
+		}
+		e.lock.Unlock()
+		return nil
+	}
+
 	if cancel, ok := e.decryptTasks[meta.KeyID]; ok {
-		// clear out any previous tasks for this same key ID under the
-		// assumption they're broken, but don't remove the CancelFunc from the
-		// map so that other callers don't think we can continue
+		// stop any previous tasks for this same key ID under the assumption
+		// they're broken or being superceded, but don't remove the CancelFunc
+		// from the map yet so that other callers don't think we can continue
 		cancel()
 	}
+
 	e.lock.Unlock()
 
-	e.log.Warn("AddWrappedKey: checking GetKey", "key_id", wrappedKeys.Meta.KeyID)
-
-	_, err := e.GetKey(meta.KeyID)
-	if err == nil {
-		// DEBUG: remove this
-		e.log.Warn("AddWrappedKey: GetKey found key in keyring", "key_id", wrappedKeys.Meta.KeyID)
-		return nil // key material for each key ID is immutable so nothing to do
-	}
-
-	// DEBUG: remove this
-	e.log.Warn("AddWrappedKey: no existing key found by GetKey, moving to decrypt",
-		"key_id", wrappedKeys.Meta.KeyID)
+	// DEBUG: remove this log
+	logger.Warn("AddWrappedKey: no existing key found by GetKey, moving to decrypt")
 
 	completeCtx, cancel := context.WithCancel(ctx)
 
@@ -411,19 +423,17 @@ func (e *Encrypter) AddWrappedKey(ctx context.Context, wrappedKeys *structs.Wrap
 			providerID = string(structs.KEKProviderAEAD)
 		}
 
-		// DEBUG: remove this
-		e.log.Warn("AddWrappedKey: unwrapping for provider",
-			"key_id", wrappedKeys.Meta.KeyID, "provider", providerID)
+		// DEBUG: remove this log
+		logger.Warn("AddWrappedKey: unwrapping for provider", "provider", providerID)
 
 		provider, ok := e.providerConfigs[providerID]
 		if !ok {
-			cancel()
+			logger.Error("no such KMS provider configured - root key cannot be decrypted unless another provider is available", "provider_id", providerID)
 			return fmt.Errorf("no such provider %q configured", providerID)
 		}
 
-		// DEBUG: remove this
-		e.log.Warn("AddWrappedKey: found provider",
-			"key_id", wrappedKeys.Meta.KeyID, "provider", providerID)
+		// DEBUG: remove this log
+		logger.Warn("AddWrappedKey: found provider", "provider", providerID)
 
 		if provider.UseKeystore() {
 			// this key is store_keys_outside_raft=true, so we need to get the
@@ -432,22 +442,20 @@ func (e *Encrypter) AddWrappedKey(ctx context.Context, wrappedKeys *structs.Wrap
 			continue
 		}
 
-		// the errors that bubble up from this library can be a bit opaque, so make
-		// sure we wrap them with as much context as possible
 		wrapper, err := e.newKMSWrapper(provider, meta.KeyID, wrappedKey.KeyEncryptionKey)
 		if err != nil {
-			cancel()
-			e.log.Error("unable to create KMS wrapper",
-				"key_id", wrappedKeys.Meta.KeyID, "provider", providerID, "error", err)
+			// the errors that bubble up from this library can be a bit opaque, so
+			// make sure we wrap them with as much context as possible
+			logger.Error("unable to create KMS wrapper - root key cannot be decrypted unless another provider is available", "provider_id", providerID, "error", err)
 
-			return fmt.Errorf("unable to create key wrapper: %w", err)
+			return fmt.Errorf("unable to create key wrapper for provider %q: %w", providerID, err)
 		}
 
 		// DEBUG: remove this
-		e.log.Warn("AddWrappedKey: started decrypt task",
-			"key_id", wrappedKeys.Meta.KeyID,
-			"provider", provider.ID())
+		logger.Warn("AddWrappedKey: started decrypt task", "provider", provider.ID())
 
+		// fan-out decryption tasks for HA in Nomad Enterprise. we can use the
+		// key whenever any one provider returns a successful decryption
 		go e.decryptWrappedKeyTask(completeCtx, cancel, wrapper, provider, meta, wrappedKey)
 	}
 
@@ -458,39 +466,12 @@ func (e *Encrypter) AddWrappedKey(ctx context.Context, wrappedKeys *structs.Wrap
 	return nil
 }
 
-func (e *Encrypter) withBackoff(ctx context.Context, minBackoff, maxBackoff time.Duration, fn func() error) error {
-	var err error
-
-	backoff := minBackoff
-	t, stop := helper.NewSafeTimer(0)
-	defer stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-t.C:
-		}
-
-		err = fn()
-		if err == nil {
-			return nil
-		}
-
-		if backoff < maxBackoff {
-			backoff = backoff * 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
-			}
-		}
-
-		t.Reset(backoff)
-	}
-}
-
 func (e *Encrypter) replicateFromPeers(ctx context.Context, cancel context.CancelFunc, meta *structs.RootKeyMeta, wrappedKey *structs.WrappedRootKey) {
 	e.log.Warn("start fetch from peers task", "key_id", meta.KeyID)
-	e.withBackoff(ctx, time.Second, time.Second*5, func() error {
+	helper.WithBackoffFunc(ctx, time.Second, time.Second*5, func() error {
 		if err := e.srv.replicateKey(ctx, e.log, meta); err != nil {
+			// we want this to be noisy in the logs, so log each time we fail to
+			// replicate
 			e.log.Error(err.Error(), "key_id", meta.KeyID)
 			return err
 		}
@@ -515,7 +496,7 @@ func (e *Encrypter) decryptWrappedKeyTask(ctx context.Context, cancel context.Ca
 	minBackoff := time.Second
 	maxBackoff := time.Second * 30
 
-	e.withBackoff(ctx, minBackoff, maxBackoff, func() error {
+	helper.WithBackoffFunc(ctx, minBackoff, maxBackoff, func() error {
 		wrappedDEK := wrappedKey.WrappedDataEncryptionKey
 		key, err = wrapper.Decrypt(e.srv.shutdownCtx, wrappedDEK)
 		if err != nil {
@@ -529,7 +510,7 @@ func (e *Encrypter) decryptWrappedKeyTask(ctx context.Context, cancel context.Ca
 	// DEBUG: remove this
 	e.log.Warn("decrypt task: DEK decrypted", "key_id", meta.KeyID)
 
-	e.withBackoff(ctx, minBackoff, maxBackoff, func() error {
+	helper.WithBackoffFunc(ctx, minBackoff, maxBackoff, func() error {
 		// Decrypt RSAKey for Workload Identity JWT signing if one exists. Prior to
 		// 1.7 an ed25519 key derived from the root key was used instead of an RSA
 		// key.
@@ -552,7 +533,7 @@ func (e *Encrypter) decryptWrappedKeyTask(ctx context.Context, cancel context.Ca
 		RSAKey: rsaKey,
 	}
 
-	e.withBackoff(ctx, minBackoff, maxBackoff, func() error {
+	helper.WithBackoffFunc(ctx, minBackoff, maxBackoff, func() error {
 		err = e.addCipher(rootKey)
 		if err != nil {
 			err := fmt.Errorf("could not add cipher: %w", err)
@@ -624,14 +605,27 @@ func (e *Encrypter) addCipher(rootKey *structs.RootKey) error {
 
 // GetKey retrieves the key material by ID from the keyring.
 func (e *Encrypter) GetKey(keyID string) (*structs.RootKey, error) {
-	e.lock.RLock()
-	defer e.lock.RUnlock()
+	var ks *keyset
+	var err error
 
-	keyset, err := e.keysetByIDLocked(keyID)
+	ctx, cancel := context.WithTimeout(e.srv.shutdownCtx, 5*time.Second)
+	defer cancel()
+	helper.WithBackoffFunc(ctx, 50*time.Millisecond, 100*time.Millisecond,
+		func() error {
+			e.lock.Lock()
+			defer e.lock.Unlock()
+			var err error
+			ks, err = e.keysetByIDLocked(keyID)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
 	if err != nil {
 		return nil, err
 	}
-	return keyset.rootKey, nil
+
+	return ks.rootKey, nil
 }
 
 // activeKeySetLocked returns the keyset that belongs to the key marked as
@@ -872,10 +866,22 @@ var ErrDecryptFailed = errors.New("unable to decrypt wrapped key")
 // GetPublicKey returns the public signing key for the requested key id or an
 // error if the key could not be found.
 func (e *Encrypter) GetPublicKey(keyID string) (*structs.KeyringPublicKey, error) {
-	e.lock.Lock()
-	defer e.lock.Unlock()
+	var ks *keyset
+	var err error
 
-	ks, err := e.keysetByIDLocked(keyID)
+	ctx, cancel := context.WithTimeout(e.srv.shutdownCtx, 5*time.Second)
+	defer cancel()
+	helper.WithBackoffFunc(ctx, 50*time.Millisecond, 100*time.Millisecond,
+		func() error {
+			e.lock.Lock()
+			defer e.lock.Unlock()
+
+			ks, err = e.keysetByIDLocked(keyID)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
 	if err != nil {
 		return nil, err
 	}

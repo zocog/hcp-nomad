@@ -5,6 +5,7 @@ package nomad
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -506,6 +507,10 @@ func (k *Keyring) listAllKeyMetadata(ws memdb.WatchSet, store *state.StateStore)
 	if legacyIndex > index {
 		index = legacyIndex
 	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].KeyID < keys[j].KeyID
+	})
 
 	return keys, index, nil
 }
