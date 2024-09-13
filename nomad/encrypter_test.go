@@ -595,6 +595,24 @@ func TestEncrypter_Upgrade17(t *testing.T) {
 	initKey, err := srv.State().GetActiveRootKeyMeta(nil)
 	must.NoError(t, err)
 
+	wr := structs.WriteRequest{
+		Namespace: "default",
+		Region:    "global",
+	}
+
+	// Delete the initialization key because it's a newer WrappedRootKey from
+	// 1.9, which isn't under test here.
+	_, _, err = srv.raftApply(
+		structs.WrappedRootKeysDeleteRequestType, structs.KeyringDeleteRootKeyRequest{
+			KeyID:        initKey.KeyID,
+			WriteRequest: wr,
+		})
+	must.NoError(t, err)
+
+	fmt.Println(initKey.KeyID, "DELETED")
+
+	fmt.Println("---------------------------------------------------------")
+
 	// Fake life as a 1.6 server by writing only ed25519 keys
 	oldRootKey, err := structs.NewRootKey(structs.EncryptionAlgorithmAES256GCM)
 	must.NoError(t, err)
@@ -607,27 +625,19 @@ func TestEncrypter_Upgrade17(t *testing.T) {
 	// Add to keyring
 	_, err = srv.encrypter.AddUnwrappedKey(oldRootKey, false)
 	must.NoError(t, err)
+	fmt.Println(oldRootKey.Meta.KeyID, "AddUnwrappedKey")
+	fmt.Println("---------------------------------------------------------")
 
-	// Write metadata to Raft
-	wr := structs.WriteRequest{
-		Namespace: "default",
-		Region:    "global",
-	}
+	// Write a legacy key metadata to Raft
 	req := structs.KeyringUpdateRootKeyMetaRequest{
 		RootKeyMeta:  oldRootKey.Meta,
 		WriteRequest: wr,
 	}
 	_, _, err = srv.raftApply(structs.RootKeyMetaUpsertRequestType, req)
 	must.NoError(t, err)
+	fmt.Println(oldRootKey.Meta.KeyID, "raftApply")
 
-	// Delete the initialization key because it's a newer WrappedRootKey from
-	// 1.9, which isn't under test here.
-	_, _, err = srv.raftApply(
-		structs.WrappedRootKeysDeleteRequestType, structs.KeyringDeleteRootKeyRequest{
-			KeyID:        initKey.KeyID,
-			WriteRequest: wr,
-		})
-	must.NoError(t, err)
+	fmt.Println("---------------------------------------------------------")
 
 	// Create a 1.6 style workload identity
 	claims := &structs.IdentityClaims{

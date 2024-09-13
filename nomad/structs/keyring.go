@@ -114,6 +114,13 @@ type WrappedRootKeys struct {
 	WrappedKeys []*WrappedRootKey
 }
 
+func NewWrappedRootKeys(meta *RootKeyMeta) *WrappedRootKeys {
+	return &WrappedRootKeys{
+		Meta:        meta,
+		WrappedKeys: []*WrappedRootKey{},
+	}
+}
+
 func (w *WrappedRootKeys) Copy() *WrappedRootKeys {
 	return &WrappedRootKeys{
 		Meta:        w.Meta.Copy(),

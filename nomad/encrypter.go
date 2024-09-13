@@ -34,6 +34,8 @@ import (
 	"github.com/hashicorp/nomad/helper/joseutil"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/nomad/structs/config"
+	"github.com/hashicorp/raft"
+	"golang.org/x/exp/maps"
 	"golang.org/x/time/rate"
 )
 
@@ -160,9 +162,12 @@ func (e *Encrypter) loadKeystore() error {
 			return nil
 		}
 
+		//		e.log.Info("LOCK (read) - filepath.Walk locking") // TODO: remove me
 		e.lock.RLock()
+		//		e.log.Info("LOCK (read) - filepath.Walk locked") // TODO: remove me
 		_, ok := e.keyring[id]
 		e.lock.RUnlock()
+		//		e.log.Info("LOCK (read) - filepath.Walk unlocked") // TODO: remove me
 		if ok {
 			return nil // already loaded this key from another file
 		}
@@ -190,16 +195,24 @@ func (e *Encrypter) loadKeystore() error {
 
 func (e *Encrypter) IsReady(ctx context.Context) error {
 	err := helper.WithBackoffFunc(ctx, time.Millisecond*100, time.Second, func() error {
+		//		e.log.Info("LOCK (read) - IsReady locking") // TODO: remove me
 		e.lock.RLock()
-		defer e.lock.RUnlock()
+		//		e.log.Info("LOCK (read) - IsReady locked") // TODO: remove me
+		//		defer e.lock.RUnlock()
+		defer func() {
+			defer e.lock.RUnlock()
+			//			e.log.Info("LOCK (read) - IsReady unlocked") // TODO: remove me
+		}()
 		if len(e.decryptTasks) != 0 {
-			return fmt.Errorf("keyring is not ready")
+			return fmt.Errorf("keyring is not ready - waiting for keys %s",
+				maps.Keys(e.decryptTasks))
 		}
 		return nil
 	})
 	if err != nil {
 		return err
 	}
+	e.log.Warn("Encrypter.IsReady!")
 	return nil
 }
 
@@ -232,8 +245,15 @@ func (e *Encrypter) Encrypt(cleartext []byte) ([]byte, string, error) {
 // Decrypt takes an encrypted buffer and then root key ID. It extracts
 // the nonce, decrypts the content, and returns the cleartext data.
 func (e *Encrypter) Decrypt(ciphertext []byte, keyID string) ([]byte, error) {
+	// e.lock.RLock()
+	// defer e.lock.RUnlock()
+	//	e.log.Info("LOCK (read) - Decrypt locking") // TODO: remove me
 	e.lock.RLock()
-	defer e.lock.RUnlock()
+	//	e.log.Info("LOCK (read) - Decrypt locked") // TODO: remove me
+	defer func() {
+		defer e.lock.RUnlock()
+		//	e.log.Info("LOCK (read) - Decrypt unlocked") // TODO: remove me
+	}()
 
 	keyset, err := e.keysetByIDLocked(keyID)
 	if err != nil {
@@ -266,22 +286,24 @@ func (e *Encrypter) SignClaims(claims *structs.IdentityClaims) (string, string, 
 	// If a key is rotated immediately following a leader election, plans that
 	// are in-flight may get signed before the new leader has the key. Allow for
 	// a short timeout-and-retry to avoid rejecting plans
-	keyset, err := e.activeKeySet()
-	if err != nil {
-		ctx, cancel := context.WithTimeout(e.srv.shutdownCtx, 5*time.Second)
-		defer cancel()
-		for {
-			select {
-			case <-ctx.Done():
-				return "", "", err
-			default:
-				time.Sleep(50 * time.Millisecond)
-				keyset, err = e.activeKeySet()
-				if keyset != nil {
-					break
-				}
+	var ks *keyset
+
+	//  DEBUG remove this log line
+	e.log.Info("SignClaims querying activeKeySet")
+
+	ctx, cancel := context.WithTimeout(e.srv.shutdownCtx, 5*time.Second)
+	defer cancel()
+	err := helper.WithBackoffFunc(ctx, 20*time.Millisecond, 50*time.Millisecond,
+		func() error {
+			var err error
+			ks, err = e.activeKeySet()
+			if err != nil {
+				return err
 			}
-		}
+			return nil
+		})
+	if err != nil {
+		return "", "", err
 	}
 
 	// Add Issuer claim from server configuration
@@ -289,18 +311,18 @@ func (e *Encrypter) SignClaims(claims *structs.IdentityClaims) (string, string, 
 		claims.Issuer = e.issuer
 	}
 
-	opts := (&jose.SignerOptions{}).WithHeader("kid", keyset.rootKey.Meta.KeyID).WithType("JWT")
+	opts := (&jose.SignerOptions{}).WithHeader("kid", ks.rootKey.Meta.KeyID).WithType("JWT")
 
 	var sig jose.Signer
-	if keyset.rsaPrivateKey != nil {
+	if ks.rsaPrivateKey != nil {
 		// If an RSA key has been created prefer it as it is more widely compatible
-		sig, err = jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: keyset.rsaPrivateKey}, opts)
+		sig, err = jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: ks.rsaPrivateKey}, opts)
 		if err != nil {
 			return "", "", err
 		}
 	} else {
 		// No RSA key has been created, fallback to ed25519 which always exists
-		sig, err = jose.NewSigner(jose.SigningKey{Algorithm: jose.EdDSA, Key: keyset.eddsaPrivateKey}, opts)
+		sig, err = jose.NewSigner(jose.SigningKey{Algorithm: jose.EdDSA, Key: ks.eddsaPrivateKey}, opts)
 		if err != nil {
 			return "", "", err
 		}
@@ -311,7 +333,7 @@ func (e *Encrypter) SignClaims(claims *structs.IdentityClaims) (string, string, 
 		return "", "", err
 	}
 
-	return raw, keyset.rootKey.Meta.KeyID, nil
+	return raw, ks.rootKey.Meta.KeyID, nil
 }
 
 // VerifyClaim accepts a previously-signed encoded claim and validates
@@ -379,12 +401,15 @@ func (e *Encrypter) AddWrappedKey(ctx context.Context, wrappedKeys *structs.Wrap
 	logger := e.log.With("key_id", wrappedKeys.Meta.KeyID)
 
 	// DEBUG: remove this log
-	logger.Warn("calling AddWrappedKey", "key_id")
+	logger.Warn("calling AddWrappedKey")
 
 	meta := wrappedKeys.Meta
+
+	//	e.log.Info("LOCK (r/w) - AddWrappedKey locking") // TODO: remove me
 	e.lock.Lock()
+	//	e.log.Info("LOCK (r/w) - AddWrappedKey locked") // TODO: remove me
 	// DEBUG: remove this log
-	logger.Warn("AddWrappedKey: checking keysetByIDLocked")
+	//	logger.Warn("AddWrappedKey: checking keysetByIDLocked")
 
 	_, err := e.keysetByIDLocked(meta.KeyID)
 	if err == nil {
@@ -398,6 +423,8 @@ func (e *Encrypter) AddWrappedKey(ctx context.Context, wrappedKeys *structs.Wrap
 			delete(e.decryptTasks, meta.KeyID)
 		}
 		e.lock.Unlock()
+		//		e.log.Info("LOCK (r/w) - AddWrappedKey unlocked") // TODO: remove me
+		logger.Warn("AddWrappedKey done! (no-op)")
 		return nil
 	}
 
@@ -409,7 +436,7 @@ func (e *Encrypter) AddWrappedKey(ctx context.Context, wrappedKeys *structs.Wrap
 	}
 
 	e.lock.Unlock()
-
+	//	e.log.Info("LOCK (r/w) - AddWrappedKey unlocked") // TODO: remove me
 	// DEBUG: remove this log
 	logger.Warn("AddWrappedKey: no existing key found by GetKey, moving to decrypt")
 
@@ -459,16 +486,25 @@ func (e *Encrypter) AddWrappedKey(ctx context.Context, wrappedKeys *structs.Wrap
 		go e.decryptWrappedKeyTask(completeCtx, cancel, wrapper, provider, meta, wrappedKey)
 	}
 
+	//	e.log.Info("LOCK (r/w) - AddWrappedKey locking (2)") // TODO: remove me
 	e.lock.Lock()
-	defer e.lock.Unlock()
+	//	e.log.Info("LOCK (r/w) - AddWrappedKey locked (2)") // TODO: remove me
+	defer func() {
+		e.lock.Unlock()
+		//		e.log.Info("LOCK (r/w) - AddWrappedKey locked (2)") // TODO: remove me
+	}()
+
 	e.decryptTasks[meta.KeyID] = cancel
+
+	// DEBUG: remove this log
+	logger.Warn("call to AddWrappedKey done!")
 
 	return nil
 }
 
 func (e *Encrypter) replicateFromPeers(ctx context.Context, cancel context.CancelFunc, meta *structs.RootKeyMeta, wrappedKey *structs.WrappedRootKey) {
 	e.log.Warn("start fetch from peers task", "key_id", meta.KeyID)
-	helper.WithBackoffFunc(ctx, time.Second, time.Second*5, func() error {
+	helper.WithBackoffFunc(ctx, time.Millisecond*100, time.Second, func() error {
 		if err := e.srv.replicateKey(ctx, e.log, meta); err != nil {
 			// we want this to be noisy in the logs, so log each time we fail to
 			// replicate
@@ -479,9 +515,14 @@ func (e *Encrypter) replicateFromPeers(ctx context.Context, cancel context.Cance
 	})
 
 	// notify all other tasks that we've completed the decryption
+	//	e.log.Info("LOCK (r/w) - replicateFromPeers locking") // TODO: remove me
 	e.lock.Lock()
+	//	e.log.Info("LOCK (r/w) - replicateFromPeers locked") // TODO: remove me
 	cancel()
-	defer e.lock.Unlock()
+	defer func() {
+		e.lock.Unlock()
+		//	e.log.Info("LOCK (r/w) - replicateFromPeers unlocked") // TODO: remove me
+	}()
 	delete(e.decryptTasks, meta.KeyID)
 	// DEBUG: remove this
 	e.log.Warn("fetch from peers task: done", "key_id", meta.KeyID)
@@ -547,9 +588,14 @@ func (e *Encrypter) decryptWrappedKeyTask(ctx context.Context, cancel context.Ca
 	e.log.Warn("decrypt task: ciper added", "key_id", meta.KeyID)
 
 	// notify all other tasks that we've completed the decryption
+	//	e.log.Info("LOCK (r/w) - decryptWrappedKeyTask locking") // TODO: remove me
 	e.lock.Lock()
+	//	e.log.Info("LOCK (r/w) - decryptWrappedKeyTask locked") // TODO: remove me
 	cancel()
-	defer e.lock.Unlock()
+	defer func() {
+		e.lock.Unlock()
+		//	e.log.Info("LOCK (r/w) - decryptWrappedKeyTask unlocked") // TODO: remove me
+	}()
 	delete(e.decryptTasks, meta.KeyID)
 	// DEBUG: remove this
 	e.log.Warn("decrypt task: done", "key_id", meta.KeyID)
@@ -597,8 +643,13 @@ func (e *Encrypter) addCipher(rootKey *structs.RootKey) error {
 		ks.rsaPKCS1PublicKey = x509.MarshalPKCS1PublicKey(&rsaKey.PublicKey)
 	}
 
+	//	e.log.Info("LOCK (r/w) - addCipher locking") // TODO: remove me
 	e.lock.Lock()
-	defer e.lock.Unlock()
+	//	e.log.Info("LOCK (r/w) - addCipher locked") // TODO: remove me
+	defer func() {
+		e.lock.Unlock()
+		//	e.log.Info("LOCK (r/w) - addCipher unlocked") // TODO: remove me
+	}()
 	e.keyring[rootKey.Meta.KeyID] = &ks
 	return nil
 }
@@ -608,12 +659,18 @@ func (e *Encrypter) GetKey(keyID string) (*structs.RootKey, error) {
 	var ks *keyset
 	var err error
 
-	ctx, cancel := context.WithTimeout(e.srv.shutdownCtx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(e.srv.shutdownCtx, 1*time.Second)
 	defer cancel()
 	helper.WithBackoffFunc(ctx, 50*time.Millisecond, 100*time.Millisecond,
 		func() error {
+			//			e.log.Info("LOCK (r/w) - GetKey locking") // TODO: remove me
 			e.lock.Lock()
-			defer e.lock.Unlock()
+			//			e.log.Info("LOCK (r/w) - GetKey locked") // TODO: remove me
+			defer func() {
+				e.lock.Unlock()
+				//				e.log.Info("LOCK (r/w) - GetKey unlocked") // TODO: remove me
+			}()
+
 			var err error
 			ks, err = e.keysetByIDLocked(keyID)
 			if err != nil {
@@ -623,6 +680,9 @@ func (e *Encrypter) GetKey(keyID string) (*structs.RootKey, error) {
 		})
 	if err != nil {
 		return nil, err
+	}
+	if ks == nil {
+		return nil, fmt.Errorf("no such key")
 	}
 
 	return ks.rootKey, nil
@@ -640,8 +700,13 @@ func (e *Encrypter) activeKeySet() (*keyset, error) {
 	if keyMeta == nil {
 		return nil, fmt.Errorf("keyring has not been initialized yet")
 	}
+	//	e.log.Info("LOCK (read) - activeKeySet locking") // TODO: remove me
 	e.lock.RLock()
-	defer e.lock.RUnlock()
+	//	e.log.Info("LOCK (read) - activeKeySet locked") // TODO: remove me
+	defer func() {
+		e.lock.RUnlock()
+		//		e.log.Info("LOCK (read) - activeKeySet unlocked") // TODO: remove me
+	}()
 	return e.keysetByIDLocked(keyMeta.KeyID)
 }
 
@@ -756,7 +821,7 @@ func (e *Encrypter) saveKeyToStore(rootKey *structs.RootKey, isUpgraded bool) (*
 		wrappedKeys.WrappedKeys = append(wrappedKeys.WrappedKeys, wrappedKey)
 
 	}
-
+	e.log.Warn("saveToKeystore done")
 	return wrappedKeys, nil
 }
 
@@ -1018,6 +1083,39 @@ func (krr *KeyringReplicator) run(ctx context.Context) {
 				}
 
 			}
+
+			// TODO: if the leader takes over but doesn't have the key material
+			// replicated, can it successfully replicate?
+			//
+			// iter, err = store.WrappedRootKeys(nil)
+			// if err != nil {
+			// 	krr.logger.Error("failed to fetch keyring", "error", err)
+			// 	continue
+			// }
+			// for {
+			// 	raw := iter.Next()
+			// 	if raw == nil {
+			// 		break
+			// 	}
+
+			// 	wrappedKeys := raw.(*structs.WrappedRootKeys)
+			// 	keyMeta := wrappedKeys.Meta
+			// 	if key, err := krr.encrypter.GetKey(keyMeta.KeyID); err == nil && len(key.Key) > 0 {
+			// 		// the key material is immutable so if we've already got it
+			// 		// we can move on to the next key
+			// 		continue
+			// 	}
+
+			// 	err := krr.srv.replicateKey(ctx, krr.logger, keyMeta)
+			// 	if err != nil {
+			// 		// don't break the loop on an error, as we want to make sure
+			// 		// we've replicated any keys we can. the rate limiter will
+			// 		// prevent this case from sending excessive RPCs
+			// 		krr.logger.Error(err.Error(), "key", keyMeta.KeyID)
+			// 	}
+
+			// }
+
 		}
 	}
 
@@ -1028,8 +1126,10 @@ func (krr *KeyringReplicator) run(ctx context.Context) {
 // peers have this key.
 func (srv *Server) replicateKey(ctx context.Context, log hclog.Logger, keyMeta *structs.RootKeyMeta) error {
 	keyID := keyMeta.KeyID
-	log.Debug("replicating new key", "id", keyID)
+	// TODO: drop to Debug
+	log.Warn("replicating new key", "id", keyID)
 
+	var err error
 	getReq := &structs.KeyringGetRootKeyRequest{
 		KeyID: keyID,
 		QueryOptions: structs.QueryOptions{
@@ -1038,27 +1138,46 @@ func (srv *Server) replicateKey(ctx context.Context, log hclog.Logger, keyMeta *
 		},
 	}
 	getResp := &structs.KeyringGetRootKeyResponse{}
-	err := srv.RPC("Keyring.Get", getReq, getResp)
+
+	// Key replication needs to tolerate leadership flapping. If a key is
+	// rotated during a leadership transition, it's possible that the new leader
+	// has not yet replicated the key from the old leader before the transition.
+	//
+	// If *we* are the leader then we're likely in this scenario.  Because
+	// Keyring.Get will block for up to 1s waiting for key material, it's
+	// critical for liveness of leader establishment we never send this request
+	// to ourselves
+	_, leaderID := srv.raft.LeaderWithID()
+	if leaderID != raft.ServerID(srv.GetConfig().NodeID) {
+		err = srv.RPC("Keyring.Get", getReq, getResp)
+	}
 
 	if err != nil || getResp.Key == nil {
-		// Key replication needs to tolerate leadership flapping. If a key is
-		// rotated during a leadership transition, it's possible that the new
-		// leader has not yet replicated the key from the old leader before the
-		// transition. Ask all the other servers if they have it.
-		log.Warn("failed to fetch key from current leader, trying peers",
-			"key", keyID, "error", err)
+		// log.Warn("failed to fetch key from current leader, trying peers",
+		// 	"key", keyID, "error", err)
 		getReq.AllowStale = true
+		var err error
+
+		cfg := srv.GetConfig()
+		self := fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Region)
+
 		for _, peer := range srv.getAllPeers() {
+			if peer.Name == self {
+				log.Warn("skipping self")
+				continue
+			}
+
+			log.Warn("attempting to replicate key from peer", "id", keyID, "peer", peer.Name)
 			err = srv.forwardServer(peer, "Keyring.Get", getReq, getResp)
 			if err == nil && getResp.Key != nil {
 				break
 			}
 		}
-		if getResp.Key == nil {
-			log.Error("failed to fetch key from any peer",
-				"key", keyID, "error", err)
-			return fmt.Errorf("failed to fetch key from any peer: %v", err)
-		}
+	}
+	if getResp.Key == nil {
+		log.Error("failed to fetch key from any peer",
+			"key", keyID, "error", err)
+		return fmt.Errorf("failed to fetch key from any peer: %v", err)
 	}
 
 	// TODO: DEBUG: remove this

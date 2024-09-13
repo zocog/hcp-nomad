@@ -2330,7 +2330,8 @@ func (n *nomadFSM) applyRootKeyMetaUpsert(msgType structs.MessageType, buf []byt
 	if err != nil {
 		n.logger.Error("UpsertRootKeyMeta failed to lookup new key", "error", err)
 	}
-	if wrappedKey == nil {
+	if wrappedKey != nil {
+		n.logger.Warn("FSM!!!! key already migrated!")
 		return nil // key has already been migrated
 	}
 
