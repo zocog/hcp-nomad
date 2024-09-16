@@ -245,26 +245,19 @@ func (e *Encrypter) Encrypt(cleartext []byte) ([]byte, string, error) {
 // Decrypt takes an encrypted buffer and then root key ID. It extracts
 // the nonce, decrypts the content, and returns the cleartext data.
 func (e *Encrypter) Decrypt(ciphertext []byte, keyID string) ([]byte, error) {
-	// e.lock.RLock()
-	// defer e.lock.RUnlock()
-	//	e.log.Info("LOCK (read) - Decrypt locking") // TODO: remove me
-	e.lock.RLock()
-	//	e.log.Info("LOCK (read) - Decrypt locked") // TODO: remove me
-	defer func() {
-		defer e.lock.RUnlock()
-		//	e.log.Info("LOCK (read) - Decrypt unlocked") // TODO: remove me
-	}()
 
-	keyset, err := e.keysetByIDLocked(keyID)
+	ctx, cancel := context.WithTimeout(e.srv.shutdownCtx, time.Second)
+	defer cancel()
+	ks, err := e.waitForKey(ctx, keyID)
 	if err != nil {
 		return nil, err
 	}
 
-	nonceSize := keyset.cipher.NonceSize()
+	nonceSize := ks.cipher.NonceSize()
 	nonce := ciphertext[:nonceSize] // nonce was stored alongside ciphertext
 	additional := []byte(keyID)     // keyID was included in the signature inputs
 
-	return keyset.cipher.Open(nil, nonce, ciphertext[nonceSize:], additional)
+	return ks.cipher.Open(nil, nonce, ciphertext[nonceSize:], additional)
 }
 
 // keyIDHeader is the JWT header for the Nomad Key ID used to sign the
@@ -283,25 +276,9 @@ func (e *Encrypter) SignClaims(claims *structs.IdentityClaims) (string, string, 
 		return "", "", errors.New("cannot sign empty claims")
 	}
 
-	// If a key is rotated immediately following a leader election, plans that
-	// are in-flight may get signed before the new leader has the key. Allow for
-	// a short timeout-and-retry to avoid rejecting plans
-	var ks *keyset
-
 	//  DEBUG remove this log line
 	e.log.Info("SignClaims querying activeKeySet")
-
-	ctx, cancel := context.WithTimeout(e.srv.shutdownCtx, 5*time.Second)
-	defer cancel()
-	err := helper.WithBackoffFunc(ctx, 20*time.Millisecond, 50*time.Millisecond,
-		func() error {
-			var err error
-			ks, err = e.activeKeySet()
-			if err != nil {
-				return err
-			}
-			return nil
-		})
+	ks, err := e.activeKeySet()
 	if err != nil {
 		return "", "", err
 	}
@@ -351,8 +328,8 @@ func (e *Encrypter) VerifyClaim(tokenString string) (*structs.IdentityClaims, er
 		return nil, err
 	}
 
-	// Find the Key
-	pubKey, err := e.GetPublicKey(keyID)
+	// Find the key material
+	pubKey, err := e.waitForPublicKey(keyID)
 	if err != nil {
 		return nil, err
 	}
@@ -654,23 +631,16 @@ func (e *Encrypter) addCipher(rootKey *structs.RootKey) error {
 	return nil
 }
 
-// GetKey retrieves the key material by ID from the keyring.
-func (e *Encrypter) GetKey(keyID string) (*structs.RootKey, error) {
+// waitForKey retrieves the key material by ID from the keyring, retrying with
+// geometric backoff until the context expires.
+func (e *Encrypter) waitForKey(ctx context.Context, keyID string) (*keyset, error) {
 	var ks *keyset
 	var err error
 
-	ctx, cancel := context.WithTimeout(e.srv.shutdownCtx, 1*time.Second)
-	defer cancel()
 	helper.WithBackoffFunc(ctx, 50*time.Millisecond, 100*time.Millisecond,
 		func() error {
-			//			e.log.Info("LOCK (r/w) - GetKey locking") // TODO: remove me
-			e.lock.Lock()
-			//			e.log.Info("LOCK (r/w) - GetKey locked") // TODO: remove me
-			defer func() {
-				e.lock.Unlock()
-				//				e.log.Info("LOCK (r/w) - GetKey unlocked") // TODO: remove me
-			}()
-
+			e.lock.RLock()
+			defer e.lock.RUnlock()
 			var err error
 			ks, err = e.keysetByIDLocked(keyID)
 			if err != nil {
@@ -684,13 +654,31 @@ func (e *Encrypter) GetKey(keyID string) (*structs.RootKey, error) {
 	if ks == nil {
 		return nil, fmt.Errorf("no such key")
 	}
+	return ks, nil
+}
+
+// GetKey retrieves the key material by ID from the keyring.
+func (e *Encrypter) GetKey(keyID string) (*structs.RootKey, error) {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+
+	ks, err := e.keysetByIDLocked(keyID)
+	if err != nil {
+		return nil, err
+	}
+	if ks == nil {
+		return nil, fmt.Errorf("no such key")
+	}
 
 	return ks.rootKey, nil
 }
 
 // activeKeySetLocked returns the keyset that belongs to the key marked as
-// active in the state store (so that it's consistent with raft). The
-// called must read-lock the keyring
+// active in the state store (so that it's consistent with raft).
+//
+// If a key is rotated immediately following a leader election, plans that are
+// in-flight may get signed before the new leader has decrypted the key. Allow
+// for a short timeout-and-retry to avoid rejecting plans
 func (e *Encrypter) activeKeySet() (*keyset, error) {
 	store := e.srv.fsm.State()
 	keyMeta, err := store.GetActiveRootKeyMeta(nil)
@@ -700,14 +688,10 @@ func (e *Encrypter) activeKeySet() (*keyset, error) {
 	if keyMeta == nil {
 		return nil, fmt.Errorf("keyring has not been initialized yet")
 	}
-	//	e.log.Info("LOCK (read) - activeKeySet locking") // TODO: remove me
-	e.lock.RLock()
-	//	e.log.Info("LOCK (read) - activeKeySet locked") // TODO: remove me
-	defer func() {
-		e.lock.RUnlock()
-		//		e.log.Info("LOCK (read) - activeKeySet unlocked") // TODO: remove me
-	}()
-	return e.keysetByIDLocked(keyMeta.KeyID)
+
+	ctx, cancel := context.WithTimeout(e.srv.shutdownCtx, time.Second)
+	defer cancel()
+	return e.waitForKey(ctx, keyMeta.KeyID)
 }
 
 // keysetByIDLocked returns the keyset for the specified keyID. The
@@ -928,25 +912,43 @@ func (e *Encrypter) loadKeyFromStore(path string) (*structs.RootKey, error) {
 
 var ErrDecryptFailed = errors.New("unable to decrypt wrapped key")
 
+// waitForPublicKey returns the public signing key for the requested key id or
+// an error if the key could not be found. It blocks up to 1s for key material
+// to be decrypted so that Workload Identities signed by a brand-new key can be
+// verified for stale RPCs made to followers that might not have yet decrypted
+// the key received via Raft
+func (e *Encrypter) waitForPublicKey(keyID string) (*structs.KeyringPublicKey, error) {
+	ctx, cancel := context.WithTimeout(e.srv.shutdownCtx, 1*time.Second)
+	defer cancel()
+	ks, err := e.waitForKey(ctx, keyID)
+	if err != nil {
+		return nil, err
+	}
+
+	pubKey := &structs.KeyringPublicKey{
+		KeyID:      keyID,
+		Use:        structs.PubKeyUseSig,
+		CreateTime: ks.rootKey.Meta.CreateTime,
+	}
+
+	if ks.rsaPrivateKey != nil {
+		pubKey.PublicKey = ks.rsaPKCS1PublicKey
+		pubKey.Algorithm = structs.PubKeyAlgRS256
+	} else {
+		pubKey.PublicKey = ks.eddsaPrivateKey.Public().(ed25519.PublicKey)
+		pubKey.Algorithm = structs.PubKeyAlgEdDSA
+	}
+
+	return pubKey, nil
+}
+
 // GetPublicKey returns the public signing key for the requested key id or an
 // error if the key could not be found.
 func (e *Encrypter) GetPublicKey(keyID string) (*structs.KeyringPublicKey, error) {
-	var ks *keyset
-	var err error
+	e.lock.RLock()
+	defer e.lock.RUnlock()
 
-	ctx, cancel := context.WithTimeout(e.srv.shutdownCtx, 5*time.Second)
-	defer cancel()
-	helper.WithBackoffFunc(ctx, 50*time.Millisecond, 100*time.Millisecond,
-		func() error {
-			e.lock.Lock()
-			defer e.lock.Unlock()
-
-			ks, err = e.keysetByIDLocked(keyID)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
+	ks, err := e.keysetByIDLocked(keyID)
 	if err != nil {
 		return nil, err
 	}
@@ -1083,38 +1085,6 @@ func (krr *KeyringReplicator) run(ctx context.Context) {
 				}
 
 			}
-
-			// TODO: if the leader takes over but doesn't have the key material
-			// replicated, can it successfully replicate?
-			//
-			// iter, err = store.WrappedRootKeys(nil)
-			// if err != nil {
-			// 	krr.logger.Error("failed to fetch keyring", "error", err)
-			// 	continue
-			// }
-			// for {
-			// 	raw := iter.Next()
-			// 	if raw == nil {
-			// 		break
-			// 	}
-
-			// 	wrappedKeys := raw.(*structs.WrappedRootKeys)
-			// 	keyMeta := wrappedKeys.Meta
-			// 	if key, err := krr.encrypter.GetKey(keyMeta.KeyID); err == nil && len(key.Key) > 0 {
-			// 		// the key material is immutable so if we've already got it
-			// 		// we can move on to the next key
-			// 		continue
-			// 	}
-
-			// 	err := krr.srv.replicateKey(ctx, krr.logger, keyMeta)
-			// 	if err != nil {
-			// 		// don't break the loop on an error, as we want to make sure
-			// 		// we've replicated any keys we can. the rate limiter will
-			// 		// prevent this case from sending excessive RPCs
-			// 		krr.logger.Error(err.Error(), "key", keyMeta.KeyID)
-			// 	}
-
-			// }
 
 		}
 	}

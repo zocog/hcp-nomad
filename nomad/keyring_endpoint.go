@@ -306,6 +306,7 @@ func (k *Keyring) Get(args *structs.KeyringGetRootKeyRequest, reply *structs.Key
 			// DEBUG: remove this
 			k.logger.Warn("Keyring.Get RPC calling GetKey", "key_id", keyMeta.KeyID)
 
+			// TODO: move this out of the blocking query
 			// retrieve the key material from the keyring
 			rootKey, err := k.encrypter.GetKey(keyMeta.KeyID)
 			if err != nil {
@@ -436,6 +437,7 @@ func (k *Keyring) ListPublic(args *structs.GenericRequest, reply *structs.Keyrin
 					continue
 				}
 
+				// TODO: move this out of the blocking query
 				pubKey, err := k.encrypter.GetPublicKey(keyMeta.KeyID)
 				if err != nil {
 					return err

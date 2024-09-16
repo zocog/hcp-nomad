@@ -510,12 +510,6 @@ func (s *Server) establishLeadership(stopCh chan struct{}) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(s.shutdownCtx, time.Second*5)
-	defer cancel()
-	if err := s.encrypter.IsReady(ctx); err != nil {
-		return err
-	}
-
 	return nil
 }
 
