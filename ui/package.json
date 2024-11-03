@@ -64,7 +64,7 @@
     "d3-time-format": "^4.0.0",
     "d3-transition": "^3.0.1",
     "duration-js": "^4.0.0",
-    "ember-a11y-testing": "^7.0.0",
+    "ember-a11y-testing": "^7.0.2",
     "ember-auto-import": "^2.4.0",
     "ember-can": "^4.1.0",
     "ember-classic-decorator": "^3.0.0",

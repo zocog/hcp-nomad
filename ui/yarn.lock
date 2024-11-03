@@ -4506,7 +4506,7 @@ bluebird@^3.4.6, bluebird@^3.7.2:
   resolved "https://registry.yarnpkg.com/bluebird/-/bluebird-3.7.2.tgz#9f229c15be272454ffa973ace0dbee79a1b0c36f"
   integrity sha512-XpNj6GDQzdfW+r2Wnn7xiSAd7TM3jzkxGXBGTtWKuSXv1xUV+azxAm8jdWZN06QTQk+2N2XB9jRDkvbmQmcRtg==
 
-body-parser@1.20.2, body-parser@^1.19.0:
+body-parser@1.20.2:
   version "1.20.2"
   resolved "https://registry.yarnpkg.com/body-parser/-/body-parser-1.20.2.tgz#6feb0e21c4724d06de7ff38da36dad4f57a747fd"
   integrity sha512-ml9pReCu3M61kGlqoTm2umSXTlRTuGTx0bfYj+uIUKKYycG5NtSbeetV3faSU6R7ajOPw0g/J1PvK4qNy7s5bA==
@@ -4524,7 +4524,7 @@ body-parser@1.20.2, body-parser@^1.19.0:
     type-is "~1.6.18"
     unpipe "1.0.0"
 
-body-parser@^1.19.1:
+body-parser@^1.19.0, body-parser@^1.19.1:
   version "1.20.3"
   resolved "https://registry.yarnpkg.com/body-parser/-/body-parser-1.20.3.tgz#1953431221c6fb5cd63c4b36d53fab0928e548c6"
   integrity sha512-7rAxByjUMqQ3/bHJy7D6OGXvx/MMc4IqBn/X0fcM1QUcAItpZrBEYhWGem+tzXH90c+G01ypMcYJBO9Y30203g==
@@ -6627,10 +6627,10 @@ ember-a11y-refocus@^3.0.2:
     ember-cli-babel "^7.26.11"
     ember-cli-htmlbars "^6.0.1"
 
-ember-a11y-testing@^7.0.0:
-  version "7.0.0"
-  resolved "https://registry.yarnpkg.com/ember-a11y-testing/-/ember-a11y-testing-7.0.0.tgz#55a86386ee78973fce8e2b9691a38de93d91f0cc"
-  integrity sha512-rOAUQsLx+fl+U0MNLr0MlCQbZ8I7GMaNaRZhLsOOlQt9yTrX9U0G+OdcQFFRCJjJgM/vPiEkqBLQrGOkp0+d+w==
+ember-a11y-testing@^7.0.2:
+  version "7.0.2"
+  resolved "https://registry.yarnpkg.com/ember-a11y-testing/-/ember-a11y-testing-7.0.2.tgz#1e8482a5d066297f71fa3351a0f0e79664c39c04"
+  integrity sha512-Nv7+WIPkkILYMarLQHiXiHwnRtmtAOq2r4d8DZptKJPrl7mLdD1fM3gwzpbG0mTu81LtDmG+yULD+mBYxzP13A==
   dependencies:
     "@ember/test-waiters" "^2.4.3 || ^3.0.0"
     "@scalvert/ember-setup-middleware-reporter" "^0.1.1"
